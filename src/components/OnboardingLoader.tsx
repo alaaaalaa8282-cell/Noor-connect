@@ -1,4 +1,4 @@
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useRef } from 'react';
 import { Loader2, Moon, Settings } from 'lucide-react';
 
 interface OnboardingLoaderProps {
@@ -7,6 +7,7 @@ interface OnboardingLoaderProps {
 
 export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
   const [progress, setProgress] = useState(0);
+  const isMountedRef = useRef(true);
 
   // Simple progress animation
   useEffect(() => {
@@ -17,14 +18,21 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
     console.log('OnboardingLoader: Starting progress animation - duration:', duration);
 
     const timer = setInterval(() => {
+      if (!isMountedRef.current) {
+        clearInterval(timer);
+        return;
+      }
+      
       setProgress(prev => {
         const newProgress = prev + increment;
         if (newProgress >= 100) {
           console.log('OnboardingLoader: Progress complete, calling onComplete');
           clearInterval(timer);
           setTimeout(() => {
-            console.log('OnboardingLoader: Calling onComplete callback');
-            onComplete?.();
+            if (isMountedRef.current) {
+              console.log('OnboardingLoader: Calling onComplete callback');
+              onComplete?.();
+            }
           }, 500);
           return 100;
         }
@@ -34,6 +42,7 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
 
     return () => {
       console.log('OnboardingLoader: Cleaning up interval');
+      isMountedRef.current = false;
       clearInterval(timer);
     };
   }, [onComplete]);
