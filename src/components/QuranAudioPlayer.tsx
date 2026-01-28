@@ -1,5 +1,5 @@
-// version 1.0.2
-import { useEffect, useMemo, useRef, useState, useCallback } from "react";
+// version 1.0.3 - Performance optimized
+import { useEffect, useMemo, useRef, useState, useCallback, memo } from "react";
 import { Pause, Play, SkipBack, SkipForward, User, Volume2, X, Infinity } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
@@ -35,6 +35,26 @@ const SURAH_STARTS: number[] = (() => {
   return starts;
 })();
 
+// Optimized: Lazy load recitations data
+const RECITATIONS_CACHE = new Map<number, QuranComRecitation[]>();
+
+const fetchRecitations = async (): Promise<QuranComRecitation[]> => {
+  if (RECITATIONS_CACHE.has(1)) {
+    return RECITATIONS_CACHE.get(1)!;
+  }
+  
+  try {
+    const res = await fetch("https://api.quran.com/api/v4/resources/recitations");
+    const json = await res.json();
+    const list: QuranComRecitation[] = json?.recitations || [];
+    RECITATIONS_CACHE.set(1, list);
+    return list;
+  } catch (e) {
+    console.error("Failed to fetch reciters:", e);
+    return [];
+  }
+};
+
 const RECITER_MAP: Record<number, string> = {
   7: "ar.alafasy",
   3: "ar.abdurrahmaansudais",
@@ -59,7 +79,8 @@ interface QuranAudioPlayerProps {
   onClose: () => void;
 }
 
-export function QuranAudioPlayer({ 
+// Optimized: Memoize component to prevent unnecessary re-renders
+const QuranAudioPlayer = memo(function QuranAudioPlayer({ 
   surahNumber, 
   surahName, 
   totalAyahs,
@@ -148,21 +169,31 @@ export function QuranAudioPlayer({
     }
   }, [ayah, edition, surahNumber]);
 
+  // Optimized: Lazy load recitations data
   useEffect(() => {
-    const fetchReciters = async () => {
+    let isMounted = true;
+    
+    const loadRecitations = async () => {
+      if (recitations.length > 0) return; // Already loaded
+      
       try {
-        const res = await fetch("https://api.quran.com/api/v4/resources/recitations");
-        const json = await res.json();
-        const list: QuranComRecitation[] = json?.recitations || [];
-        console.log("Quran.com recitations:", list);
-        setRecitations(list);
+        const list = await fetchRecitations();
+        if (isMounted) {
+          setRecitations(list);
+        }
       } catch (e) {
-        console.error("Failed to fetch reciters:", e);
+        console.error("Failed to load reciters:", e);
       }
     };
 
-    fetchReciters();
-  }, []);
+    // Defer loading to not block initial render
+    const timer = setTimeout(loadRecitations, 100);
+    
+    return () => {
+      isMounted = false;
+      clearTimeout(timer);
+    };
+  }, [recitations.length]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -220,8 +251,9 @@ export function QuranAudioPlayer({
     };
   }, [edition, fallbackTo64]);
 
+  // Optimized: Reduce audio buffering frequency
   useEffect(() => {
-    if (!nextAudioSrc) {
+    if (!nextAudioSrc || !seamlessPlayback) {
       bufferAudioRef.current = null;
       bufferedAyahRef.current = null;
       bufferedSrcRef.current = null;
@@ -231,29 +263,50 @@ export function QuranAudioPlayer({
     const nextAyah = ayah + 1;
     if (bufferedAyahRef.current === nextAyah && bufferedSrcRef.current === nextAudioSrc) return;
 
-    if (bufferAudioRef.current) {
-      bufferAudioRef.current.pause();
-      bufferAudioRef.current.src = "";
-      bufferAudioRef.current.load();
+    // Debounce buffering to reduce network requests
+    const bufferTimer = setTimeout(() => {
+      if (bufferAudioRef.current) {
+        bufferAudioRef.current.pause();
+        bufferAudioRef.current.src = "";
+        bufferAudioRef.current.load();
+      }
+
+      const a = new Audio();
+      a.preload = "none"; // Lazy load
+      a.src = nextAudioSrc;
+      
+      // Only preload when user is likely to continue
+      a.addEventListener('canplaythrough', () => {
+        console.log(`Next ayah ${nextAyah} buffered and ready`);
+      }, { once: true });
+      
+      a.load();
+      bufferAudioRef.current = a;
+      bufferedAyahRef.current = nextAyah;
+      bufferedSrcRef.current = nextAudioSrc;
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(bufferTimer);
+  }, [ayah, nextAudioSrc, seamlessPlayback]);
+
+  // Optimized: Memoize handlers to prevent child re-renders
+  const handlePrevAyah = useCallback(() => {
+    if (ayah > 1) {
+      const newAyah = ayah - 1;
+      setAyah(newAyah);
+      onAyahChange?.(newAyah);
     }
+  }, [ayah, onAyahChange]);
 
-    const a = new Audio();
-    a.setAttribute("loading", "lazy");
-    a.preload = "auto";
-    a.src = nextAudioSrc;
-    
-    // Set up for seamless playback
-    a.addEventListener('canplaythrough', () => {
-      console.log(`Next ayah ${nextAyah} buffered and ready for seamless playback`);
-    });
-    
-    a.load();
-    bufferAudioRef.current = a;
-    bufferedAyahRef.current = nextAyah;
-    bufferedSrcRef.current = nextAudioSrc;
-  }, [ayah, nextAudioSrc]);
+  const handleNextAyah = useCallback(() => {
+    if (ayah < totalAyahs) {
+      const newAyah = ayah + 1;
+      setAyah(newAyah);
+      onAyahChange?.(newAyah);
+    }
+  }, [ayah, totalAyahs, onAyahChange]);
 
-  const handlePlayPause = async () => {
+  const handlePlayPause = useCallback(async () => {
     if (!audioRef.current) return;
 
     if (isPlaying) {
@@ -268,25 +321,30 @@ export function QuranAudioPlayer({
         setIsPlaying(false);
       }
     }
-  };
+  }, [isPlaying]);
 
-  const handlePrevAyah = () => {
-    if (ayah > 1) {
-      const newAyah = ayah - 1;
-      setAyah(newAyah);
-      onAyahChange?.(newAyah);
+  const handleSeek = useCallback((value: number[]) => {
+    if (audioRef.current) {
+      audioRef.current.currentTime = value[0];
+      setProgress(value[0]);
     }
-  };
+  }, []);
 
-  const handleNextAyah = () => {
-    if (ayah < totalAyahs) {
-      const newAyah = ayah + 1;
-      setAyah(newAyah);
-      onAyahChange?.(newAyah);
-    }
-  };
+  const formatTime = useCallback((time: number): string => {
+    const mins = Math.floor(time / 60);
+    const secs = Math.floor(time % 60);
+    return `${mins}:${secs.toString().padStart(2, '0')}`;
+  }, []);
 
-  const handleAudioEnded = () => {
+  // Optimized: Memoize event handlers
+  const handleTimeUpdate = useCallback(() => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    setProgress(audio.currentTime);
+    setDuration(audio.duration || 0);
+  }, []);
+
+  const handleAudioEnded = useCallback(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
@@ -331,27 +389,7 @@ export function QuranAudioPlayer({
 
     // Fallback to regular next ayah
     handleNextAyah();
-  };
-
-  const handleTimeUpdate = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-    setProgress(audio.currentTime);
-    setDuration(audio.duration || 0);
-  };
-
-  const handleSeek = (value: number[]) => {
-    if (audioRef.current) {
-      audioRef.current.currentTime = value[0];
-      setProgress(value[0]);
-    }
-  };
-
-  const formatTime = (time: number): string => {
-    const mins = Math.floor(time / 60);
-    const secs = Math.floor(time % 60);
-    return `${mins}:${secs.toString().padStart(2, '0')}`;
-  };
+  }, [ayah, totalAyahs, seamlessPlayback, nextAudioSrc, onAyahChange, handleNextAyah]);
 
   return (
     <Card className="fixed bottom-20 left-4 right-4 z-[60] shadow-lg bg-card/95 backdrop-blur-lg border-border">
@@ -466,4 +504,6 @@ export function QuranAudioPlayer({
       />
     </Card>
   );
-}
+});
+
+export default QuranAudioPlayer;
