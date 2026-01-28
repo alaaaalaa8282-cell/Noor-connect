@@ -1,10 +1,11 @@
-import { lazy, Suspense, useEffect, useMemo } from "react";
+import { lazy, Suspense, useEffect, useMemo, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { LoadingSpinner } from "@/components/LoadingSkeleton";
+import { OnboardingLoader } from "@/components/OnboardingLoader";
 import { performanceMonitor } from "@/lib/performance-monitor";
 
 // Set default theme to dark if no preference saved
@@ -40,6 +41,34 @@ const FestivePopup = lazy(() => import("@/components/FestivePopup"));
 // Optimized: Memoized route component to prevent unnecessary re-renders
 function AppRoutes() {
   const location = useLocation();
+  const [showOnboarding, setShowOnboarding] = useState(true);
+  const [isFirstTime, setIsFirstTime] = useState(false);
+
+  // Check if it's first time
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem('noor-connect-visited');
+    const lastVersion = localStorage.getItem('noor-connect-version');
+    const currentVersion = '1.0.3';
+    
+    if (!hasVisitedBefore || lastVersion !== currentVersion) {
+      setIsFirstTime(true);
+    } else {
+      // If not first time, show onboarding for shorter duration
+      const timer = setTimeout(() => {
+        setShowOnboarding(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
+  // Show onboarding loader for first-time users or updates
+  if (showOnboarding) {
+    return <OnboardingLoader onComplete={handleOnboardingComplete} />;
+  }
 
   // Optimized: Memoize the routes to prevent recreation on every render
   const routes = useMemo(() => (
