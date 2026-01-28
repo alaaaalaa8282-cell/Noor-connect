@@ -37,6 +37,7 @@ const ZakatCalculator = lazy(() => import("./pages/ZakatCalculator"));
 const NamesOfAllah = lazy(() => import("./pages/NamesOfAllah"));
 const IslamicQuiz = lazy(() => import("./pages/IslamicQuiz"));
 const PrayerStats = lazy(() => import("./pages/PrayerStats"));
+const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function AppRoutes() {
@@ -69,6 +70,7 @@ function AppRoutes() {
         <Route path="/names-of-allah" element={<NamesOfAllah />} />
         <Route path="/quiz" element={<IslamicQuiz />} />
         <Route path="/prayer-stats" element={<PrayerStats />} />
+        <Route path="/habit-tracker" element={<HabitTracker />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
