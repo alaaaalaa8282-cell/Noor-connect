@@ -81,6 +81,7 @@ export function QuranAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [recitations, setRecitations] = useState<QuranComRecitation[]>([]);
   const [recitationId, setRecitationId] = useState<number>(7);
+  const [isSeamlessMode, setIsSeamlessMode] = useState(true); // New seamless mode toggle
 
   useEffect(() => {
     setAyah(currentAyah);
@@ -238,11 +239,20 @@ export function QuranAudioPlayer({
     a.setAttribute("loading", "lazy");
     a.preload = "auto";
     a.src = nextAudioSrc;
+    
+    // Enhanced buffering for seamless playback
+    if (isSeamlessMode) {
+      a.addEventListener('canplaythrough', () => {
+        // Audio is ready for seamless playback
+        console.log(`Next ayah ${nextAyah} buffered and ready for seamless playback`);
+      }, { once: true });
+    }
+    
     a.load();
     bufferAudioRef.current = a;
     bufferedAyahRef.current = nextAyah;
     bufferedSrcRef.current = nextAudioSrc;
-  }, [ayah, nextAudioSrc]);
+  }, [ayah, nextAudioSrc, isSeamlessMode]);
 
 
   const handlePlayPause = async () => {
@@ -312,6 +322,53 @@ export function QuranAudioPlayer({
     if (!audio) return;
     setProgress(audio.currentTime);
     setDuration(audio.duration || 0);
+
+    // Seamless playback: Preload next ayah when current is 90% complete
+    if (isSeamlessMode && nextAudioSrc && bufferAudioRef.current) {
+      const progressPercent = (audio.currentTime / audio.duration) * 100;
+      if (progressPercent >= 90 && !bufferAudioRef.current.readyState) {
+        bufferAudioRef.current.load();
+      }
+    }
+
+    // Auto-transition to next ayah seamlessly
+    if (isSeamlessMode && audio.duration > 0) {
+      const timeRemaining = audio.duration - audio.currentTime;
+      if (timeRemaining <= 0.1 && ayah < totalAyahs) { // 100ms before end
+        handleNextAyahSeamless();
+      }
+    }
+  };
+
+  const handleNextAyahSeamless = () => {
+    if (ayah >= totalAyahs) return;
+
+    const nextAyah = ayah + 1;
+    
+    if (isSeamlessMode && bufferAudioRef.current && bufferAudioRef.current.readyState >= 3) {
+      // Seamless transition: Switch to buffered audio immediately
+      const currentAudio = audioRef.current;
+      const nextAudio = bufferAudioRef.current;
+      
+      // Set volume and play next audio
+      nextAudio.volume = volume / 100;
+      nextAudio.play().then(() => {
+        // Switch references
+        audioRef.current = nextAudio;
+        bufferAudioRef.current = currentAudio;
+        
+        // Update state
+        setAyah(nextAyah);
+        onAyahChange?.(nextAyah);
+        
+        // Clean up old audio
+        currentAudio.pause();
+        currentAudio.currentTime = 0;
+      }).catch(console.error);
+    } else {
+      // Fallback to regular transition
+      handleNextAyah();
+    }
   };
 
   const handleSeek = (value: number[]) => {
@@ -358,6 +415,21 @@ export function QuranAudioPlayer({
             ))}
           </SelectContent>
         </Select>
+
+        {/* Seamless Mode Toggle */}
+        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Volume2 className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium">Seamless Playback</span>
+          </div>
+          <Button
+            variant={isSeamlessMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setIsSeamlessMode(!isSeamlessMode)}
+          >
+            {isSeamlessMode ? "ON" : "OFF"}
+          </Button>
+        </div>
 
         {/* Progress Bar */}
         <div className="space-y-1">
