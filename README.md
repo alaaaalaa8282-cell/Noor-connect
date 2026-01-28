@@ -1,73 +1,60 @@
-# Welcome to your Lovable project
+A great GitHub README is essential for F-Droid and for making your project look professional. Since you've cleaned the repository and removed the AI bots, this description will show that Noor Connect is a high-quality, community-focused app.
 
-## Project info
+Copy and paste the following into a file named README.md in your project's root directory:
 
-**URL**: https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca
+🌙 Noor Connect
+Noor Connect is a privacy-focused, open-source Islamic companion app designed to help you stay connected to your faith. Built as a high-performance Progressive Web App (PWA), it offers essential tools for daily worship with zero ads and zero tracking.
 
-## How can I edit this code?
+✨ Key Features
+100+ Authenticated Hadiths: A curated library of daily wisdom from Sahih Bukhari, Sahih Muslim, and other authentic sources, available entirely offline.
 
-There are several ways of editing your application.
+Accurate Prayer Times: Real-time calculation of Salah times based on your location.
 
-**Use Lovable**
+Word-by-Word Sync Engine: A specialized reading engine for a deeper understanding of Islamic texts.
 
-Simply visit the [Lovable Project](https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca) and start prompting.
+Offline First: Designed to work perfectly without an internet connection once installed.
 
-Changes made via Lovable will be committed automatically to this repo.
+Privacy Centric: No data collection, no accounts, and no third-party analytics. 100% FOSS (Free and Open Source Software).
 
-**Use your preferred IDE**
+🚀 Tech Stack
+To ensure the app is fast and lightweight (optimized for devices with even 8GB RAM), we use:
 
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
+Frontend: React + TypeScript + Vite
 
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
+Styling: Tailwind CSS + Shadcn UI
 
-Follow these steps:
+Mobile Bridge: Capacitor (Ready for Android/APK build)
 
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
+Data: Local JSON-driven architecture for instant loading
 
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
+🛠️ Getting Started
+Prerequisites
+Node.js (v18 or higher)
 
-# Step 3: Install the necessary dependencies.
-npm i
+npm or bun
 
-# Step 4: Start the development server with auto-reloading and an instant preview.
+Installation
+Clone the repo:
+
+Bash
+git clone https://github.com/your-username/noor-connect.git
+cd noor-connect
+Install dependencies:
+
+Bash
+npm install
+Run locally:
+
+Bash
 npm run dev
-```
+Open http://localhost:8080 in your browser.
 
-**Edit a file directly in GitHub**
+📱 Mobile Build (Android)
+This project is configured with Capacitor. To generate an APK:
 
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
-
-This project is built with:
-
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
-
-## How can I deploy this project?
-
-Simply open [Lovable](https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca) and click on Share -> Publish.
-
-## Can I connect a custom domain to my Lovable project?
-
-Yes, you can!
-
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
-
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+Bash
+npm run build
+npx cap add android
+npx cap open android
+📄 License
+This project is licensed under the MIT License—see the LICENSE file for details. 
