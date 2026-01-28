@@ -362,6 +362,7 @@ const SurahDetail = () => {
                         fontSize: `${fontSize}px`,
                         fontFamily: selectedFont.family
                       }}
+                      data-font-debug={selectedFont.id}
                     >
                       {ayah.words
                         .filter(w => w.char_type_name === 'word')
