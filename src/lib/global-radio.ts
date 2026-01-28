@@ -56,16 +56,28 @@ const saveRadioState = (state: RadioState): void => {
 
 // Global radio state hook
 export const useGlobalRadio = () => {
-  const [radioState, setRadioState] = useState<RadioState>(loadStoredRadioState());
+  const [radioState, setRadioState] = useState<RadioState>(() => {
+    try {
+      return loadStoredRadioState();
+    } catch (error) {
+      console.error('Failed to load radio state:', error);
+      return DEFAULT_RADIO_STATE;
+    }
+  });
 
   // Save state to localStorage whenever it changes
   useEffect(() => {
-    saveRadioState(radioState);
+    if (radioState) {
+      saveRadioState(radioState);
+    }
   }, [radioState]);
 
   // Update radio state
   const updateRadioState = useCallback((updates: Partial<RadioState>) => {
-    setRadioState(prev => ({ ...prev, ...updates }));
+    setRadioState(prev => {
+      const currentState = prev || DEFAULT_RADIO_STATE;
+      return { ...currentState, ...updates };
+    });
   }, []);
 
   // Play radio
@@ -101,11 +113,14 @@ export const useGlobalRadio = () => {
 
   // Toggle mute
   const toggleMute = useCallback(() => {
-    updateRadioState({ isMuted: !radioState.isMuted });
-  }, [updateRadioState, radioState.isMuted]);
+    setRadioState(prev => {
+      const currentState = prev || DEFAULT_RADIO_STATE;
+      return { ...currentState, isMuted: !currentState.isMuted };
+    });
+  }, []);
 
   return {
-    ...radioState,
+    ...(radioState || DEFAULT_RADIO_STATE),
     updateRadioState,
     playRadio,
     pauseRadio,
