@@ -60,7 +60,7 @@ export default defineConfig(({ mode }) => ({
         runtimeCaching: [
           {
             // For app assets - use NetworkFirst to always get fresh content when online
-            urlPattern: /^https:\/\/noor-connect-ai-hub\.lovable\.app\/assets\/.*/i,
+            urlPattern: /^https:\/\/.*\/assets\/.*/i,
             handler: "NetworkFirst",
             options: {
               cacheName: "static-assets-cache",
