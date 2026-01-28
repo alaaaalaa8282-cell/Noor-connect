@@ -69,8 +69,11 @@ export function QuranAudioPlayer({
 }: QuranAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const bufferAudioRef = useRef<HTMLAudioElement | null>(null);
+  const nextBufferAudioRef = useRef<HTMLAudioElement | null>(null); // Additional buffer
   const bufferedAyahRef = useRef<number | null>(null);
+  const nextBufferedAyahRef = useRef<number | null>(null);
   const bufferedSrcRef = useRef<string | null>(null);
+  const nextBufferedSrcRef = useRef<string | null>(null);
   const skipNextAudioSrcEffectRef = useRef(false);
   const retryingTo64Ref = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -434,10 +437,10 @@ export function QuranAudioPlayer({
       });
     }
 
-    // Seamless playback: Preload next ayah when current is 90% complete
+    // Seamless playback: Preload next ayah when current is 80% complete
     if (isSeamlessMode && nextAudioSrc && bufferAudioRef.current) {
       const progressPercent = (audio.currentTime / audio.duration) * 100;
-      if (progressPercent >= 90 && !bufferAudioRef.current.readyState) {
+      if (progressPercent >= 80 && bufferAudioRef.current.readyState < 3) {
         bufferAudioRef.current.load();
       }
     }
@@ -445,7 +448,7 @@ export function QuranAudioPlayer({
     // Auto-transition to next ayah seamlessly
     if (isSeamlessMode && audio.duration > 0) {
       const timeRemaining = audio.duration - audio.currentTime;
-      if (timeRemaining <= 0.1 && ayah < totalAyahs) { // 100ms before end
+      if (timeRemaining <= 0.05 && ayah < totalAyahs) { // 50ms before end
         handleNextAyahSeamless();
       }
     }
@@ -457,25 +460,39 @@ export function QuranAudioPlayer({
     const nextAyah = ayah + 1;
     
     if (isSeamlessMode && bufferAudioRef.current && bufferAudioRef.current.readyState >= 3) {
-      // Seamless transition: Switch to buffered audio immediately
+      // True cross-fade: Start next audio immediately, then switch
       const currentAudio = audioRef.current;
       const nextAudio = bufferAudioRef.current;
       
-      // Set volume and play next audio
+      // Set volume and start next audio immediately (don't wait for promise)
       nextAudio.volume = volume / 100;
-      nextAudio.play().then(() => {
-        // Switch references
-        audioRef.current = nextAudio;
-        bufferAudioRef.current = currentAudio;
-        
-        // Update state
-        setAyah(nextAyah);
-        onAyahChange?.(nextAyah);
-        
-        // Clean up old audio
-        currentAudio.pause();
-        currentAudio.currentTime = 0;
-      }).catch(console.error);
+      nextAudio.currentTime = 0;
+      
+      // Start playing next audio
+      const playPromise = nextAudio.play();
+      
+      // Switch references immediately (don't wait for play promise)
+      audioRef.current = nextAudio;
+      bufferAudioRef.current = currentAudio;
+      
+      // Update state immediately
+      setAyah(nextAyah);
+      onAyahChange?.(nextAyah);
+      
+      // Handle play promise in background
+      playPromise.catch(error => {
+        console.error('Seamless transition failed:', error);
+        // Fallback to regular transition
+        handleNextAyah();
+      });
+      
+      // Clean up old audio after a short delay
+      setTimeout(() => {
+        if (currentAudio && currentAudio !== audioRef.current) {
+          currentAudio.pause();
+          currentAudio.currentTime = 0;
+        }
+      }, 100);
     } else {
       // Fallback to regular transition
       handleNextAyah();
