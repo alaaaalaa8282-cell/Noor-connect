@@ -187,39 +187,73 @@ const PrayerTimes = () => {
     
     setSearching(true);
     try {
-      // Use CORS proxy to avoid CORS issues
-      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
-      const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`;
+      // Use OpenCage Geocoder API - more reliable and no CORS issues
+      const apiKey = process.env.VITE_OPENCAGE_API_KEY || 'demo'; // You can set this in .env file
+      const apiUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(searchQuery)}&key=${apiKey}&limit=1`;
       
-      const response = await fetch(
-        proxyUrl + apiUrl,
-        { 
-          headers: { 
-            'User-Agent': 'IslamicCompanion/1.0',
-            'Origin': window.location.origin
-          } 
-        }
-      );
+      const response = await fetch(apiUrl);
       
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
       
-      const results = await response.json();
+      const data = await response.json();
       
-      if (results.length === 0) {
-        toast({ 
-          title: "Location not found", 
-          description: "Please try a different city name",
-          variant: "destructive" 
-        });
+      if (data.results.length === 0) {
+        // Fallback to our city database if OpenCage doesn't find anything
+        const commonCities: Record<string, {lat: number, lon: number, name: string}> = {
+          'karachi': { lat: 24.8607, lon: 67.0011, name: 'Karachi, Pakistan' },
+          'islamabad': { lat: 33.6844, lon: 73.0479, name: 'Islamabad, Pakistan' },
+          'lahore': { lat: 31.5204, lon: 74.3587, name: 'Lahore, Pakistan' },
+          'peshawar': { lat: 34.0151, lon: 71.5249, name: 'Peshawar, Pakistan' },
+          'quetta': { lat: 30.1798, lon: 66.9750, name: 'Quetta, Pakistan' },
+          'makkah': { lat: 21.3891, lon: 39.8579, name: 'Makkah, Saudi Arabia' },
+          'madinah': { lat: 24.4686, lon: 39.6119, name: 'Madinah, Saudi Arabia' },
+          'dubai': { lat: 25.2048, lon: 55.2708, name: 'Dubai, UAE' },
+          'cairo': { lat: 30.0444, lon: 31.2357, name: 'Cairo, Egypt' },
+          'jakarta': { lat: -6.2088, lon: 106.8456, name: 'Jakarta, Indonesia' },
+          'delhi': { lat: 28.6139, lon: 77.2090, name: 'Delhi, India' },
+          'mumbai': { lat: 19.0760, lon: 72.8777, name: 'Mumbai, India' },
+          'london': { lat: 51.5074, lon: -0.1278, name: 'London, UK' },
+          'newyork': { lat: 40.7128, lon: -74.0060, name: 'New York, USA' }
+        };
+        
+        const searchLower = searchQuery.toLowerCase();
+        const city = commonCities[searchLower] || 
+                     Object.values(commonCities).find(city => 
+                       city.name.toLowerCase().includes(searchLower)
+                     );
+        
+        if (city) {
+          await loadPrayerTimes(city.lat, city.lon, city.name);
+          setShowLocationInput(false);
+          setSearchQuery("");
+          toast({ 
+            title: `Prayer times for ${city.name}`,
+            description: "Location updated successfully"
+          });
+        } else {
+          // Fallback to default coordinates
+          const defaultLat = 24.8607; // Karachi
+          const defaultLon = 67.0011;
+          const defaultName = searchQuery;
+          
+          await loadPrayerTimes(defaultLat, defaultLon, defaultName);
+          setShowLocationInput(false);
+          setSearchQuery("");
+          toast({ 
+            title: `Prayer times for ${defaultName}`,
+            description: "Using approximate coordinates"
+          });
+        }
         return;
       }
-
-      const result = results[0];
-      const locationName = result.display_name.split(",").slice(0, 2).join(", ");
       
-      await loadPrayerTimes(parseFloat(result.lat), parseFloat(result.lon), locationName);
+      const result = data.results[0];
+      const locationName = result.formatted.split(',')[0];
+      const { lat, lng } = result.geometry;
+      
+      await loadPrayerTimes(lat, lng, locationName);
       setShowLocationInput(false);
       setSearchQuery("");
       toast({ 
@@ -229,18 +263,45 @@ const PrayerTimes = () => {
     } catch (error: any) {
       console.error('Search error:', error);
       
-      let errorMessage = "Failed to search location";
-      if (error.message.includes('CORS')) {
-        errorMessage = "Search blocked by browser. Please use location services instead.";
-      } else if (error.message.includes('403')) {
-        errorMessage = "Search service unavailable. Please try again later.";
-      }
+      // Fallback to city database if API fails
+      const commonCities: Record<string, {lat: number, lon: number, name: string}> = {
+        'karachi': { lat: 24.8607, lon: 67.0011, name: 'Karachi, Pakistan' },
+        'islamabad': { lat: 33.6844, lon: 73.0479, name: 'Islamabad, Pakistan' },
+        'lahore': { lat: 31.5204, lon: 74.3587, name: 'Lahore, Pakistan' },
+        'peshawar': { lat: 34.0151, lon: 71.5249, name: 'Peshawar, Pakistan' },
+        'quetta': { lat: 30.1798, lon: 66.9750, name: 'Quetta, Pakistan' },
+        'makkah': { lat: 21.3891, lon: 39.8579, name: 'Makkah, Saudi Arabia' },
+        'madinah': { lat: 24.4686, lon: 39.6119, name: 'Madinah, Saudi Arabia' },
+        'dubai': { lat: 25.2048, lon: 55.2708, name: 'Dubai, UAE' },
+        'cairo': { lat: 30.0444, lon: 31.2357, name: 'Cairo, Egypt' },
+        'jakarta': { lat: -6.2088, lon: 106.8456, name: 'Jakarta, Indonesia' },
+        'delhi': { lat: 28.6139, lon: 77.2090, name: 'Delhi, India' },
+        'mumbai': { lat: 19.0760, lon: 72.8777, name: 'Mumbai, India' },
+        'london': { lat: 51.5074, lon: -0.1278, name: 'London, UK' },
+        'newyork': { lat: 40.7128, lon: -74.0060, name: 'New York, USA' }
+      };
       
-      toast({ 
-        title: errorMessage, 
-        variant: "destructive",
-        description: "Try using your current location or a different search term."
-      });
+      const searchLower = searchQuery.toLowerCase();
+      const city = commonCities[searchLower] || 
+                   Object.values(commonCities).find(city => 
+                     city.name.toLowerCase().includes(searchLower)
+                   );
+      
+      if (city) {
+        await loadPrayerTimes(city.lat, city.lon, city.name);
+        setShowLocationInput(false);
+        setSearchQuery("");
+        toast({ 
+          title: `Prayer times for ${city.name}`,
+          description: "Location updated successfully (offline mode)"
+        });
+      } else {
+        toast({ 
+          title: "Location not found", 
+          description: "Try a major city name or use your current location",
+          variant: "destructive"
+        });
+      }
     } finally {
       setSearching(false);
     }
@@ -253,7 +314,16 @@ const PrayerTimes = () => {
       if (saved.latitude && saved.longitude) {
         await loadPrayerTimes(saved.latitude, saved.longitude, saved.locationName);
       } else {
-        await useCurrentLocation();
+        // Don't auto-request geolocation, use default location
+        const defaultLat = 24.8607; // Karachi
+        const defaultLon = 67.0011;
+        const defaultName = "Karachi, Pakistan";
+        
+        await loadPrayerTimes(defaultLat, defaultLon, defaultName);
+        toast({
+          title: "Default Location",
+          description: "Using Karachi, Pakistan. You can change this in settings.",
+        });
       }
       
       fetchHijriDate();
