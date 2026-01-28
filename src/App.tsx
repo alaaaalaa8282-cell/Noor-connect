@@ -38,7 +38,7 @@ const IslamicQuiz = lazy(() => import("./pages/IslamicQuiz"));
 const PrayerStats = lazy(() => import("./pages/PrayerStats"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const QuranRadio = lazy(() => import("./pages/QuranRadio"));
-const GlobalRadioPlayer = lazy(() => import("./components/GlobalRadioPlayer"));
+const GlobalRadioPlayer = lazy(() => import("./components/GlobalRadioPlayer").then(module => ({ default: module.GlobalRadioPlayer })));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function AppRoutes() {
@@ -84,12 +84,14 @@ const App = () => {
     // Start the notification manager
     notificationManager.start();
     
-    // Register Service Worker
-    serviceWorkerManager.register().then(success => {
-      if (success) {
-        console.log('Service Worker registered successfully');
-      }
-    });
+    // Register Service Worker (only if not already registered in main.tsx)
+    if (!navigator.serviceWorker.controller) {
+      serviceWorkerManager.register().then(success => {
+        if (success) {
+          console.log('Service Worker registered successfully');
+        }
+      });
+    }
     
     // Initialize global radio state
     const savedRadioState = localStorage.getItem('global-radio-state');

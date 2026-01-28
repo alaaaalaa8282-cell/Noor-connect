@@ -2,7 +2,12 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 
-createRoot(document.getElementById("root")!).render(<App />);
+const rootElement = document.getElementById("root");
+if (rootElement) {
+  createRoot(rootElement).render(<App />);
+} else {
+  console.error("Root element not found");
+}
 
 // Service worker registration with auto-update
 if ('serviceWorker' in navigator) {
@@ -22,6 +27,7 @@ if ('serviceWorker' in navigator) {
           newWorker.addEventListener('statechange', () => {
             if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
               // New content available, reload to get it
+              console.log('New service worker available, reloading...');
               window.location.reload();
             }
           });
@@ -30,6 +36,7 @@ if ('serviceWorker' in navigator) {
 
       // Handle controller change (new SW took over)
       navigator.serviceWorker.addEventListener('controllerchange', () => {
+        console.log('Service worker controller changed, reloading...');
         window.location.reload();
       });
 
