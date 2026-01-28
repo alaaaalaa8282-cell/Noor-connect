@@ -41,34 +41,6 @@ const FestivePopup = lazy(() => import("@/components/FestivePopup"));
 // Optimized: Memoized route component to prevent unnecessary re-renders
 function AppRoutes() {
   const location = useLocation();
-  const [showOnboarding, setShowOnboarding] = useState(true);
-  const [isFirstTime, setIsFirstTime] = useState(false);
-
-  // Check if it's first time
-  useEffect(() => {
-    const hasVisitedBefore = localStorage.getItem('noor-connect-visited');
-    const lastVersion = localStorage.getItem('noor-connect-version');
-    const currentVersion = '1.0.3';
-    
-    if (!hasVisitedBefore || lastVersion !== currentVersion) {
-      setIsFirstTime(true);
-    } else {
-      // If not first time, show onboarding for shorter duration
-      const timer = setTimeout(() => {
-        setShowOnboarding(false);
-      }, 2000);
-      return () => clearTimeout(timer);
-    }
-  }, []);
-
-  const handleOnboardingComplete = () => {
-    setShowOnboarding(false);
-  };
-
-  // Show onboarding loader for first-time users or updates
-  if (showOnboarding) {
-    return <OnboardingLoader onComplete={handleOnboardingComplete} />;
-  }
 
   // Optimized: Memoize the routes to prevent recreation on every render
   const routes = useMemo(() => (
@@ -112,6 +84,37 @@ function AppRoutes() {
 }
 
 const App = () => {
+  const [showOnboarding, setShowOnboarding] = useState(true);
+
+  // Check if it's first time and handle onboarding
+  useEffect(() => {
+    const hasVisitedBefore = localStorage.getItem('noor-connect-visited');
+    const lastVersion = localStorage.getItem('noor-connect-version');
+    const currentVersion = '1.0.3';
+    
+    // Check if first time or version updated
+    const isFirstTime = !hasVisitedBefore || lastVersion !== currentVersion;
+    
+    if (isFirstTime) {
+      localStorage.setItem('noor-connect-visited', 'true');
+      localStorage.setItem('noor-connect-version', currentVersion);
+    } else {
+      // If not first time, show onboarding for shorter duration
+      const timer = setTimeout(() => {
+        setShowOnboarding(false);
+      }, 2000);
+      return () => clearTimeout(timer);
+    }
+  }, []);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+  };
+
+  // Show onboarding loader for first-time users or updates
+  if (showOnboarding) {
+    return <OnboardingLoader onComplete={handleOnboardingComplete} />;
+  }
   // Optimized: Initialize services only when needed
   useEffect(() => {
     // Defer heavy initialization to not block initial render

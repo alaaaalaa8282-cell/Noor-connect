@@ -75,6 +75,21 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
     setLoadingStage('loading');
   }, []);
 
+  // Fallback timeout to ensure onboarding completes
+  useEffect(() => {
+    const fallbackTimer = setTimeout(() => {
+      if (loadingStage !== 'complete') {
+        console.log('Onboarding fallback timeout triggered');
+        setLoadingStage('complete');
+        setTimeout(() => {
+          onComplete?.();
+        }, 500);
+      }
+    }, 15000); // 15 seconds max
+
+    return () => clearTimeout(fallbackTimer);
+  }, [loadingStage, onComplete]);
+
   // Simulate loading progress for each section
   useEffect(() => {
     if (loadingStage !== 'loading') return;
@@ -89,7 +104,7 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
     }
 
     const section = LOADING_SECTIONS[currentSection];
-    const sectionDuration = section.estimatedTime * 1000; // Convert to ms
+    const sectionDuration = section.estimatedTime * 800; // Reduced duration for faster loading
     const progressInterval = 50; // Update every 50ms
     const progressIncrement = 100 / (sectionDuration / progressInterval);
 
@@ -104,7 +119,7 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
             setProgress(0);
             // Update total progress
             setTotalProgress(prev => Math.min(prev + (100 / LOADING_SECTIONS.length), 95));
-          }, 300);
+          }, 200);
           return 100;
         }
         return newProgress;
