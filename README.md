@@ -1,6 +1,3 @@
-A great GitHub README is essential for F-Droid and for making your project look professional. Since you've cleaned the repository and removed the AI bots, this description will show that Noor Connect is a high-quality, community-focused app.
-
-Copy and paste the following into a file named README.md in your project's root directory:
 
 🌙 Noor Connect
 Noor Connect is a privacy-focused, open-source Islamic companion app designed to help you stay connected to your faith. Built as a high-performance Progressive Web App (PWA), it offers essential tools for daily worship with zero ads and zero tracking.
