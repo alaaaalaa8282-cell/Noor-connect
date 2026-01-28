@@ -1,8 +1,12 @@
-import { useEffect, useState, useMemo, useCallback, memo, lazy } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Loader2, Moon, Sun, Sunset, Cloud, CloudMoon, Bell, BellOff, Calendar, BookOpen, Navigation } from "lucide-react";
 import { AppBar } from "@/components/AppBar";
+import { SalahTracker } from "@/components/SalahTracker";
+import { WeeklySalahChart } from "@/components/WeeklySalahChart";
+import { QazaTracker } from "@/components/QazaTracker";
+import { PrayerCountdown } from "@/components/PrayerCountdown";
 import { Button } from "@/components/ui/button";
 import { getTimeFormat, getPrayerSettings, setPrayerSettings } from "@/lib/storage";
 import { useLocationState } from "@/lib/location-state";
@@ -10,19 +14,21 @@ import { AladhanAPI } from "@/lib/aladhan-api";
 import { useToast } from "@/hooks/use-toast";
 import { LocationCardSkeleton, PrayerTimeSkeleton, CountdownCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
 
-// Lazy load heavy components
-const SalahTracker = lazy(() => import("@/components/SalahTracker"));
-const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart"));
-const QazaTracker = lazy(() => import("@/components/QazaTracker"));
-const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown"));
-
 interface PrayerTime {
   name: string;
   time: string;
   date: Date;
 }
 
-const Dashboard = memo(function Dashboard() {
+const prayerIcons: Record<string, React.ReactNode> = {
+  Fajr: <Moon className="w-5 h-5" />,
+  Dhuhr: <Sun className="w-5 h-5" />,
+  Asr: <Cloud className="w-5 h-5" />,
+  Maghrib: <Sunset className="w-5 h-5" />,
+  Isha: <CloudMoon className="w-5 h-5" />,
+};
+
+export default function Dashboard() {
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [greeting, setGreeting] = useState("");
@@ -38,15 +44,6 @@ const Dashboard = memo(function Dashboard() {
   
   // Global location state
   const location = useLocationState();
-
-  // Optimized: Memoize prayer icons to prevent recreation
-  const prayerIcons = useMemo(() => ({
-    Fajr: <Moon className="w-5 h-5" />,
-    Dhuhr: <Sun className="w-5 h-5" />,
-    Asr: <Cloud className="w-5 h-5" />,
-    Maghrib: <Sunset className="w-5 h-5" />,
-    Isha: <CloudMoon className="w-5 h-5" />,
-  }), []);
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
@@ -419,6 +416,4 @@ const Dashboard = memo(function Dashboard() {
       </div>
     </div>
   );
-});
-
-export default Dashboard;
+}

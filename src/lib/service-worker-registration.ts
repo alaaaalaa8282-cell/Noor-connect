@@ -1,3 +1,10 @@
+// Extend Window interface for PWA install prompt
+declare global {
+  interface Window {
+    deferredPrompt?: any;
+  }
+}
+
 /**
  * Service Worker Registration and Communication
  * Handles PWA registration, background sync, and communication with Service Worker
@@ -105,13 +112,17 @@ class ServiceWorkerManager {
     }
 
     try {
+      // Type assertion for periodicSync API
+      const periodicSync = (this.registration as any).periodicSync;
+      if (!periodicSync) return;
+      
       // Register periodic sync for prayer times (every hour)
-      await this.registration.periodicSync.register('prayer-times-check', {
+      await periodicSync.register('prayer-times-check', {
         minInterval: 60 * 60 * 1000 // 1 hour
       });
 
       // Register periodic sync for Islamic events (every 6 hours)
-      await this.registration.periodicSync.register('islamic-events-check', {
+      await periodicSync.register('islamic-events-check', {
         minInterval: 6 * 60 * 60 * 1000 // 6 hours
       });
 

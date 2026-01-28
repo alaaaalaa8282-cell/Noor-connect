@@ -8,7 +8,7 @@ import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
 import { getBookmarksForSurah, toggleBookmark } from "@/lib/storage";
-import QuranAudioPlayer from "@/components/QuranAudioPlayer";
+import { QuranAudioPlayer } from "@/components/QuranAudioPlayer";
 
 // Available Arabic fonts
 const ARABIC_FONTS = [

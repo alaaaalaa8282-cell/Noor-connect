@@ -16,53 +16,6 @@ export default defineConfig(({ mode }) => ({
       },
     },
   },
-  build: {
-    // Optimize build for performance
-    target: 'esnext',
-    minify: 'terser',
-    sourcemap: false,
-    // Code splitting optimization
-    rollupOptions: {
-      output: {
-        // Manual chunk splitting for better caching
-        manualChunks: {
-          // Vendor chunks
-          'react-vendor': ['react', 'react-dom', 'react-router-dom'],
-          'ui-vendor': ['@radix-ui/react-dialog', '@radix-ui/react-select', '@radix-ui/react-tabs'],
-          'utils-vendor': ['date-fns', 'clsx', 'tailwind-merge'],
-          'chart-vendor': ['recharts'],
-          'pdf-vendor': ['react-pdf'],
-          'quran-vendor': ['adhan'],
-          // Heavy components
-          'quran-pages': ['./src/pages/Quran.tsx', './src/pages/SurahDetail.tsx'],
-          'ebooks-pages': ['./src/pages/Ebooks.tsx'],
-          'dashboard-pages': ['./src/pages/Dashboard.tsx'],
-        },
-        // Optimize chunk naming
-        chunkFileNames: (chunkInfo) => {
-          const facadeModuleId = chunkInfo.facadeModuleId ? chunkInfo.facadeModuleId.split('/').pop() : 'chunk';
-          return `assets/[name]-[hash].js`;
-        },
-      },
-    },
-    // Increase chunk size warning limit for this specific app
-    chunkSizeWarningLimit: 1000,
-    // Enable CSS code splitting
-    cssCodeSplit: true,
-  },
-  // Optimize dependencies
-  optimizeDeps: {
-    include: [
-      'react',
-      'react-dom',
-      'react-router-dom',
-      'date-fns',
-      'clsx',
-      'tailwind-merge',
-      'lucide-react',
-    ],
-    exclude: ['@capacitor/background-runner'],
-  },
   plugins: [
     react(),
     mode === "development" && componentTagger(),
@@ -104,36 +57,21 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
         // Claim clients immediately so new SW takes over
         clientsClaim: true,
-        // Optimize caching strategies
         runtimeCaching: [
           {
-            // For app assets - use CacheFirst for better performance
+            // For app assets - use NetworkFirst to always get fresh content when online
             urlPattern: /^https:\/\/noor-connect-ai-hub\.lovable\.app\/assets\/.*/i,
-            handler: "CacheFirst",
+            handler: "NetworkFirst",
             options: {
               cacheName: "static-assets-cache",
               expiration: {
                 maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
               },
               cacheableResponse: {
                 statuses: [0, 200]
-              }
-            }
-          },
-          {
-            // For Quran audio - CacheFirst for offline playback
-            urlPattern: /^https:\/\/cdn\.islamic\.network\/quran\/audio\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "quran-audio-cache",
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
+              networkTimeoutSeconds: 3 // Fallback to cache if network takes too long
             }
           },
           {
@@ -144,27 +82,12 @@ export default defineConfig(({ mode }) => ({
               cacheName: "api-cache",
               expiration: {
                 maxEntries: 50,
-                maxAgeSeconds: 60 * 30 // 30 minutes
+                maxAgeSeconds: 60 * 60 // 1 hour
               },
               cacheableResponse: {
                 statuses: [0, 200]
               },
               networkTimeoutSeconds: 5
-            }
-          },
-          {
-            // For Quran.com API - StaleWhileRevalidate for better UX
-            urlPattern: /^https:\/\/api\.quran\.com\/.*/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "quran-api-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
             }
           },
           {
