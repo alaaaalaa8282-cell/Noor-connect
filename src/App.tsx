@@ -98,6 +98,11 @@ const App = () => {
     if (isFirstTime) {
       localStorage.setItem('noor-connect-visited', 'true');
       localStorage.setItem('noor-connect-version', currentVersion);
+      // For first time users, show onboarding for 8 seconds max
+      const timer = setTimeout(() => {
+        setShowOnboarding(false);
+      }, 8000);
+      return () => clearTimeout(timer);
     } else {
       // If not first time, show onboarding for shorter duration
       const timer = setTimeout(() => {
