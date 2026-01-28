@@ -1,0 +1,406 @@
+/**
+ * Noor Connect Service Worker
+ * Handles background prayer time checking, intelligent notifications, and PWA functionality
+ */
+
+const CACHE_NAME = 'noor-connect-v1';
+const API_CACHE_NAME = 'noor-connect-api-v1';
+
+// Islamic prayer times and events data
+const PRAYER_TIMES = {
+  fajr: { time: '05:30', adhan: 'fajr-adhan.mp3' },
+  dhuhr: { time: '12:30', adhan: 'dhuhr-adhan.mp3' },
+  asr: { time: '15:45', adhan: 'asr-adhan.mp3' },
+  maghrib: { time: '18:15', adhan: 'maghrib-adhan.mp3' },
+  isha: { time: '19:30', adhan: 'isha-adhan.mp3' }
+};
+
+// 2026 Islamic Events Data
+const ISLAMIC_EVENTS_2026 = {
+  ramadan: {
+    start: new Date('2026-02-18'), // Approximate Ramadan 1447 AH start
+    countdownStart: new Date('2026-01-19') // 30 days before
+  },
+  eidFitr: new Date('2026-03-21'), // Approximate Eid-ul-Fitr 1447 AH
+  eidAdha: new Date('2026-06-20'), // Approximate Eid-ul-Adha 1447 AH
+  fridayKahf: { day: 5, time: '10:00' } // Friday is day 5 (0=Sunday)
+};
+
+// Notification history storage
+let notificationHistory = [];
+
+// Install event - cache essential files
+self.addEventListener('install', (event) => {
+  console.log('Service Worker: Installing...');
+  event.waitUntil(
+    caches.open(CACHE_NAME)
+      .then((cache) => {
+        return cache.addAll([
+          '/',
+          '/index.html',
+          '/manifest.json',
+          '/icon-192x192.png',
+          '/icon-512x512.png'
+        ]);
+      })
+      .then(() => {
+        console.log('Service Worker: Installation complete');
+        return self.skipWaiting();
+      })
+  );
+});
+
+// Activate event - clean up old caches
+self.addEventListener('activate', (event) => {
+  console.log('Service Worker: Activating...');
+  event.waitUntil(
+    caches.keys().then((cacheNames) => {
+      return Promise.all(
+        cacheNames.map((cacheName) => {
+          if (cacheName !== CACHE_NAME && cacheName !== API_CACHE_NAME) {
+            console.log('Service Worker: Deleting old cache:', cacheName);
+            return caches.delete(cacheName);
+          }
+        })
+      );
+    }).then(() => {
+      console.log('Service Worker: Activation complete');
+      return self.clients.claim();
+    })
+  );
+});
+
+// Fetch event - handle network requests
+self.addEventListener('fetch', (event) => {
+  const url = new URL(event.request.url);
+  
+  // Cache API calls
+  if (url.pathname.startsWith('/api/') || url.hostname.includes('aladhan.com')) {
+    event.respondWith(
+      caches.open(API_CACHE_NAME)
+        .then((cache) => {
+          return cache.match(event.request)
+            .then((response) => {
+              if (response) {
+                // Return cached response, but also fetch fresh data
+                fetch(event.request).then((freshResponse) => {
+                  if (freshResponse.ok) {
+                    cache.put(event.request, freshResponse.clone());
+                  }
+                });
+                return response;
+              }
+              
+              // Fetch from network and cache
+              return fetch(event.request)
+                .then((response) => {
+                  if (response.ok) {
+                    cache.put(event.request, response.clone());
+                  }
+                  return response;
+                })
+                .catch(() => {
+                  // Return offline page or error
+                  return new Response('Offline', { status: 503 });
+                });
+            });
+        })
+    );
+    return;
+  }
+  
+  // Cache other files
+  event.respondWith(
+    caches.match(event.request)
+      .then((response) => {
+        return response || fetch(event.request);
+      })
+  );
+});
+
+// Background sync and periodic sync
+self.addEventListener('sync', (event) => {
+  console.log('Service Worker: Background sync triggered');
+  if (event.tag === 'prayer-times-check') {
+    event.waitUntil(checkPrayerTimes());
+  } else if (event.tag === 'islamic-events-check') {
+    event.waitUntil(checkIslamicEvents());
+  }
+});
+
+// Periodic sync for background checks
+self.addEventListener('periodicsync', (event) => {
+  console.log('Service Worker: Periodic sync triggered');
+  if (event.tag === 'prayer-times-check') {
+    event.waitUntil(checkPrayerTimes());
+  } else if (event.tag === 'islamic-events-check') {
+    event.waitUntil(checkIslamicEvents());
+  }
+});
+
+// Push notification handler
+self.addEventListener('push', (event) => {
+  console.log('Service Worker: Push notification received');
+  
+  if (!event.data) {
+    return;
+  }
+  
+  const data = event.data.json();
+  const options = {
+    body: data.body,
+    icon: '/icon-192x192.png',
+    badge: '/icon-192x192.png',
+    vibrate: [200, 100, 200],
+    data: data.data || {},
+    actions: data.actions || [],
+    requireInteraction: data.requireInteraction || false,
+    silent: data.silent || false,
+    tag: data.tag || 'default'
+  };
+  
+  event.waitUntil(
+    self.registration.showNotification(data.title, options)
+  );
+});
+
+// Notification click handler
+self.addEventListener('notificationclick', (event) => {
+  console.log('Service Worker: Notification clicked');
+  
+  event.notification.close();
+  
+  const urlToOpen = event.notification.data?.url || '/';
+  
+  event.waitUntil(
+    clients.matchAll({ type: 'window', includeUncontrolled: true })
+      .then((clientList) => {
+        // Focus existing window if open
+        for (const client of clientList) {
+          if (client.url === urlToOpen && 'focus' in client) {
+            return client.focus();
+          }
+        }
+        
+        // Open new window
+        if (clients.openWindow) {
+          return clients.openWindow(urlToOpen);
+        }
+      })
+  );
+});
+
+// Check prayer times and send notifications
+async function checkPrayerTimes() {
+  console.log('Service Worker: Checking prayer times...');
+  
+  const now = new Date();
+  const currentTime = formatTime(now);
+  
+  for (const [prayer, config] of Object.entries(PRAYER_TIMES)) {
+    if (currentTime === config.time) {
+      await sendPrayerNotification(prayer, config);
+    }
+  }
+}
+
+// Check Islamic events and send notifications
+async function checkIslamicEvents() {
+  console.log('Service Worker: Checking Islamic events...');
+  
+  const now = new Date();
+  const today = now.toDateString();
+  
+  // Check Ramadan countdown
+  if (now >= ISLAMIC_EVENTS_2026.ramadan.countdownStart && now < ISLAMIC_EVENTS_2026.ramadan.start) {
+    const daysUntil = Math.ceil((ISLAMIC_EVENTS_2026.ramadan.start - now) / (1000 * 60 * 60 * 24));
+    await sendRamadanCountdownNotification(daysUntil);
+  }
+  
+  // Check Eid events
+  if (now.toDateString() === ISLAMIC_EVENTS_2026.eidFitr.toDateString()) {
+    await sendEidNotification('Eid-ul-Fitr');
+  }
+  
+  if (now.toDateString() === ISLAMIC_EVENTS_2026.eidAdha.toDateString()) {
+    await sendEidNotification('Eid-ul-Adha');
+  }
+  
+  // Check Friday Surah Kahf reminder
+  if (now.getDay() === ISLAMIC_EVENTS_2026.fridayKahf.day && 
+      formatTime(now) === ISLAMIC_EVENTS_2026.fridayKahf.time) {
+    await sendFridayKahfNotification();
+  }
+}
+
+// Send prayer time notification
+async function sendPrayerNotification(prayer, config) {
+  const title = `${prayer.charAt(0).toUpperCase() + prayer.slice(1)} Adhan`;
+  const body = `It's time for ${prayer} prayer. Click to play Adhan.`;
+  
+  await showNotification({
+    title,
+    body,
+    tag: `prayer-${prayer}`,
+    requireInteraction: true,
+    data: {
+      url: '/',
+      prayer,
+      adhan: config.adhan
+    },
+    actions: [
+      {
+        action: 'play-adhan',
+        title: 'Play Adhan'
+      }
+    ]
+  });
+  
+  addToHistory({ type: 'prayer', title, body, timestamp: Date.now() });
+}
+
+// Send Ramadan countdown notification
+async function sendRamadanCountdownNotification(daysUntil) {
+  const title = 'Ramadan Countdown';
+  const body = `${daysUntil} day${daysUntil > 1 ? 's' : ''} until Ramadan 1447 AH`;
+  
+  await showNotification({
+    title,
+    body,
+    tag: 'ramadan-countdown',
+    data: {
+      url: '/ramadan'
+    }
+  });
+  
+  addToHistory({ type: 'ramadan-countdown', title, body, timestamp: Date.now() });
+}
+
+// Send Eid notification
+async function sendEidNotification(eidName) {
+  const title = eidName;
+  const body = `Eid Mubarak! May Allah accept your good deeds and fasting.`;
+  
+  await showNotification({
+    title,
+    body,
+    tag: 'eid-greeting',
+    requireInteraction: true,
+    data: {
+      url: '/',
+      eid: eidName
+    }
+  });
+  
+  addToHistory({ type: 'eid', title, body, timestamp: Date.now() });
+}
+
+// Send Friday Kahf notification
+async function sendFridayKahfNotification() {
+  const title = 'Friday Reminder';
+  const body = 'Don\'t forget to read Surah Al-Kahf today! It\'s a Sunnah with great rewards.';
+  
+  await showNotification({
+    title,
+    body,
+    tag: 'friday-kahf',
+    data: {
+      url: '/quran/18'
+    }
+  });
+  
+  addToHistory({ type: 'friday-kahf', title, body, timestamp: Date.now() });
+}
+
+// Helper function to show notifications
+async function showNotification(options) {
+  try {
+    await self.registration.showNotification(options.title, {
+      body: options.body,
+      icon: '/icon-192x192.png',
+      badge: '/icon-192x192.png',
+      vibrate: [200, 100, 200],
+      data: options.data || {},
+      actions: options.actions || [],
+      requireInteraction: options.requireInteraction || false,
+      silent: options.silent || false,
+      tag: options.tag || 'default'
+    });
+  } catch (error) {
+    console.error('Service Worker: Failed to show notification:', error);
+  }
+}
+
+// Add notification to history
+function addToHistory(notification) {
+  notificationHistory.unshift(notification);
+  
+  // Keep only last 100 notifications
+  if (notificationHistory.length > 100) {
+    notificationHistory = notificationHistory.slice(0, 100);
+  }
+  
+  // Save to IndexedDB or localStorage via client message
+  self.clients.matchAll().then(clients => {
+    clients.forEach(client => {
+      client.postMessage({
+        type: 'NOTIFICATION_HISTORY_UPDATE',
+        data: notificationHistory
+      });
+    });
+  });
+}
+
+// Format time helper
+function formatTime(date) {
+  const hours = date.getHours().toString().padStart(2, '0');
+  const minutes = date.getMinutes().toString().padStart(2, '0');
+  return `${hours}:${minutes}`;
+}
+
+// Message handler from client
+self.addEventListener('message', (event) => {
+  const data = event.data;
+  
+  switch (data.type) {
+    case 'GET_NOTIFICATION_HISTORY':
+      event.ports[0].postMessage({
+        type: 'NOTIFICATION_HISTORY',
+        data: notificationHistory
+      });
+      break;
+      
+    case 'CLEAR_NOTIFICATION_HISTORY':
+      notificationHistory = [];
+      event.ports[0].postMessage({
+        type: 'NOTIFICATION_HISTORY_CLEARED'
+      });
+      break;
+      
+    case 'TRIGGER_PRAYER_CHECK':
+      checkPrayerTimes();
+      break;
+      
+    case 'TRIGGER_ISLAMIC_EVENTS_CHECK':
+      checkIslamicEvents();
+      break;
+  }
+});
+
+// Start periodic checks
+function startPeriodicChecks() {
+  // Check prayer times every minute
+  setInterval(checkPrayerTimes, 60000);
+  
+  // Check Islamic events every hour
+  setInterval(checkIslamicEvents, 3600000);
+  
+  // Initial checks
+  checkPrayerTimes();
+  checkIslamicEvents();
+}
+
+// Initialize background checks
+startPeriodicChecks();
+
+console.log('Service Worker: Loaded and ready');

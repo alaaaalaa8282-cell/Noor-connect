@@ -1,0 +1,65 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <link rel="icon" type="image/png" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/favicon.png" />
+    <link rel="manifest" href="/manifest.json" />
+    <title>Noor Connect - Your Islamic Companion</title>
+    <meta name="description" content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
+    <meta name="author" content="Noor Connect" />
+    
+    <!-- Preconnect to critical origins -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    
+    <!-- Preload critical fonts with font-display: swap -->
+    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
+    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap"></noscript>
+    
+    <!-- Open Graph / Twitter meta tags -->
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="Noor Connect - Your Islamic Companion">
+    <meta property="og:description" content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
+    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/zG38t8JuUCWtfhLMVB31C72uggk1/social-images/social-1760802607316-ChatGPT Image Oct 17, 2025, 06_37_39 PM (1).png">
+    <meta name="twitter:card" content="summary_large_image" />
+    <meta name="twitter:site" content="@noor_connect" />
+    <meta name="twitter:title" content="Noor Connect - Your Islamic Companion">
+    <meta name="twitter:description" content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
+    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/zG38t8JuUCWtfhLMVB31C72uggk1/social-images/social-1760802607316-ChatGPT Image Oct 17, 2025, 06_37_39 PM (1).png">
+    
+    <!-- Inline critical CSS for faster FCP -->
+    <style>
+      /* Critical CSS for initial render */
+      body { 
+        font-family: system-ui, -apple-system, sans-serif; 
+        margin: 0;
+        background: #171717;
+      }
+      #root {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+      }
+      /* Initial loading indicator */
+      #root:empty::before {
+        content: '';
+        width: 40px;
+        height: 40px;
+        border: 3px solid #333;
+        border-top-color: #d4af37;
+        border-radius: 50%;
+        animation: spin 1s linear infinite;
+      }
+      @keyframes spin {
+        to { transform: rotate(360deg); }
+      }
+    </style>
+  </head>
+  <body>
+    <div id="root"></div>
+    <script type="module" src="/src/main.tsx"></script>
+  </body>
+</html>
