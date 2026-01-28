@@ -11,13 +11,20 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
 
   // Check if it's first time opening
   useEffect(() => {
+    console.log('OnboardingLoader: Checking first-time status...');
     const hasVisitedBefore = localStorage.getItem('noor-connect-visited');
     const lastVersion = localStorage.getItem('noor-connect-version');
     const currentVersion = '1.0.3';
     
+    console.log('OnboardingLoader: hasVisitedBefore:', hasVisitedBefore);
+    console.log('OnboardingLoader: lastVersion:', lastVersion);
+    
     // Check if first time or version updated
     if (!hasVisitedBefore || lastVersion !== currentVersion) {
       setIsFirstTime(true);
+      console.log('OnboardingLoader: First-time user detected');
+    } else {
+      console.log('OnboardingLoader: Returning user detected');
     }
   }, []);
 
@@ -27,12 +34,16 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
     const interval = 50; // Update every 50ms
     const increment = 100 / (duration / interval);
 
+    console.log('OnboardingLoader: Starting progress animation - duration:', duration, 'isFirstTime:', isFirstTime);
+
     const timer = setInterval(() => {
       setProgress(prev => {
         const newProgress = prev + increment;
         if (newProgress >= 100) {
+          console.log('OnboardingLoader: Progress complete, calling onComplete');
           clearInterval(timer);
           setTimeout(() => {
+            console.log('OnboardingLoader: Calling onComplete callback');
             onComplete?.();
           }, 500);
           return 100;
@@ -41,7 +52,10 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
       });
     }, interval);
 
-    return () => clearInterval(timer);
+    return () => {
+      console.log('OnboardingLoader: Cleaning up interval');
+      clearInterval(timer);
+    };
   }, [isFirstTime, onComplete]);
 
   return (
@@ -112,6 +126,16 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
               ⚡ Optimized for performance • 📱 PWA Ready • 🌙 Dark Mode
             </p>
           )}
+          {/* Emergency bypass button */}
+          <button
+            onClick={() => {
+              console.log('OnboardingLoader: Manual bypass triggered');
+              onComplete?.();
+            }}
+            className="text-xs text-muted-foreground hover:text-foreground underline transition-colors"
+          >
+            Skip to app →
+          </button>
         </div>
       </div>
     </div>

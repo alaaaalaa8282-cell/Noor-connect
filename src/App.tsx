@@ -88,24 +88,39 @@ const App = () => {
 
   // Check if it's first time and handle onboarding
   useEffect(() => {
+    console.log('App: Checking onboarding state...');
+    
+    // Debug: Clear localStorage to test fresh state
+    // localStorage.removeItem('noor-connect-visited');
+    // localStorage.removeItem('noor-connect-version');
+    
     const hasVisitedBefore = localStorage.getItem('noor-connect-visited');
     const lastVersion = localStorage.getItem('noor-connect-version');
     const currentVersion = '1.0.3';
     
+    console.log('App: hasVisitedBefore:', hasVisitedBefore);
+    console.log('App: lastVersion:', lastVersion);
+    console.log('App: currentVersion:', currentVersion);
+    
     // Check if first time or version updated
     const isFirstTime = !hasVisitedBefore || lastVersion !== currentVersion;
+    console.log('App: isFirstTime:', isFirstTime);
     
     if (isFirstTime) {
       localStorage.setItem('noor-connect-visited', 'true');
       localStorage.setItem('noor-connect-version', currentVersion);
+      console.log('App: Set first-time flags');
       // For first time users, show onboarding for 8 seconds max
       const timer = setTimeout(() => {
+        console.log('App: First-time timeout triggered');
         setShowOnboarding(false);
       }, 8000);
       return () => clearTimeout(timer);
     } else {
+      console.log('App: Returning user detected');
       // If not first time, show onboarding for shorter duration
       const timer = setTimeout(() => {
+        console.log('App: Returning user timeout triggered');
         setShowOnboarding(false);
       }, 2000);
       return () => clearTimeout(timer);
@@ -113,8 +128,24 @@ const App = () => {
   }, []);
 
   const handleOnboardingComplete = () => {
+    console.log('App: Onboarding complete callback triggered');
     setShowOnboarding(false);
   };
+
+  // Add emergency bypass - press Escape to skip onboarding
+  useEffect(() => {
+    const handleKeyPress = (e: KeyboardEvent) => {
+      if (e.key === 'Escape') {
+        console.log('App: Emergency bypass triggered');
+        setShowOnboarding(false);
+      }
+    };
+    
+    window.addEventListener('keydown', handleKeyPress);
+    return () => window.removeEventListener('keydown', handleKeyPress);
+  }, []);
+
+  console.log('App: showOnboarding:', showOnboarding);
 
   // Show onboarding loader for first-time users or updates
   if (showOnboarding) {
