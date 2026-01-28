@@ -104,8 +104,8 @@ export function QuranAudioPlayer({
   };
 
   const verseKey = useMemo(() => {
-    return verseKeyByAyahNumber?.get(ayah)?.verseKey ?? `${surahNumber}:${ayah}`;
-  }, [ayah, surahNumber, verseKeyByAyahNumber]);
+    return `${surahNumber}:${ayah}`;
+  }, [ayah, surahNumber]);
 
   const edition = useMemo(() => {
     const slug = RECITER_MAP[recitationId];
@@ -180,10 +180,6 @@ export function QuranAudioPlayer({
     }
 
     retryingTo64Ref.current = false;
-
-    // clear previous ayah's word timing data immediately
-    setSegments(null);
-    setActiveWordPosition(null);
 
     setIsLoading(true);
 
