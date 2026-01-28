@@ -76,7 +76,6 @@ const SurahDetail = () => {
   const [selectedTranslation, setSelectedTranslation] = useState(TRANSLATIONS[0]);
   const [fontSize, setFontSize] = useState(24);
   const [showSettings, setShowSettings] = useState(false);
-  const [activeWord, setActiveWord] = useState<{ verseKey: string; wordPosition: number } | null>(null);
   const lastScrolledWordIdRef = useRef<string | null>(null);
 
   // Load saved preferences
@@ -376,18 +375,11 @@ const SurahDetail = () => {
                     >
                       {ayah.words
                         .filter(w => w.char_type_name === 'word')
-                        .map((w) => {
-                          const isActive = activeWord?.verseKey === ayah.verseKey && activeWord?.wordPosition === w.position;
-                          return (
-                            <span
-                              key={w.id}
-                              id={`word-${ayah.verseKey}-${w.position}`}
-                              className={isActive ? 'highlight-word' : undefined}
-                            >
-                              {w.text_qpc_hafs ?? w.text}{' '}
-                            </span>
-                          );
-                        })}
+                        .map((w) => (
+                          <span key={w.id}>
+                            {w.text_qpc_hafs ?? w.text}{' '}
+                          </span>
+                        ))}
                     </p>
                     {ayah.translation && (
                       <p className="text-sm text-muted-foreground leading-relaxed">
@@ -431,12 +423,6 @@ const SurahDetail = () => {
             totalAyahs={surahData.numberOfAyahs}
             currentAyah={currentAyah}
             onAyahChange={setCurrentAyah}
-            verseKeyByAyahNumber={verseKeyByAyahNumber}
-            onWordHighlight={(ayahNumber, wordPosition) => {
-              const key = verseKeyByAyahNumber.get(ayahNumber)?.verseKey;
-              if (!key) return;
-              setActiveWord({ verseKey: key, wordPosition });
-            }}
             onClose={() => setShowAudioPlayer(false)}
           />
         )}

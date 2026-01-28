@@ -180,10 +180,6 @@ All colors MUST be HSL.
     font-family: 'Amiri', serif !important;
   }
 
-  .highlight-word {
-    background-color: rgba(245, 158, 11, 0.3);
-  }
-
   /* Safe area padding for mobile devices */
   @supports (padding: max(0px)) {
     .pb-safe {
