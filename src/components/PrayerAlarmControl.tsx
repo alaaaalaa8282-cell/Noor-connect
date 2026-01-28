@@ -38,7 +38,7 @@ export const PrayerAlarmControl = () => {
           Adhan Alarm
         </CardTitle>
         <CardDescription>
-          Play Adhan automatically when prayer time arrives
+          Play Adhan automatically when prayer time arrives with 15-minute advance reminders
         </CardDescription>
       </CardHeader>
       <CardContent className="space-y-4">
@@ -74,23 +74,15 @@ export const PrayerAlarmControl = () => {
                 </span>
               </div>
               
-              <div className="flex items-center gap-3 p-3 bg-muted/50 rounded-lg">
-                <Clock className="h-5 w-5 text-primary" />
+              <div className="flex items-center gap-3 p-3 bg-blue-500/10 rounded-lg border border-blue-500/20">
+                <Clock className="h-5 w-5 text-blue-500" />
                 <div className="flex-1">
-                  <p className="text-sm font-medium">Pre-Prayer Reminder</p>
-                  <p className="text-xs text-muted-foreground">Get notified before prayer time</p>
+                  <p className="text-sm font-medium">15-Minute Prayer Reminders</p>
+                  <p className="text-xs text-muted-foreground">Automatic notifications before each prayer</p>
                 </div>
-                <Select value={reminderMinutes} onValueChange={handleReminderChange}>
-                  <SelectTrigger className="w-24">
-                    <SelectValue />
-                  </SelectTrigger>
-                  <SelectContent>
-                    <SelectItem value="0">Off</SelectItem>
-                    <SelectItem value="5">5 min</SelectItem>
-                    <SelectItem value="10">10 min</SelectItem>
-                    <SelectItem value="15">15 min</SelectItem>
-                  </SelectContent>
-                </Select>
+                <div className="text-xs text-blue-600 dark:text-blue-400 font-medium">
+                  Active
+                </div>
               </div>
               
               <div className="flex gap-2">
@@ -132,6 +124,7 @@ export const PrayerAlarmControl = () => {
 
         <p className="text-xs text-muted-foreground mt-2">
           Note: The browser tab must remain open for the alarm to work. 
+          You'll receive 15-minute advance reminders and Adhan notifications.
           Enable notifications for the best experience.
         </p>
       </CardContent>
