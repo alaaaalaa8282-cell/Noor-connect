@@ -1,11 +1,12 @@
 import { NavLink } from "react-router-dom";
-import { Home, BookOpen, MessageCircle, Compass, Heart, Calculator, Calendar, Library, Settings, Trophy, Star, Coins, Target } from "lucide-react";
+import { Home, BookOpen, MessageCircle, Compass, Heart, Calculator, Calendar, Library, Settings, Trophy, Star, Coins, Target, Radio } from "lucide-react";
 
 const navItems = [
   { title: "Home", path: "/", icon: Home, priority: "primary" },
   { title: "Quran", path: "/quran", icon: BookOpen, priority: "primary" },
   { title: "Hadith", path: "/hadith", icon: MessageCircle, priority: "secondary" },
   { title: "Prayer", path: "/prayer-times", icon: Compass, priority: "primary" },
+  { title: "Radio", path: "/quran-radio", icon: Radio, priority: "primary" },
   { title: "Habits", path: "/habit-tracker", icon: Target, priority: "primary" },
   { title: "Duas", path: "/duas", icon: Heart, priority: "secondary" },
   { title: "Tasbeeh", path: "/tasbeeh", icon: Calculator, priority: "secondary" },
