@@ -76,7 +76,6 @@ const SurahDetail = () => {
   const [selectedTranslation, setSelectedTranslation] = useState(TRANSLATIONS[0]);
   const [fontSize, setFontSize] = useState(24);
   const [showSettings, setShowSettings] = useState(false);
-  const lastScrolledWordIdRef = useRef<string | null>(null);
 
   // Load saved preferences
   useEffect(() => {
@@ -101,11 +100,13 @@ const SurahDetail = () => {
   useEffect(() => {
     const link = document.createElement('link');
     link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Amiri+Quran&family=Scheherazade+New:wght@400;700&family=Lateef&family=Noto+Naskh+Arabic:wght@400;700&display=swap';
+    link.href = 'https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&family=Scheherazade+New:wght@400;700&family=Lateef:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&family=Amiri:wght@400;700&display=swap';
     document.head.appendChild(link);
     
     return () => {
-      document.head.removeChild(link);
+      if (document.head.contains(link)) {
+        document.head.removeChild(link);
+      }
     };
   }, []);
 
@@ -169,18 +170,6 @@ const SurahDetail = () => {
     }
     return map;
   }, [surahData]);
-
-  useEffect(() => {
-    if (!activeWord) return;
-    const targetId = `word-${activeWord.verseKey}-${activeWord.wordPosition}`;
-    if (lastScrolledWordIdRef.current === targetId) return;
-    lastScrolledWordIdRef.current = targetId;
-
-    const el = document.getElementById(targetId);
-    if (el) {
-      el.scrollIntoView({ behavior: "smooth", block: "center", inline: "center" });
-    }
-  }, [activeWord]);
 
   const handleToggleBookmark = (ayahNumber: number) => {
     const isNowBookmarked = toggleBookmark(
@@ -370,7 +359,8 @@ const SurahDetail = () => {
                     <p 
                       className="text-right leading-[2.5] quran-arabic"
                       style={{ 
-                        fontSize: `${fontSize}px`
+                        fontSize: `${fontSize}px`,
+                        fontFamily: selectedFont.family
                       }}
                     >
                       {ayah.words
