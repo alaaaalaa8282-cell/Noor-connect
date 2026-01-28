@@ -142,7 +142,9 @@ const PrayerTimes = () => {
   const useCurrentLocation = async () => {
     setLoading(true);
     try {
-      if (!navigator.geolocation) throw new Error("Not supported");
+      if (!navigator.geolocation) {
+        throw new Error("Location services not supported by your browser");
+      }
 
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
@@ -155,10 +157,27 @@ const PrayerTimes = () => {
       const { latitude, longitude } = position.coords;
       await loadPrayerTimes(latitude, longitude, "Current Location");
       setShowLocationInput(false);
-      toast({ title: "Location updated" });
-    } catch (error) {
-      toast({ title: "Could not get location", variant: "destructive" });
+      toast({ title: "Location updated successfully" });
+    } catch (error: any) {
+      console.error('Error fetching prayer times for alarm:', error);
+      
+      // Handle specific geolocation errors gracefully
+      let errorMessage = "Could not get your location";
+      if (error.code === 1) {
+        errorMessage = "Location permission denied. Please enable location access or search manually.";
+      } else if (error.code === 2) {
+        errorMessage = "Location unavailable. Please check your GPS or search manually.";
+      } else if (error.code === 3) {
+        errorMessage = "Location request timed out. Please try again or search manually.";
+      }
+      
+      toast({ 
+        title: errorMessage, 
+        variant: "destructive",
+        description: "You can search for your city manually below."
+      });
       setShowLocationInput(true);
+    } finally {
       setLoading(false);
     }
   };
@@ -168,15 +187,32 @@ const PrayerTimes = () => {
     
     setSearching(true);
     try {
+      // Use CORS proxy to avoid CORS issues
+      const proxyUrl = 'https://cors-anywhere.herokuapp.com/';
+      const apiUrl = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`;
+      
       const response = await fetch(
-        `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(searchQuery)}&limit=1`,
-        { headers: { 'User-Agent': 'IslamicCompanion/1.0' } }
+        proxyUrl + apiUrl,
+        { 
+          headers: { 
+            'User-Agent': 'IslamicCompanion/1.0',
+            'Origin': window.location.origin
+          } 
+        }
       );
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
       
       const results = await response.json();
       
       if (results.length === 0) {
-        toast({ title: "Location not found", variant: "destructive" });
+        toast({ 
+          title: "Location not found", 
+          description: "Please try a different city name",
+          variant: "destructive" 
+        });
         return;
       }
 
@@ -186,9 +222,25 @@ const PrayerTimes = () => {
       await loadPrayerTimes(parseFloat(result.lat), parseFloat(result.lon), locationName);
       setShowLocationInput(false);
       setSearchQuery("");
-      toast({ title: `Prayer times for ${locationName}` });
-    } catch (error) {
-      toast({ title: "Search error", variant: "destructive" });
+      toast({ 
+        title: `Prayer times for ${locationName}`,
+        description: "Location updated successfully"
+      });
+    } catch (error: any) {
+      console.error('Search error:', error);
+      
+      let errorMessage = "Failed to search location";
+      if (error.message.includes('CORS')) {
+        errorMessage = "Search blocked by browser. Please use location services instead.";
+      } else if (error.message.includes('403')) {
+        errorMessage = "Search service unavailable. Please try again later.";
+      }
+      
+      toast({ 
+        title: errorMessage, 
+        variant: "destructive",
+        description: "Try using your current location or a different search term."
+      });
     } finally {
       setSearching(false);
     }

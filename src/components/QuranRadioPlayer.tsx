@@ -39,6 +39,7 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
   const [isLoadingStations, setIsLoadingStations] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [currentTrackInfo, setCurrentTrackInfo] = useState<string>('');
+  const [stationValue, setStationValue] = useState<string>(''); // Controlled value for Select
 
   // Load radio stations
   useEffect(() => {
@@ -82,9 +83,34 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
     const handleError = (e: Event) => {
       console.error('Audio error:', e);
       setIsPlaying(false);
+      setIsLoading(false);
+      
+      // Get more detailed error information
+      const audio = e.target as HTMLAudioElement;
+      let errorMessage = "Failed to play radio station. Please try another station.";
+      
+      if (audio.error) {
+        switch (audio.error.code) {
+          case MediaError.MEDIA_ERR_ABORTED:
+            errorMessage = "Playback was aborted.";
+            break;
+          case MediaError.MEDIA_ERR_NETWORK:
+            errorMessage = "Network error. Please check your internet connection.";
+            break;
+          case MediaError.MEDIA_ERR_DECODE:
+            errorMessage = "Audio format not supported.";
+            break;
+          case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
+            errorMessage = "Radio stream not available or blocked by browser.";
+            break;
+          default:
+            errorMessage = `Audio error: ${audio.error.message}`;
+        }
+      }
+      
       toast({
         title: "Radio Error",
-        description: "Failed to play radio station. Please try another station.",
+        description: errorMessage,
         variant: "destructive"
       });
     };
@@ -123,11 +149,29 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
       } else {
         setIsLoading(true);
         
-        // Set the radio stream URL
+        // Validate stream URL before attempting to play
+        if (!quranRadio.isValidRadioUrl(selectedStation.url)) {
+          throw new Error('Invalid radio stream URL');
+        }
+        
+        // Set the radio stream URL with proper headers
         audioRef.current.src = selectedStation.url;
+        audioRef.current.crossOrigin = 'anonymous';
+        
+        // Add timeout for loading
+        const loadTimeout = setTimeout(() => {
+          setIsLoading(false);
+          toast({
+            title: "Loading Timeout",
+            description: "Radio stream is taking too long to load. Please try another station.",
+            variant: "destructive"
+          });
+        }, 10000); // 10 second timeout
+        
         audioRef.current.load();
         
         await audioRef.current.play();
+        clearTimeout(loadTimeout);
         setIsPlaying(true);
         setCurrentTrackInfo(selectedStation.name);
         
@@ -139,15 +183,28 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
     } catch (error) {
       console.error('Play/pause error:', error);
       setIsLoading(false);
+      
+      let errorMessage = "Failed to play radio. Please try another station.";
+      if (error instanceof Error) {
+        if (error.message.includes('CORS')) {
+          errorMessage = "Radio stream blocked by browser. Please try a different station.";
+        } else if (error.message.includes('404') || error.message.includes('Not Found')) {
+          errorMessage = "Radio station not available. Please try another station.";
+        } else if (error.message.includes('NotAllowedError')) {
+          errorMessage = "Autoplay blocked. Please interact with the page first.";
+        }
+      }
+      
       toast({
         title: "Playback Error",
-        description: "Failed to play radio. Please check your internet connection.",
+        description: errorMessage,
         variant: "destructive"
       });
     }
   };
 
   const handleStationChange = (stationId: string) => {
+    setStationValue(stationId); // Update controlled value
     const station = stations.find(s => s.id.toString() === stationId);
     if (station) {
       setSelectedStation(station);
@@ -224,7 +281,7 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
               <span className="ml-2 text-sm text-muted-foreground">Loading stations...</span>
             </div>
           ) : (
-            <Select value={selectedStation?.id.toString()} onValueChange={handleStationChange}>
+            <Select value={stationValue} onValueChange={handleStationChange}>
               <SelectTrigger>
                 <SelectValue placeholder="Select a radio station" />
               </SelectTrigger>
