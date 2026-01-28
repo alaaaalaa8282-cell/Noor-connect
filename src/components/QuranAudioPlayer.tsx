@@ -1,6 +1,6 @@
 // version 1.0.2
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Pause, Play, SkipBack, SkipForward, User, Volume2, X } from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, User, Volume2, X, Infinity } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -87,6 +87,7 @@ export function QuranAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [recitations, setRecitations] = useState<QuranComRecitation[]>([]);
   const [recitationId, setRecitationId] = useState<number>(7);
+  const [seamlessPlayback, setSeamlessPlayback] = useState(true);
   const [segments, setSegments] = useState<SegmentTuple[] | null>(null);
   const [activeWordPosition, setActiveWordPosition] = useState<number | null>(null);
 
@@ -252,6 +253,12 @@ export function QuranAudioPlayer({
     a.setAttribute("loading", "lazy");
     a.preload = "auto";
     a.src = nextAudioSrc;
+    
+    // Set up for seamless playback
+    a.addEventListener('canplaythrough', () => {
+      console.log(`Next ayah ${nextAyah} buffered and ready for seamless playback`);
+    });
+    
     a.load();
     bufferAudioRef.current = a;
     bufferedAyahRef.current = nextAyah;
@@ -321,27 +328,45 @@ export function QuranAudioPlayer({
     if (!audio) return;
 
     const nextAyah = ayah + 1;
-    if (nextAyah > totalAyahs) return;
+    if (nextAyah > totalAyahs) {
+      setIsPlaying(false);
+      return;
+    }
 
-    if (
+    // Use seamless playback if enabled and buffer is ready
+    if (seamlessPlayback &&
       bufferAudioRef.current &&
       bufferedAyahRef.current === nextAyah &&
       bufferedSrcRef.current &&
       bufferedSrcRef.current === nextAudioSrc
     ) {
-      skipNextAudioSrcEffectRef.current = true;
-      retryingTo64Ref.current = false;
-      audio.src = bufferedSrcRef.current;
-      audio.load();
-      void audio.play().catch(() => {
-        setIsPlaying(false);
+      // Crossfade to next ayah without gap
+      const nextAudio = bufferAudioRef.current;
+      
+      // Start playing next audio immediately
+      nextAudio.currentTime = 0;
+      nextAudio.play().then(() => {
+        // Switch to next audio seamlessly
+        audioRef.current = nextAudio;
+        bufferAudioRef.current = null;
+        bufferedAyahRef.current = null;
+        bufferedSrcRef.current = null;
+        
+        setAyah(nextAyah);
+        onAyahChange?.(nextAyah);
+        
+        // Set up event listeners for new audio
+        nextAudio.addEventListener('ended', handleAudioEnded);
+        nextAudio.addEventListener('timeupdate', handleTimeUpdate);
+      }).catch((error) => {
+        console.error('Seamless transition failed:', error);
+        // Fallback to regular next ayah
+        handleNextAyah();
       });
-
-      setAyah(nextAyah);
-      onAyahChange?.(nextAyah);
       return;
     }
 
+    // Fallback to regular next ayah
     handleNextAyah();
   };
 
@@ -376,7 +401,7 @@ export function QuranAudioPlayer({
   };
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-50 shadow-lg bg-card/95 backdrop-blur-lg border-border">
+    <Card className="fixed bottom-20 left-4 right-4 z-[60] shadow-lg bg-card/95 backdrop-blur-lg border-border">
       <div className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -467,6 +492,16 @@ export function QuranAudioPlayer({
               className="w-20"
             />
           </div>
+          
+          <Button
+            variant={seamlessPlayback ? "default" : "outline"}
+            size="sm"
+            onClick={() => setSeamlessPlayback(!seamlessPlayback)}
+            className="ml-2"
+            title={seamlessPlayback ? "Seamless playback enabled" : "Seamless playback disabled"}
+          >
+            <Infinity className="w-4 h-4" />
+          </Button>
         </div>
       </div>
 
