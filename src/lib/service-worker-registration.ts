@@ -1,6 +1,7 @@
 /**
- * Service Worker Registration and Communication
- * Handles PWA registration, background sync, and communication with Service Worker
+ * Service Worker Manager for PWA functionality
+ * Handles notifications, periodic sync, and caching
+ * Version: 2.1.0 - Fixed permission handling
  */
 
 // Extend Window interface for PWA install prompt
@@ -58,11 +59,8 @@ class ServiceWorkerManager {
       // Wait for the Service Worker to be active
       await this.waitForActivation();
 
-      // Request notification permission
-      await this.requestNotificationPermission();
-
-      // Setup periodic sync if supported
-      await this.setupPeriodicSync();
+      // Note: Periodic sync and notification permissions are now handled
+      // only when user explicitly requests them (Profile page)
 
       return true;
     } catch (error) {
