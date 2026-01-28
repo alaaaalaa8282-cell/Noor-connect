@@ -20,7 +20,6 @@ if (!localStorage.getItem("theme")) {
 
 // Lazy load route components for code splitting
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const PrayerTimes = lazy(() => import("./pages/PrayerTimes"));
 const Quran = lazy(() => import("./pages/Quran"));
 const SurahDetail = lazy(() => import("./pages/SurahDetail"));
 const Tasbeeh = lazy(() => import("./pages/Tasbeeh"));
@@ -54,7 +53,6 @@ function AppRoutes() {
         {/* Home/Dashboard */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/prayer-times" element={<PrayerTimes />} />
         <Route path="/quran" element={<Quran />} />
         <Route path="/quran/:surahNumber" element={<SurahDetail />} />
         <Route path="/tasbeeh" element={<Tasbeeh />} />

@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2 } from "lucide-react";
 import { AppBar } from "@/components/AppBar";
 import { SalahTracker } from "@/components/SalahTracker";
 import { WeeklySalahChart } from "@/components/WeeklySalahChart";
@@ -12,6 +12,7 @@ import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { Button } from "@/components/ui/button";
+import { Input } from "@/components/ui/input";
 import { getTimeFormat } from "@/lib/storage";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
@@ -46,12 +47,103 @@ export default function Dashboard() {
   const [initialLoad, setInitialLoad] = useState(true);
   const { toast } = useToast();
   
+  // Location search state
+  const [searchQuery, setSearchQuery] = useState("");
+  const [searching, setSearching] = useState(false);
+  const [showLocationSearch, setShowLocationSearch] = useState(false);
+  
   // Global location state
   const location = useLocationState();
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
   }, []);
+
+  // Search for location
+  const searchLocation = async () => {
+    if (!searchQuery.trim()) return;
+    
+    setSearching(true);
+    try {
+      // Use OpenCage Geocoder API - more reliable and no CORS issues
+      const apiKey = process.env.VITE_OPENCAGE_API_KEY || 'demo';
+      const apiUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(searchQuery)}&key=${apiKey}&limit=1`;
+      
+      const response = await fetch(apiUrl);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const data = await response.json();
+      
+      if (data.results.length === 0) {
+        // Fallback to our city database
+        const commonCities: Record<string, {lat: number, lon: number, name: string}> = {
+          'karachi': { lat: 24.8607, lon: 67.0011, name: 'Karachi, Pakistan' },
+          'islamabad': { lat: 33.6844, lon: 73.0479, name: 'Islamabad, Pakistan' },
+          'lahore': { lat: 31.5204, lon: 74.3587, name: 'Lahore, Pakistan' },
+          'peshawar': { lat: 34.0151, lon: 71.5249, name: 'Peshawar, Pakistan' },
+          'quetta': { lat: 30.1798, lon: 66.9750, name: 'Quetta, Pakistan' },
+          'makkah': { lat: 21.3891, lon: 39.8579, name: 'Makkah, Saudi Arabia' },
+          'madinah': { lat: 24.4686, lon: 39.6119, name: 'Madinah, Saudi Arabia' },
+          'dubai': { lat: 25.2048, lon: 55.2708, name: 'Dubai, UAE' },
+          'cairo': { lat: 30.0444, lon: 31.2357, name: 'Cairo, Egypt' },
+          'jakarta': { lat: -6.2088, lon: 106.8456, name: 'Jakarta, Indonesia' },
+          'delhi': { lat: 28.6139, lon: 77.2090, name: 'Delhi, India' },
+          'mumbai': { lat: 19.0760, lon: 72.8777, name: 'Mumbai, India' },
+          'london': { lat: 51.5074, lon: -0.1278, name: 'London, UK' },
+          'newyork': { lat: 40.7128, lon: -74.0060, name: 'New York, USA' }
+        };
+        
+        const searchLower = searchQuery.toLowerCase();
+        const city = commonCities[searchLower] || 
+                     Object.values(commonCities).find(city => 
+                       city.name.toLowerCase().includes(searchLower)
+                     );
+        
+        if (city) {
+          // Update global location state
+          location.setLocation(city.lat, city.lon, city.name);
+          setSearchQuery("");
+          setShowLocationSearch(false);
+          toast({ 
+            title: `Location updated to ${city.name}`,
+            description: "Prayer times will refresh automatically",
+          });
+        } else {
+          toast({ 
+            title: "Location not found", 
+            description: "Try a major city name",
+            variant: "destructive"
+          });
+        }
+        return;
+      }
+      
+      const result = data.results[0];
+      const locationName = result.formatted.split(',')[0];
+      const { lat, lng } = result.geometry;
+      
+      // Update global location state
+      location.setLocation(lat, lng, locationName);
+      setSearchQuery("");
+      setShowLocationSearch(false);
+      toast({ 
+        title: `Location updated to ${locationName}`,
+        description: "Prayer times will refresh automatically",
+      });
+    } catch (error: any) {
+      console.error('Search error:', error);
+      toast({ 
+        title: "Location search failed", 
+        description: "Please try again or use a major city name",
+        variant: "destructive"
+      });
+    } finally {
+      setSearching(false);
+    }
+  };
 
   // Load prayer times using global location
   const loadPrayerTimes = async () => {
@@ -418,11 +510,50 @@ export default function Dashboard() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
-            <div className="flex items-center gap-1 text-xs text-muted-foreground">
-              <MapPin className="w-3 h-3" />
-              <span className="max-w-[120px] truncate">{location.locationName}</span>
+            <div className="flex items-center gap-2">
+              <div className="flex items-center gap-1 text-xs text-muted-foreground">
+                <MapPin className="w-3 h-3" />
+                <span className="max-w-[120px] truncate">{location.locationName}</span>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowLocationSearch(!showLocationSearch)}
+                className="text-xs"
+              >
+                {showLocationSearch ? "Cancel" : "Change"}
+              </Button>
             </div>
           </div>
+
+          {/* Location Search */}
+          {showLocationSearch && (
+            <div className="p-3 bg-muted/30 rounded-lg space-y-2">
+              <div className="flex gap-2">
+                <Input
+                  placeholder="Search city (e.g., Karachi, London, Dubai)"
+                  value={searchQuery}
+                  onChange={(e) => setSearchQuery(e.target.value)}
+                  onKeyPress={(e) => e.key === 'Enter' && searchLocation()}
+                  className="flex-1"
+                />
+                <Button
+                  onClick={searchLocation}
+                  disabled={searching}
+                  size="sm"
+                >
+                  {searching ? (
+                    <Loader2 className="w-4 h-4 animate-spin" />
+                  ) : (
+                    <Search className="w-4 h-4" />
+                  )}
+                </Button>
+              </div>
+              <p className="text-xs text-muted-foreground">
+                Try: Karachi, Islamabad, Lahore, Dubai, London, New York, etc.
+              </p>
+            </div>
+          )}
 
           {loadingAPI ? (
             <div className="space-y-2">
