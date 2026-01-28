@@ -90,10 +90,6 @@ const App = () => {
   useEffect(() => {
     console.log('App: Checking onboarding state...');
     
-    // Debug: Clear localStorage to test fresh state
-    // localStorage.removeItem('noor-connect-visited');
-    // localStorage.removeItem('noor-connect-version');
-    
     const hasVisitedBefore = localStorage.getItem('noor-connect-visited');
     const lastVersion = localStorage.getItem('noor-connect-version');
     const currentVersion = '1.0.3';
@@ -127,11 +123,6 @@ const App = () => {
     }
   }, []);
 
-  const handleOnboardingComplete = () => {
-    console.log('App: Onboarding complete callback triggered');
-    setShowOnboarding(false);
-  };
-
   // Add emergency bypass - press Escape to skip onboarding
   useEffect(() => {
     const handleKeyPress = (e: KeyboardEvent) => {
@@ -149,7 +140,7 @@ const App = () => {
 
   // Show onboarding loader for first-time users or updates
   if (showOnboarding) {
-    return <OnboardingLoader onComplete={handleOnboardingComplete} />;
+    return <OnboardingLoader onComplete={() => setShowOnboarding(false)} />;
   }
   // Optimized: Initialize services only when needed
   useEffect(() => {

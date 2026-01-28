@@ -7,34 +7,14 @@ interface OnboardingLoaderProps {
 
 export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
   const [progress, setProgress] = useState(0);
-  const [isFirstTime, setIsFirstTime] = useState(false);
-
-  // Check if it's first time opening
-  useEffect(() => {
-    console.log('OnboardingLoader: Checking first-time status...');
-    const hasVisitedBefore = localStorage.getItem('noor-connect-visited');
-    const lastVersion = localStorage.getItem('noor-connect-version');
-    const currentVersion = '1.0.3';
-    
-    console.log('OnboardingLoader: hasVisitedBefore:', hasVisitedBefore);
-    console.log('OnboardingLoader: lastVersion:', lastVersion);
-    
-    // Check if first time or version updated
-    if (!hasVisitedBefore || lastVersion !== currentVersion) {
-      setIsFirstTime(true);
-      console.log('OnboardingLoader: First-time user detected');
-    } else {
-      console.log('OnboardingLoader: Returning user detected');
-    }
-  }, []);
 
   // Simple progress animation
   useEffect(() => {
-    const duration = isFirstTime ? 8000 : 2000; // 8s for first time, 2s for returning
+    const duration = 8000; // Fixed 8 seconds
     const interval = 50; // Update every 50ms
     const increment = 100 / (duration / interval);
 
-    console.log('OnboardingLoader: Starting progress animation - duration:', duration, 'isFirstTime:', isFirstTime);
+    console.log('OnboardingLoader: Starting progress animation - duration:', duration);
 
     const timer = setInterval(() => {
       setProgress(prev => {
@@ -56,7 +36,7 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
       console.log('OnboardingLoader: Cleaning up interval');
       clearInterval(timer);
     };
-  }, [isFirstTime, onComplete]);
+  }, [onComplete]);
 
   return (
     <div className="flex items-center justify-center min-h-screen bg-background p-4">
@@ -67,15 +47,10 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
             <div className="w-8 h-8 bg-primary rounded-full flex items-center justify-center">
               <Moon className="w-4 h-4 text-primary-foreground" />
             </div>
-            <h1 className="text-2xl font-bold text-foreground">
-              {isFirstTime ? 'Welcome to Noor Connect' : 'Loading Noor Connect'}
-            </h1>
+            <h1 className="text-2xl font-bold text-foreground">Welcome to Noor Connect</h1>
           </div>
           <p className="text-muted-foreground">
-            {isFirstTime 
-              ? 'Setting up your Islamic companion for the first time'
-              : 'Updating your Islamic companion'
-            }
+            Setting up your Islamic companion
           </p>
         </div>
 
@@ -86,14 +61,9 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
               <Settings className="w-5 h-5" />
             </div>
             <div className="flex-1">
-              <h3 className="font-semibold text-foreground">
-                {isFirstTime ? 'Initializing' : 'Loading'}
-              </h3>
+              <h3 className="font-semibold text-foreground">Initializing</h3>
               <p className="text-sm text-muted-foreground">
-                {isFirstTime 
-                  ? 'Setting up your personalized Islamic experience'
-                  : 'Preparing your Islamic companion'
-                }
+                Setting up your personalized Islamic experience
               </p>
             </div>
           </div>
@@ -101,7 +71,7 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
           {/* Progress Bar */}
           <div className="space-y-2">
             <div className="flex justify-between text-sm text-muted-foreground">
-              <span>{isFirstTime ? 'Setting up...' : 'Loading...'}</span>
+              <span>Setting up...</span>
               <span>{Math.round(progress)}%</span>
             </div>
             <div className="w-full bg-secondary rounded-full h-2 overflow-hidden">
@@ -116,16 +86,11 @@ export const OnboardingLoader = ({ onComplete }: OnboardingLoaderProps) => {
         {/* Footer Message */}
         <div className="text-center space-y-2">
           <p className="text-xs text-muted-foreground">
-            {isFirstTime 
-              ? "This will only take a few moments"
-              : "Almost ready..."
-            }
+            This will only take a few moments
           </p>
-          {isFirstTime && (
-            <p className="text-xs text-muted-foreground">
-              ⚡ Optimized for performance • 📱 PWA Ready • 🌙 Dark Mode
-            </p>
-          )}
+          <p className="text-xs text-muted-foreground">
+            ⚡ Optimized for performance • 📱 PWA Ready • 🌙 Dark Mode
+          </p>
           {/* Emergency bypass button */}
           <button
             onClick={() => {
