@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo, useCallback, memo, lazy } from "react";
+import { useEffect, useState, useMemo, useCallback, memo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Loader2, Moon, Sun, Sunset, Cloud, CloudMoon, Bell, BellOff, Calendar, BookOpen, Navigation } from "lucide-react";
@@ -22,15 +22,6 @@ interface PrayerTime {
   date: Date;
 }
 
-// Optimized: Memoize prayer icons to prevent recreation
-const prayerIcons: Record<string, React.ReactNode> = useMemo(() => ({
-  Fajr: <Moon className="w-5 h-5" />,
-  Dhuhr: <Sun className="w-5 h-5" />,
-  Asr: <Cloud className="w-5 h-5" />,
-  Maghrib: <Sunset className="w-5 h-5" />,
-  Isha: <CloudMoon className="w-5 h-5" />,
-}), []);
-
 const Dashboard = memo(function Dashboard() {
   const navigate = useNavigate();
   const [currentTime, setCurrentTime] = useState(new Date());
@@ -47,6 +38,15 @@ const Dashboard = memo(function Dashboard() {
   
   // Global location state
   const location = useLocationState();
+
+  // Optimized: Memoize prayer icons to prevent recreation
+  const prayerIcons = useMemo(() => ({
+    Fajr: <Moon className="w-5 h-5" />,
+    Dhuhr: <Sun className="w-5 h-5" />,
+    Asr: <Cloud className="w-5 h-5" />,
+    Maghrib: <Sunset className="w-5 h-5" />,
+    Isha: <CloudMoon className="w-5 h-5" />,
+  }), []);
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
