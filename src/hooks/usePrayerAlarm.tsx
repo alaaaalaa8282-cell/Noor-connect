@@ -104,16 +104,31 @@ export const usePrayerAlarm = () => {
     const adhanUrl = prayerName === 'Fajr' ? FAJR_ADHAN_URL : getSelectedAdhanUrl();
     prayerAlarmAudio = new Audio(adhanUrl);
     
+    // Set audio properties for better playback
+    prayerAlarmAudio.preload = 'auto';
+    prayerAlarmAudio.loop = false;
+    
+    prayerAlarmAudio.addEventListener('loadeddata', () => {
+      console.log(`Adhan loaded: ${adhanUrl}, duration: ${prayerAlarmAudio?.duration}s`);
+    });
+    
     prayerAlarmAudio.addEventListener('ended', () => {
+      console.log('Adhan finished playing naturally');
       setIsPlaying(false);
       setCurrentPrayer(null);
       prayerAlarmAudio = null;
     });
 
-    prayerAlarmAudio.addEventListener('error', () => {
+    prayerAlarmAudio.addEventListener('error', (e) => {
+      console.error('Adhan playback error:', e);
       setIsPlaying(false);
       setCurrentPrayer(null);
       prayerAlarmAudio = null;
+      toast.error('Could not play Adhan. Please check your audio files.');
+    });
+
+    prayerAlarmAudio.addEventListener('stalled', () => {
+      console.warn('Adhan playback stalled');
     });
 
     setCurrentPrayer(prayerName);
@@ -122,7 +137,7 @@ export const usePrayerAlarm = () => {
     // Show notification
     toast.success(`${prayerName} Time!`, {
       description: 'It is time for prayer. Adhan is playing.',
-      duration: 10000,
+      duration: 15000, // Longer duration for prayer time Adhan
     });
 
     // Request notification permission and show system notification
@@ -139,6 +154,7 @@ export const usePrayerAlarm = () => {
     prayerAlarmAudio.play().catch((error) => {
       console.error('Failed to play Adhan:', error);
       setIsPlaying(false);
+      setCurrentPrayer(null);
       prayerAlarmAudio = null;
       toast.error('Could not play Adhan. Please interact with the page first.');
     });
@@ -194,10 +210,9 @@ export const usePrayerAlarm = () => {
   // Test Adhan
   const testAdhan = useCallback(() => {
     playAdhan('Test');
-    setTimeout(() => {
-      stopAdhan();
-    }, 5000); // Play for 5 seconds only
-  }, [playAdhan, stopAdhan]);
+    // Don't auto-stop test Adhan - let it play fully
+    // User can manually stop with the Stop button if needed
+  }, [playAdhan]);
 
   // Start checking prayer times when enabled
   useEffect(() => {
