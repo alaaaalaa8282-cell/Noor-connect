@@ -82,10 +82,64 @@ export function QuranAudioPlayer({
   const [recitations, setRecitations] = useState<QuranComRecitation[]>([]);
   const [recitationId, setRecitationId] = useState<number>(7);
   const [isSeamlessMode, setIsSeamlessMode] = useState(true); // New seamless mode toggle
+  const [isBackgroundMode, setIsBackgroundMode] = useState(false); // New background mode toggle
 
   useEffect(() => {
     setAyah(currentAyah);
   }, [currentAyah]);
+
+  // Setup Media Session API for background playback
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) return;
+
+    const updateMediaSession = () => {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: `Surah ${surahName} - Ayah ${ayah}`,
+        artist: recitations.find(r => r.id === recitationId)?.reciter_name || 'Quran Recitation',
+        album: 'Holy Quran',
+        artwork: [
+          { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png' }
+        ]
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        handlePlayPause();
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        handlePlayPause();
+      });
+
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        handlePrevAyah();
+      });
+
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        handleNextAyah();
+      });
+
+      navigator.mediaSession.setActionHandler('seekto', (details) => {
+        if (details.seekTime && audioRef.current) {
+          audioRef.current.currentTime = details.seekTime;
+          setProgress(details.seekTime);
+        }
+      });
+    };
+
+    updateMediaSession();
+
+    return () => {
+      // Cleanup media session handlers
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+        navigator.mediaSession.setActionHandler('previoustrack', null);
+        navigator.mediaSession.setActionHandler('nexttrack', null);
+        navigator.mediaSession.setActionHandler('seekto', null);
+      }
+    };
+  }, [surahName, ayah, recitationId, recitations]);
 
   const getGlobalAyah = (surahNum: number, ayahNum: number) => {
     // Global ayah id is 1..6236. Surah starts are 0-based offsets (Surah 1 starts at 0, Surah 2 at 7, etc.)
@@ -207,16 +261,64 @@ export function QuranAudioPlayer({
     const audio = audioRef.current;
     if (!audio) return;
 
-    const onError = () => {
-      console.error("Audio failed for slug:", edition);
-      fallbackTo64();
+    // Prevent audio from stopping when app loses focus or page becomes hidden
+    const handleVisibilityChange = () => {
+      if (document.hidden && isPlaying && isBackgroundMode) {
+        // Keep playing in background
+        audio.play().catch(console.error);
+      }
     };
 
-    audio.addEventListener("error", onError);
-    return () => {
-      audio.removeEventListener("error", onError);
+    const handlePageUnload = () => {
+      // Save current playback state to localStorage
+      if (isPlaying) {
+        localStorage.setItem('quran-audio-state', JSON.stringify({
+          surahNumber,
+          surahName,
+          ayah,
+          recitationId,
+          isPlaying: true,
+          isSeamlessMode,
+          isBackgroundMode,
+          timestamp: Date.now()
+        }));
+      }
     };
-  }, [edition, fallbackTo64]);
+
+    // Restore playback state if available
+    const savedState = localStorage.getItem('quran-audio-state');
+    if (savedState && !isPlaying) {
+      try {
+        const state = JSON.parse(savedState);
+        const timeDiff = Date.now() - state.timestamp;
+        
+        // Only restore if within last 30 minutes
+        if (timeDiff < 30 * 60 * 1000 && state.surahNumber === surahNumber) {
+          setAyah(state.ayah);
+          setRecitationId(state.recitationId);
+          setIsSeamlessMode(state.isSeamlessMode);
+          setIsBackgroundMode(state.isBackgroundMode);
+          
+          // Auto-resume if background mode was enabled
+          if (state.isBackgroundMode && state.isPlaying) {
+            setTimeout(() => {
+              handlePlayPause();
+            }, 1000);
+          }
+        }
+      } catch (error) {
+        console.error('Failed to restore audio state:', error);
+      }
+    }
+
+    document.addEventListener('visibilitychange', handleVisibilityChange);
+    window.addEventListener('beforeunload', handlePageUnload);
+
+    return () => {
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
+      window.removeEventListener('beforeunload', handlePageUnload);
+    };
+  }, [isPlaying, isBackgroundMode, surahNumber, surahName, ayah, recitationId, isSeamlessMode]);
 
   useEffect(() => {
     if (!nextAudioSrc) {
@@ -323,6 +425,15 @@ export function QuranAudioPlayer({
     setProgress(audio.currentTime);
     setDuration(audio.duration || 0);
 
+    // Update media session position
+    if ('mediaSession' in navigator && navigator.mediaSession.setPositionState) {
+      navigator.mediaSession.setPositionState({
+        duration: audio.duration,
+        playbackRate: audio.playbackRate,
+        position: audio.currentTime
+      });
+    }
+
     // Seamless playback: Preload next ayah when current is 90% complete
     if (isSeamlessMode && nextAudioSrc && bufferAudioRef.current) {
       const progressPercent = (audio.currentTime / audio.duration) * 100;
@@ -428,6 +539,21 @@ export function QuranAudioPlayer({
             onClick={() => setIsSeamlessMode(!isSeamlessMode)}
           >
             {isSeamlessMode ? "ON" : "OFF"}
+          </Button>
+        </div>
+
+        {/* Background Mode Toggle */}
+        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            <Play className="w-4 h-4 text-primary" />
+            <span className="text-sm font-medium">Background Play</span>
+          </div>
+          <Button
+            variant={isBackgroundMode ? "default" : "outline"}
+            size="sm"
+            onClick={() => setIsBackgroundMode(!isBackgroundMode)}
+          >
+            {isBackgroundMode ? "ON" : "OFF"}
           </Button>
         </div>
 
