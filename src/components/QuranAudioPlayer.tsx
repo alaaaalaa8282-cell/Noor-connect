@@ -1,6 +1,6 @@
 // version 1.0.2
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Pause, Play, SkipBack, SkipForward, User, Volume2, X, Infinity } from "lucide-react";
+import { Pause, Play, SkipBack, SkipForward, User, Volume2, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
@@ -15,6 +15,8 @@ interface QuranComRecitation {
     language_name: string;
   };
 }
+
+type SegmentTuple = [number, number, number, number];
 
 const SURAH_AYAH_COUNTS: number[] = [
   7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98,
@@ -56,6 +58,8 @@ interface QuranAudioPlayerProps {
   totalAyahs: number;
   currentAyah?: number;
   onAyahChange?: (ayah: number) => void;
+  verseKeyByAyahNumber?: Map<number, { verseKey: string; id: number }>;
+  onWordHighlight?: (ayahNumber: number, wordPosition: number) => void;
   onClose: () => void;
 }
 
@@ -65,6 +69,8 @@ export function QuranAudioPlayer({
   totalAyahs,
   currentAyah = 1,
   onAyahChange,
+  verseKeyByAyahNumber,
+  onWordHighlight,
   onClose 
 }: QuranAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -81,7 +87,8 @@ export function QuranAudioPlayer({
   const [duration, setDuration] = useState(0);
   const [recitations, setRecitations] = useState<QuranComRecitation[]>([]);
   const [recitationId, setRecitationId] = useState<number>(7);
-  const [seamlessPlayback, setSeamlessPlayback] = useState(true);
+  const [segments, setSegments] = useState<SegmentTuple[] | null>(null);
+  const [activeWordPosition, setActiveWordPosition] = useState<number | null>(null);
 
   useEffect(() => {
     setAyah(currentAyah);
@@ -104,8 +111,8 @@ export function QuranAudioPlayer({
   };
 
   const verseKey = useMemo(() => {
-    return `${surahNumber}:${ayah}`;
-  }, [ayah, surahNumber]);
+    return verseKeyByAyahNumber?.get(ayah)?.verseKey ?? `${surahNumber}:${ayah}`;
+  }, [ayah, surahNumber, verseKeyByAyahNumber]);
 
   const edition = useMemo(() => {
     const slug = RECITER_MAP[recitationId];
@@ -181,6 +188,10 @@ export function QuranAudioPlayer({
 
     retryingTo64Ref.current = false;
 
+    // clear previous ayah's word timing data immediately
+    setSegments(null);
+    setActiveWordPosition(null);
+
     setIsLoading(true);
 
     // Stabilized change: pause -> set src -> load -> (try) play
@@ -241,17 +252,36 @@ export function QuranAudioPlayer({
     a.setAttribute("loading", "lazy");
     a.preload = "auto";
     a.src = nextAudioSrc;
-    
-    // Set up for seamless playback
-    a.addEventListener('canplaythrough', () => {
-      console.log(`Next ayah ${nextAyah} buffered and ready for seamless playback`);
-    });
-    
     a.load();
     bufferAudioRef.current = a;
     bufferedAyahRef.current = nextAyah;
     bufferedSrcRef.current = nextAudioSrc;
   }, [ayah, nextAudioSrc]);
+
+  useEffect(() => {
+    const fetchSegments = async () => {
+      try {
+        setSegments(null);
+        setActiveWordPosition(null);
+        // only fetch timestamp data for the currently playing ayah
+        const url = `https://api.quran.com/api/v4/recitations/${recitationId}/by_ayah/${verseKey}?fields=segments,duration`;
+        const res = await fetch(url);
+        const json = await res.json();
+        const first = json?.audio_files?.[0];
+        const segs: SegmentTuple[] | undefined = first?.segments;
+        if (Array.isArray(segs)) {
+          setSegments(segs);
+        } else {
+          setSegments(null);
+        }
+      } catch (e) {
+        console.error("Failed to fetch segments:", e);
+        setSegments(null);
+      }
+    };
+
+    fetchSegments();
+  }, [recitationId, verseKey]);
 
   const handlePlayPause = async () => {
     if (!audioRef.current) return;
@@ -291,45 +321,27 @@ export function QuranAudioPlayer({
     if (!audio) return;
 
     const nextAyah = ayah + 1;
-    if (nextAyah > totalAyahs) {
-      setIsPlaying(false);
-      return;
-    }
+    if (nextAyah > totalAyahs) return;
 
-    // Use seamless playback if enabled and buffer is ready
-    if (seamlessPlayback &&
+    if (
       bufferAudioRef.current &&
       bufferedAyahRef.current === nextAyah &&
       bufferedSrcRef.current &&
       bufferedSrcRef.current === nextAudioSrc
     ) {
-      // Crossfade to next ayah without gap
-      const nextAudio = bufferAudioRef.current;
-      
-      // Start playing next audio immediately
-      nextAudio.currentTime = 0;
-      nextAudio.play().then(() => {
-        // Switch to next audio seamlessly
-        audioRef.current = nextAudio;
-        bufferAudioRef.current = null;
-        bufferedAyahRef.current = null;
-        bufferedSrcRef.current = null;
-        
-        setAyah(nextAyah);
-        onAyahChange?.(nextAyah);
-        
-        // Set up event listeners for new audio
-        nextAudio.addEventListener('ended', handleAudioEnded);
-        nextAudio.addEventListener('timeupdate', handleTimeUpdate);
-      }).catch((error) => {
-        console.error('Seamless transition failed:', error);
-        // Fallback to regular next ayah
-        handleNextAyah();
+      skipNextAudioSrcEffectRef.current = true;
+      retryingTo64Ref.current = false;
+      audio.src = bufferedSrcRef.current;
+      audio.load();
+      void audio.play().catch(() => {
+        setIsPlaying(false);
       });
+
+      setAyah(nextAyah);
+      onAyahChange?.(nextAyah);
       return;
     }
 
-    // Fallback to regular next ayah
     handleNextAyah();
   };
 
@@ -338,6 +350,16 @@ export function QuranAudioPlayer({
     if (!audio) return;
     setProgress(audio.currentTime);
     setDuration(audio.duration || 0);
+
+    if (!segments || segments.length === 0) return;
+
+    const tMs = audio.currentTime * 1000;
+    const seg = segments.find((s) => tMs >= s[2] && tMs <= s[3]);
+    const newWordPos = seg?.[1];
+    if (!newWordPos || newWordPos === activeWordPosition) return;
+
+    setActiveWordPosition(newWordPos);
+    onWordHighlight?.(ayah, newWordPos);
   };
 
   const handleSeek = (value: number[]) => {
@@ -354,7 +376,7 @@ export function QuranAudioPlayer({
   };
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-[60] shadow-lg bg-card/95 backdrop-blur-lg border-border">
+    <Card className="fixed bottom-20 left-4 right-4 z-50 shadow-lg bg-card/95 backdrop-blur-lg border-border">
       <div className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
@@ -445,16 +467,6 @@ export function QuranAudioPlayer({
               className="w-20"
             />
           </div>
-          
-          <Button
-            variant={seamlessPlayback ? "default" : "outline"}
-            size="sm"
-            onClick={() => setSeamlessPlayback(!seamlessPlayback)}
-            className="ml-2"
-            title={seamlessPlayback ? "Seamless playback enabled" : "Seamless playback disabled"}
-          >
-            <Infinity className="w-4 h-4" />
-          </Button>
         </div>
       </div>
 

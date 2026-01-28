@@ -1,14 +1,18 @@
 import { useEffect, useState, useMemo } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Loader2, Moon, Sun, Sunset, Cloud, CloudMoon, Bell, BellOff, Calendar, BookOpen, Navigation } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star } from "lucide-react";
 import { AppBar } from "@/components/AppBar";
 import { SalahTracker } from "@/components/SalahTracker";
 import { WeeklySalahChart } from "@/components/WeeklySalahChart";
 import { QazaTracker } from "@/components/QazaTracker";
 import { PrayerCountdown } from "@/components/PrayerCountdown";
+import { DailyAyah } from "@/components/DailyAyah";
+import { DailyHadith } from "@/components/DailyHadith";
+import { DhikrReminder } from "@/components/DhikrReminder";
+import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { Button } from "@/components/ui/button";
-import { getTimeFormat, getPrayerSettings, setPrayerSettings } from "@/lib/storage";
+import { getTimeFormat } from "@/lib/storage";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
 import { useToast } from "@/hooks/use-toast";
@@ -287,8 +291,20 @@ export default function Dashboard() {
           </Card>
         )}
 
+        {/* Islamic Greeting (shows on special days) */}
+        <IslamicGreeting />
+
         {/* Prayer Countdown Widget */}
         <PrayerCountdown />
+
+        {/* Daily Ayah */}
+        <DailyAyah />
+
+        {/* Daily Hadith */}
+        <DailyHadith />
+
+        {/* Dhikr Reminder */}
+        <DhikrReminder />
 
         {/* Quick Access */}
         <div className="grid grid-cols-2 gap-3">
@@ -307,6 +323,30 @@ export default function Dashboard() {
             <BookOpen className="w-6 h-6 text-primary mb-2" />
             <p className="font-medium text-sm">Ramadan Mode</p>
             <p className="text-xs text-muted-foreground">Fasting & Quran tracker</p>
+          </Card>
+          <Card 
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+            onClick={() => navigate('/zakat')}
+          >
+            <Calculator className="w-6 h-6 text-primary mb-2" />
+            <p className="font-medium text-sm">Zakat Calculator</p>
+            <p className="text-xs text-muted-foreground">Calculate your zakat</p>
+          </Card>
+          <Card 
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
+            onClick={() => navigate('/quiz')}
+          >
+            <Trophy className="w-6 h-6 text-primary mb-2" />
+            <p className="font-medium text-sm">Islamic Quiz</p>
+            <p className="text-xs text-muted-foreground">Test your knowledge</p>
+          </Card>
+          <Card 
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors col-span-2"
+            onClick={() => navigate('/names-of-allah')}
+          >
+            <Star className="w-6 h-6 text-primary mb-2" />
+            <p className="font-medium text-sm">99 Names of Allah</p>
+            <p className="text-xs text-muted-foreground">Learn the beautiful names</p>
           </Card>
         </div>
 

@@ -1,57 +1,73 @@
+# Welcome to your Lovable project
 
-🌙 Noor Connect
-Noor Connect is a privacy-focused, open-source Islamic companion app designed to help you stay connected to your faith. Built as a high-performance Progressive Web App (PWA), it offers essential tools for daily worship with zero ads and zero tracking.
+## Project info
 
-✨ Key Features
-100+ Authenticated Hadiths: A curated library of daily wisdom from Sahih Bukhari, Sahih Muslim, and other authentic sources, available entirely offline.
+**URL**: https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca
 
-Accurate Prayer Times: Real-time calculation of Salah times based on your location.
+## How can I edit this code?
 
-Word-by-Word Sync Engine: A specialized reading engine for a deeper understanding of Islamic texts.
+There are several ways of editing your application.
 
-Offline First: Designed to work perfectly without an internet connection once installed.
+**Use Lovable**
 
-Privacy Centric: No data collection, no accounts, and no third-party analytics. 100% FOSS (Free and Open Source Software).
+Simply visit the [Lovable Project](https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca) and start prompting.
 
-🚀 Tech Stack
-To ensure the app is fast and lightweight (optimized for devices with even 8GB RAM), we use:
+Changes made via Lovable will be committed automatically to this repo.
 
-Frontend: React + TypeScript + Vite
+**Use your preferred IDE**
 
-Styling: Tailwind CSS + Shadcn UI
+If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
 
-Mobile Bridge: Capacitor (Ready for Android/APK build)
+The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
 
-Data: Local JSON-driven architecture for instant loading
+Follow these steps:
 
-🛠️ Getting Started
-Prerequisites
-Node.js (v18 or higher)
+```sh
+# Step 1: Clone the repository using the project's Git URL.
+git clone <YOUR_GIT_URL>
 
-npm or bun
+# Step 2: Navigate to the project directory.
+cd <YOUR_PROJECT_NAME>
 
-Installation
-Clone the repo:
+# Step 3: Install the necessary dependencies.
+npm i
 
-Bash
-git clone https://github.com/your-username/noor-connect.git
-cd noor-connect
-Install dependencies:
-
-Bash
-npm install
-Run locally:
-
-Bash
+# Step 4: Start the development server with auto-reloading and an instant preview.
 npm run dev
-Open http://localhost:8080 in your browser.
+```
 
-📱 Mobile Build (Android)
-This project is configured with Capacitor. To generate an APK:
+**Edit a file directly in GitHub**
 
-Bash
-npm run build
-npx cap add android
-npx cap open android
-📄 License
-This project is licensed under the MIT License—see the LICENSE file for details. 
+- Navigate to the desired file(s).
+- Click the "Edit" button (pencil icon) at the top right of the file view.
+- Make your changes and commit the changes.
+
+**Use GitHub Codespaces**
+
+- Navigate to the main page of your repository.
+- Click on the "Code" button (green button) near the top right.
+- Select the "Codespaces" tab.
+- Click on "New codespace" to launch a new Codespace environment.
+- Edit files directly within the Codespace and commit and push your changes once you're done.
+
+## What technologies are used for this project?
+
+This project is built with:
+
+- Vite
+- TypeScript
+- React
+- shadcn-ui
+- Tailwind CSS
+
+## How can I deploy this project?
+
+Simply open [Lovable](https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca) and click on Share -> Publish.
+
+## Can I connect a custom domain to my Lovable project?
+
+Yes, you can!
+
+To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+
+Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)

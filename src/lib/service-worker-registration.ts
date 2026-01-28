@@ -1,14 +1,28 @@
-// Extend Window interface for PWA install prompt
-declare global {
-  interface Window {
-    deferredPrompt?: any;
-  }
-}
-
 /**
  * Service Worker Registration and Communication
  * Handles PWA registration, background sync, and communication with Service Worker
  */
+
+// Extend Window interface for PWA install prompt
+interface BeforeInstallPromptEvent extends Event {
+  prompt(): Promise<void>;
+  userChoice: Promise<{ outcome: 'accepted' | 'dismissed' }>;
+}
+
+declare global {
+  interface Window {
+    deferredPrompt: BeforeInstallPromptEvent | null;
+  }
+}
+
+// Extend ServiceWorkerRegistration for periodicSync
+interface PeriodicSyncManager {
+  register(tag: string, options?: { minInterval: number }): Promise<void>;
+}
+
+interface ServiceWorkerRegistrationWithPeriodicSync extends ServiceWorkerRegistration {
+  periodicSync?: PeriodicSyncManager;
+}
 
 export interface NotificationHistoryItem {
   type: 'prayer' | 'ramadan-countdown' | 'eid' | 'friday-kahf' | 'daily-hadith';
@@ -106,23 +120,20 @@ class ServiceWorkerManager {
 
   // Setup periodic sync for background checks
   private async setupPeriodicSync(): Promise<void> {
-    if (!this.registration || !('periodicSync' in this.registration)) {
+    const reg = this.registration as ServiceWorkerRegistrationWithPeriodicSync | null;
+    if (!reg || !reg.periodicSync) {
       console.log('Periodic Sync not supported');
       return;
     }
 
     try {
-      // Type assertion for periodicSync API
-      const periodicSync = (this.registration as any).periodicSync;
-      if (!periodicSync) return;
-      
       // Register periodic sync for prayer times (every hour)
-      await periodicSync.register('prayer-times-check', {
+      await reg.periodicSync.register('prayer-times-check', {
         minInterval: 60 * 60 * 1000 // 1 hour
       });
 
       // Register periodic sync for Islamic events (every 6 hours)
-      await periodicSync.register('islamic-events-check', {
+      await reg.periodicSync.register('islamic-events-check', {
         minInterval: 6 * 60 * 60 * 1000 // 6 hours
       });
 

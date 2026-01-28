@@ -33,6 +33,10 @@ const Ebooks = lazy(() => import("./pages/Ebooks"));
 const QazaPage = lazy(() => import("./pages/QazaPage"));
 const RamadanMode = lazy(() => import("./pages/RamadanMode"));
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
+const ZakatCalculator = lazy(() => import("./pages/ZakatCalculator"));
+const NamesOfAllah = lazy(() => import("./pages/NamesOfAllah"));
+const IslamicQuiz = lazy(() => import("./pages/IslamicQuiz"));
+const PrayerStats = lazy(() => import("./pages/PrayerStats"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function AppRoutes() {
@@ -61,6 +65,10 @@ function AppRoutes() {
         <Route path="/qaza" element={<QazaPage />} />
         <Route path="/ramadan" element={<RamadanMode />} />
         <Route path="/notification-history" element={<NotificationHistory />} />
+        <Route path="/zakat" element={<ZakatCalculator />} />
+        <Route path="/names-of-allah" element={<NamesOfAllah />} />
+        <Route path="/quiz" element={<IslamicQuiz />} />
+        <Route path="/prayer-stats" element={<PrayerStats />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>

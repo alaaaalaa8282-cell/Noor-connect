@@ -9,7 +9,6 @@ interface PrayerTime {
 
 const STORAGE_KEY = 'prayer-alarm-enabled';
 const LAST_PLAYED_KEY = 'prayer-alarm-last-played';
-const REMINDER_SENT_KEY = 'prayer-reminder-sent';
 const FAJR_ADHAN_URL = '/audio/adhan-fajr.mp3';
 
 // Global audio instance for prayer alarm to prevent multiple instances
@@ -67,7 +66,7 @@ export const usePrayerAlarm = () => {
     }
   }, []);
 
-  // Check if it's prayer time or 15 minutes before prayer
+  // Check if it's prayer time
   const checkPrayerTime = useCallback(() => {
     if (!isEnabled || prayerTimesRef.current.length === 0) return;
 
@@ -75,59 +74,18 @@ export const usePrayerAlarm = () => {
     const currentTimeStr = `${now.getHours().toString().padStart(2, '0')}:${now.getMinutes().toString().padStart(2, '0')}`;
     const todayDate = now.toDateString();
     const lastPlayed = localStorage.getItem(LAST_PLAYED_KEY);
-    const reminderSent = localStorage.getItem(REMINDER_SENT_KEY) || '{}';
-    const reminderData = JSON.parse(reminderSent);
 
     for (const prayer of prayerTimesRef.current) {
       const prayerKey = `${todayDate}-${prayer.name}`;
-      const reminderKey = `${todayDate}-${prayer.name}-reminder`;
       
-      // Check if it's prayer time
       if (prayer.time === currentTimeStr && lastPlayed !== prayerKey) {
         // It's prayer time!
         localStorage.setItem(LAST_PLAYED_KEY, prayerKey);
         playAdhan(prayer.name);
         break;
       }
-      
-      // Check if it's 15 minutes before prayer time
-      const [hours, minutes] = prayer.time.split(':').map(Number);
-      const prayerTime = new Date();
-      prayerTime.setHours(hours, minutes, 0, 0);
-      
-      const reminderTime = new Date(prayerTime.getTime() - 15 * 60 * 1000); // 15 minutes before
-      const reminderTimeStr = `${reminderTime.getHours().toString().padStart(2, '0')}:${reminderTime.getMinutes().toString().padStart(2, '0')}`;
-      
-      if (currentTimeStr === reminderTimeStr && !reminderData[reminderKey]) {
-        // Send 15-minute reminder
-        sendPrayerReminder(prayer.name, prayer.time);
-        
-        // Mark reminder as sent
-        reminderData[reminderKey] = true;
-        localStorage.setItem(REMINDER_SENT_KEY, JSON.stringify(reminderData));
-        break;
-      }
     }
   }, [isEnabled]);
-
-  // Send prayer reminder notification
-  const sendPrayerReminder = useCallback((prayerName: string, prayerTime: string) => {
-    // Show in-app notification
-    toast.info(`${prayerName} Prayer Reminder`, {
-      description: `${prayerName} prayer will be in 15 minutes at ${prayerTime}.`,
-      duration: 10000,
-    });
-
-    // Send system notification if permission granted
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(`${prayerName} Prayer Reminder`, {
-        body: `${prayerName} prayer will be in 15 minutes at ${prayerTime}.`,
-        icon: '/favicon.png',
-        tag: `prayer-reminder-${prayerName}`,
-        requireInteraction: false,
-      });
-    }
-  }, []);
 
   // Play Adhan - use special Fajr Adhan for Fajr, otherwise use selected Adhan
   const playAdhan = useCallback((prayerName: string) => {
@@ -146,31 +104,16 @@ export const usePrayerAlarm = () => {
     const adhanUrl = prayerName === 'Fajr' ? FAJR_ADHAN_URL : getSelectedAdhanUrl();
     prayerAlarmAudio = new Audio(adhanUrl);
     
-    // Set audio properties for better playback
-    prayerAlarmAudio.preload = 'auto';
-    prayerAlarmAudio.loop = false;
-    
-    prayerAlarmAudio.addEventListener('loadeddata', () => {
-      console.log(`Adhan loaded: ${adhanUrl}, duration: ${prayerAlarmAudio?.duration}s`);
-    });
-    
     prayerAlarmAudio.addEventListener('ended', () => {
-      console.log('Adhan finished playing naturally');
       setIsPlaying(false);
       setCurrentPrayer(null);
       prayerAlarmAudio = null;
     });
 
-    prayerAlarmAudio.addEventListener('error', (e) => {
-      console.error('Adhan playback error:', e);
+    prayerAlarmAudio.addEventListener('error', () => {
       setIsPlaying(false);
       setCurrentPrayer(null);
       prayerAlarmAudio = null;
-      toast.error('Could not play Adhan. Please check your audio files.');
-    });
-
-    prayerAlarmAudio.addEventListener('stalled', () => {
-      console.warn('Adhan playback stalled');
     });
 
     setCurrentPrayer(prayerName);
@@ -179,7 +122,7 @@ export const usePrayerAlarm = () => {
     // Show notification
     toast.success(`${prayerName} Time!`, {
       description: 'It is time for prayer. Adhan is playing.',
-      duration: 15000, // Longer duration for prayer time Adhan
+      duration: 10000,
     });
 
     // Request notification permission and show system notification
@@ -196,7 +139,6 @@ export const usePrayerAlarm = () => {
     prayerAlarmAudio.play().catch((error) => {
       console.error('Failed to play Adhan:', error);
       setIsPlaying(false);
-      setCurrentPrayer(null);
       prayerAlarmAudio = null;
       toast.error('Could not play Adhan. Please interact with the page first.');
     });
@@ -246,46 +188,21 @@ export const usePrayerAlarm = () => {
     setIsEnabled(false);
     localStorage.setItem(STORAGE_KEY, 'false');
     stopAdhan();
-    
-    // Clear reminder data when disabling alarm
-    localStorage.removeItem(REMINDER_SENT_KEY);
-    
     toast.success('Prayer Alarm Disabled');
   }, [stopAdhan]);
-
-  // Clear old reminder data (call this daily)
-  const clearOldReminderData = useCallback(() => {
-    const reminderSent = localStorage.getItem(REMINDER_SENT_KEY);
-    if (reminderSent) {
-      const reminderData = JSON.parse(reminderSent);
-      const todayDate = new Date().toDateString();
-      const updatedData: Record<string, boolean> = {};
-      
-      // Only keep today's reminders
-      Object.keys(reminderData).forEach(key => {
-        if (key.startsWith(todayDate)) {
-          updatedData[key] = reminderData[key];
-        }
-      });
-      
-      localStorage.setItem(REMINDER_SENT_KEY, JSON.stringify(updatedData));
-    }
-  }, []);
 
   // Test Adhan
   const testAdhan = useCallback(() => {
     playAdhan('Test');
-    // Don't auto-stop test Adhan - let it play fully
-    // User can manually stop with the Stop button if needed
-  }, [playAdhan]);
+    setTimeout(() => {
+      stopAdhan();
+    }, 5000); // Play for 5 seconds only
+  }, [playAdhan, stopAdhan]);
 
   // Start checking prayer times when enabled
   useEffect(() => {
     if (isEnabled) {
       fetchPrayerTimes();
-      
-      // Clear old reminder data on startup
-      clearOldReminderData();
       
       // Check every 30 seconds
       checkIntervalRef.current = setInterval(() => {
@@ -297,29 +214,15 @@ export const usePrayerAlarm = () => {
 
       // Refresh prayer times every hour
       const refreshInterval = setInterval(fetchPrayerTimes, 3600000);
-      
-      // Clear old reminder data daily at midnight
-      const now = new Date();
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
-      tomorrow.setHours(0, 0, 0, 0);
-      const msUntilMidnight = tomorrow.getTime() - now.getTime();
-      
-      const cleanupTimeout = setTimeout(() => {
-        clearOldReminderData();
-        // Set up daily cleanup
-        setInterval(clearOldReminderData, 24 * 60 * 60 * 1000);
-      }, msUntilMidnight);
 
       return () => {
         if (checkIntervalRef.current) {
           clearInterval(checkIntervalRef.current);
         }
         clearInterval(refreshInterval);
-        clearTimeout(cleanupTimeout);
       };
     }
-  }, [isEnabled, fetchPrayerTimes, checkPrayerTime, clearOldReminderData]);
+  }, [isEnabled, fetchPrayerTimes, checkPrayerTime]);
 
   return {
     isEnabled,
