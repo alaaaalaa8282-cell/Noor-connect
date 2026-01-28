@@ -67,6 +67,25 @@ const SurahDetail = () => {
   const { surahNumber } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
+
+  // Validate surahNumber parameter
+  useEffect(() => {
+    if (!surahNumber) {
+      navigate('/quran');
+      return;
+    }
+    
+    const surahNum = parseInt(surahNumber);
+    if (isNaN(surahNum) || surahNum < 1 || surahNum > 114) {
+      toast({
+        title: "Invalid Surah",
+        description: "Surah number must be between 1 and 114",
+        variant: "destructive"
+      });
+      navigate('/quran');
+      return;
+    }
+  }, [surahNumber, navigate, toast]);
   const [surahData, setSurahData] = useState<SurahData | null>(null);
   const [loading, setLoading] = useState(true);
   const [bookmarkedAyahs, setBookmarkedAyahs] = useState<Set<number>>(new Set());
@@ -148,9 +167,24 @@ const SurahDetail = () => {
       });
       setLoading(false);
     } catch (error) {
-      console.error("Error:", error);
+      console.error("Error loading Surah:", error);
       setLoading(false);
-      toast({ title: "Error loading Surah", variant: "destructive" });
+      
+      // Check if it's a 404 error
+      if (error instanceof Error && error.message.includes('404')) {
+        toast({ 
+          title: "Surah Not Found", 
+          description: `Surah ${surahNumber} was not found. Redirecting to Quran index...`,
+          variant: "destructive" 
+        });
+        setTimeout(() => navigate('/quran'), 2000);
+      } else {
+        toast({ 
+          title: "Error loading Surah", 
+          description: "Failed to load surah data. Please check your internet connection.",
+          variant: "destructive" 
+        });
+      }
     }
   }, [surahNumber, selectedTranslation, toast]);
 
