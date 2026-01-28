@@ -16,8 +16,6 @@ interface QuranComRecitation {
   };
 }
 
-type SegmentTuple = [number, number, number, number];
-
 const SURAH_AYAH_COUNTS: number[] = [
   7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98,
   135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85,
@@ -58,8 +56,6 @@ interface QuranAudioPlayerProps {
   totalAyahs: number;
   currentAyah?: number;
   onAyahChange?: (ayah: number) => void;
-  verseKeyByAyahNumber?: Map<number, { verseKey: string; id: number }>;
-  onWordHighlight?: (ayahNumber: number, wordPosition: number) => void;
   onClose: () => void;
 }
 
@@ -69,8 +65,6 @@ export function QuranAudioPlayer({
   totalAyahs,
   currentAyah = 1,
   onAyahChange,
-  verseKeyByAyahNumber,
-  onWordHighlight,
   onClose 
 }: QuranAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
@@ -88,8 +82,6 @@ export function QuranAudioPlayer({
   const [recitations, setRecitations] = useState<QuranComRecitation[]>([]);
   const [recitationId, setRecitationId] = useState<number>(7);
   const [seamlessPlayback, setSeamlessPlayback] = useState(true);
-  const [segments, setSegments] = useState<SegmentTuple[] | null>(null);
-  const [activeWordPosition, setActiveWordPosition] = useState<number | null>(null);
 
   useEffect(() => {
     setAyah(currentAyah);
@@ -265,31 +257,6 @@ export function QuranAudioPlayer({
     bufferedSrcRef.current = nextAudioSrc;
   }, [ayah, nextAudioSrc]);
 
-  useEffect(() => {
-    const fetchSegments = async () => {
-      try {
-        setSegments(null);
-        setActiveWordPosition(null);
-        // only fetch timestamp data for the currently playing ayah
-        const url = `https://api.quran.com/api/v4/recitations/${recitationId}/by_ayah/${verseKey}?fields=segments,duration`;
-        const res = await fetch(url);
-        const json = await res.json();
-        const first = json?.audio_files?.[0];
-        const segs: SegmentTuple[] | undefined = first?.segments;
-        if (Array.isArray(segs)) {
-          setSegments(segs);
-        } else {
-          setSegments(null);
-        }
-      } catch (e) {
-        console.error("Failed to fetch segments:", e);
-        setSegments(null);
-      }
-    };
-
-    fetchSegments();
-  }, [recitationId, verseKey]);
-
   const handlePlayPause = async () => {
     if (!audioRef.current) return;
 
@@ -375,16 +342,6 @@ export function QuranAudioPlayer({
     if (!audio) return;
     setProgress(audio.currentTime);
     setDuration(audio.duration || 0);
-
-    if (!segments || segments.length === 0) return;
-
-    const tMs = audio.currentTime * 1000;
-    const seg = segments.find((s) => tMs >= s[2] && tMs <= s[3]);
-    const newWordPos = seg?.[1];
-    if (!newWordPos || newWordPos === activeWordPosition) return;
-
-    setActiveWordPosition(newWordPos);
-    onWordHighlight?.(ayah, newWordPos);
   };
 
   const handleSeek = (value: number[]) => {
