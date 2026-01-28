@@ -86,22 +86,22 @@ export function GlobalRadioPlayer() {
   // Update audio properties when global state changes
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !globalRadio) return;
 
     audio.volume = globalRadio.isMuted ? 0 : globalRadio.volume / 100;
-  }, [globalRadio.volume, globalRadio.isMuted]);
+  }, [globalRadio?.volume, globalRadio?.isMuted]);
 
   // Handle play/pause based on global state
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio || !globalRadio.currentStation) return;
+    if (!audio || !globalRadio?.currentStation) return;
 
     if (globalRadio.isPlaying) {
       // Only play if not already playing
       if (audio.paused) {
         audio.play().catch(error => {
           console.error('Global radio play error:', error);
-          globalRadio.updateRadioState({ isPlaying: false });
+          globalRadio?.updateRadioState({ isPlaying: false });
         });
       }
     } else {
@@ -110,7 +110,7 @@ export function GlobalRadioPlayer() {
         audio.pause();
       }
     }
-  }, [globalRadio.isPlaying, globalRadio.currentStation]);
+  }, [globalRadio?.isPlaying, globalRadio?.currentStation]);
 
   // Handle station changes
   useEffect(() => {
@@ -156,18 +156,18 @@ export function GlobalRadioPlayer() {
   };
 
   const handleVolumeChange = (value: number[]) => {
-    globalRadio.setVolume(value[0]);
+    globalRadio?.setVolume(value[0]);
   };
 
   const toggleMute = () => {
-    globalRadio.toggleMute();
+    globalRadio?.toggleMute();
   };
 
   const handleClose = () => {
     setIsVisible(false);
   };
 
-  if (!globalRadio.currentStation || !isVisible) {
+  if (!globalRadio?.currentStation || !isVisible) {
     return null;
   }
 
@@ -187,7 +187,7 @@ export function GlobalRadioPlayer() {
 
         {/* Current Track Info */}
         <div className="p-2 bg-muted/30 rounded-lg">
-          <p className="text-sm font-medium truncate">{globalRadio.currentTrackInfo}</p>
+          <p className="text-sm font-medium truncate">{globalRadio?.currentTrackInfo || ''}</p>
           <p className="text-xs text-muted-foreground">Live Quran Recitation</p>
         </div>
 
@@ -203,7 +203,7 @@ export function GlobalRadioPlayer() {
             >
               {isLoading ? (
                 <div className="w-8 h-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-              ) : globalRadio.isPlaying ? (
+              ) : globalRadio?.isPlaying ? (
                 <Pause className="w-8 h-8" />
               ) : (
                 <Play className="w-8 h-8 ml-1" />
@@ -215,20 +215,20 @@ export function GlobalRadioPlayer() {
           <div className="space-y-2">
             <div className="flex items-center gap-2">
               <Button variant="ghost" size="icon" onClick={toggleMute}>
-                {globalRadio.isMuted ? (
+                {globalRadio?.isMuted ? (
                   <VolumeX className="w-4 h-4" />
                 ) : (
                   <Volume2 className="w-4 h-4" />
                 )}
               </Button>
               <Slider
-                value={[globalRadio.volume]}
+                value={[globalRadio?.volume || 0]}
                 onValueChange={handleVolumeChange}
                 max={100}
                 step={1}
                 className="flex-1"
               />
-              <span className="text-sm text-muted-foreground w-10">{globalRadio.volume}%</span>
+              <span className="text-sm text-muted-foreground w-10">{globalRadio?.volume || 0}%</span>
             </div>
           </div>
         </div>
