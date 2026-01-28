@@ -38,6 +38,7 @@ const IslamicQuiz = lazy(() => import("./pages/IslamicQuiz"));
 const PrayerStats = lazy(() => import("./pages/PrayerStats"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const QuranRadio = lazy(() => import("./pages/QuranRadio"));
+const GlobalRadioPlayer = lazy(() => import("./components/GlobalRadioPlayer"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function AppRoutes() {
@@ -90,6 +91,17 @@ const App = () => {
       }
     });
     
+    // Initialize global radio state
+    const savedRadioState = localStorage.getItem('global-radio-state');
+    if (savedRadioState) {
+      try {
+        const parsed = JSON.parse(savedRadioState);
+        // If there was a playing station when app closed, the GlobalRadioPlayer will handle auto-showing
+      } catch (error) {
+        console.error('Failed to restore radio state:', error);
+      }
+    }
+    
     // Cleanup on unmount
     return () => {
       notificationManager.stop();
@@ -110,6 +122,7 @@ const App = () => {
           </main>
           <BottomNav />
         </div>
+        <GlobalRadioPlayer />
       </BrowserRouter>
     </TooltipProvider>
   );

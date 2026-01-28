@@ -3,14 +3,15 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Radio, Play, Globe, Headphones, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { QuranRadioPlayer } from "@/components/QuranRadioPlayer";
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { useGlobalRadio } from "@/lib/global-radio";
 import { quranRadio, type RadioStation } from "@/lib/quran-radio";
 
 const QuranRadio = () => {
   const navigate = useNavigate();
-  const [showPlayer, setShowPlayer] = useState(false);
-  const [popularStations, setPopularStations] = useState<RadioStation[]>([]);
+  const globalRadio = useGlobalRadio();
   const [isLoading, setIsLoading] = useState(true);
+  const [popularStations, setPopularStations] = useState<RadioStation[]>([]);
 
   useEffect(() => {
     loadPopularStations();
@@ -28,14 +29,9 @@ const QuranRadio = () => {
   };
 
   const handleStationSelect = (station: RadioStation) => {
-    // Store selected station for the player
-    localStorage.setItem('selected-radio-station', JSON.stringify(station));
-    setShowPlayer(true);
+    // Play the selected station using global radio
+    globalRadio.playRadio(station);
   };
-
-  if (showPlayer) {
-    return <QuranRadioPlayer onClose={() => setShowPlayer(false)} />;
-  }
 
   return (
     <div className="min-h-screen bg-background pb-20">
@@ -51,26 +47,26 @@ const QuranRadio = () => {
           </div>
         </div>
 
-        {/* Welcome Card */}
-        <Card className="p-6 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950">
-          <div className="text-center space-y-3">
-            <div className="w-16 h-16 bg-primary/10 rounded-full flex items-center justify-center mx-auto">
-              <Radio className="w-8 h-8 text-primary" />
+        {/* Current Playing Status */}
+        {globalRadio.currentStation && (
+          <Card className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950">
+            <div className="text-center space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <Radio className="w-6 h-6 text-primary animate-pulse" />
+                <h3 className="text-lg font-semibold">Now Playing</h3>
+              </div>
+              <p className="text-sm font-medium">{globalRadio.currentTrackInfo}</p>
+              <p className="text-xs text-muted-foreground">Live Quran Recitation</p>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => globalRadio.pauseRadio()}
+              >
+                Pause
+              </Button>
             </div>
-            <h2 className="text-lg font-semibold">Welcome to Quran Radio</h2>
-            <p className="text-sm text-muted-foreground">
-              Listen to live Quran recitation from renowned reciters around the world
-            </p>
-            <Button 
-              onClick={() => setShowPlayer(true)}
-              className="w-full"
-              size="lg"
-            >
-              <Play className="w-4 h-4 mr-2" />
-              Open Radio Player
-            </Button>
-          </div>
-        </Card>
+          </Card>
+        )}
 
         {/* Features */}
         <div className="grid grid-cols-2 gap-4">
