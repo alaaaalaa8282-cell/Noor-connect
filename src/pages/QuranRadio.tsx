@@ -3,7 +3,7 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Radio, Play, Headphones, Wifi, WifiOff, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { radioBrowser, type RadioStation } from "@/lib/radio-browser";
+import { radioStations, type RadioStation } from "@/data/radio-stations";
 import { useToast } from "@/hooks/use-toast";
 
 const QuranRadio = () => {
@@ -39,13 +39,15 @@ const QuranRadio = () => {
   const loadStations = async () => {
     try {
       setIsLoading(true);
-      // Load popular stations from Radio Browser API
-      const popular = await radioBrowser.getPopularStations();
+      
+      // Use hardcoded data instead of API
+      // First 8 stations as popular stations
+      const popular = radioStations.slice(0, 8);
       setPopularStations(popular);
       
-      // Load all Islamic stations (HTTPS only for Vercel)
-      const stations = await radioBrowser.getIslamicStations(30);
-      setAllStations(stations);
+      // All stations
+      setAllStations(radioStations);
+      
     } catch (error) {
       console.error('Failed to load stations:', error);
       toast({
@@ -101,7 +103,8 @@ const QuranRadio = () => {
 
   const handleStationSelect = (station: RadioStation) => {
     try {
-      const streamUrl = station.url_resolved || station.url;
+      // Use the url field from hardcoded data
+      const streamUrl = station.url;
       
       // Validate stream URL
       if (!streamUrl || streamUrl.includes(window.location.hostname)) {
@@ -131,7 +134,7 @@ const QuranRadio = () => {
       const audio = new Audio();
       audioRef.current = audio;
       
-      // Set new source
+      // Set new source from hardcoded data
       audio.src = streamUrl;
       audio.preload = 'none';
       audio.crossOrigin = 'anonymous';
@@ -312,26 +315,29 @@ const QuranRadio = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Radio className="w-5 h-5 text-primary" />
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                        <img 
+                          src={station.img} 
+                          alt={station.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to radio icon if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = `
+                              <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                                </svg>
+                              </div>
+                            `;
+                          }}
+                        />
                       </div>
                       <div>
                         <h4 className="font-medium text-sm">{station.name}</h4>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{station.country}</span>
-                          {station.bitrate && (
-                            <>
-                              <span>•</span>
-                              <span>{station.bitrate}kbps</span>
-                            </>
-                          )}
-                          {station.lastcheckok === 1 && (
-                            <>
-                              <span>•</span>
-                              <Wifi className="w-3 h-3 text-green-500" />
-                              <span className="text-green-500">Verified</span>
-                            </>
-                          )}
+                          <span>Islamic Radio</span>
                         </div>
                       </div>
                     </div>
@@ -358,26 +364,29 @@ const QuranRadio = () => {
                 >
                   <div className="flex items-center justify-between">
                     <div className="flex items-center gap-3">
-                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
-                        <Radio className="w-5 h-5 text-primary" />
+                      <div className="w-10 h-10 rounded-full overflow-hidden flex-shrink-0">
+                        <img 
+                          src={station.img} 
+                          alt={station.name}
+                          className="w-full h-full object-cover"
+                          onError={(e) => {
+                            // Fallback to radio icon if image fails to load
+                            const target = e.target as HTMLImageElement;
+                            target.style.display = 'none';
+                            target.parentElement!.innerHTML = `
+                              <div class="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                                <svg class="w-5 h-5 text-primary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8.111 16.404a5.5 5.5 0 017.778 0M12 20h.01m-7.08-7.071c3.904-3.905 10.236-3.905 14.141 0M1.394 9.393c5.857-5.857 15.355-5.857 21.213 0"></path>
+                                </svg>
+                              </div>
+                            `;
+                          }}
+                        />
                       </div>
                       <div>
                         <h4 className="font-medium text-sm">{station.name}</h4>
                         <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                          <span>{station.country}</span>
-                          {station.bitrate && (
-                            <>
-                              <span>•</span>
-                              <span>{station.bitrate}kbps</span>
-                            </>
-                          )}
-                          {station.lastcheckok === 1 && (
-                            <>
-                              <span>•</span>
-                              <Wifi className="w-3 h-3 text-green-500" />
-                              <span className="text-green-500">Verified</span>
-                            </>
-                          )}
+                          <span>Islamic Radio</span>
                         </div>
                       </div>
                     </div>
