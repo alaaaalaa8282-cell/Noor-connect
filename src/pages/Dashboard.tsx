@@ -12,6 +12,7 @@ import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { NotificationSettings } from "@/components/NotificationSettings";
+import { CitySearch } from "@/components/CitySearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getTimeFormat } from "@/lib/storage";
@@ -43,114 +44,12 @@ export default function Dashboard() {
   const [initialLoad, setInitialLoad] = useState(true);
   const { toast } = useToast();
   
-  // Location search state
-  const [searchQuery, setSearchQuery] = useState("");
-  const [searching, setSearching] = useState(false);
-  const [showLocationSearch, setShowLocationSearch] = useState(false);
-  
   // Global location state
   const location = useLocationState();
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
   }, []);
-
-  // Search for location
-  const searchLocation = async () => {
-    if (!searchQuery.trim()) return;
-    
-    setSearching(true);
-    try {
-      // First try our city database for instant results
-      const commonCities: Record<string, {lat: number, lon: number, name: string}> = {
-        'karachi': { lat: 24.8607, lon: 67.0011, name: 'Karachi, Pakistan' },
-        'islamabad': { lat: 33.6844, lon: 73.0479, name: 'Islamabad, Pakistan' },
-        'lahore': { lat: 31.5204, lon: 74.3587, name: 'Lahore, Pakistan' },
-        'peshawar': { lat: 34.0151, lon: 71.5249, name: 'Peshawar, Pakistan' },
-        'quetta': { lat: 30.1798, lon: 66.9750, name: 'Quetta, Pakistan' },
-        'makkah': { lat: 21.3891, lon: 39.8579, name: 'Makkah, Saudi Arabia' },
-        'madinah': { lat: 24.4686, lon: 39.6119, name: 'Madinah, Saudi Arabia' },
-        'dubai': { lat: 25.2048, lon: 55.2708, name: 'Dubai, UAE' },
-        'cairo': { lat: 30.0444, lon: 31.2357, name: 'Cairo, Egypt' },
-        'jakarta': { lat: -6.2088, lon: 106.8456, name: 'Jakarta, Indonesia' },
-        'delhi': { lat: 28.6139, lon: 77.2090, name: 'Delhi, India' },
-        'mumbai': { lat: 19.0760, lon: 72.8777, name: 'Mumbai, India' },
-        'london': { lat: 51.5074, lon: -0.1278, name: 'London, UK' },
-        'newyork': { lat: 40.7128, lon: -74.0060, name: 'New York, USA' },
-        'paris': { lat: 48.8566, lon: 2.3522, name: 'Paris, France' },
-        'tokyo': { lat: 35.6762, lon: 139.6503, name: 'Tokyo, Japan' },
-        'singapore': { lat: 1.3521, lon: 103.8198, name: 'Singapore' },
-        'istanbul': { lat: 41.0082, lon: 28.9784, name: 'Istanbul, Turkey' },
-        'riyadh': { lat: 24.7136, lon: 46.6753, name: 'Riyadh, Saudi Arabia' },
-        'kuwait': { lat: 29.3117, lon: 47.4818, name: 'Kuwait City, Kuwait' }
-      };
-      
-      const searchLower = searchQuery.toLowerCase().trim();
-      const city = commonCities[searchLower] || 
-                   Object.values(commonCities).find(city => 
-                     city.name.toLowerCase().includes(searchLower)
-                   );
-      
-      if (city) {
-        // Update global location state
-        location.setLocation(city.lat, city.lon, city.name);
-        setSearchQuery("");
-        setShowLocationSearch(false);
-        toast({
-          title: "Location Updated",
-          description: `Prayer times updated for ${city.name}`,
-        });
-        return;
-      }
-      
-      // If no city found in our database, try geocoding API if key is available
-      const apiKey = process.env.VITE_OPENCAGE_API_KEY;
-      if (apiKey && apiKey !== 'demo') {
-        const apiUrl = `https://api.opencagedata.com/geocode/v1/json?q=${encodeURIComponent(searchQuery)}&key=${apiKey}&limit=1`;
-        
-        const response = await fetch(apiUrl);
-        
-        if (!response.ok) {
-          throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-        }
-        
-        const data = await response.json();
-        
-        if (data.results.length > 0) {
-          const result = data.results[0];
-          const lat = result.geometry.lat;
-          const lon = result.geometry.lng;
-          const name = result.formatted;
-          
-          location.setLocation(lat, lon, name);
-          setSearchQuery("");
-          setShowLocationSearch(false);
-          toast({
-            title: "Location Updated",
-            description: `Prayer times updated for ${name}`,
-          });
-          return;
-        }
-      }
-      
-      // If we reach here, no location was found
-      toast({
-        title: "Location Not Found",
-        description: "Try a major city name like Karachi, Dubai, London, etc.",
-        variant: "destructive",
-      });
-      
-    } catch (error) {
-      console.error('Search error:', error);
-      toast({
-        title: "Search Error",
-        description: "Unable to find location. Try a major city name.",
-        variant: "destructive",
-      });
-    } finally {
-      setSearching(false);
-    }
-  };
 
   // Load prayer times using global location
   const loadPrayerTimes = async () => {
@@ -532,50 +431,30 @@ export default function Dashboard() {
         <div className="space-y-3">
           <div className="flex items-center justify-between">
             <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
-            <div className="flex items-center gap-2">
-              <div className="flex items-center gap-1 text-xs text-muted-foreground">
-                <MapPin className="w-3 h-3" />
-                <span className="max-w-[120px] truncate">{location.locationName}</span>
+            <div className="flex items-center justify-between">
+              <div>
+                <p className="font-medium">{location.locationName}</p>
+                <p className="text-xs text-muted-foreground">
+                  {location.latitude.toFixed(4)}, {location.longitude.toFixed(4)}
+                </p>
               </div>
               <Button
                 variant="ghost"
                 size="sm"
-                onClick={() => setShowLocationSearch(!showLocationSearch)}
                 className="text-xs"
               >
-                {showLocationSearch ? "Cancel" : "Change"}
+                Change
               </Button>
             </div>
           </div>
 
           {/* Location Search */}
-          {showLocationSearch && (
-            <div className="p-3 bg-muted/30 rounded-lg space-y-2">
-              <div className="flex gap-2">
-                <Input
-                  placeholder="Search city (e.g., Karachi, London, Dubai)"
-                  value={searchQuery}
-                  onChange={(e) => setSearchQuery(e.target.value)}
-                  onKeyPress={(e) => e.key === 'Enter' && searchLocation()}
-                  className="flex-1"
-                />
-                <Button
-                  onClick={searchLocation}
-                  disabled={searching}
-                  size="sm"
-                >
-                  {searching ? (
-                    <Loader2 className="w-4 h-4 animate-spin" />
-                  ) : (
-                    <Search className="w-4 h-4" />
-                  )}
-                </Button>
-              </div>
-              <p className="text-xs text-muted-foreground">
-                Try: Karachi, Islamabad, Lahore, Dubai, London, New York, etc.
-              </p>
-            </div>
-          )}
+          <CitySearch 
+            onCitySelect={(city) => {
+              // Trigger prayer time reload when city is selected
+              loadPrayerTimes();
+            }}
+          />
 
           {loadingAPI ? (
             <div className="space-y-2">
