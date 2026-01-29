@@ -77,15 +77,22 @@ const QuranRadio = () => {
       readyState: audio.readyState
     });
     
-    // IMPORTANT: Don't reset src to window.location
-    // Keep the original stream URL for debugging
-    
-    setIsPlaying(false);
-    toast({
-      title: "Stream Error",
-      description: `Failed to play ${currentStation?.name}. Try another station.`,
-      variant: "destructive"
-    });
+    // Only show error toast if it's a critical error that actually stops playback
+    // Don't show errors for minor network issues if audio might still play
+    if (audio.error && audio.error.code === MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED) {
+      setIsPlaying(false);
+      toast({
+        title: "Stream Not Supported",
+        description: `This station format is not supported. Try another station.`,
+        variant: "destructive"
+      });
+    } else if (audio.error && audio.error.code === MediaError.MEDIA_ERR_ABORTED) {
+      // Don't show error for aborted playback (user initiated)
+      setIsPlaying(false);
+    } else {
+      // For other errors, just log but don't show toast since audio might still work
+      console.warn('Non-critical audio error, playback may continue');
+    }
   };
   
   const handleLoadedData = () => {
@@ -150,15 +157,33 @@ const QuranRadio = () => {
       setCurrentStation(station);
       setIsPlaying(false);
       
+      // Set a timeout to check if audio actually starts playing
+      const playbackTimeout = setTimeout(() => {
+        if (audioRef.current && !isPlaying && audioRef.current.paused) {
+          console.warn('Audio did not start playing within 5 seconds');
+          // Only show error if audio is actually not playing
+          toast({
+            title: "Playback Delay",
+            description: `Taking longer than expected to load ${station.name}. The station may still start playing.`,
+            variant: "default"
+          });
+        }
+      }, 5000);
+      
       // Attempt to play with proper error handling
       const playPromise = audio.play();
       if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.error('Play promise rejected:', error);
-          // Don't show error toast immediately - wait to see if audio actually plays
-          // The audio might still play even if the promise rejects
-          // We'll handle actual errors in the 'error' event listener
-        });
+        playPromise
+          .then(() => {
+            clearTimeout(playbackTimeout); // Clear timeout if play succeeds
+          })
+          .catch(error => {
+            clearTimeout(playbackTimeout); // Clear timeout on error too
+            console.error('Play promise rejected:', error);
+            // Don't show error toast immediately - wait to see if audio actually plays
+            // The audio might still play even if the promise rejects
+            // We'll handle actual errors in the 'error' event listener
+          });
       }
       
       toast({
