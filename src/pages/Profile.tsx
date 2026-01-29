@@ -16,6 +16,7 @@ import { getStorageStats, clearAllBooks, formatFileSize } from "@/lib/ebooks-sto
 import { downloadBackup, importBackup, clearCache, getQuranFontSize, setQuranFontSize } from "@/lib/backup";
 import { isSalamGreetingEnabled, setSalamGreetingEnabled } from "@/components/SalamGreeting";
 import { notificationManager, type NotificationPreferences } from "@/lib/notification-manager";
+import { localNotifications } from "@/lib/local-notifications";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -38,6 +39,11 @@ const Profile = () => {
     eveningReminders: false,
   });
   const [notificationsSupported, setNotificationsSupported] = useState(false);
+  
+  // Prayer notification states
+  const [prayerNotificationsEnabled, setPrayerNotificationsEnabled] = useState(false);
+  const [prayerNotificationsLoading, setPrayerNotificationsLoading] = useState(true);
+  const [scheduledPrayerCount, setScheduledPrayerCount] = useState(0);
 
   useEffect(() => {
     setIsDarkMode(getTheme() === "dark");
@@ -50,6 +56,9 @@ const Profile = () => {
     // Load notification preferences
     setNotificationPrefs(notificationManager.getPreferences());
     setNotificationsSupported(notificationManager.areNotificationsEnabled());
+    
+    // Load prayer notification status
+    checkPrayerNotificationStatus();
     
     // Load storage stats
     getStorageStats().then(setStorageStats);
@@ -127,6 +136,61 @@ const Profile = () => {
       title: "Enable notifications",
       description: "Please allow notifications in your browser settings to use this feature.",
       variant: "destructive",
+    });
+  };
+
+  const checkPrayerNotificationStatus = async () => {
+    try {
+      const enabled = await localNotifications.areNotificationsEnabled();
+      setPrayerNotificationsEnabled(enabled);
+      
+      const scheduled = await localNotifications.getScheduledPrayerNotifications();
+      setScheduledPrayerCount(scheduled.length);
+    } catch (error) {
+      console.error('Failed to check prayer notification status:', error);
+    } finally {
+      setPrayerNotificationsLoading(false);
+    }
+  };
+
+  const handlePrayerNotificationToggle = async (enabled: boolean) => {
+    if (enabled) {
+      const success = await localNotifications.initialize();
+      if (success) {
+        setPrayerNotificationsEnabled(true);
+        toast({
+          title: "Prayer Notifications Enabled",
+          description: "Prayer reminders will be scheduled automatically",
+        });
+      } else {
+        toast({
+          title: "Permission Denied",
+          description: "Please enable notifications in your device settings",
+          variant: "destructive",
+        });
+      }
+    } else {
+      await localNotifications.clearPrayerNotifications();
+      setPrayerNotificationsEnabled(false);
+      setScheduledPrayerCount(0);
+      toast({
+        title: "Prayer Notifications Disabled",
+        description: "Prayer reminders have been cancelled",
+      });
+    }
+  };
+
+  const handleRefreshPrayerNotifications = async () => {
+    setPrayerNotificationsLoading(true);
+    await checkPrayerNotificationStatus();
+  };
+
+  const handleClearPrayerNotifications = async () => {
+    await localNotifications.clearPrayerNotifications();
+    setScheduledPrayerCount(0);
+    toast({
+      title: "Prayer Notifications Cleared",
+      description: "All scheduled prayer reminders have been cancelled",
     });
   };
 
@@ -395,6 +459,72 @@ const Profile = () => {
                 <Bell className="w-4 h-4 mr-2" />
                 Test Notification
               </Button>
+
+              {/* Prayer Notifications */}
+              <div className="space-y-3 p-3 rounded-lg border border-primary/20 bg-primary/5">
+                <div className="flex items-center justify-between">
+                  <div className="space-y-1">
+                    <Label className="text-sm font-medium flex items-center gap-2">
+                      <Calendar className="w-4 h-4 text-primary" />
+                      Prayer Reminders
+                    </Label>
+                    <p className="text-xs text-muted-foreground">
+                      Get notified at prayer times
+                    </p>
+                  </div>
+                  <Switch
+                    checked={prayerNotificationsEnabled}
+                    onCheckedChange={handlePrayerNotificationToggle}
+                    disabled={prayerNotificationsLoading}
+                  />
+                </div>
+
+                {/* Prayer Notification Status */}
+                <div className="flex items-center gap-2 p-2 rounded bg-muted/50">
+                  {prayerNotificationsEnabled ? (
+                    <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                  ) : (
+                    <div className="w-2 h-2 bg-orange-500 rounded-full"></div>
+                  )}
+                  <span className="text-xs">
+                    {prayerNotificationsEnabled
+                      ? `${scheduledPrayerCount} prayer reminders scheduled`
+                      : 'Prayer reminders are disabled'}
+                  </span>
+                </div>
+
+                {/* Prayer Notification Actions */}
+                <div className="flex gap-2">
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={handleRefreshPrayerNotifications}
+                    disabled={prayerNotificationsLoading}
+                    className="flex-1"
+                  >
+                    <Settings className="w-3 h-3 mr-1" />
+                    Refresh
+                  </Button>
+                  
+                  {prayerNotificationsEnabled && scheduledPrayerCount > 0 && (
+                    <Button
+                      variant="outline"
+                      size="sm"
+                      onClick={handleClearPrayerNotifications}
+                      className="flex-1"
+                    >
+                      <BellOff className="w-3 h-3 mr-1" />
+                      Clear
+                    </Button>
+                  )}
+                </div>
+
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p>• Uses system alarm to wake up device</p>
+                  <p>• Works even when app is closed</p>
+                  <p>• FOSS-friendly - no proprietary services</p>
+                </div>
+              </div>
 
               {/* Ramadan Countdowns */}
               <div className="flex items-center justify-between">

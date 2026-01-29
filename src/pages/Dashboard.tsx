@@ -11,7 +11,6 @@ import { DailyAyah } from "@/components/DailyAyah";
 import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
-import { NotificationSettings } from "@/components/NotificationSettings";
 import { CitySearch } from "@/components/CitySearch";
 import { PrayerMethodSelector } from "@/components/PrayerMethodSelector";
 import { Button } from "@/components/ui/button";
@@ -328,9 +327,6 @@ export default function Dashboard() {
 
         {/* Prayer Method Selector */}
         <PrayerMethodSelector />
-
-        {/* Notification Settings */}
-        <NotificationSettings />
 
         {/* Dhikr Reminder */}
         <DhikrReminder />
