@@ -1,9 +1,8 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Radio, Play, Globe, Headphones, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, Radio, Play, Headphones, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGlobalRadio } from "@/lib/global-radio";
 import { radioBrowser, type RadioStation } from "@/lib/radio-browser";
 import { useToast } from "@/hooks/use-toast";
@@ -15,11 +14,10 @@ const QuranRadio = () => {
   const [isLoading, setIsLoading] = useState(true);
   const [popularStations, setPopularStations] = useState<RadioStation[]>([]);
   const [allStations, setAllStations] = useState<RadioStation[]>([]);
-  const [selectedLanguage, setSelectedLanguage] = useState('en');
 
   useEffect(() => {
     loadStations();
-  }, [selectedLanguage]);
+  }, []);
 
   const loadStations = async () => {
     try {
@@ -28,8 +26,8 @@ const QuranRadio = () => {
       const popular = await radioBrowser.getPopularStations();
       setPopularStations(popular);
       
-      // Load all stations by language
-      const stations = await radioBrowser.getStationsByLanguage(selectedLanguage);
+      // Load all Islamic stations (no language filter)
+      const stations = await radioBrowser.getIslamicStations(50);
       setAllStations(stations);
     } catch (error) {
       console.error('Failed to load stations:', error);
@@ -85,28 +83,6 @@ const QuranRadio = () => {
             <p className="text-xs text-muted-foreground">Live Quran recitation 24/7</p>
           </div>
         </div>
-
-        {/* Language Selector */}
-        <Card className="p-4">
-          <div className="flex items-center gap-3 mb-3">
-            <Globe className="w-5 h-5 text-blue-500" />
-            <h3 className="font-medium">Select Language</h3>
-          </div>
-          <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
-            <SelectTrigger>
-              <SelectValue placeholder="Choose language" />
-            </SelectTrigger>
-            <SelectContent>
-              <SelectItem value="en">English</SelectItem>
-              <SelectItem value="ar">العربية</SelectItem>
-              <SelectItem value="fr">Français</SelectItem>
-              <SelectItem value="ur">اردو</SelectItem>
-              <SelectItem value="id">Indonesia</SelectItem>
-              <SelectItem value="tr">Türkçe</SelectItem>
-              <SelectItem value="es">Español</SelectItem>
-            </SelectContent>
-          </Select>
-        </Card>
 
         {/* Current Playing Status */}
         {globalRadio?.currentStation && (
@@ -253,7 +229,6 @@ const QuranRadio = () => {
         <Card className="p-4 bg-muted/30">
           <h3 className="font-medium text-sm mb-2">How to Use</h3>
           <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• Select your preferred language from the dropdown</li>
             <li>• Click on any station to start playing</li>
             <li>• Radio continues playing in background</li>
             <li>• Use the global player at the bottom for controls</li>
