@@ -17,6 +17,7 @@ import { downloadBackup, importBackup, clearCache, getQuranFontSize, setQuranFon
 import { isSalamGreetingEnabled, setSalamGreetingEnabled } from "@/components/SalamGreeting";
 import { notificationManager, type NotificationPreferences } from "@/lib/notification-manager";
 import { localNotifications } from "@/lib/local-notifications";
+import { PrayerMethodSelector } from "@/components/PrayerMethodSelector";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -62,6 +63,20 @@ const Profile = () => {
     
     // Load storage stats
     getStorageStats().then(setStorageStats);
+  }, []);
+
+  // Listen for prayer method changes to reload prayer times
+  useEffect(() => {
+    const handleMethodChange = () => {
+      // Trigger prayer time reload when method changes
+      // This will be handled by any component that listens for this event
+      console.log('Prayer method changed in settings');
+    };
+
+    window.addEventListener('prayer-method-changed', handleMethodChange);
+    return () => {
+      window.removeEventListener('prayer-method-changed', handleMethodChange);
+    };
   }, []);
 
   const handleSalamGreetingToggle = (checked: boolean) => {
@@ -312,19 +327,8 @@ const Profile = () => {
             <Calculator className="w-4 h-4" /> Prayer Settings
           </h3>
           
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Calculation Method</Label>
-            <Select value={calculationMethod} onValueChange={handleMethodChange}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                {Object.entries(CALCULATION_METHOD_LABELS).map(([key, label]) => (
-                  <SelectItem key={key} value={key}>{label}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+          {/* Prayer Method Selector */}
+          <PrayerMethodSelector />
 
           <div className="space-y-2">
             <Label className="text-xs text-muted-foreground">Asr Calculation (Madhab)</Label>

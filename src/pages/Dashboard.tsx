@@ -12,7 +12,6 @@ import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { CitySearch } from "@/components/CitySearch";
-import { PrayerMethodSelector } from "@/components/PrayerMethodSelector";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getTimeFormat } from "@/lib/storage";
@@ -49,18 +48,6 @@ export default function Dashboard() {
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
-  }, []);
-
-  // Listen for prayer method changes
-  useEffect(() => {
-    const handleMethodChange = () => {
-      loadPrayerTimes(); // Reload prayer times when method changes
-    };
-
-    window.addEventListener('prayer-method-changed', handleMethodChange);
-    return () => {
-      window.removeEventListener('prayer-method-changed', handleMethodChange);
-    };
   }, []);
 
   // Load prayer times using global location
@@ -324,9 +311,6 @@ export default function Dashboard() {
 
         {/* Daily Hadith */}
         <DailyHadith />
-
-        {/* Prayer Method Selector */}
-        <PrayerMethodSelector />
 
         {/* Dhikr Reminder */}
         <DhikrReminder />
