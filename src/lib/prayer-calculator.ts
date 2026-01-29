@@ -3,7 +3,7 @@
  * No API calls required - calculates locally
  */
 import { Coordinates, CalculationMethod, PrayerTimes, CalculationParameters, Madhab, Shafaq } from 'adhan';
-import { getPrayerSettings, getMadhab } from './storage';
+import { getMadhab } from './storage';
 
 export type CalculationMethodName = 
   | 'MuslimWorldLeague'
