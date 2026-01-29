@@ -114,9 +114,11 @@ const QuranRadio = () => {
         return;
       }
 
-      // Stop current audio if playing
+      // IMPORTANT: Stop current audio completely before starting new one
       if (audioRef.current) {
         audioRef.current.pause();
+        audioRef.current.currentTime = 0;
+        audioRef.current.src = ''; // Clear source to stop completely
         // Remove old event listeners
         audioRef.current.removeEventListener('play', handlePlay);
         audioRef.current.removeEventListener('error', handleError);
@@ -125,15 +127,11 @@ const QuranRadio = () => {
         audioRef.current.removeEventListener('ended', handleEnded);
       }
 
-      // Create or reuse audio element
-      const audio = audioRef.current || new Audio();
+      // Create new audio element (fresh instance)
+      const audio = new Audio();
       audioRef.current = audio;
       
-      // Reset audio state
-      audio.pause();
-      audio.currentTime = 0;
-      
-      // Set new source (NEVER set to window.location)
+      // Set new source
       audio.src = streamUrl;
       audio.preload = 'none';
       audio.crossOrigin = 'anonymous';
@@ -150,19 +148,17 @@ const QuranRadio = () => {
       setIsPlaying(false);
       
       // Attempt to play with proper error handling
-      if (audio.paused) {
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.catch(error => {
-            console.error('Play failed:', error);
-            setIsPlaying(false);
-            toast({
-              title: "Play Failed",
-              description: `Could not play ${station.name}. Try another station.`,
-              variant: "destructive"
-            });
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error('Play failed:', error);
+          setIsPlaying(false);
+          toast({
+            title: "Play Failed",
+            description: `Could not play ${station.name}. Try another station.`,
+            variant: "destructive"
           });
-        }
+        });
       }
       
       toast({
@@ -184,7 +180,9 @@ const QuranRadio = () => {
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
+      audioRef.current.src = ''; // Clear the source to fully stop
       setIsPlaying(false);
+      setCurrentStation(null);
     }
   };
 
@@ -269,33 +267,6 @@ const QuranRadio = () => {
                   Stop
                 </Button>
               </div>
-              
-              {/* Hidden native audio element for actual playback */}
-              {audioRef.current && (
-                <audio
-                  ref={(el) => {
-                    if (el && el !== audioRef.current) {
-                      // Transfer properties from current audio to this element
-                      el.src = audioRef.current!.src;
-                      el.preload = audioRef.current!.preload;
-                      el.crossOrigin = audioRef.current!.crossOrigin;
-                      
-                      // Update the ref to point to this element
-                      audioRef.current = el;
-                      
-                      // Re-add event listeners to the new element
-                      el.addEventListener('play', handlePlay);
-                      el.addEventListener('error', handleError);
-                      el.addEventListener('loadeddata', handleLoadedData);
-                      el.addEventListener('canplay', handleCanPlay);
-                      el.addEventListener('ended', handleEnded);
-                    }
-                  }}
-                  preload="none"
-                  crossOrigin="anonymous"
-                  className="hidden"
-                />
-              )}
             </div>
           </Card>
         )}
