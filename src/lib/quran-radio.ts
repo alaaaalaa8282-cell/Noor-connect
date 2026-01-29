@@ -4,22 +4,22 @@
  */
 
 export interface RadioStation {
-  id: number;
+  id: string;
   name: string;
   url: string;
 }
 
 export interface RadioApiResponse {
-  radios: RadioStation[];
+  Radios: RadioStation[];
 }
 
 class QuranRadio {
-  private readonly API_BASE = 'https://mp3quran.net/api/v3/radios';
+  private readonly API_BASE = 'https://www.mp3quran.net/api/radio';
   
   // Fetch all available radio stations
-  async getRadioStations(language: string = 'ar'): Promise<RadioStation[]> {
+  async getRadioStations(language: string = 'en'): Promise<RadioStation[]> {
     try {
-      const url = `${this.API_BASE}?language=${language}`;
+      const url = `${this.API_BASE}/radio_${language}.json`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -27,10 +27,10 @@ class QuranRadio {
       }
       
       const data: RadioApiResponse = await response.json();
-      return data.radios || [];
+      return data.Radios || [];
     } catch (error) {
       console.error('Error fetching radio stations:', error);
-      return [];
+      return this.getPopularStations(); // Fallback to popular stations
     }
   }
 
@@ -39,33 +39,38 @@ class QuranRadio {
     return this.getRadioStations(language);
   }
 
-  // Get popular radio stations (handpicked selection)
+  // Get popular radio stations (handpicked selection from API)
   getPopularStations(): RadioStation[] {
     return [
       {
-        id: 10,
-        name: "Radio Alzain Mohammad Ahmad",
-        url: "https://Qurango.net/radio/alzain_mohammad_ahmad"
+        id: "108",
+        name: "-Main Radio-",
+        url: "https://backup.qurango.net/radio/mix"
       },
       {
-        id: 100,
-        name: "Radio Ahmad Khader Al-Tarabulsi",
-        url: "https://Qurango.net/radio/ahmad_khader_altarabulsi"
+        id: "109",
+        name: "-Beautiful Recitations-",
+        url: "https://backup.qurango.net/radio/salma"
       },
       {
-        id: 1,
-        name: "Radio Abdul Basit Abdus Samad",
-        url: "https://Qurango.net/radio/abdul_basit_abdus_samad"
+        id: "115",
+        name: "-Surah Al-Baqarah - Many Reciters",
+        url: "https://backup.qurango.net/radio/albaqarah"
       },
       {
-        id: 3,
-        name: "Radio Mahmoud Khalil Al-Hussary",
-        url: "https://Qurango.net/radio/mahmoud_khalil_al_hussary"
+        id: "32",
+        name: "Abdulbasit Abdulsamad",
+        url: "https://backup.qurango.net/radio/abdulbasit_abdulsamad"
       },
       {
-        id: 7,
-        name: "Radio Mishary Rashid Al-Afasy",
-        url: "https://Qurango.net/radio/mishary_rashid_al_afasy"
+        id: "38",
+        name: "Abdullah Al-Johany",
+        url: "https://backup.qurango.net/radio/abdullah_aljohany"
+      },
+      {
+        id: "30",
+        name: "Abdulbasit Abdulsamad (Mojawwad)",
+        url: "https://backup.qurango.net/radio/abdulbasit_abdulsamad_mojawwad"
       }
     ];
   }

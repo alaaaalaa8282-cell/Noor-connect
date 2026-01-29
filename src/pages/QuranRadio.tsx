@@ -12,17 +12,25 @@ const QuranRadio = () => {
   const globalRadio = useGlobalRadio();
   const [isLoading, setIsLoading] = useState(true);
   const [popularStations, setPopularStations] = useState<RadioStation[]>([]);
+  const [allStations, setAllStations] = useState<RadioStation[]>([]);
+  const [selectedLanguage, setSelectedLanguage] = useState('en');
 
   useEffect(() => {
-    loadPopularStations();
-  }, []);
+    loadStations();
+  }, [selectedLanguage]);
 
-  const loadPopularStations = async () => {
+  const loadStations = async () => {
     try {
-      const stations = quranRadio.getPopularStations();
-      setPopularStations(stations);
+      setIsLoading(true);
+      // Load popular stations (static)
+      const popular = quranRadio.getPopularStations();
+      setPopularStations(popular);
+      
+      // Load all stations from API
+      const stations = await quranRadio.getRadioStations(selectedLanguage);
+      setAllStations(stations);
     } catch (error) {
-      console.error('Failed to load popular stations:', error);
+      console.error('Failed to load stations:', error);
     } finally {
       setIsLoading(false);
     }
@@ -30,7 +38,7 @@ const QuranRadio = () => {
 
   const handleStationSelect = (station: RadioStation) => {
     // Play the selected station using global radio
-    globalRadio.playRadio(station);
+    globalRadio?.playRadio(station);
   };
 
   return (
@@ -47,8 +55,30 @@ const QuranRadio = () => {
           </div>
         </div>
 
+        {/* Language Selector */}
+        <Card className="p-4">
+          <div className="flex items-center gap-3 mb-3">
+            <Globe className="w-5 h-5 text-blue-500" />
+            <h3 className="font-medium">Select Language</h3>
+          </div>
+          <Select value={selectedLanguage} onValueChange={setSelectedLanguage}>
+            <SelectTrigger>
+              <SelectValue placeholder="Choose language" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="en">English</SelectItem>
+              <SelectItem value="ar">العربية</SelectItem>
+              <SelectItem value="fr">Français</SelectItem>
+              <SelectItem value="ur">اردو</SelectItem>
+              <SelectItem value="id">Indonesia</SelectItem>
+              <SelectItem value="tr">Türkçe</SelectItem>
+              <SelectItem value="es">Español</SelectItem>
+            </SelectContent>
+          </Select>
+        </Card>
+
         {/* Current Playing Status */}
-        {globalRadio.currentStation && (
+        {globalRadio?.currentStation && (
           <Card className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950">
             <div className="text-center space-y-3">
               <div className="flex items-center justify-center gap-2">
@@ -117,7 +147,9 @@ const QuranRadio = () => {
                         <p className="text-xs text-muted-foreground">Live Stream</p>
                       </div>
                     </div>
-                    <Play className="w-4 h-4 text-muted-foreground" />
+                    <Button size="sm" variant="outline">
+                      <Play className="w-4 h-4" />
+                    </Button>
                   </div>
                 </Card>
               ))}
@@ -125,15 +157,45 @@ const QuranRadio = () => {
           )}
         </div>
 
+        {/* All Stations */}
+        {allStations.length > 0 && (
+          <div className="space-y-4">
+            <h3 className="font-semibold text-sm">All Stations ({allStations.length})</h3>
+            <div className="space-y-3 max-h-96 overflow-y-auto">
+              {allStations.slice(0, 20).map((station) => (
+                <Card 
+                  key={station.id}
+                  className="p-4 hover:bg-muted/50 transition-colors cursor-pointer"
+                  onClick={() => handleStationSelect(station)}
+                >
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 bg-primary/10 rounded-full flex items-center justify-center">
+                        <Radio className="w-5 h-5 text-primary" />
+                      </div>
+                      <div>
+                        <h4 className="font-medium text-sm">{station.name}</h4>
+                        <p className="text-xs text-muted-foreground">Live Stream</p>
+                      </div>
+                    </div>
+                    <Button size="sm" variant="outline">
+                      <Play className="w-4 h-4" />
+                    </Button>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          </div>
+        )}
+
         {/* Instructions */}
         <Card className="p-4 bg-muted/30">
           <h3 className="font-medium text-sm mb-2">How to Use</h3>
           <ul className="text-xs text-muted-foreground space-y-1">
-            <li>• Click "Open Radio Player" to launch the player</li>
-            <li>• Select your preferred language and station</li>
-            <li>• Adjust volume using the slider</li>
+            <li>• Select your preferred language from the dropdown</li>
+            <li>• Click on any station to start playing</li>
             <li>• Radio continues playing in background</li>
-            <li>• Use system media controls for playback</li>
+            <li>• Use the global player at the bottom for controls</li>
           </ul>
         </Card>
 
