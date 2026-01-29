@@ -2,6 +2,7 @@
  * Photon API Service
  * Search-as-you-type city selection using Komoot's Photon API
  * FOSS-friendly alternative to proprietary geocoding services
+ * Updated: Fixed OpenCage API references
  */
 
 export interface CityResult {
