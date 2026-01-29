@@ -4,7 +4,8 @@
  */
 
 import { Coordinates, CalculationMethod, PrayerTimes, CalculationParameters, Madhab, Shafaq } from 'adhan';
-import { getPrayerSettings, getMadhab } from './storage';
+import { getMadhab } from './storage';
+import { calculatePrayerTimes } from './prayer-calculator';
 
 export type CalculationMethodName = 
   | 'MuslimWorldLeague'
@@ -215,9 +216,6 @@ class PrayerMethodsService {
     method?: PrayerMethod
   ): Promise<any> {
     const selectedMethod = method || this.getSelectedMethod();
-    
-    // Import the prayer calculator dynamically
-    const { calculatePrayerTimes } = await import('@/lib/prayer-calculator');
     
     // Calculate with custom angles - use the method name for calculation
     const times = calculatePrayerTimes(latitude, longitude, date, selectedMethod.calculationMethod);
