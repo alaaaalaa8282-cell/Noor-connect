@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Radio, Play, Headphones, Wifi, WifiOff, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -13,17 +13,25 @@ const QuranRadio = () => {
   const [popularStations, setPopularStations] = useState<RadioStation[]>([]);
   const [allStations, setAllStations] = useState<RadioStation[]>([]);
   const [currentStation, setCurrentStation] = useState<RadioStation | null>(null);
-  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
+  const [isPlaying, setIsPlaying] = useState(false);
+  
+  // Single audio instance using useRef
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     loadStations();
     
     // Cleanup on unmount
     return () => {
-      if (audioRef) {
-        audioRef.pause();
-        audioRef.src = '';
-        setAudioRef(null);
+      if (audioRef.current) {
+        audioRef.current.pause();
+        audioRef.current.removeEventListener('play', handlePlay);
+        audioRef.current.removeEventListener('error', handleError);
+        audioRef.current.removeEventListener('loadeddata', handleLoadedData);
+        audioRef.current.removeEventListener('canplay', handleCanPlay);
+        audioRef.current.removeEventListener('ended', handleEnded);
+        audioRef.current.src = '';
+        audioRef.current = null;
       }
     };
   }, []);
@@ -50,26 +58,52 @@ const QuranRadio = () => {
     }
   };
 
+  // Event handlers with proper references
+  const handlePlay = () => {
+    console.log('Audio playing:', currentStation?.name);
+    setIsPlaying(true);
+  };
+  
+  const handleError = (e: Event) => {
+    const audio = audioRef.current;
+    if (!audio) return;
+    
+    console.error('Audio Error:', {
+      error: audio.error,
+      src: audio.src,
+      networkState: audio.networkState,
+      readyState: audio.readyState
+    });
+    
+    // IMPORTANT: Don't reset src to window.location
+    // Keep the original stream URL for debugging
+    
+    setIsPlaying(false);
+    toast({
+      title: "Stream Error",
+      description: `Failed to play ${currentStation?.name}. Try another station.`,
+      variant: "destructive"
+    });
+  };
+  
+  const handleLoadedData = () => {
+    console.log('Audio data loaded for:', currentStation?.name);
+  };
+  
+  const handleCanPlay = () => {
+    console.log('Audio can play:', currentStation?.name);
+  };
+  
+  const handleEnded = () => {
+    console.log('Audio ended:', currentStation?.name);
+    setIsPlaying(false);
+  };
+
   const handleStationSelect = (station: RadioStation) => {
     try {
-      // Stop and cleanup current audio if playing
-      if (audioRef) {
-        audioRef.pause();
-        audioRef.removeEventListener('play', () => {});
-        audioRef.removeEventListener('error', () => {});
-        audioRef.removeEventListener('loadeddata', () => {});
-        audioRef.removeEventListener('canplay', () => {});
-        audioRef.src = '';
-        setAudioRef(null);
-      }
-
-      // Clear current station first
-      setCurrentStation(null);
-
-      // Use url_resolved for direct streaming
       const streamUrl = station.url_resolved || station.url;
       
-      // Validate stream URL is not empty and not our website
+      // Validate stream URL
       if (!streamUrl || streamUrl.includes(window.location.hostname)) {
         console.error('Invalid stream URL:', streamUrl);
         toast({
@@ -79,63 +113,56 @@ const QuranRadio = () => {
         });
         return;
       }
+
+      // Stop current audio if playing
+      if (audioRef.current) {
+        audioRef.current.pause();
+        // Remove old event listeners
+        audioRef.current.removeEventListener('play', handlePlay);
+        audioRef.current.removeEventListener('error', handleError);
+        audioRef.current.removeEventListener('loadeddata', handleLoadedData);
+        audioRef.current.removeEventListener('canplay', handleCanPlay);
+        audioRef.current.removeEventListener('ended', handleEnded);
+      }
+
+      // Create or reuse audio element
+      const audio = audioRef.current || new Audio();
+      audioRef.current = audio;
       
-      // Create new audio element
-      const audio = new Audio();
+      // Reset audio state
+      audio.pause();
+      audio.currentTime = 0;
+      
+      // Set new source (NEVER set to window.location)
       audio.src = streamUrl;
       audio.preload = 'none';
       audio.crossOrigin = 'anonymous';
       
-      // Add event listeners for debugging
-      const handlePlay = () => {
-        console.log('Attempting to play...', station.name, streamUrl);
-      };
-      
-      const handleError = (e: Event) => {
-        console.error('Audio Tag Error:', e);
-        console.error('Audio Error Details:', {
-          error: audio.error,
-          src: audio.src,
-          networkState: audio.networkState,
-          readyState: audio.readyState
-        });
-        
-        // Don't reset src to window.location - keep the original stream URL for debugging
-        toast({
-          title: "Stream Error",
-          description: `Failed to play ${station.name}. Try another station.`,
-          variant: "destructive"
-        });
-      };
-      
-      const handleLoadedData = () => {
-        console.log('Audio data loaded for:', station.name);
-      };
-      
-      const handleCanPlay = () => {
-        console.log('Audio can play:', station.name);
-      };
-      
+      // Add event listeners
       audio.addEventListener('play', handlePlay);
       audio.addEventListener('error', handleError);
       audio.addEventListener('loadeddata', handleLoadedData);
       audio.addEventListener('canplay', handleCanPlay);
+      audio.addEventListener('ended', handleEnded);
       
-      // Set the audio reference and current station
-      setAudioRef(audio);
+      // Update state
       setCurrentStation(station);
+      setIsPlaying(false);
       
-      // Attempt to play with error handling
-      const playPromise = audio.play();
-      if (playPromise !== undefined) {
-        playPromise.catch(error => {
-          console.error('Play failed:', error);
-          toast({
-            title: "Play Failed",
-            description: `Could not play ${station.name}. Try another station.`,
-            variant: "destructive"
+      // Attempt to play with proper error handling
+      if (audio.paused) {
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.catch(error => {
+            console.error('Play failed:', error);
+            setIsPlaying(false);
+            toast({
+              title: "Play Failed",
+              description: `Could not play ${station.name}. Try another station.`,
+              variant: "destructive"
+            });
           });
-        });
+        }
       }
       
       toast({
@@ -144,6 +171,7 @@ const QuranRadio = () => {
       });
     } catch (error) {
       console.error('Failed to play station:', error);
+      setIsPlaying(false);
       toast({
         title: "Stream Unreachable",
         description: "Try another station.",
@@ -153,15 +181,33 @@ const QuranRadio = () => {
   };
 
   const handleStopRadio = () => {
-    if (audioRef) {
-      audioRef.pause();
-      audioRef.removeEventListener('play', () => {});
-      audioRef.removeEventListener('error', () => {});
-      audioRef.removeEventListener('loadeddata', () => {});
-      audioRef.removeEventListener('canplay', () => {});
-      audioRef.src = '';
-      setAudioRef(null);
-      setCurrentStation(null);
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.currentTime = 0;
+      setIsPlaying(false);
+    }
+  };
+
+  const handlePlayPause = () => {
+    if (!audioRef.current || !currentStation) return;
+    
+    if (audioRef.current.paused) {
+      // Play if paused
+      const playPromise = audioRef.current.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error('Play failed:', error);
+          toast({
+            title: "Play Failed",
+            description: "Could not resume playback.",
+            variant: "destructive"
+          });
+        });
+      }
+    } else {
+      // Pause if playing
+      audioRef.current.pause();
+      setIsPlaying(false);
     }
   };
 
@@ -184,52 +230,71 @@ const QuranRadio = () => {
           <Card className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950">
             <div className="text-center space-y-3">
               <div className="flex items-center justify-center gap-2">
-                <Radio className="w-6 h-6 text-primary animate-pulse" />
-                <h3 className="text-lg font-semibold">Now Playing</h3>
+                <Radio className={`w-6 h-6 text-primary ${isPlaying ? 'animate-pulse' : ''}`} />
+                <h3 className="text-lg font-semibold">
+                  {isPlaying ? 'Now Playing' : 'Selected Station'}
+                </h3>
               </div>
               <p className="text-sm font-medium">{currentStation.name}</p>
-              <p className="text-xs text-muted-foreground">Live Quran Recitation</p>
+              <p className="text-xs text-muted-foreground">
+                {isPlaying ? 'Live Quran Recitation' : 'Click play to start streaming'}
+              </p>
               
-              {/* Native Audio Element */}
-              {audioRef && (
-                <div className="space-y-2">
-                  <audio
-                    ref={(el) => {
-                      if (el && el !== audioRef) {
-                        // Copy event listeners to the new element
-                        el.src = audioRef.src;
-                        el.addEventListener('play', () => {
-                          console.log('Attempting to play...', currentStation.name, audioRef.src);
-                        });
-                        el.addEventListener('error', (e) => {
-                          console.error('Audio Tag Error:', e);
-                          console.error('Audio Error Details:', {
-                            error: el.error,
-                            src: el.src,
-                            networkState: el.networkState,
-                            readyState: el.readyState
-                          });
-                        });
-                        el.addEventListener('loadeddata', () => {
-                          console.log('Audio data loaded for:', currentStation.name);
-                        });
-                        el.addEventListener('canplay', () => {
-                          console.log('Audio can play:', currentStation.name);
-                        });
-                      }
-                    }}
-                    controls
-                    preload="none"
-                    className="w-full max-w-xs mx-auto"
-                  />
-                  <Button 
-                    variant="outline" 
-                    size="sm"
-                    onClick={handleStopRadio}
-                  >
-                    Stop
-                  </Button>
-                </div>
+              {/* Audio Controls */}
+              <div className="flex items-center justify-center gap-2">
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handlePlayPause}
+                  className="flex items-center gap-2"
+                >
+                  {isPlaying ? (
+                    <>
+                      <div className="w-3 h-3 border-2 border-current border-t-transparent rounded-full animate-spin" />
+                      Pause
+                    </>
+                  ) : (
+                    <>
+                      <Play className="w-3 h-3" />
+                      Play
+                    </>
+                  )}
+                </Button>
+                
+                <Button 
+                  variant="outline" 
+                  size="sm"
+                  onClick={handleStopRadio}
+                >
+                  Stop
+                </Button>
+              </div>
+              
+              {/* Hidden native audio element for actual playback */}
+              {audioRef.current && (
+                <audio
+                  ref={(el) => {
+                    if (el && el !== audioRef.current) {
+                      // Transfer properties from current audio to this element
+                      el.src = audioRef.current!.src;
+                      el.preload = audioRef.current!.preload;
+                      el.crossOrigin = audioRef.current!.crossOrigin;
+                      
+                      // Update the ref to point to this element
+                      audioRef.current = el;
+                      
+                      // Re-add event listeners to the new element
+                      el.addEventListener('play', handlePlay);
+                      el.addEventListener('error', handleError);
+                      el.addEventListener('loadeddata', handleLoadedData);
+                      el.addEventListener('canplay', handleCanPlay);
+                      el.addEventListener('ended', handleEnded);
+                    }
+                  }}
+                  preload="none"
+                  crossOrigin="anonymous"
+                  className="hidden"
+                />
               )}
             </div>
           </Card>
