@@ -3,6 +3,8 @@
  * Uses radio-browser.info API for reliable Islamic radio stations
  */
 
+import { CapacitorHttp } from '@capacitor/core';
+
 export interface RadioStation {
   id: string;
   name: string;
@@ -28,13 +30,13 @@ class RadioBrowser {
   async getIslamicStations(limit: number = 20): Promise<RadioStation[]> {
     try {
       const url = `${this.API_BASE}/search?tag=islamic&limit=${limit}&https=true`;
-      const response = await fetch(url);
+      const response = await CapacitorHttp.get({ url });
       
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`Failed to fetch radio stations: ${response.status}`);
       }
       
-      const stations: RadioStation[] = await response.json();
+      const stations: RadioStation[] = response.data;
       
       // Filter for quality stations (lastcheckok == 1)
       const qualityStations = stations.filter(station => station.lastcheckok === 1);
@@ -50,13 +52,13 @@ class RadioBrowser {
   async getStationsByLanguage(language: string, limit: number = 20): Promise<RadioStation[]> {
     try {
       const url = `${this.API_BASE}/search?tag=islamic&language=${language}&limit=${limit}&https=true`;
-      const response = await fetch(url);
+      const response = await CapacitorHttp.get({ url });
       
-      if (!response.ok) {
+      if (response.status !== 200) {
         throw new Error(`Failed to fetch radio stations: ${response.status}`);
       }
       
-      const stations: RadioStation[] = await response.json();
+      const stations: RadioStation[] = response.data;
       
       // Filter for quality stations
       const qualityStations = stations.filter(station => station.lastcheckok === 1);
