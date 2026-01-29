@@ -5,11 +5,13 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useGlobalRadio } from "@/lib/global-radio";
-import { quranRadio, type RadioStation } from "@/lib/quran-radio";
+import { radioBrowser, type RadioStation } from "@/lib/radio-browser";
+import { useToast } from "@/hooks/use-toast";
 
 const QuranRadio = () => {
   const navigate = useNavigate();
   const globalRadio = useGlobalRadio();
+  const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [popularStations, setPopularStations] = useState<RadioStation[]>([]);
   const [allStations, setAllStations] = useState<RadioStation[]>([]);
@@ -22,23 +24,64 @@ const QuranRadio = () => {
   const loadStations = async () => {
     try {
       setIsLoading(true);
-      // Load popular stations (static)
-      const popular = quranRadio.getPopularStations();
+      // Load popular stations from Radio Browser API
+      const popular = await radioBrowser.getPopularStations();
       setPopularStations(popular);
       
-      // Load all stations from API
-      const stations = await quranRadio.getRadioStations(selectedLanguage);
+      // Load all stations by language
+      const stations = await radioBrowser.getStationsByLanguage(selectedLanguage);
       setAllStations(stations);
     } catch (error) {
       console.error('Failed to load stations:', error);
+      toast({
+        title: "Error Loading Stations",
+        description: "Failed to load radio stations. Please try again.",
+        variant: "destructive"
+      });
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleStationSelect = (station: RadioStation) => {
-    // Play the selected station using global radio
-    globalRadio?.playRadio(station);
+  const handleStationSelect = async (station: RadioStation) => {
+    try {
+      // Use url_resolved for direct streaming
+      const streamUrl = station.url_resolved || station.url;
+      
+      // Validate stream before playing
+      const isValid = await radioBrowser.validateStream(streamUrl);
+      
+      if (!isValid) {
+        toast({
+          title: "Stream Unreachable",
+          description: "This station is currently unavailable. Try another station.",
+          variant: "destructive"
+        });
+        return;
+      }
+
+      // Create station object with resolved URL (convert to expected format)
+      const stationToPlay = {
+        id: parseInt(station.id, 10) || Math.random(), // Convert string id to number or use random
+        name: station.name,
+        url: streamUrl
+      };
+
+      // Play the selected station using global radio
+      globalRadio?.playRadio(stationToPlay);
+      
+      toast({
+        title: "Station Selected",
+        description: `Now playing: ${station.name}`,
+      });
+    } catch (error) {
+      console.error('Failed to play station:', error);
+      toast({
+        title: "Stream Unreachable",
+        description: "Try another station.",
+        variant: "destructive"
+      });
+    }
   };
 
   return (
@@ -144,7 +187,22 @@ const QuranRadio = () => {
                       </div>
                       <div>
                         <h4 className="font-medium text-sm">{station.name}</h4>
-                        <p className="text-xs text-muted-foreground">Live Stream</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{station.country}</span>
+                          {station.bitrate && (
+                            <>
+                              <span>•</span>
+                              <span>{station.bitrate}kbps</span>
+                            </>
+                          )}
+                          {station.lastcheckok === 1 && (
+                            <>
+                              <span>•</span>
+                              <Wifi className="w-3 h-3 text-green-500" />
+                              <span className="text-green-500">Verified</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <Button size="sm" variant="outline">
@@ -175,7 +233,22 @@ const QuranRadio = () => {
                       </div>
                       <div>
                         <h4 className="font-medium text-sm">{station.name}</h4>
-                        <p className="text-xs text-muted-foreground">Live Stream</p>
+                        <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                          <span>{station.country}</span>
+                          {station.bitrate && (
+                            <>
+                              <span>•</span>
+                              <span>{station.bitrate}kbps</span>
+                            </>
+                          )}
+                          {station.lastcheckok === 1 && (
+                            <>
+                              <span>•</span>
+                              <Wifi className="w-3 h-3 text-green-500" />
+                              <span className="text-green-500">Verified</span>
+                            </>
+                          )}
+                        </div>
                       </div>
                     </div>
                     <Button size="sm" variant="outline">
