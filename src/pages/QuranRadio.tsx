@@ -1,6 +1,6 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Radio, Play, Headphones, Wifi, WifiOff } from "lucide-react";
+import { ArrowLeft, Radio, Play, Headphones, Wifi, WifiOff, Globe } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { radioBrowser, type RadioStation } from "@/lib/radio-browser";
