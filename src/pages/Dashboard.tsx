@@ -11,19 +11,15 @@ import { DailyAyah } from "@/components/DailyAyah";
 import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { getTimeFormat } from "@/lib/storage";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
+import { localNotifications, type PrayerTime } from "@/lib/local-notifications";
 import { useToast } from "@/hooks/use-toast";
 import { LocationCardSkeleton, PrayerTimeSkeleton, CountdownCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
-
-interface PrayerTime {
-  name: string;
-  time: string;
-  date: Date;
-}
 
 const prayerIcons: Record<string, React.ReactNode> = {
   Fajr: <Moon className="w-5 h-5" />,
@@ -188,6 +184,9 @@ export default function Dashboard() {
       
       setPrayers(prayerList);
 
+      // Schedule prayer notifications
+      await localNotifications.schedulePrayerNotifications(prayerList);
+
       // Get next prayer countdown
       const nextEvent = await AladhanAPI.getNextEventCountdown(location.latitude, location.longitude, 1, false);
       if (nextEvent) {
@@ -201,6 +200,15 @@ export default function Dashboard() {
       const times = calculatePrayerTimes(location.latitude, location.longitude, new Date());
       
       setPrayers([
+        { name: "Fajr", time: formatPrayerTime(times.fajr, timeFormat), date: times.fajr },
+        { name: "Dhuhr", time: formatPrayerTime(times.dhuhr, timeFormat), date: times.dhuhr },
+        { name: "Asr", time: formatPrayerTime(times.asr, timeFormat), date: times.asr },
+        { name: "Maghrib", time: formatPrayerTime(times.maghrib, timeFormat), date: times.maghrib },
+        { name: "Isha", time: formatPrayerTime(times.isha, timeFormat), date: times.isha },
+      ]);
+
+      // Schedule prayer notifications for fallback times
+      await localNotifications.schedulePrayerNotifications([
         { name: "Fajr", time: formatPrayerTime(times.fajr, timeFormat), date: times.fajr },
         { name: "Dhuhr", time: formatPrayerTime(times.dhuhr, timeFormat), date: times.dhuhr },
         { name: "Asr", time: formatPrayerTime(times.asr, timeFormat), date: times.asr },
@@ -405,6 +413,9 @@ export default function Dashboard() {
 
         {/* Daily Hadith */}
         <DailyHadith />
+
+        {/* Notification Settings */}
+        <NotificationSettings />
 
         {/* Dhikr Reminder */}
         <DhikrReminder />

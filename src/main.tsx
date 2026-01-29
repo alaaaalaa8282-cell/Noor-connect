@@ -1,6 +1,14 @@
 import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
+import { localNotifications } from "@/lib/local-notifications";
+
+// Initialize local notifications
+localNotifications.initialize().then(success => {
+  if (success) {
+    console.log('Local notifications initialized');
+  }
+});
 
 const rootElement = document.getElementById("root");
 if (rootElement) {
