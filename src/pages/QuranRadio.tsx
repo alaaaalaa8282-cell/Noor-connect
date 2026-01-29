@@ -17,6 +17,15 @@ const QuranRadio = () => {
 
   useEffect(() => {
     loadStations();
+    
+    // Cleanup on unmount
+    return () => {
+      if (audioRef) {
+        audioRef.pause();
+        audioRef.src = '';
+        setAudioRef(null);
+      }
+    };
   }, []);
 
   const loadStations = async () => {
@@ -26,7 +35,7 @@ const QuranRadio = () => {
       const popular = await radioBrowser.getPopularStations();
       setPopularStations(popular);
       
-      // Load all Islamic stations (no language filter)
+      // Load all Islamic stations (HTTPS only for Vercel)
       const stations = await radioBrowser.getIslamicStations(30);
       setAllStations(stations);
     } catch (error) {
@@ -43,26 +52,46 @@ const QuranRadio = () => {
 
   const handleStationSelect = (station: RadioStation) => {
     try {
-      // Stop current audio if playing
+      // Stop and cleanup current audio if playing
       if (audioRef) {
         audioRef.pause();
+        audioRef.removeEventListener('play', () => {});
+        audioRef.removeEventListener('error', () => {});
+        audioRef.removeEventListener('loadeddata', () => {});
+        audioRef.removeEventListener('canplay', () => {});
         audioRef.src = '';
+        setAudioRef(null);
       }
+
+      // Clear current station first
+      setCurrentStation(null);
 
       // Use url_resolved for direct streaming
       const streamUrl = station.url_resolved || station.url;
+      
+      // Validate stream URL is not empty and not our website
+      if (!streamUrl || streamUrl.includes(window.location.hostname)) {
+        console.error('Invalid stream URL:', streamUrl);
+        toast({
+          title: "Invalid Stream",
+          description: "This station has an invalid stream URL.",
+          variant: "destructive"
+        });
+        return;
+      }
       
       // Create new audio element
       const audio = new Audio();
       audio.src = streamUrl;
       audio.preload = 'none';
+      audio.crossOrigin = 'anonymous';
       
       // Add event listeners for debugging
-      audio.addEventListener('play', () => {
+      const handlePlay = () => {
         console.log('Attempting to play...', station.name, streamUrl);
-      });
+      };
       
-      audio.addEventListener('error', (e) => {
+      const handleError = (e: Event) => {
         console.error('Audio Tag Error:', e);
         console.error('Audio Error Details:', {
           error: audio.error,
@@ -70,34 +99,44 @@ const QuranRadio = () => {
           networkState: audio.networkState,
           readyState: audio.readyState
         });
+        
+        // Don't reset src to window.location - keep the original stream URL for debugging
         toast({
           title: "Stream Error",
           description: `Failed to play ${station.name}. Try another station.`,
           variant: "destructive"
         });
-      });
+      };
       
-      audio.addEventListener('loadeddata', () => {
+      const handleLoadedData = () => {
         console.log('Audio data loaded for:', station.name);
-      });
+      };
       
-      audio.addEventListener('canplay', () => {
+      const handleCanPlay = () => {
         console.log('Audio can play:', station.name);
-      });
+      };
       
-      // Set the audio reference and play
+      audio.addEventListener('play', handlePlay);
+      audio.addEventListener('error', handleError);
+      audio.addEventListener('loadeddata', handleLoadedData);
+      audio.addEventListener('canplay', handleCanPlay);
+      
+      // Set the audio reference and current station
       setAudioRef(audio);
       setCurrentStation(station);
       
-      // Attempt to play
-      audio.play().catch(error => {
-        console.error('Play failed:', error);
-        toast({
-          title: "Play Failed",
-          description: `Could not play ${station.name}. Try another station.`,
-          variant: "destructive"
+      // Attempt to play with error handling
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        playPromise.catch(error => {
+          console.error('Play failed:', error);
+          toast({
+            title: "Play Failed",
+            description: `Could not play ${station.name}. Try another station.`,
+            variant: "destructive"
+          });
         });
-      });
+      }
       
       toast({
         title: "Station Selected",
@@ -116,6 +155,10 @@ const QuranRadio = () => {
   const handleStopRadio = () => {
     if (audioRef) {
       audioRef.pause();
+      audioRef.removeEventListener('play', () => {});
+      audioRef.removeEventListener('error', () => {});
+      audioRef.removeEventListener('loadeddata', () => {});
+      audioRef.removeEventListener('canplay', () => {});
       audioRef.src = '';
       setAudioRef(null);
       setCurrentStation(null);
