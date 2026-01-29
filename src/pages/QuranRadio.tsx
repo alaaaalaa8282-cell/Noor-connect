@@ -154,13 +154,10 @@ const QuranRadio = () => {
       const playPromise = audio.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
-          console.error('Play failed:', error);
-          setIsPlaying(false);
-          toast({
-            title: "Play Failed",
-            description: `Could not play ${station.name}. Try another station.`,
-            variant: "destructive"
-          });
+          console.error('Play promise rejected:', error);
+          // Don't show error toast immediately - wait to see if audio actually plays
+          // The audio might still play even if the promise rejects
+          // We'll handle actual errors in the 'error' event listener
         });
       }
       
@@ -197,12 +194,10 @@ const QuranRadio = () => {
       const playPromise = audioRef.current.play();
       if (playPromise !== undefined) {
         playPromise.catch(error => {
-          console.error('Play failed:', error);
-          toast({
-            title: "Play Failed",
-            description: "Could not resume playback.",
-            variant: "destructive"
-          });
+          console.error('Play promise rejected:', error);
+          // Don't show error toast immediately - wait to see if audio actually plays
+          // The audio might still play even if the promise rejects
+          // We'll handle actual errors in the 'error' event listener
         });
       }
     } else {
