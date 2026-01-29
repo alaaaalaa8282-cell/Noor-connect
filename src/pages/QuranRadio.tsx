@@ -3,17 +3,17 @@ import { useNavigate } from "react-router-dom";
 import { ArrowLeft, Radio, Play, Headphones, Wifi, WifiOff } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
-import { useGlobalRadio } from "@/lib/global-radio";
 import { radioBrowser, type RadioStation } from "@/lib/radio-browser";
 import { useToast } from "@/hooks/use-toast";
 
 const QuranRadio = () => {
   const navigate = useNavigate();
-  const globalRadio = useGlobalRadio();
   const { toast } = useToast();
   const [isLoading, setIsLoading] = useState(true);
   const [popularStations, setPopularStations] = useState<RadioStation[]>([]);
   const [allStations, setAllStations] = useState<RadioStation[]>([]);
+  const [currentStation, setCurrentStation] = useState<RadioStation | null>(null);
+  const [audioRef, setAudioRef] = useState<HTMLAudioElement | null>(null);
 
   useEffect(() => {
     loadStations();
@@ -27,7 +27,7 @@ const QuranRadio = () => {
       setPopularStations(popular);
       
       // Load all Islamic stations (no language filter)
-      const stations = await radioBrowser.getIslamicStations(50);
+      const stations = await radioBrowser.getIslamicStations(30);
       setAllStations(stations);
     } catch (error) {
       console.error('Failed to load stations:', error);
@@ -41,24 +41,67 @@ const QuranRadio = () => {
     }
   };
 
-  const handleStationSelect = async (station: RadioStation) => {
+  const handleStationSelect = (station: RadioStation) => {
     try {
+      // Stop current audio if playing
+      if (audioRef) {
+        audioRef.pause();
+        audioRef.src = '';
+      }
+
       // Use url_resolved for direct streaming
       const streamUrl = station.url_resolved || station.url;
       
-      // Create station object with resolved URL (convert to expected format)
-      const stationToPlay = {
-        id: parseInt(station.id, 10) || Math.random(), // Convert string id to number or use random
-        name: station.name,
-        url: streamUrl
-      };
-
-      // Play the selected station using global radio (let native audio handle validation)
-      globalRadio?.playRadio(stationToPlay);
+      // Create new audio element
+      const audio = new Audio();
+      audio.src = streamUrl;
+      audio.preload = 'none';
+      
+      // Add event listeners for debugging
+      audio.addEventListener('play', () => {
+        console.log('Attempting to play...', station.name, streamUrl);
+      });
+      
+      audio.addEventListener('error', (e) => {
+        console.error('Audio Tag Error:', e);
+        console.error('Audio Error Details:', {
+          error: audio.error,
+          src: audio.src,
+          networkState: audio.networkState,
+          readyState: audio.readyState
+        });
+        toast({
+          title: "Stream Error",
+          description: `Failed to play ${station.name}. Try another station.`,
+          variant: "destructive"
+        });
+      });
+      
+      audio.addEventListener('loadeddata', () => {
+        console.log('Audio data loaded for:', station.name);
+      });
+      
+      audio.addEventListener('canplay', () => {
+        console.log('Audio can play:', station.name);
+      });
+      
+      // Set the audio reference and play
+      setAudioRef(audio);
+      setCurrentStation(station);
+      
+      // Attempt to play
+      audio.play().catch(error => {
+        console.error('Play failed:', error);
+        toast({
+          title: "Play Failed",
+          description: `Could not play ${station.name}. Try another station.`,
+          variant: "destructive"
+        });
+      });
       
       toast({
         title: "Station Selected",
-        description: `Now playing: ${station.name}`,
+        description: `Loading: ${station.name}`,
       });
     } catch (error) {
       console.error('Failed to play station:', error);
@@ -67,6 +110,15 @@ const QuranRadio = () => {
         description: "Try another station.",
         variant: "destructive"
       });
+    }
+  };
+
+  const handleStopRadio = () => {
+    if (audioRef) {
+      audioRef.pause();
+      audioRef.src = '';
+      setAudioRef(null);
+      setCurrentStation(null);
     }
   };
 
@@ -85,22 +137,57 @@ const QuranRadio = () => {
         </div>
 
         {/* Current Playing Status */}
-        {globalRadio?.currentStation && (
+        {currentStation && (
           <Card className="p-4 bg-gradient-to-r from-green-50 to-blue-50 dark:from-green-950 dark:to-blue-950">
             <div className="text-center space-y-3">
               <div className="flex items-center justify-center gap-2">
                 <Radio className="w-6 h-6 text-primary animate-pulse" />
                 <h3 className="text-lg font-semibold">Now Playing</h3>
               </div>
-              <p className="text-sm font-medium">{globalRadio.currentTrackInfo}</p>
+              <p className="text-sm font-medium">{currentStation.name}</p>
               <p className="text-xs text-muted-foreground">Live Quran Recitation</p>
-              <Button 
-                variant="outline" 
-                size="sm"
-                onClick={() => globalRadio.pauseRadio()}
-              >
-                Pause
-              </Button>
+              
+              {/* Native Audio Element */}
+              {audioRef && (
+                <div className="space-y-2">
+                  <audio
+                    ref={(el) => {
+                      if (el && el !== audioRef) {
+                        // Copy event listeners to the new element
+                        el.src = audioRef.src;
+                        el.addEventListener('play', () => {
+                          console.log('Attempting to play...', currentStation.name, audioRef.src);
+                        });
+                        el.addEventListener('error', (e) => {
+                          console.error('Audio Tag Error:', e);
+                          console.error('Audio Error Details:', {
+                            error: el.error,
+                            src: el.src,
+                            networkState: el.networkState,
+                            readyState: el.readyState
+                          });
+                        });
+                        el.addEventListener('loadeddata', () => {
+                          console.log('Audio data loaded for:', currentStation.name);
+                        });
+                        el.addEventListener('canplay', () => {
+                          console.log('Audio can play:', currentStation.name);
+                        });
+                      }
+                    }}
+                    controls
+                    preload="none"
+                    className="w-full max-w-xs mx-auto"
+                  />
+                  <Button 
+                    variant="outline" 
+                    size="sm"
+                    onClick={handleStopRadio}
+                  >
+                    Stop
+                  </Button>
+                </div>
+              )}
             </div>
           </Card>
         )}
