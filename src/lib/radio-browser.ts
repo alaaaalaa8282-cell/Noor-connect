@@ -22,12 +22,12 @@ export interface RadioBrowserResponse {
 }
 
 class RadioBrowser {
-  private readonly API_BASE = 'https://at1.api.radio-browser.info/json/stations';
+  private readonly API_BASE = 'https://all.api.radio-browser.info/json/stations';
   
   // Fetch Islamic radio stations with quality filter
   async getIslamicStations(limit: number = 20): Promise<RadioStation[]> {
     try {
-      const url = `${this.API_BASE}/search?tag=islamic&limit=${limit}`;
+      const url = `${this.API_BASE}/search?tag=islamic&limit=${limit}&https=true`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -49,7 +49,7 @@ class RadioBrowser {
   // Get radio stations by language
   async getStationsByLanguage(language: string, limit: number = 20): Promise<RadioStation[]> {
     try {
-      const url = `${this.API_BASE}/search?tag=islamic&language=${language}&limit=${limit}`;
+      const url = `${this.API_BASE}/search?tag=islamic&language=${language}&limit=${limit}&https=true`;
       const response = await fetch(url);
       
       if (!response.ok) {
@@ -86,8 +86,8 @@ class RadioBrowser {
       {
         id: "fallback2", 
         name: "Islamic Radio - English",
-        url: "http://stream.radiojar.com/8smp5vq8z",
-        url_resolved: "http://stream.radiojar.com/8smp5vq8z",
+        url: "https://stream.radiojar.com/8smp5vq8z",
+        url_resolved: "https://stream.radiojar.com/8smp5vq8z",
         country: "International",
         language: "en",
         tags: ["islamic", "english"],
@@ -98,8 +98,8 @@ class RadioBrowser {
       {
         id: "fallback3",
         name: "Quran Kareem Radio",
-        url: "http://qurankareem.radio:8000/",
-        url_resolved: "http://qurankareem.radio:8000/",
+        url: "https://qurankareem.radio:8000/",
+        url_resolved: "https://qurankareem.radio:8000/",
         country: "International",
         language: "ar",
         tags: ["islamic", "quran"],
@@ -122,17 +122,6 @@ class RadioBrowser {
     } catch (error) {
       console.error('Error getting popular stations:', error);
       return this.getFallbackStations();
-    }
-  }
-
-  // Validate stream URL
-  async validateStream(url: string): Promise<boolean> {
-    try {
-      const response = await fetch(url, { method: 'HEAD' });
-      return response.ok;
-    } catch (error) {
-      console.error('Stream validation failed:', error);
-      return false;
     }
   }
 }

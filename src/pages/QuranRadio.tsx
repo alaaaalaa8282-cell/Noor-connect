@@ -48,18 +48,6 @@ const QuranRadio = () => {
       // Use url_resolved for direct streaming
       const streamUrl = station.url_resolved || station.url;
       
-      // Validate stream before playing
-      const isValid = await radioBrowser.validateStream(streamUrl);
-      
-      if (!isValid) {
-        toast({
-          title: "Stream Unreachable",
-          description: "This station is currently unavailable. Try another station.",
-          variant: "destructive"
-        });
-        return;
-      }
-
       // Create station object with resolved URL (convert to expected format)
       const stationToPlay = {
         id: parseInt(station.id, 10) || Math.random(), // Convert string id to number or use random
@@ -67,7 +55,7 @@ const QuranRadio = () => {
         url: streamUrl
       };
 
-      // Play the selected station using global radio
+      // Play the selected station using global radio (let native audio handle validation)
       globalRadio?.playRadio(stationToPlay);
       
       toast({
