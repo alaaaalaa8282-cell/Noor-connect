@@ -29,7 +29,7 @@ class RadioBrowser {
   // Fetch Islamic radio stations with quality filter
   async getIslamicStations(limit: number = 20): Promise<RadioStation[]> {
     try {
-      const url = `${this.API_BASE}/search?tag=islamic&limit=${limit}&https=true`;
+      const url = `${this.API_BASE}/search?tag=islamic&limit=${limit * 2}&https=true`;
       const response = await CapacitorHttp.get({ url });
       
       if (response.status !== 200) {
@@ -41,7 +41,11 @@ class RadioBrowser {
       // Filter for quality stations (lastcheckok == 1)
       const qualityStations = stations.filter(station => station.lastcheckok === 1);
       
-      return qualityStations;
+      // Remove duplicates by name (keep first occurrence)
+      const uniqueStations = this.removeDuplicatesByName(qualityStations);
+      
+      // Return limited number of unique stations
+      return uniqueStations.slice(0, limit);
     } catch (error) {
       console.error('Error fetching radio stations:', error);
       return this.getFallbackStations(); // Fallback to reliable stations
@@ -51,7 +55,7 @@ class RadioBrowser {
   // Get radio stations by language
   async getStationsByLanguage(language: string, limit: number = 20): Promise<RadioStation[]> {
     try {
-      const url = `${this.API_BASE}/search?tag=islamic&language=${language}&limit=${limit}&https=true`;
+      const url = `${this.API_BASE}/search?tag=islamic&language=${language}&limit=${limit * 2}&https=true`;
       const response = await CapacitorHttp.get({ url });
       
       if (response.status !== 200) {
@@ -63,11 +67,28 @@ class RadioBrowser {
       // Filter for quality stations
       const qualityStations = stations.filter(station => station.lastcheckok === 1);
       
-      return qualityStations;
+      // Remove duplicates by name (keep first occurrence)
+      const uniqueStations = this.removeDuplicatesByName(qualityStations);
+      
+      // Return limited number of unique stations
+      return uniqueStations.slice(0, limit);
     } catch (error) {
       console.error('Error fetching radio stations by language:', error);
       return this.getFallbackStations(); // Fallback to reliable stations
     }
+  }
+
+  // Remove duplicate stations by name (case-insensitive)
+  private removeDuplicatesByName(stations: RadioStation[]): RadioStation[] {
+    const seen = new Set<string>();
+    return stations.filter(station => {
+      const normalizedName = station.name.toLowerCase().trim();
+      if (seen.has(normalizedName)) {
+        return false; // Skip duplicate
+      }
+      seen.add(normalizedName);
+      return true; // Keep first occurrence
+    });
   }
 
   // Get popular/reliable Islamic radio stations (fallback)
