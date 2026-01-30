@@ -4,7 +4,7 @@
  * Uses geolocation API with multiple fallbacks and manual search
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useRef } from 'react';
 import { AladhanAPI, type AladhanPrayerTime } from '@/lib/aladhan-api';
 
 export interface PrayerTimes {
@@ -63,6 +63,9 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [needsManualLocation, setNeedsManualLocation] = useState(false);
+  
+  // Track previous prayer times to prevent unnecessary notification scheduling
+  const previousPrayerTimesRef = useRef<string | null>(null);
 
   // Parse time string to Date object
   const parseTimeToDate = useCallback((timeStr: string): Date => {
@@ -407,6 +410,38 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
     return () => clearInterval(interval);
   }, [location?.latitude, location?.longitude, needsManualLocation]); // Only depend on coordinates, not the entire location object
+
+  // Schedule notifications only when prayer times actually change
+  useEffect(() => {
+    if (!prayerTimes || !location) return;
+    
+    // Create a unique string representation of prayer times
+    const currentPrayerTimesString = JSON.stringify({
+      fajr: prayerTimes.fajr.toISOString(),
+      dhuhr: prayerTimes.dhuhr.toISOString(),
+      asr: prayerTimes.asr.toISOString(),
+      maghrib: prayerTimes.maghrib.toISOString(),
+      isha: prayerTimes.isha.toISOString(),
+      location: {
+        latitude: location.latitude,
+        longitude: location.longitude,
+        source: location.source
+      }
+    });
+    
+    // Only schedule notifications if prayer times have actually changed
+    if (previousPrayerTimesRef.current !== currentPrayerTimesString) {
+      console.log('Prayer times changed, scheduling notifications...');
+      previousPrayerTimesRef.current = currentPrayerTimesString;
+      
+      // Import and call notification scheduling
+      import('@/lib/local-notifications').then(({ localNotifications }) => {
+        localNotifications.schedulePrayerNotificationsFromAPI().catch(error => {
+          console.warn('Failed to schedule notifications:', error);
+        });
+      });
+    }
+  }, [prayerTimes, location?.latitude, location?.longitude]); // Only depend on prayer times and coordinates
 
   return {
     prayerTimes,

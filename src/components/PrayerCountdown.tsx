@@ -75,9 +75,9 @@ const PrayerCountdownComponent = function PrayerCountdown() {
     p.datetime > new Date() && p !== currentPrayer
   );
 
-  // ALWAYS call useCountdown hooks at the top, never inside conditionals
-  const currentPrayerCountdown = currentPrayer ? useCountdown(currentPrayer.endTime) : null;
-  const nextPrayerCountdown = nextPrayer ? useCountdown(nextPrayer.datetime) : null;
+  // ALWAYS call useCountdown hooks with default values - NEVER conditional
+  const currentPrayerCountdown = useCountdown(currentPrayer?.endTime || new Date());
+  const nextPrayerCountdown = useCountdown(nextPrayer?.datetime || new Date());
 
   // Show manual location search when needed
   if (needsManualLocation) {
@@ -175,15 +175,18 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   const countdown = isCurrentPrayer ? currentPrayerCountdown : nextPrayerCountdown;
   const isEndingSoon = currentPrayer && isPrayerEndingSoon(currentPrayer);
 
+  // Only use countdown if we have a valid prayer
+  const isValidCountdown = (currentPrayer && isCurrentPrayer) || (nextPrayer && !isCurrentPrayer);
+
   const getAlertColor = () => {
-    if (!isCurrentPrayer || !countdown) return 'text-primary';
+    if (!isCurrentPrayer || !isValidCountdown) return 'text-primary';
     if (countdown.totalSeconds <= 300) return 'text-red-500'; // Less than 5 minutes
     if (countdown.totalSeconds <= 600) return 'text-orange-500'; // Less than 10 minutes
     return 'text-primary';
   };
 
   const getAlertBgColor = () => {
-    if (!isCurrentPrayer || !countdown) return 'bg-primary/10';
+    if (!isCurrentPrayer || !isValidCountdown) return 'bg-primary/10';
     if (countdown.totalSeconds <= 300) return 'bg-red-100'; // Less than 5 minutes
     if (countdown.totalSeconds <= 600) return 'bg-orange-100'; // Less than 10 minutes
     return 'bg-primary/10';
@@ -193,7 +196,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
     <Card className="overflow-hidden border-primary/20">
       <div 
         className={`absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent transition-all duration-1000 ${isEndingSoon ? 'from-orange-100/20 to-transparent' : ''}`}
-        style={{ width: `${isCurrentPrayer && countdown ? Math.max(0, 100 - (countdown.totalSeconds / 3600) * 100) : 0}%` }}
+        style={{ width: `${isCurrentPrayer && isValidCountdown ? Math.max(0, 100 - (countdown.totalSeconds / 3600) * 100) : 0}%` }}
       />
       <div className="relative p-4">
         <div className="flex items-center justify-between">
@@ -216,7 +219,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
           </div>
           <div className="text-right">
             <p className={`text-3xl font-mono font-bold ${getAlertColor()}`}>
-              {countdown?.formattedTime || 'Loading...'}
+              {isValidCountdown ? countdown.formattedTime : 'Loading...'}
             </p>
             <p className="text-xs text-muted-foreground">
               {displayPrayer.datetime.toLocaleTimeString('en-US', { 
@@ -229,7 +232,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
         </div>
         
         {/* Show additional info for current prayer */}
-        {isCurrentPrayer && countdown && (
+        {isCurrentPrayer && isValidCountdown && (
           <div className="mt-3 pt-3 border-t border-border/50">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
