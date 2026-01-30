@@ -7,6 +7,8 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AladhanAPI, type AladhanPrayerTime } from '@/lib/aladhan-api';
 import { GeocodingService } from '@/lib/geocoding';
+import { calculatePrayerEndTimes } from '@/lib/prayer-end-times';
+import { formatPrayerTime } from '@/lib/time-formatter';
 
 export interface PrayerTimes {
   fajr: Date;
@@ -323,8 +325,27 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         midnight: parseTimeToDate(timings.Midnight)
       };
 
-      // Calculate end times
-      const withEnd = calculateEndTimes(times);
+      // Calculate end times - convert to PrayerSchedule format first
+      const prayerSchedule = {
+        fajr: { name: 'Fajr', time: formatPrayerTime(times.fajr, '24'), datetime: times.fajr },
+        sunrise: { name: 'Sunrise', time: formatPrayerTime(times.sunrise, '24'), datetime: times.sunrise },
+        dhuhr: { name: 'Dhuhr', time: formatPrayerTime(times.dhuhr, '24'), datetime: times.dhuhr },
+        asr: { name: 'Asr', time: formatPrayerTime(times.asr, '24'), datetime: times.asr },
+        maghrib: { name: 'Maghrib', time: formatPrayerTime(times.maghrib, '24'), datetime: times.maghrib },
+        isha: { name: 'Isha', time: formatPrayerTime(times.isha, '24'), datetime: times.isha }
+      };
+      
+      const prayerEndTimes = calculatePrayerEndTimes(prayerSchedule);
+      
+      // Convert to PrayerTimesWithEnd format
+      const withEnd: PrayerTimesWithEnd = {
+        fajr: { start: prayerEndTimes.find(p => p.name === 'Fajr')?.datetime || times.fajr, end: prayerEndTimes.find(p => p.name === 'Fajr')?.endTime || times.fajr },
+        sunrise: { start: prayerEndTimes.find(p => p.name === 'Sunrise')?.datetime || times.sunrise, end: prayerEndTimes.find(p => p.name === 'Sunrise')?.endTime || times.sunrise },
+        dhuhr: { start: prayerEndTimes.find(p => p.name === 'Dhuhr')?.datetime || times.dhuhr, end: prayerEndTimes.find(p => p.name === 'Dhuhr')?.endTime || times.dhuhr },
+        asr: { start: prayerEndTimes.find(p => p.name === 'Asr')?.datetime || times.asr, end: prayerEndTimes.find(p => p.name === 'Asr')?.endTime || times.asr },
+        maghrib: { start: prayerEndTimes.find(p => p.name === 'Maghrib')?.datetime || times.maghrib, end: prayerEndTimes.find(p => p.name === 'Maghrib')?.endTime || times.maghrib },
+        isha: { start: prayerEndTimes.find(p => p.name === 'Isha')?.datetime || times.isha, end: prayerEndTimes.find(p => p.name === 'Isha')?.endTime || times.isha }
+      };
 
       setPrayerTimes(times);
       setPrayerTimesWithEnd(withEnd);
