@@ -23,10 +23,10 @@ export function BottomNav() {
   const secondaryItems = navItems.filter(item => item.priority === "secondary");
 
   return (
-    <nav className="fixed bottom-0 left-0 right-0 z-50 bg-card/95 backdrop-blur-sm border-t border-border safe-area-bottom h-20">
+    <nav className="fixed bottom-0 left-0 right-0 z-[60] bg-card/95 backdrop-blur-sm border-t border-border safe-area-bottom">
       {/* Primary Navigation - Always Visible */}
       <div 
-        className="flex items-center justify-around h-full"
+        className="flex items-center justify-around"
         style={{ 
           paddingBottom: 'max(4px, env(safe-area-inset-bottom))',
           paddingTop: '4px'

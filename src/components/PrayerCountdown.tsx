@@ -105,7 +105,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   // Enhanced loading skeleton to prevent CLS with fixed height
   if (isLoading) {
     return (
-      <div className="h-32"> {/* Fixed height container to prevent CLS */}
+      <div className="h-40"> {/* Fixed height container to prevent CLS */}
         <Card className="overflow-hidden border-primary/20 h-full">
           <div className="p-4 h-full">
             <div className="flex items-center justify-between h-full">
@@ -123,7 +123,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
             </div>
             <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
               <Loader2 className="w-3 h-3 animate-spin" />
-              <span>Determining your location...</span>
+              <span>Loading prayer times...</span>
             </div>
           </div>
         </Card>
@@ -134,7 +134,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   // Error state with fixed height to prevent CLS
   if (error) {
     return (
-      <div className="h-32"> {/* Fixed height container to prevent CLS */}
+      <div className="h-40"> {/* Fixed height container to prevent CLS */}
         <Card className="border-red-200 bg-red-50 h-full">
           <div className="p-4 h-full">
             <div className="flex items-center gap-3 text-red-600 h-full">
