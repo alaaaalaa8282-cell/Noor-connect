@@ -21,7 +21,7 @@ const prayerIcons: Record<string, React.ReactNode> = {
 };
 
 export function PrayerCountdown() {
-  const { prayerTimesWithEnd, isLoading, error } = usePrayerTimes();
+  const { prayerTimesWithEnd, location, isLoading, error } = usePrayerTimes();
   
   // Convert to PrayerWithEndTime format for compatibility
   const prayersWithEndTimes: PrayerWithEndTime[] = prayerTimesWithEnd ? [
@@ -77,7 +77,7 @@ export function PrayerCountdown() {
   const currentPrayerCountdown = currentPrayer ? useCountdown(currentPrayer.endTime) : null;
   const nextPrayerCountdown = nextPrayer ? useCountdown(nextPrayer.datetime) : null;
 
-  // Loading skeleton to prevent CLS
+  // Enhanced loading skeleton to prevent CLS
   if (isLoading) {
     return (
       <Card className="overflow-hidden border-primary/20">
@@ -95,6 +95,10 @@ export function PrayerCountdown() {
               <div className="h-4 w-16 bg-muted rounded animate-pulse" />
             </div>
           </div>
+          <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+            <Loader2 className="w-3 h-3 animate-spin" />
+            <span>Determining your location...</span>
+          </div>
         </div>
       </Card>
     );
@@ -107,9 +111,14 @@ export function PrayerCountdown() {
         <div className="p-4">
           <div className="flex items-center gap-3 text-red-600">
             <AlertTriangle className="w-5 h-5" />
-            <div>
+            <div className="flex-1">
               <p className="font-medium">Failed to load prayer times</p>
               <p className="text-sm">{error}</p>
+              {location && (
+                <p className="text-xs mt-1">
+                  📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
+                </p>
+              )}
             </div>
           </div>
         </div>

@@ -132,7 +132,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
 };
 
 export function PrayerTimesList() {
-  const { prayerTimesWithEnd, isLoading, error, refresh } = usePrayerTimes();
+  const { prayerTimesWithEnd, location, isLoading, error, refresh } = usePrayerTimes();
   
   // Convert to PrayerWithEndTime format for compatibility
   const prayersWithEndTimes: PrayerWithEndTime[] = prayerTimesWithEnd ? [
@@ -185,11 +185,17 @@ export function PrayerTimesList() {
     p.datetime > new Date() && p !== currentPrayer
   );
 
-  // Loading skeleton to prevent CLS
+  // Enhanced loading skeleton to prevent CLS
   if (isLoading) {
     return (
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Prayer Times</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
+          <div className="flex items-center gap-2 text-sm text-muted-foreground">
+            <Loader2 className="w-4 h-4 animate-spin" />
+            <span>Determining location...</span>
+          </div>
+        </div>
         {[...Array(6)].map((_, i) => (
           <Card key={i} className="animate-pulse">
             <CardContent className="p-4">
@@ -213,16 +219,26 @@ export function PrayerTimesList() {
     );
   }
 
-  // Error state
+  // Error state with location info
   if (error) {
     return (
       <div className="space-y-3">
-        <h2 className="text-lg font-semibold text-foreground mb-4">Prayer Times</h2>
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
+          {location && (
+            <div className="text-xs text-muted-foreground">
+              📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
+              <span className="ml-2 px-2 py-1 bg-muted rounded">
+                {location.source === 'geolocation' ? '🛰️ GPS' : '🌐 IP'}
+              </span>
+            </div>
+          )}
+        </div>
         <Card className="border-red-200 bg-red-50">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 text-red-600">
               <AlertTriangle className="w-5 h-5" />
-              <div>
+              <div className="flex-1">
                 <p className="font-medium">Failed to load prayer times</p>
                 <p className="text-sm">{error}</p>
                 <button 
@@ -245,7 +261,17 @@ export function PrayerTimesList() {
 
   return (
     <div className="space-y-3">
-      <h2 className="text-lg font-semibold text-foreground mb-4">Prayer Times</h2>
+      <div className="flex items-center justify-between mb-4">
+        <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
+        {location && (
+          <div className="text-xs text-muted-foreground">
+            📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
+            <span className="ml-2 px-2 py-1 bg-muted rounded">
+              {location.source === 'geolocation' ? '🛰️ GPS' : '🌐 IP'}
+            </span>
+          </div>
+        )}
+      </div>
       {prayersWithEndTimes.map((prayer) => (
         <PrayerTimeCard
           key={prayer.name}

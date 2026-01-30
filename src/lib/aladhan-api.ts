@@ -141,6 +141,35 @@ export class AladhanAPI {
   }
 
   /**
+   * Get today's prayer times by city
+   */
+  static async getTodaysPrayerTimesByCity(
+    city: string,
+    country: string,
+    method: number = 1
+  ): Promise<AladhanPrayerTime> {
+    const url = `${API_BASE}/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`;
+    
+    try {
+      const response = await fetch(url);
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      
+      if (result.code !== 200) {
+        throw new Error(`API Error: ${result.status}`);
+      }
+      
+      return result.data.timings;
+    } catch (error) {
+      console.error('Failed to fetch prayer times by city:', error);
+      throw error;
+    }
+  }
+
+  /**
    * Get today's prayer times with fallback to offline calculation
    */
   static async getTodaysPrayerTimes(
