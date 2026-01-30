@@ -1,7 +1,7 @@
 /**
  * Prayer Times Hook using Aladhan API with Geolocation
  * Fetches prayer times from https://api.aladhan.com/v1/timings
- * Uses geolocation API with IP-based fallback
+ * Uses geolocation API with multiple fallbacks and manual search
  */
 
 import { useState, useEffect, useCallback } from 'react';
@@ -31,7 +31,7 @@ export interface LocationData {
   longitude: number;
   city?: string;
   country?: string;
-  source: 'geolocation' | 'ip' | 'stored';
+  source: 'geolocation' | 'ip' | 'stored' | 'manual' | 'default';
 }
 
 export interface UsePrayerTimesReturn {
@@ -40,10 +40,21 @@ export interface UsePrayerTimesReturn {
   location: LocationData | null;
   isLoading: boolean;
   error: string | null;
+  needsManualLocation: boolean;
   refresh: () => Promise<void>;
+  setManualLocation: (city: string, country: string) => Promise<void>;
 }
 
 const LOCATION_STORAGE_KEY = 'user-location-data';
+
+// Default fallback locations
+const DEFAULT_LOCATIONS = [
+  { city: 'Mecca', country: 'Saudi Arabia', latitude: 21.3891, longitude: 39.8579 },
+  { city: 'Karachi', country: 'Pakistan', latitude: 24.8607, longitude: 67.0011 },
+  { city: 'Cairo', country: 'Egypt', latitude: 30.0444, longitude: 31.2357 },
+  { city: 'Istanbul', country: 'Turkey', latitude: 41.0082, longitude: 28.9784 },
+  { city: 'Jakarta', country: 'Indonesia', latitude: -6.2088, longitude: 106.8456 }
+];
 
 export function usePrayerTimes(): UsePrayerTimesReturn {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null);
@@ -51,6 +62,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   const [location, setLocation] = useState<LocationData | null>(null);
   const [isLoading, setIsLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
+  const [needsManualLocation, setNeedsManualLocation] = useState(false);
 
   // Parse time string to Date object
   const parseTimeToDate = useCallback((timeStr: string): Date => {
@@ -90,34 +102,78 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     };
   }, []);
 
-  // Get location from IP-based service
+  // Get location from IP-based service (CORS-safe alternative)
   const getLocationFromIP = useCallback(async (): Promise<LocationData> => {
     try {
       console.log('Getting location from IP...');
-      const response = await fetch('https://ipapi.co/json/');
-      if (!response.ok) {
-        throw new Error(`IP API responded with ${response.status}`);
-      }
       
-      const data = await response.json();
-      
-      if (!data.latitude || !data.longitude) {
-        throw new Error('IP API did not return valid coordinates');
+      // Try multiple IP services with CORS-safe approach
+      const ipServices = [
+        {
+          name: 'ip-api.com',
+          url: 'http://ip-api.com/json/',
+          parser: (data: any) => ({
+            latitude: data.lat,
+            longitude: data.lon,
+            city: data.city,
+            country: data.country
+          })
+        },
+        {
+          name: 'ipinfo.io',
+          url: 'https://ipinfo.io/json',
+          parser: (data: any) => {
+            const [lat, lon] = data.loc ? data.loc.split(',').map(Number) : [0, 0];
+            return {
+              latitude: lat,
+              longitude: lon,
+              city: data.city,
+              country: data.country
+            };
+          }
+        }
+      ];
+
+      for (const service of ipServices) {
+        try {
+          console.log(`Trying ${service.name}...`);
+          const response = await fetch(service.url, {
+            method: 'GET',
+            mode: 'cors',
+            cache: 'no-cache'
+          });
+          
+          if (!response.ok) {
+            throw new Error(`${service.name} responded with ${response.status}`);
+          }
+          
+          const data = await response.json();
+          const locationData = service.parser(data);
+          
+          if (!locationData.latitude || !locationData.longitude) {
+            throw new Error(`${service.name} did not return valid coordinates`);
+          }
+
+          const result: LocationData = {
+            latitude: parseFloat(locationData.latitude.toString()),
+            longitude: parseFloat(locationData.longitude.toString()),
+            city: locationData.city,
+            country: locationData.country,
+            source: 'ip'
+          };
+
+          console.log('Location from IP:', result);
+          return result;
+        } catch (error) {
+          console.warn(`${service.name} failed:`, error);
+          continue;
+        }
       }
 
-      const locationData: LocationData = {
-        latitude: parseFloat(data.latitude),
-        longitude: parseFloat(data.longitude),
-        city: data.city,
-        country: data.country_name,
-        source: 'ip'
-      };
-
-      console.log('Location from IP:', locationData);
-      return locationData;
+      throw new Error('All IP services failed');
     } catch (error) {
       console.error('Failed to get location from IP:', error);
-      throw new Error('Could not determine your location. Please enable location services.');
+      throw new Error('Could not determine your location automatically.');
     }
   }, []);
 
@@ -144,7 +200,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         },
         (error) => {
           console.warn('Geolocation failed:', error);
-          reject(new Error('Location access denied. Using IP-based location instead.'));
+          reject(new Error('Location access denied.'));
         },
         {
           enableHighAccuracy: true,
@@ -153,6 +209,18 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         }
       );
     });
+  }, []);
+
+  // Get default location
+  const getDefaultLocation = useCallback((): LocationData => {
+    const defaultLoc = DEFAULT_LOCATIONS[0]; // Mecca as primary default
+    return {
+      latitude: defaultLoc.latitude,
+      longitude: defaultLoc.longitude,
+      city: defaultLoc.city,
+      country: defaultLoc.country,
+      source: 'default'
+    };
   }, []);
 
   // Get stored location from localStorage
@@ -191,6 +259,40 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     }
   }, []);
 
+  // Set manual location
+  const setManualLocation = useCallback(async (city: string, country: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Use Aladhan API to get coordinates for the city
+      const timings = await AladhanAPI.getTodaysPrayerTimesByCity(city, country, 1);
+      
+      // For manual location, we'll use approximate coordinates based on the city
+      // In a real implementation, you might want a geocoding API here
+      const approximateCoords = DEFAULT_LOCATIONS.find(loc => 
+        loc.city.toLowerCase() === city.toLowerCase()
+      ) || DEFAULT_LOCATIONS[0];
+
+      const locationData: LocationData = {
+        latitude: approximateCoords.latitude,
+        longitude: approximateCoords.longitude,
+        city,
+        country,
+        source: 'manual'
+      };
+
+      saveLocation(locationData);
+      await fetchPrayerTimesWithCoordinates(locationData);
+      setNeedsManualLocation(false);
+    } catch (error) {
+      console.error('Failed to set manual location:', error);
+      setError('Failed to set location. Please try a different city.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [saveLocation]);
+
   // Fetch prayer times using coordinates
   const fetchPrayerTimesWithCoordinates = useCallback(async (locationData: LocationData) => {
     try {
@@ -198,8 +300,8 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       
       let timings: AladhanPrayerTime;
 
-      if (locationData.source === 'ip' && locationData.city && locationData.country) {
-        // Use city-based API for IP locations
+      if (locationData.city && locationData.country) {
+        // Use city-based API for locations with city/country data
         timings = await AladhanAPI.getTodaysPrayerTimesByCity(
           locationData.city,
           locationData.country,
@@ -245,6 +347,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     try {
       setIsLoading(true);
       setError(null);
+      setNeedsManualLocation(false);
 
       // Try to get stored location first
       const storedLocation = getStoredLocation();
@@ -263,18 +366,31 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         console.warn('Geolocation failed, trying IP-based location:', geoError);
       }
 
-      // Fallback to IP-based location
-      const ipLocation = await getLocationFromIP();
-      saveLocation(ipLocation);
-      await fetchPrayerTimesWithCoordinates(ipLocation);
+      // Try IP-based location
+      try {
+        const ipLocation = await getLocationFromIP();
+        saveLocation(ipLocation);
+        await fetchPrayerTimesWithCoordinates(ipLocation);
+        return;
+      } catch (ipError) {
+        console.warn('IP location failed:', ipError);
+      }
+
+      // All auto-detection failed - use default location
+      console.log('Using default location (Mecca)');
+      const defaultLocation = getDefaultLocation();
+      saveLocation(defaultLocation);
+      await fetchPrayerTimesWithCoordinates(defaultLocation);
       
     } catch (err) {
       console.error('All location methods failed:', err);
-      setError(err instanceof Error ? err.message : 'Failed to determine location and prayer times');
+      // Don't show error - instead show manual location option
+      setNeedsManualLocation(true);
+      setError('Could not determine your location automatically. Please search for your city.');
     } finally {
       setIsLoading(false);
     }
-  }, [getStoredLocation, getLocationFromGeolocation, getLocationFromIP, saveLocation, fetchPrayerTimesWithCoordinates]);
+  }, [getStoredLocation, getLocationFromGeolocation, getLocationFromIP, getDefaultLocation, saveLocation, fetchPrayerTimesWithCoordinates]);
 
   // Initial fetch
   useEffect(() => {
@@ -284,13 +400,13 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Auto-refresh every minute
   useEffect(() => {
     const interval = setInterval(() => {
-      if (location) {
+      if (location && !needsManualLocation) {
         fetchPrayerTimesWithCoordinates(location);
       }
     }, 60000); // Refresh every minute
 
     return () => clearInterval(interval);
-  }, [location, fetchPrayerTimesWithCoordinates]);
+  }, [location, needsManualLocation, fetchPrayerTimesWithCoordinates]);
 
   return {
     prayerTimes,
@@ -298,6 +414,8 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     location,
     isLoading,
     error,
-    refresh: fetchPrayerTimes
+    needsManualLocation,
+    refresh: fetchPrayerTimes,
+    setManualLocation
   };
 }

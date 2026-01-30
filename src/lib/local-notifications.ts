@@ -5,8 +5,10 @@
  */
 
 import { LocalNotifications } from '@capacitor/local-notifications';
-import { AladhanAPI } from './aladhan-api';
+import { AladhanAPI, type AladhanPrayerTime } from './aladhan-api';
 import { getPrayerSettings } from './storage';
+
+const LOCATION_STORAGE_KEY = 'user-location-data';
 
 export interface PrayerTime {
   name: string;
@@ -84,6 +86,7 @@ class LocalNotificationsService {
 
   /**
    * Schedule prayer time notifications using Aladhan API for accurate times
+   * Only schedules when location is successfully resolved
    */
   async schedulePrayerNotificationsFromAPI(): Promise<void> {
     if (!this.isInitialized) {
@@ -91,24 +94,46 @@ class LocalNotificationsService {
     }
 
     try {
-      // Clear existing prayer notifications
-      await this.clearPrayerNotifications();
-
-      const settings = getPrayerSettings();
-      
-      if (!settings.latitude || !settings.longitude) {
-        console.warn('Location not set, cannot schedule prayer notifications');
+      // Check if we have valid location data
+      const storedLocation = localStorage.getItem(LOCATION_STORAGE_KEY);
+      if (!storedLocation) {
+        console.log('No location data available, skipping notification scheduling');
         return;
       }
 
-      // Get today's prayer times from Aladhan API
-      const timings = await AladhanAPI.getTodaysPrayerTimes(
-        settings.latitude,
-        settings.longitude,
-        1 // Muslim World League method
-      );
-
+      const locationData = JSON.parse(storedLocation);
       const now = new Date();
+      const storedTime = new Date(locationData.timestamp);
+      const hoursDiff = (now.getTime() - storedTime.getTime()) / (1000 * 60 * 60);
+      
+      // Only schedule if location is recent (less than 24 hours) and not manual/default
+      if (hoursDiff >= 24 || locationData.source === 'manual' || locationData.source === 'default') {
+        console.log('Location data is stale or manual, skipping notification scheduling');
+        return;
+      }
+
+      // Clear existing prayer notifications
+      await this.clearPrayerNotifications();
+
+      // Get today's prayer times from Aladhan API
+      let timings: AladhanPrayerTime;
+
+      if (locationData.city && locationData.country) {
+        // Use city-based API for IP locations
+        timings = await AladhanAPI.getTodaysPrayerTimesByCity(
+          locationData.city,
+          locationData.country,
+          1 // Muslim World League method
+        );
+      } else {
+        // Use coordinates-based API
+        timings = await AladhanAPI.getTodaysPrayerTimes(
+          locationData.latitude,
+          locationData.longitude,
+          1 // Muslim World League method
+        );
+      }
+
       const notifications = [];
 
       // Parse prayer times and create notifications
@@ -144,7 +169,8 @@ class LocalNotificationsService {
             extra: {
               prayerName: prayer.name,
               prayerTime: prayer.time,
-              type: 'prayer_reminder'
+              type: 'prayer_reminder',
+              location: locationData
             }
           };
 
@@ -167,7 +193,7 @@ class LocalNotificationsService {
           notifications
         });
         
-        console.log(`Scheduled ${notifications.length} prayer notifications using Aladhan API`);
+        console.log(`Scheduled ${notifications.length} prayer notifications for location: ${locationData.city || `${locationData.latitude.toFixed(2)},${locationData.longitude.toFixed(2)}`}`);
       }
 
     } catch (error) {

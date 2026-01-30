@@ -2,6 +2,7 @@ import { useState, useEffect } from "react";
 import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
+import { LocationSearch } from "@/components/LocationSearch";
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useCountdown } from "@/hooks/use-countdown";
 import { 
@@ -132,7 +133,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
 };
 
 export function PrayerTimesList() {
-  const { prayerTimesWithEnd, location, isLoading, error, refresh } = usePrayerTimes();
+  const { prayerTimesWithEnd, location, isLoading, error, needsManualLocation, refresh, setManualLocation } = usePrayerTimes();
   
   // Convert to PrayerWithEndTime format for compatibility
   const prayersWithEndTimes: PrayerWithEndTime[] = prayerTimesWithEnd ? [
@@ -185,6 +186,29 @@ export function PrayerTimesList() {
     p.datetime > new Date() && p !== currentPrayer
   );
 
+  // Show manual location search when needed
+  if (needsManualLocation) {
+    return (
+      <div className="space-y-3">
+        <div className="flex items-center justify-between mb-4">
+          <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
+          {location && (
+            <div className="text-xs text-muted-foreground">
+              📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
+              <span className="ml-2 px-2 py-1 bg-muted rounded">
+                {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'ip' ? '🌐 IP' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
+              </span>
+            </div>
+          )}
+        </div>
+        <LocationSearch 
+          onLocationSelect={setManualLocation}
+          isLoading={isLoading}
+        />
+      </div>
+    );
+  }
+
   // Enhanced loading skeleton to prevent CLS
   if (isLoading) {
     return (
@@ -229,7 +253,7 @@ export function PrayerTimesList() {
             <div className="text-xs text-muted-foreground">
               📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
               <span className="ml-2 px-2 py-1 bg-muted rounded">
-                {location.source === 'geolocation' ? '🛰️ GPS' : '🌐 IP'}
+                {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'ip' ? '🌐 IP' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
               </span>
             </div>
           )}
@@ -241,12 +265,20 @@ export function PrayerTimesList() {
               <div className="flex-1">
                 <p className="font-medium">Failed to load prayer times</p>
                 <p className="text-sm">{error}</p>
-                <button 
-                  onClick={refresh}
-                  className="mt-2 text-sm underline hover:no-underline"
-                >
-                  Try again
-                </button>
+                <div className="flex gap-2 mt-2">
+                  <button 
+                    onClick={refresh}
+                    className="text-sm underline hover:no-underline"
+                  >
+                    Try again
+                  </button>
+                  <button 
+                    onClick={() => setManualLocation("Mecca", "Saudi Arabia")}
+                    className="text-sm underline hover:no-underline"
+                  >
+                    Use Mecca
+                  </button>
+                </div>
               </div>
             </div>
           </CardContent>
@@ -267,7 +299,7 @@ export function PrayerTimesList() {
           <div className="text-xs text-muted-foreground">
             📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
             <span className="ml-2 px-2 py-1 bg-muted rounded">
-              {location.source === 'geolocation' ? '🛰️ GPS' : '🌐 IP'}
+              {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'ip' ? '🌐 IP' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
             </span>
           </div>
         )}
