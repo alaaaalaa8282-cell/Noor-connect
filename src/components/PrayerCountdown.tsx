@@ -84,6 +84,14 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   const currentPrayerCountdown = useCountdown(currentPrayer?.endTime || new Date());
   const nextPrayerCountdown = useCountdown(nextPrayer?.datetime || new Date());
 
+  // Memoize card styling to prevent recalculation every second - MUST be before early returns
+  const getCardStyle = useMemo(() => {
+    return {
+      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
+      border: '3px solid rgb(59, 130, 246)'
+    };
+  }, [currentPrayer, nextPrayer]);
+
   // Show manual location search when needed
   if (needsManualLocation) {
     return (
@@ -202,13 +210,6 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   const getCardBorder = () => {
     return 'border-primary/20';
   };
-
-  const getCardStyle = useMemo(() => {
-    return {
-      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
-      border: '3px solid rgb(59, 130, 246)'
-    };
-  }, [currentPrayer, nextPrayer, isCurrentPrayer, isValidCountdown]);
 
   return (
     <Card 
