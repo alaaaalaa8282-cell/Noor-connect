@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton";
 import { LocationSearch } from "@/components/LocationSearch";
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useCountdown } from "@/hooks/use-countdown";
+import { getTimeFormat, formatPrayerTime } from "@/lib/time-formatter";
 import { 
   getCurrentPrayer, 
   getPrayerStatus,
@@ -135,49 +136,52 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
 const PrayerTimesListComponent = function PrayerTimesList() {
   const { prayerTimesWithEnd, location, isLoading, error, needsManualLocation, refresh, setManualLocation } = usePrayerTimes();
   
+  // Get current time format preference
+  const timeFormat = getTimeFormat();
+  
   // Convert to PrayerWithEndTime format for compatibility
   const prayersWithEndTimes: PrayerWithEndTime[] = prayerTimesWithEnd ? [
     {
       name: 'Fajr',
-      time: formatTime(prayerTimesWithEnd.fajr.start),
+      time: formatPrayerTime(prayerTimesWithEnd.fajr.start, timeFormat),
       datetime: prayerTimesWithEnd.fajr.start,
       endTime: prayerTimesWithEnd.fajr.end,
-      endTimeFormatted: formatTime(prayerTimesWithEnd.fajr.end)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.fajr.end, timeFormat)
     },
     {
       name: 'Sunrise',
-      time: formatTime(prayerTimesWithEnd.sunrise.start),
+      time: formatPrayerTime(prayerTimesWithEnd.sunrise.start, timeFormat),
       datetime: prayerTimesWithEnd.sunrise.start,
       endTime: prayerTimesWithEnd.sunrise.end,
-      endTimeFormatted: formatTime(prayerTimesWithEnd.sunrise.end)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.sunrise.end, timeFormat)
     },
     {
       name: 'Dhuhr',
-      time: formatTime(prayerTimesWithEnd.dhuhr.start),
+      time: formatPrayerTime(prayerTimesWithEnd.dhuhr.start, timeFormat),
       datetime: prayerTimesWithEnd.dhuhr.start,
       endTime: prayerTimesWithEnd.dhuhr.end,
-      endTimeFormatted: formatTime(prayerTimesWithEnd.dhuhr.end)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.dhuhr.end, timeFormat)
     },
     {
       name: 'Asr',
-      time: formatTime(prayerTimesWithEnd.asr.start),
+      time: formatPrayerTime(prayerTimesWithEnd.asr.start, timeFormat),
       datetime: prayerTimesWithEnd.asr.start,
       endTime: prayerTimesWithEnd.asr.end,
-      endTimeFormatted: formatTime(prayerTimesWithEnd.asr.end)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.asr.end, timeFormat)
     },
     {
       name: 'Maghrib',
-      time: formatTime(prayerTimesWithEnd.maghrib.start),
+      time: formatPrayerTime(prayerTimesWithEnd.maghrib.start, timeFormat),
       datetime: prayerTimesWithEnd.maghrib.start,
       endTime: prayerTimesWithEnd.maghrib.end,
-      endTimeFormatted: formatTime(prayerTimesWithEnd.maghrib.end)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.maghrib.end, timeFormat)
     },
     {
       name: 'Isha',
-      time: formatTime(prayerTimesWithEnd.isha.start),
+      time: formatPrayerTime(prayerTimesWithEnd.isha.start, timeFormat),
       datetime: prayerTimesWithEnd.isha.start,
       endTime: prayerTimesWithEnd.isha.end,
-      endTimeFormatted: formatTime(prayerTimesWithEnd.isha.end)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.isha.end, timeFormat)
     }
   ] : [];
 

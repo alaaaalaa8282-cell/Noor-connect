@@ -15,7 +15,7 @@ import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { CitySearch } from "@/components/CitySearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getTimeFormat } from "@/lib/storage";
+import { getTimeFormat, formatTime } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
 import { localNotifications, type PrayerTime } from "@/lib/local-notifications";
@@ -74,11 +74,11 @@ export default function Dashboard() {
       const timings = await AladhanAPI.getTodaysPrayerTimes(location.latitude, location.longitude, 1);
       
       const prayerList: PrayerTime[] = [
-        { name: "Fajr", time: formatTime(timings.Fajr), date: parseTimeToDate(timings.Fajr) },
-        { name: "Dhuhr", time: formatTime(timings.Dhuhr), date: parseTimeToDate(timings.Dhuhr) },
-        { name: "Asr", time: formatTime(timings.Asr), date: parseTimeToDate(timings.Asr) },
-        { name: "Maghrib", time: formatTime(timings.Maghrib), date: parseTimeToDate(timings.Maghrib) },
-        { name: "Isha", time: formatTime(timings.Isha), date: parseTimeToDate(timings.Isha) },
+        { name: "Fajr", time: formatTimeFromAPI(timings.Fajr), date: parseTimeToDate(timings.Fajr) },
+        { name: "Dhuhr", time: formatTimeFromAPI(timings.Dhuhr), date: parseTimeToDate(timings.Dhuhr) },
+        { name: "Asr", time: formatTimeFromAPI(timings.Asr), date: parseTimeToDate(timings.Asr) },
+        { name: "Maghrib", time: formatTimeFromAPI(timings.Maghrib), date: parseTimeToDate(timings.Maghrib) },
+        { name: "Isha", time: formatTimeFromAPI(timings.Isha), date: parseTimeToDate(timings.Isha) },
       ];
       
       setPrayers(prayerList);
@@ -99,20 +99,20 @@ export default function Dashboard() {
       const times = calculatePrayerTimes(location.latitude, location.longitude, new Date());
       
       setPrayers([
-        { name: "Fajr", time: formatPrayerTime(times.fajr, timeFormat), date: times.fajr },
-        { name: "Dhuhr", time: formatPrayerTime(times.dhuhr, timeFormat), date: times.dhuhr },
-        { name: "Asr", time: formatPrayerTime(times.asr, timeFormat), date: times.asr },
-        { name: "Maghrib", time: formatPrayerTime(times.maghrib, timeFormat), date: times.maghrib },
-        { name: "Isha", time: formatPrayerTime(times.isha, timeFormat), date: times.isha },
+        { name: "Fajr", time: formatTimeFromAPI(times.fajr.toTimeString().slice(0, 5)), date: times.fajr },
+        { name: "Dhuhr", time: formatTimeFromAPI(times.dhuhr.toTimeString().slice(0, 5)), date: times.dhuhr },
+        { name: "Asr", time: formatTimeFromAPI(times.asr.toTimeString().slice(0, 5)), date: times.asr },
+        { name: "Maghrib", time: formatTimeFromAPI(times.maghrib.toTimeString().slice(0, 5)), date: times.maghrib },
+        { name: "Isha", time: formatTimeFromAPI(times.isha.toTimeString().slice(0, 5)), date: times.isha },
       ]);
 
       // Schedule prayer notifications for fallback times
       await localNotifications.schedulePrayerNotifications([
-        { name: "Fajr", time: formatPrayerTime(times.fajr, timeFormat), date: times.fajr },
-        { name: "Dhuhr", time: formatPrayerTime(times.dhuhr, timeFormat), date: times.dhuhr },
-        { name: "Asr", time: formatPrayerTime(times.asr, timeFormat), date: times.asr },
-        { name: "Maghrib", time: formatPrayerTime(times.maghrib, timeFormat), date: times.maghrib },
-        { name: "Isha", time: formatPrayerTime(times.isha, timeFormat), date: times.isha },
+        { name: "Fajr", time: formatTimeFromAPI(times.fajr.toTimeString().slice(0, 5)), date: times.fajr },
+        { name: "Dhuhr", time: formatTimeFromAPI(times.dhuhr.toTimeString().slice(0, 5)), date: times.dhuhr },
+        { name: "Asr", time: formatTimeFromAPI(times.asr.toTimeString().slice(0, 5)), date: times.asr },
+        { name: "Maghrib", time: formatTimeFromAPI(times.maghrib.toTimeString().slice(0, 5)), date: times.maghrib },
+        { name: "Isha", time: formatTimeFromAPI(times.isha.toTimeString().slice(0, 5)), date: times.isha },
       ]);
 
       const { getNextPrayer } = await import('@/lib/prayer-calculator');
@@ -126,24 +126,9 @@ export default function Dashboard() {
     }
   };
 
-  // Helper function to format time from API
-  const formatTime = (timeStr: string): string => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    
-    if (timeFormat === '12') {
-      return date.toLocaleTimeString('en-US', { 
-        hour: 'numeric', 
-        minute: '2-digit', 
-        hour12: true 
-      });
-    }
-    return date.toLocaleTimeString('en-US', { 
-      hour: '2-digit', 
-      minute: '2-digit', 
-      hour12: false 
-    });
+  // Helper function to format time from API using global formatter
+  const formatTimeFromAPI = (timeStr: string): string => {
+    return formatTime(timeStr, timeFormat);
   };
 
   // Helper function to parse time string to Date
@@ -285,8 +270,9 @@ export default function Dashboard() {
               <div className="relative bg-card/50 backdrop-blur-sm rounded-xl border border-primary/20 px-6 py-3">
                 <div className="text-2xl font-mono font-bold text-primary tracking-wider">
                   {currentTime.toLocaleTimeString("en-US", {
-                    hour: "2-digit",
+                    hour: timeFormat === '12' ? 'numeric' : '2-digit',
                     minute: "2-digit",
+                    hour12: timeFormat === '12'
                   })}
                 </div>
               </div>
