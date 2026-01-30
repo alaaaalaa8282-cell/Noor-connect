@@ -397,16 +397,16 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     fetchPrayerTimes();
   }, [fetchPrayerTimes]);
 
-  // Auto-refresh every minute
+  // Auto-refresh every minute - only refresh when location is stable
   useEffect(() => {
+    if (!location || needsManualLocation) return;
+    
     const interval = setInterval(() => {
-      if (location && !needsManualLocation) {
-        fetchPrayerTimesWithCoordinates(location);
-      }
+      fetchPrayerTimesWithCoordinates(location);
     }, 60000); // Refresh every minute
 
     return () => clearInterval(interval);
-  }, [location, needsManualLocation, fetchPrayerTimesWithCoordinates]);
+  }, [location?.latitude, location?.longitude, needsManualLocation]); // Only depend on coordinates, not the entire location object
 
   return {
     prayerTimes,

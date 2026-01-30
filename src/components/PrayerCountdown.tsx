@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -21,10 +21,10 @@ const prayerIcons: Record<string, React.ReactNode> = {
   Isha: <CloudMoon className="w-6 h-6" />,
 };
 
-export function PrayerCountdown() {
+const PrayerCountdownComponent = function PrayerCountdown() {
   const { prayerTimesWithEnd, location, isLoading, error, needsManualLocation, refresh, setManualLocation } = usePrayerTimes();
   
-  // Convert to PrayerWithEndTime format for compatibility
+  // Convert to PrayerWithEndTime format for compatibility - ALWAYS call this
   const prayersWithEndTimes: PrayerWithEndTime[] = prayerTimesWithEnd ? [
     {
       name: 'Fajr',
@@ -75,6 +75,7 @@ export function PrayerCountdown() {
     p.datetime > new Date() && p !== currentPrayer
   );
 
+  // ALWAYS call useCountdown hooks at the top, never inside conditionals
   const currentPrayerCountdown = currentPrayer ? useCountdown(currentPrayer.endTime) : null;
   const nextPrayerCountdown = nextPrayer ? useCountdown(nextPrayer.datetime) : null;
 
@@ -243,4 +244,7 @@ export function PrayerCountdown() {
       </div>
     </Card>
   );
-}
+};
+
+// Memoize the component to prevent unnecessary re-renders
+export const PrayerCountdown = memo(PrayerCountdownComponent);

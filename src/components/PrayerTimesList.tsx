@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, memo } from "react";
 import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -132,7 +132,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
   );
 };
 
-export function PrayerTimesList() {
+const PrayerTimesListComponent = function PrayerTimesList() {
   const { prayerTimesWithEnd, location, isLoading, error, needsManualLocation, refresh, setManualLocation } = usePrayerTimes();
   
   // Convert to PrayerWithEndTime format for compatibility
@@ -314,4 +314,7 @@ export function PrayerTimesList() {
       ))}
     </div>
   );
-}
+};
+
+// Memoize the component to prevent unnecessary re-renders
+export const PrayerTimesList = memo(PrayerTimesListComponent);
