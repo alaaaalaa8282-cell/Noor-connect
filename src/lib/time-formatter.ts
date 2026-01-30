@@ -88,7 +88,15 @@ export function formatCountdownTime(time: string | Date, format: '12' | '24' = '
  * @returns Current time format preference
  */
 export function getTimeFormat(): '12' | '24' {
-  return (localStorage.getItem('timeFormat') as '12' | '24') || '24';
+  return (localStorage.getItem('time-format') as '12' | '24') || '24';
+}
+
+/**
+ * Set time format preference
+ * @param format - Time format preference ('12' or '24')
+ */
+export function setTimeFormat(format: '12' | '24'): void {
+  localStorage.setItem('time-format', format);
 }
 
 /**

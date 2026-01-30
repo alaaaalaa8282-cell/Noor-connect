@@ -15,7 +15,7 @@ import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { CitySearch } from "@/components/CitySearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { getTimeFormat, formatTime } from "@/lib/time-formatter";
+import { getTimeFormat, formatTime, setTimeFormat } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
 import { localNotifications, type PrayerTime } from "@/lib/local-notifications";
@@ -50,7 +50,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
-  }, []);
+  }, [setTimeFormat]);
 
   // Helper function to format time from API using global formatter
   const formatTimeFromAPI = useCallback((timeStr: string): string => {
