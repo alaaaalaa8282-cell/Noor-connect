@@ -32,7 +32,9 @@ const Index = () => {
           const [h, m] = p.time.split(":").map(Number);
           if (h * 60 + m > currentMins) { setNextPrayer(p); break; }
         }
-      } catch {}
+      } catch (error) {
+        console.error('Failed to load prayer times:', error);
+      }
     });
   }, []);
 

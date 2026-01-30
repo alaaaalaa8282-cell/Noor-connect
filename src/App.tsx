@@ -8,6 +8,7 @@ import { GlobalPrayerAlarm } from "@/components/GlobalPrayerAlarm";
 import { SalamGreeting } from "@/components/SalamGreeting";
 import { FestivePopup } from "@/components/FestivePopup";
 import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { notificationManager } from "@/lib/notification-manager";
 import { serviceWorkerManager } from "@/lib/service-worker-registration";
 import { getPerformanceMonitor } from "@/lib/performance-monitor";
@@ -155,7 +156,9 @@ const App = () => {
           
           {/* Main Content - Takes available space */}
           <LayoutManager>
-            <AppRoutes />
+            <ErrorBoundary>
+              <AppRoutes />
+            </ErrorBoundary>
           </LayoutManager>
           
           {/* Bottom Navigation */}

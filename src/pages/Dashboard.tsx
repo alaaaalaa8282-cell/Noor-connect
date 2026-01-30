@@ -21,6 +21,7 @@ import { AladhanAPI } from "@/lib/aladhan-api";
 import { localNotifications, type PrayerTime } from "@/lib/local-notifications";
 import { useToast } from "@/hooks/use-toast";
 import { LocationCardSkeleton, PrayerTimeSkeleton, CountdownCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
+import { ErrorBoundary } from "@/components/ErrorBoundary";
 
 const prayerIcons: Record<string, React.ReactNode> = {
   Fajr: <Moon className="w-5 h-5" />,
@@ -291,10 +292,14 @@ export default function Dashboard() {
         <IslamicGreeting />
 
         {/* Prayer Countdown Widget */}
-        <PrayerCountdown />
+        <ErrorBoundary>
+          <PrayerCountdown />
+        </ErrorBoundary>
 
         {/* Prayer Times List */}
-        <PrayerTimesList />
+        <ErrorBoundary>
+          <PrayerTimesList />
+        </ErrorBoundary>
 
         {/* Daily Ayah */}
         <DailyAyah />

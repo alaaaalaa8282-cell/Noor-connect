@@ -213,38 +213,37 @@ const PrayerTimesListComponent = function PrayerTimesList() {
     );
   }
 
-  // Enhanced loading skeleton to prevent CLS with fixed heights
+  // Enhanced loading skeleton to prevent CLS with fixed height
   if (isLoading) {
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between mb-4">
           <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
-          <div className="flex items-center gap-2 text-sm text-muted-foreground">
-            <Loader2 className="w-4 h-4 animate-spin" />
-            <span>Determining location...</span>
-          </div>
+          <div className="h-6 w-32 bg-muted rounded animate-pulse"></div>
         </div>
-        {[...Array(6)].map((_, i) => (
-          <div key={i} className="h-20"> {/* Fixed height for each prayer card */}
-            <Card className="animate-pulse h-full">
-              <CardContent className="p-4 h-full">
-                <div className="flex items-center justify-between h-full">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
-                    <div className="flex-1 min-w-0">
-                      <div className="h-4 w-16 bg-muted rounded mb-2" />
-                      <div className="h-3 w-24 bg-muted rounded" />
+        <div className="space-y-2">
+          {Array.from({ length: 6 }).map((_, i) => (
+            <div key={`skeleton-${i}`} className="h-20"> {/* Fixed height to prevent CLS */}
+              <Card className="h-full">
+                <CardContent className="p-4 h-full">
+                  <div className="flex items-center justify-between h-full">
+                    <div className="flex items-center gap-3">
+                      <div className="w-10 h-10 rounded-lg bg-muted animate-pulse flex-shrink-0"></div>
+                      <div className="flex-1 min-w-0">
+                        <div className="h-5 w-20 bg-muted rounded mb-2 animate-pulse"></div>
+                        <div className="h-4 w-16 bg-muted rounded animate-pulse"></div>
+                      </div>
+                    </div>
+                    <div className="text-right flex-shrink-0">
+                      <div className="h-6 w-16 bg-muted rounded mb-1 animate-pulse"></div>
+                      <div className="h-4 w-12 bg-muted rounded animate-pulse"></div>
                     </div>
                   </div>
-                  <div className="text-right flex-shrink-0">
-                    <div className="h-4 w-12 bg-muted rounded mb-1" />
-                    <div className="h-3 w-16 bg-muted rounded" />
-                  </div>
-                </div>
-              </CardContent>
-            </Card>
-          </div>
-        ))}
+                </CardContent>
+              </Card>
+            </div>
+          ))}
+        </div>
       </div>
     );
   }
