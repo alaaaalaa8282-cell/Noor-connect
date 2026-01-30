@@ -58,13 +58,20 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
 
   const getCardGlow = () => {
     if (!isCurrent || !countdown) return '';
-    if (countdown.totalSeconds <= 300) return 'shadow-red-500/50 shadow-xl animate-pulse'; // Red glow + pulse for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'shadow-orange-500/30 shadow-lg'; // Orange glow for less than 10 minutes
-    return 'shadow-primary/30 shadow-md'; // Primary glow for current prayer
+    if (countdown.totalSeconds <= 300) return 'ring-4 ring-red-200 ring-opacity-50 shadow-2xl animate-pulse'; // Red glow + pulse for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'ring-4 ring-orange-200 ring-opacity-50 shadow-xl'; // Orange glow for less than 10 minutes
+    return 'ring-2 ring-primary/20 shadow-lg'; // Primary glow for current prayer
+  };
+
+  const getCardBorder = () => {
+    if (!isCurrent || !countdown) return 'border-border/50';
+    if (countdown.totalSeconds <= 300) return 'border-red-500'; // Red border for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'border-orange-500'; // Orange border for less than 10 minutes
+    return 'border-primary'; // Primary border for current prayer
   };
 
   return (
-    <Card className={`transition-all duration-300 ${getStatusColor()} ${getBgColor()} ${
+    <Card className={`transition-all duration-300 ${getCardBorder()} ${getStatusColor()} ${getBgColor()} ${
       isCurrent ? 'scale-[1.02]' : ''
     } ${getCardGlow()}`}>
       <CardContent className="p-4">

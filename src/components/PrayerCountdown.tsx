@@ -79,6 +79,14 @@ const PrayerCountdownComponent = function PrayerCountdown() {
     p.datetime > new Date() && p !== currentPrayer
   );
 
+  // Debug logging
+  console.log('Prayer Countdown Debug:', {
+    currentTime: new Date().toTimeString(),
+    currentPrayer: currentPrayer?.name,
+    nextPrayer: nextPrayer?.name,
+    prayersCount: prayersWithEndTimes.length
+  });
+
   // ALWAYS call useCountdown hooks with default values - NEVER conditional
   const currentPrayerCountdown = useCountdown(currentPrayer?.endTime || new Date());
   const nextPrayerCountdown = useCountdown(nextPrayer?.datetime || new Date());
@@ -202,13 +210,20 @@ const PrayerCountdownComponent = function PrayerCountdown() {
 
   const getCardGlow = () => {
     if (!isCurrentPrayer || !isValidCountdown) return '';
-    if (countdown.totalSeconds <= 300) return 'shadow-red-500/50 shadow-xl'; // Red glow for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'shadow-orange-500/30 shadow-lg'; // Orange glow for less than 10 minutes
-    return 'shadow-primary/30 shadow-md'; // Primary glow for current prayer
+    if (countdown.totalSeconds <= 300) return 'ring-4 ring-red-200 ring-opacity-50 shadow-2xl'; // Red glow for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'ring-4 ring-orange-200 ring-opacity-50 shadow-xl'; // Orange glow for less than 10 minutes
+    return 'ring-2 ring-primary/20 shadow-lg'; // Primary glow for current prayer
+  };
+
+  const getCardBorder = () => {
+    if (!isCurrentPrayer || !isValidCountdown) return 'border-primary/20';
+    if (countdown.totalSeconds <= 300) return 'border-red-500'; // Red border for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'border-orange-500'; // Orange border for less than 10 minutes
+    return 'border-primary'; // Primary border for current prayer
   };
 
   return (
-    <Card className={`overflow-hidden border-primary/20 transition-all duration-300 ${getCardGlow()}`}>
+    <Card className={`overflow-hidden transition-all duration-300 ${getCardBorder()} ${getCardGlow()}`}>
       <div 
         className={`absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent transition-all duration-1000 ${isEndingSoon ? 'from-orange-100/20 to-transparent' : ''}`}
         style={{ width: `${isCurrentPrayer && isValidCountdown ? Math.max(0, 100 - (countdown.totalSeconds / 3600) * 100) : 0}%` }}
