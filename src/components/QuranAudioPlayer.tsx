@@ -36,18 +36,18 @@ const SURAH_STARTS: number[] = (() => {
 })();
 
 const RECITER_MAP: Record<number, string> = {
-  7: "ar.alafasy",
-  3: "ar.abdurrahmaansudais",
-  10: "ar.shuraym",
-  11: "ar.tablawi",
-  2: "ar.abdulbasitmurattal",
-  1: "ar.abdulbasitmurattal",
-  6: "ar.husary",
-  12: "ar.husary",
-  8: "ar.minshawi",
-  9: "ar.minshawi",
-  4: "ar.ashatri",
-  5: "ar.hanirifai",
+  7: "mishari_rashid_al_afasy",
+  3: "sa3d_alghamidi",
+  10: "saud_al-shuraim",
+  11: "abdur_rahman_as_sudais",
+  2: "abdul_basit_muhammad_abdus_samad_u",
+  1: "abdul_basit_muhammad_abdus_samad_u",
+  6: "mahmoud_khalil_al_husary",
+  12: "mahmoud_khalil_al_husary",
+  8: "mohammad_siddiq_al_minshawi",
+  9: "mohammad_siddiq_al_minshawi",
+  4: "abu_bakr_ash_shatri",
+  5: "hani_ar_rifai",
 };
 
 interface QuranAudioPlayerProps {
@@ -143,8 +143,8 @@ export function QuranAudioPlayer({
   const audioSrc = useMemo(() => {
     const reciterPath = RECITER_MAP[recitationId];
     if (!reciterPath) {
-      console.warn(`Reciter ID ${recitationId} not in RECITER_MAP; falling back to ar.alafasy`);
-      return "https://download.quranicaudio.com/quran/ar.alafasy/001.mp3";
+      console.warn(`Reciter ID ${recitationId} not in RECITER_MAP; falling back to mishari_rashid_al_afasy`);
+      return "https://download.quranicaudio.com/quran/mishari_rashid_al_afasy/001.mp3";
     }
     const paddedSurahNumber = surahNumber.toString().padStart(3, '0');
     const url = `https://download.quranicaudio.com/quran/${reciterPath}/${paddedSurahNumber}.mp3`;
