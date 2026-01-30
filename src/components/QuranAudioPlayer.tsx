@@ -36,18 +36,18 @@ const SURAH_STARTS: number[] = (() => {
 })();
 
 const RECITER_MAP: Record<number, string> = {
-  7: "alafasy_128kbps",  // Alafasy
-  3: "abdulrahman_sudais_128kbps",  // Abdurrahman Sudais
-  10: "shuraym_128kbps",  // Shuraym
-  11: "tablawi_128kbps",  // Tablawi
-  2: "abdul_basit_murattal_128kbps",  // Abdul Basit Murattal
-  1: "abdul_basit_murattal_128kbps",  // Abdul Basit Murattal (duplicate)
-  6: "husary_128kbps",  // Husary
-  12: "husary_128kbps",  // Husary (duplicate)
-  8: "minshawi_murattal_128kbps",  // Minshawi
-  9: "minshawi_murattal_128kbps",  // Minshawi (duplicate)
-  4: "ahmed_nain_128kbps",  // Ashatri (assuming Ahmed Nain)
-  5: "hanafi_rifai_128kbps",  // Hanif Rifai
+  7: "ar.alafasy",
+  3: "ar.abdurrahmaansudais",
+  10: "ar.shuraym",
+  11: "ar.tablawi",
+  2: "ar.abdulbasitmurattal",
+  1: "ar.abdulbasitmurattal",
+  6: "ar.husary",
+  12: "ar.husary",
+  8: "ar.minshawi",
+  9: "ar.minshawi",
+  4: "ar.ashatri",
+  5: "ar.hanirifai",
 };
 
 interface QuranAudioPlayerProps {
@@ -68,28 +68,14 @@ export function QuranAudioPlayer({
   onClose 
 }: QuranAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
-  const bufferAudioRef = useRef<HTMLAudioElement | null>(null);
-  const nextBufferAudioRef = useRef<HTMLAudioElement | null>(null); // Additional buffer
-  const bufferedAyahRef = useRef<number | null>(null);
-  const nextBufferedAyahRef = useRef<number | null>(null);
-  const bufferedSrcRef = useRef<string | null>(null);
-  const nextBufferedSrcRef = useRef<string | null>(null);
-  const skipNextAudioSrcEffectRef = useRef(false);
-  const retryingTo64Ref = useRef(false);
   const [isPlaying, setIsPlaying] = useState(false);
   const [volume, setVolume] = useState(80);
-  const [ayah, setAyah] = useState(currentAyah);
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
   const [recitations, setRecitations] = useState<QuranComRecitation[]>([]);
   const [recitationId, setRecitationId] = useState<number>(7);
-  const [isSeamlessMode, setIsSeamlessMode] = useState(true); // New seamless mode toggle
-  const [isBackgroundMode, setIsBackgroundMode] = useState(false); // New background mode toggle
-
-  useEffect(() => {
-    setAyah(currentAyah);
-  }, [currentAyah]);
+  const [isBackgroundMode, setIsBackgroundMode] = useState(false);
 
   // Setup Media Session API for background playback
   useEffect(() => {
@@ -97,7 +83,7 @@ export function QuranAudioPlayer({
 
     const updateMediaSession = () => {
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: `Surah ${surahName} - Ayah ${ayah}`,
+        title: `Surah ${surahName}`,
         artist: recitations.find(r => r.id === recitationId)?.reciter_name || 'Quran Recitation',
         album: 'Holy Quran',
         artwork: [
@@ -115,11 +101,21 @@ export function QuranAudioPlayer({
       });
 
       navigator.mediaSession.setActionHandler('previoustrack', () => {
-        handlePrevAyah();
+        // Reset to beginning of current surah
+        if (audioRef.current) {
+          audioRef.current.currentTime = 0;
+          setProgress(0);
+        }
       });
 
       navigator.mediaSession.setActionHandler('nexttrack', () => {
-        handleNextAyah();
+        // Go to next surah if available, or stop playback
+        if (surahNumber < 114) {
+          // This would need to be handled by parent component
+          console.log('Next surah requested - parent component should handle this');
+        } else {
+          handlePlayPause(); // Stop playback if at last surah
+        }
       });
 
       navigator.mediaSession.setActionHandler('seekto', (details) => {
@@ -142,72 +138,21 @@ export function QuranAudioPlayer({
         navigator.mediaSession.setActionHandler('seekto', null);
       }
     };
-  }, [surahName, ayah, recitationId, recitations]);
-
-  const getGlobalAyah = (surahNum: number, ayahNum: number) => {
-    // Global ayah id is 1..6236. Surah starts are 0-based offsets (Surah 1 starts at 0, Surah 2 at 7, etc.)
-    if (surahNum <= 0 || surahNum > 114) return 1;
-    if (ayahNum <= 0) return 1; // Ensure ayah starts at 1, not 0
-    
-    const start0 = SURAH_STARTS[surahNum - 1] ?? 0;
-    const global = start0 + ayahNum;
-
-    // Some datasets store a separate basmala audio per-surah. Islamic Network's by-ayah audio generally does NOT.
-    // Keep this toggle available (default off) in case a specific edition needs it.
-    const includeBismillahAsSeparateFile = false;
-    if (!includeBismillahAsSeparateFile) return global;
-
-    if (surahNum === 9) return global;
-    if (surahNum === 1) return global;
-    return global + (ayahNum >= 1 ? 1 : 0);
-  };
-
-  const verseKey = `${surahNumber}:${ayah}`;
-
-  const edition = useMemo(() => {
-    const slug = RECITER_MAP[recitationId];
-    if (!slug) {
-      console.warn(`Reciter ID ${recitationId} not in RECITER_MAP; falling back to ar.alafasy`);
-      return "ar.alafasy";
-    }
-    return slug;
-  }, [recitationId]);
+  }, [surahName, recitationId, recitations]);
 
   const audioSrc = useMemo(() => {
     const reciterPath = RECITER_MAP[recitationId];
     if (!reciterPath) {
-      console.warn(`Reciter ID ${recitationId} not in RECITER_MAP; falling back to alafasy_128kbps`);
+      console.warn(`Reciter ID ${recitationId} not in RECITER_MAP; falling back to ar.alafasy`);
+      return "https://download.quranicaudio.com/quran/ar.alafasy/001.mp3";
     }
-    const path = reciterPath || "alafasy_128kbps";
-    const base = `https://download.quranicaudio.com/quran/${path}`;
-    const paddedSurah = String(surahNumber).padStart(3, '0'); // Zero-pad to 3 digits (e.g., 001, 002, 003)
-    return `${base}/${paddedSurah}.mp3`;
-  }, [ayah, edition, surahNumber, recitationId]);
+    const paddedSurahNumber = surahNumber.toString().padStart(3, '0');
+    const url = `https://download.quranicaudio.com/quran/${reciterPath}/${paddedSurahNumber}.mp3`;
+    console.log(`Loading Surah ${surahNumber} from: ${url}`);
+    return url;
+  }, [surahNumber, recitationId]);
 
-  const nextAudioSrc = useMemo(() => {
-    // For Surah-level audio, there's no "next ayah" - we're playing whole Surahs
-    return null;
-  }, [ayah, surahNumber, totalAyahs]);
 
-  const fallbackTo64 = useCallback(() => {
-    if (retryingTo64Ref.current) return;
-    retryingTo64Ref.current = true;
-    const reciterPath = RECITER_MAP[recitationId];
-    const path = reciterPath || "alafasy_128kbps";
-    const paddedSurah = String(surahNumber).padStart(3, '0');
-    const fallbackUrl = `https://download.quranicaudio.com/quran/${path}/${paddedSurah}.mp3`;
-    console.error(`Audio failed for reciter: ${path}; retrying with same source`);
-    const audio = audioRef.current;
-    if (audio) {
-      audio.src = fallbackUrl;
-      audio.load();
-      void audio.play().catch(() => {
-        console.error(`Audio playback failed for: ${path}`);
-        setIsPlaying(false);
-        setIsLoading(false);
-      });
-    }
-  }, [ayah, recitationId, surahNumber]);
 
   useEffect(() => {
     const fetchReciters = async () => {
@@ -235,16 +180,11 @@ export function QuranAudioPlayer({
     const audio = audioRef.current;
     if (!audio) return;
 
-    if (skipNextAudioSrcEffectRef.current && audio.src === audioSrc) {
-      skipNextAudioSrcEffectRef.current = false;
-      return;
-    }
-
-    retryingTo64Ref.current = false;
+    if (audio.src === audioSrc) return;
 
     setIsLoading(true);
 
-    // Stabilized change: pause -> set src -> load -> (try) play
+    // Pause -> set src -> load -> (try) play
     audio.pause();
     audio.src = audioSrc;
     audio.load();
@@ -284,10 +224,8 @@ export function QuranAudioPlayer({
         localStorage.setItem('quran-audio-state', JSON.stringify({
           surahNumber,
           surahName,
-          ayah,
           recitationId,
           isPlaying: true,
-          isSeamlessMode,
           isBackgroundMode,
           timestamp: Date.now()
         }));
@@ -303,9 +241,7 @@ export function QuranAudioPlayer({
         
         // Only restore if within last 30 minutes
         if (timeDiff < 30 * 60 * 1000 && state.surahNumber === surahNumber) {
-          setAyah(state.ayah);
           setRecitationId(state.recitationId);
-          setIsSeamlessMode(state.isSeamlessMode);
           setIsBackgroundMode(state.isBackgroundMode);
           
           // Auto-resume if background mode was enabled
@@ -327,43 +263,23 @@ export function QuranAudioPlayer({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handlePageUnload);
     };
-  }, [isPlaying, isBackgroundMode, surahNumber, surahName, ayah, recitationId, isSeamlessMode]);
+  }, [isPlaying, isBackgroundMode, surahNumber, surahName, recitationId]);
 
   useEffect(() => {
-    if (!nextAudioSrc) {
-      bufferAudioRef.current = null;
-      bufferedAyahRef.current = null;
-      bufferedSrcRef.current = null;
-      return;
-    }
+    const audio = audioRef.current;
+    if (!audio) return;
 
-    const nextAyah = ayah + 1;
-    if (bufferedAyahRef.current === nextAyah && bufferedSrcRef.current === nextAudioSrc) return;
+    const handleError = (error: Event) => {
+      console.error(`Audio failed to load: ${audio.src}`);
+      setIsLoading(false);
+      setIsPlaying(false);
+    };
 
-    if (bufferAudioRef.current) {
-      bufferAudioRef.current.pause();
-      bufferAudioRef.current.src = "";
-      bufferAudioRef.current.load();
-    }
-
-    const a = new Audio();
-    a.setAttribute("loading", "lazy");
-    a.preload = "auto";
-    a.src = nextAudioSrc;
-    
-    // Enhanced buffering for seamless playback
-    if (isSeamlessMode) {
-      a.addEventListener('canplaythrough', () => {
-        // Audio is ready for seamless playback
-        console.log(`Next ayah ${nextAyah} buffered and ready for seamless playback`);
-      }, { once: true });
-    }
-    
-    a.load();
-    bufferAudioRef.current = a;
-    bufferedAyahRef.current = nextAyah;
-    bufferedSrcRef.current = nextAudioSrc;
-  }, [ayah, nextAudioSrc, isSeamlessMode]);
+    audio.addEventListener('error', handleError);
+    return () => {
+      audio.removeEventListener('error', handleError);
+    };
+  }, [audioSrc]);
 
 
   const handlePlayPause = async () => {
@@ -383,132 +299,30 @@ export function QuranAudioPlayer({
     }
   };
 
-  const handlePrevAyah = () => {
-    if (ayah > 1) {
-      const newAyah = ayah - 1;
-      setAyah(newAyah);
-      onAyahChange?.(newAyah);
-    }
-  };
-
-  const handleNextAyah = () => {
-    if (ayah < totalAyahs) {
-      const newAyah = ayah + 1;
-      setAyah(newAyah);
-      onAyahChange?.(newAyah);
-    }
-  };
 
   const handleAudioEnded = () => {
-    const audio = audioRef.current;
-    if (!audio) return;
-
-    const nextAyah = ayah + 1;
-    if (nextAyah > totalAyahs) return;
-
-    if (
-      bufferAudioRef.current &&
-      bufferedAyahRef.current === nextAyah &&
-      bufferedSrcRef.current &&
-      bufferedSrcRef.current === nextAudioSrc
-    ) {
-      skipNextAudioSrcEffectRef.current = true;
-      retryingTo64Ref.current = false;
-      audio.src = bufferedSrcRef.current;
-      audio.load();
-      void audio.play().catch(() => {
-        setIsPlaying(false);
-      });
-
-      setAyah(nextAyah);
-      onAyahChange?.(nextAyah);
-      return;
-    }
-
-    handleNextAyah();
+    // Full surah playback completed
+    console.log(`Surah ${surahName} playback completed`);
+    setIsPlaying(false);
+    // Could trigger next surah playback here if needed
   };
 
   const handleTimeUpdate = () => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || isNaN(audio.duration) || audio.duration === 0) return;
     setProgress(audio.currentTime);
     setDuration(audio.duration || 0);
 
-    // Update media session position - only if all values are valid numbers
-    if ('mediaSession' in navigator && 
-        navigator.mediaSession.setPositionState && 
-        !isNaN(audio.duration) && 
-        !isNaN(audio.playbackRate) && 
-        !isNaN(audio.currentTime) && 
-        audio.duration > 0) {
+    // Update media session position
+    if ('mediaSession' in navigator && navigator.mediaSession.setPositionState) {
       navigator.mediaSession.setPositionState({
         duration: audio.duration,
         playbackRate: audio.playbackRate,
         position: audio.currentTime
       });
     }
-
-    // Seamless playback: Preload next ayah when current is 80% complete
-    if (isSeamlessMode && nextAudioSrc && bufferAudioRef.current) {
-      const progressPercent = (audio.currentTime / audio.duration) * 100;
-      if (progressPercent >= 80 && bufferAudioRef.current.readyState < 3) {
-        bufferAudioRef.current.load();
-      }
-    }
-
-    // Auto-transition to next ayah seamlessly
-    if (isSeamlessMode && audio.duration > 0) {
-      const timeRemaining = audio.duration - audio.currentTime;
-      if (timeRemaining <= 0.05 && ayah < totalAyahs) { // 50ms before end
-        handleNextAyahSeamless();
-      }
-    }
   };
 
-  const handleNextAyahSeamless = () => {
-    if (ayah >= totalAyahs) return;
-
-    const nextAyah = ayah + 1;
-    
-    if (isSeamlessMode && bufferAudioRef.current && bufferAudioRef.current.readyState >= 3) {
-      // True cross-fade: Start next audio immediately, then switch
-      const currentAudio = audioRef.current;
-      const nextAudio = bufferAudioRef.current;
-      
-      // Set volume and start next audio immediately (don't wait for promise)
-      nextAudio.volume = volume / 100;
-      nextAudio.currentTime = 0;
-      
-      // Start playing next audio
-      const playPromise = nextAudio.play();
-      
-      // Switch references immediately (don't wait for play promise)
-      audioRef.current = nextAudio;
-      bufferAudioRef.current = currentAudio;
-      
-      // Update state immediately
-      setAyah(nextAyah);
-      onAyahChange?.(nextAyah);
-      
-      // Handle play promise in background
-      playPromise.catch(error => {
-        console.error('Seamless transition failed:', error);
-        // Fallback to regular transition
-        handleNextAyah();
-      });
-      
-      // Clean up old audio after a short delay
-      setTimeout(() => {
-        if (currentAudio && currentAudio !== audioRef.current) {
-          currentAudio.pause();
-          currentAudio.currentTime = 0;
-        }
-      }, 100);
-    } else {
-      // Fallback to regular transition
-      handleNextAyah();
-    }
-  };
 
   const handleSeek = (value: number[]) => {
     if (audioRef.current) {
@@ -524,13 +338,13 @@ export function QuranAudioPlayer({
   };
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-50 shadow-lg bg-card/95 backdrop-blur-lg border-border h-80">
-      <div className="p-4 space-y-3 h-full overflow-y-auto">
+    <Card className="fixed bottom-20 left-4 right-4 z-50 shadow-lg bg-card/95 backdrop-blur-lg border-border">
+      <div className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <p className="font-semibold truncate">{surahName}</p>
-            <p className="text-xs text-muted-foreground">Ayah {ayah} of {totalAyahs}</p>
+            <p className="text-xs text-muted-foreground">Full Surah Recitation</p>
           </div>
           <Button variant="ghost" size="icon" onClick={onClose}>
             <X className="w-4 h-4" />
@@ -555,20 +369,6 @@ export function QuranAudioPlayer({
           </SelectContent>
         </Select>
 
-        {/* Seamless Mode Toggle */}
-        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
-          <div className="flex items-center gap-2">
-            <Volume2 className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">Seamless Playback</span>
-          </div>
-          <Button
-            variant={isSeamlessMode ? "default" : "outline"}
-            size="sm"
-            onClick={() => setIsSeamlessMode(!isSeamlessMode)}
-          >
-            {isSeamlessMode ? "ON" : "OFF"}
-          </Button>
-        </div>
 
         {/* Background Mode Toggle */}
         <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
@@ -602,14 +402,6 @@ export function QuranAudioPlayer({
 
         {/* Controls */}
         <div className="flex items-center justify-center gap-2">
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={handlePrevAyah}
-            disabled={ayah <= 1}
-          >
-            <SkipBack className="w-4 h-4" />
-          </Button>
           
           <Button 
             size="icon" 
@@ -626,14 +418,6 @@ export function QuranAudioPlayer({
             )}
           </Button>
           
-          <Button 
-            variant="outline" 
-            size="icon"
-            onClick={handleNextAyah}
-            disabled={ayah >= totalAyahs}
-          >
-            <SkipForward className="w-4 h-4" />
-          </Button>
           
           <div className="flex items-center gap-2 ml-2">
             <Volume2 className="w-4 h-4 text-muted-foreground" />
