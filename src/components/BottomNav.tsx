@@ -140,3 +140,5 @@ export const BottomNav = memo(function BottomNav() {
     </nav>
   );
 });
+
+export default BottomNav;
