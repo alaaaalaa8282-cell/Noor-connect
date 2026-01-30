@@ -72,6 +72,9 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - handle network requests
 self.addEventListener('fetch', (event) => {
+  // Quick check for chrome-extension URLs at the top to prevent console spam
+  if (event.request.url.startsWith('chrome-extension')) return;
+  
   try {
     const url = new URL(event.request.url);
     

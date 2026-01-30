@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -7,13 +7,16 @@ import { BottomNav } from "@/components/BottomNav";
 import { GlobalPrayerAlarm } from "@/components/GlobalPrayerAlarm";
 import { SalamGreeting } from "@/components/SalamGreeting";
 import { FestivePopup } from "@/components/FestivePopup";
+import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
 import { notificationManager } from "@/lib/notification-manager";
 import { serviceWorkerManager } from "@/lib/service-worker-registration";
+import { getPerformanceMonitor } from "@/lib/performance-monitor";
+import { useGlobalRadio } from "@/lib/global-radio";
+import { LayoutManager } from "@/components/LayoutManager";
 
-// Set default theme to dark if no preference saved
+// Set default theme to light if no preference saved
 if (!localStorage.getItem("theme")) {
-  localStorage.setItem("theme", "dark");
-  document.documentElement.classList.add("dark");
+  localStorage.setItem("theme", "light");
 } else if (localStorage.getItem("theme") === "dark") {
   document.documentElement.classList.add("dark");
 }
@@ -79,6 +82,32 @@ function AppRoutes() {
 }
 
 const App = () => {
+  // Initialize performance monitoring
+  useEffect(() => {
+    const monitor = getPerformanceMonitor();
+    
+    // Log performance score after page load
+    const logPerformance = () => {
+      setTimeout(() => {
+        const score = monitor.getPerformanceScore();
+        if (process.env.NODE_ENV === 'development') {
+          console.log(`🚀 Performance Score: ${score}/100`);
+        }
+      }, 3000);
+    };
+
+    if (document.readyState === 'complete') {
+      logPerformance();
+    } else {
+      window.addEventListener('load', logPerformance);
+    }
+
+    return () => {
+      window.removeEventListener('load', logPerformance);
+      monitor.destroy();
+    };
+  }, []);
+
   // Initialize notification system and Service Worker
   useEffect(() => {
     // Start the notification manager
@@ -115,16 +144,30 @@ const App = () => {
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <GlobalPrayerAlarm />
-        <SalamGreeting />
-        <FestivePopup />
-        <div className="min-h-screen w-full pb-28">
-          <main className="flex-1">
+        <div className="flex flex-col h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App">
+          {/* Header/Top Elements - Fixed height to prevent CLS */}
+          <div className="flex-shrink-0 h-[64px]">
+            <GlobalPrayerAlarm />
+            <SalamGreeting />
+            <FestivePopup />
+            <PWAInstallPrompt />
+          </div>
+          
+          {/* Main Content - Takes available space */}
+          <LayoutManager>
             <AppRoutes />
-          </main>
-          <BottomNav />
+          </LayoutManager>
+          
+          {/* Bottom Navigation - Fixed height */}
+          <div className="flex-shrink-0 h-[80px]">
+            <BottomNav />
+          </div>
         </div>
-        <GlobalRadioPlayer />
+        
+        {/* Global Radio Player - Fixed at bottom with explicit height */}
+        <div className="h-[96px]">
+          <GlobalRadioPlayer />
+        </div>
       </BrowserRouter>
     </TooltipProvider>
   );

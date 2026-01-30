@@ -172,8 +172,8 @@ export function GlobalRadioPlayer() {
   }
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-50 shadow-lg bg-card/95 backdrop-blur-lg border-border">
-      <div className="p-4 space-y-3">
+    <Card className="fixed bottom-0 left-0 right-0 z-[60] shadow-lg bg-card/95 backdrop-blur-lg border-border border-t safe-area-bottom h-24">
+      <div className="p-4 space-y-3 h-full flex flex-col justify-center">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">

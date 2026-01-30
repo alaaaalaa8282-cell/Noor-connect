@@ -36,18 +36,18 @@ const SURAH_STARTS: number[] = (() => {
 })();
 
 const RECITER_MAP: Record<number, string> = {
-  7: "ar.alafasy",
-  3: "ar.abdurrahmaansudais",
-  10: "ar.shuraym",
-  11: "ar.tablawi",
-  2: "ar.abdulbasitmurattal",
-  1: "ar.abdulbasitmurattal",
-  6: "ar.husary",
-  12: "ar.husary",
-  8: "ar.minshawi",
-  9: "ar.minshawi",
-  4: "ar.ashatri",
-  5: "ar.hanirifai",
+  7: "alafasy_128kbps",  // Alafasy
+  3: "abdulrahman_sudais_128kbps",  // Abdurrahman Sudais
+  10: "shuraym_128kbps",  // Shuraym
+  11: "tablawi_128kbps",  // Tablawi
+  2: "abdul_basit_murattal_128kbps",  // Abdul Basit Murattal
+  1: "abdul_basit_murattal_128kbps",  // Abdul Basit Murattal (duplicate)
+  6: "husary_128kbps",  // Husary
+  12: "husary_128kbps",  // Husary (duplicate)
+  8: "minshawi_murattal_128kbps",  // Minshawi
+  9: "minshawi_murattal_128kbps",  // Minshawi (duplicate)
+  4: "ahmed_nain_128kbps",  // Ashatri (assuming Ahmed Nain)
+  5: "hanafi_rifai_128kbps",  // Hanif Rifai
 };
 
 interface QuranAudioPlayerProps {
@@ -174,39 +174,40 @@ export function QuranAudioPlayer({
   }, [recitationId]);
 
   const audioSrc = useMemo(() => {
-    const globalAyah = getGlobalAyah(surahNumber, ayah);
-    const base = `https://cdn.islamic.network/quran/audio`;
-    const paddedAyah = String(globalAyah).padStart(3, '0'); // Zero-pad to 3 digits (e.g., 001, 002, 003)
-    return `${base}/128/${edition}/${paddedAyah}.mp3`;
-  }, [ayah, edition, surahNumber]);
+    const reciterPath = RECITER_MAP[recitationId];
+    if (!reciterPath) {
+      console.warn(`Reciter ID ${recitationId} not in RECITER_MAP; falling back to alafasy_128kbps`);
+    }
+    const path = reciterPath || "alafasy_128kbps";
+    const base = `https://download.quranicaudio.com/quran/${path}`;
+    const paddedSurah = String(surahNumber).padStart(3, '0'); // Zero-pad to 3 digits (e.g., 001, 002, 003)
+    return `${base}/${paddedSurah}.mp3`;
+  }, [ayah, edition, surahNumber, recitationId]);
 
   const nextAudioSrc = useMemo(() => {
-    if (ayah >= totalAyahs) return null;
-    const nextAyah = ayah + 1;
-    const globalAyah = getGlobalAyah(surahNumber, nextAyah);
-    const base = `https://cdn.islamic.network/quran/audio`;
-    const paddedAyah = String(globalAyah).padStart(3, '0'); // Zero-pad to 3 digits
-    return `${base}/128/${edition}/${paddedAyah}.mp3`;
-  }, [ayah, edition, surahNumber, totalAyahs]);
+    // For Surah-level audio, there's no "next ayah" - we're playing whole Surahs
+    return null;
+  }, [ayah, surahNumber, totalAyahs]);
 
   const fallbackTo64 = useCallback(() => {
     if (retryingTo64Ref.current) return;
     retryingTo64Ref.current = true;
-    const globalAyah = getGlobalAyah(surahNumber, ayah);
-    const paddedAyah = String(globalAyah).padStart(3, '0'); // Zero-pad to 3 digits
-    const fallbackUrl = `https://cdn.islamic.network/quran/audio/64/${edition}/${paddedAyah}.mp3`;
-    console.error(`Audio failed for slug (128): ${edition}; retrying with 64kbps`);
+    const reciterPath = RECITER_MAP[recitationId];
+    const path = reciterPath || "alafasy_128kbps";
+    const paddedSurah = String(surahNumber).padStart(3, '0');
+    const fallbackUrl = `https://download.quranicaudio.com/quran/${path}/${paddedSurah}.mp3`;
+    console.error(`Audio failed for reciter: ${path}; retrying with same source`);
     const audio = audioRef.current;
     if (audio) {
       audio.src = fallbackUrl;
       audio.load();
       void audio.play().catch(() => {
-        console.error(`Even 64kbps failed for slug: ${edition}`);
+        console.error(`Audio playback failed for: ${path}`);
         setIsPlaying(false);
         setIsLoading(false);
       });
     }
-  }, [ayah, edition, surahNumber]);
+  }, [ayah, recitationId, surahNumber]);
 
   useEffect(() => {
     const fetchReciters = async () => {
