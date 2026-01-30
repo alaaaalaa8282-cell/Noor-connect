@@ -334,7 +334,7 @@ class HabitTracker {
       let tempStreak = 0;
       
       const today = new Date().toISOString().split('T')[0];
-      let checkDate = new Date(today);
+      const checkDate = new Date(today);
       
       // Check current streak
       for (const date of sortedDates) {

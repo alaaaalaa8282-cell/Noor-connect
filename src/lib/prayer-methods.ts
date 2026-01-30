@@ -230,7 +230,7 @@ class PrayerMethodsService {
     fajrDisplay: string;
     ishaDisplay: string;
   } {
-    let fajrDisplay = `${method.fajrAngle}°`;
+    const fajrDisplay = `${method.fajrAngle}°`;
     let ishaDisplay: string;
 
     if (method.ishaInterval) {

@@ -115,7 +115,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         {
           name: 'ip-api.com',
           url: 'http://ip-api.com/json/',
-          parser: (data: any) => ({
+          parser: (data: { lat: number; lon: number; city: string; country: string }) => ({
             latitude: data.lat,
             longitude: data.lon,
             city: data.city,
@@ -125,8 +125,8 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         {
           name: 'ipinfo.io',
           url: 'https://ipinfo.io/json',
-          parser: (data: any) => {
-            const [lat, lon] = data.loc ? data.loc.split(',').map(Number) : [0, 0];
+          parser: (data: { loc: string; city: string; country: string }) => {
+            const [lat, lon] = data.loc.split(',').map(Number);
             return {
               latitude: lat,
               longitude: lon,

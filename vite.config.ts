@@ -22,7 +22,18 @@ export default defineConfig(({ mode }) => ({
     VitePWA({
       registerType: "autoUpdate",
       injectRegister: null, // Defer SW registration to not block FCP
-      includeAssets: ["favicon.png", "icon-192x192.png", "icon-512x512.png"],
+      includeAssets: [
+        "favicon.png", 
+        "icon-192x192.png", 
+        "icon-512x512.png",
+        "apple-touch-icon.png",
+        "icon-72x72.png",
+        "icon-96x96.png",
+        "icon-128x128.png",
+        "icon-144x144.png",
+        "icon-152x152.png",
+        "icon-384x384.png"
+      ],
       manifest: {
         name: "Noor Connect - Islamic Companion",
         short_name: "Noor Connect",
@@ -33,7 +44,40 @@ export default defineConfig(({ mode }) => ({
         orientation: "portrait",
         start_url: "/",
         scope: "/",
+        categories: ["lifestyle", "education", "utilities"],
+        lang: "en",
+        dir: "ltr",
         icons: [
+          {
+            src: "/icon-72x72.png",
+            sizes: "72x72",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "/icon-96x96.png",
+            sizes: "96x96",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "/icon-128x128.png",
+            sizes: "128x128",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "/icon-144x144.png",
+            sizes: "144x144",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
+            src: "/icon-152x152.png",
+            sizes: "152x152",
+            type: "image/png",
+            purpose: "any"
+          },
           {
             src: "/icon-192x192.png",
             sizes: "192x192",
@@ -41,10 +85,32 @@ export default defineConfig(({ mode }) => ({
             purpose: "any maskable"
           },
           {
+            src: "/icon-384x384.png",
+            sizes: "384x384",
+            type: "image/png",
+            purpose: "any"
+          },
+          {
             src: "/icon-512x512.png",
             sizes: "512x512",
             type: "image/png",
             purpose: "any maskable"
+          }
+        ],
+        screenshots: [
+          {
+            src: "/screenshot-mobile.png",
+            sizes: "390x844",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Noor Connect mobile app showing prayer times and Quran"
+          },
+          {
+            src: "/screenshot-desktop.png", 
+            sizes: "1280x720",
+            type: "image/png",
+            form_factor: "wide",
+            label: "Noor Connect desktop app with full dashboard"
           }
         ]
       },
@@ -59,35 +125,79 @@ export default defineConfig(({ mode }) => ({
         clientsClaim: true,
         runtimeCaching: [
           {
-            // For app assets - use NetworkFirst to always get fresh content when online
-            urlPattern: /^https:\/\/.*\/assets\/.*/i,
+            // Quran content - CacheFirst for instant offline access
+            urlPattern: /^https:\/\/.*\/quran\/.*/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "quran-content-cache",
+              expiration: {
+                maxEntries: 200,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // Radio streams - NetworkFirst with fallback
+            urlPattern: /^https:\/\/.*\/radio\/.*/i,
             handler: "NetworkFirst",
             options: {
-              cacheName: "static-assets-cache",
+              cacheName: "radio-streams-cache",
+              expiration: {
+                maxEntries: 20,
+                maxAgeSeconds: 60 * 60 * 24 // 24 hours
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              },
+              networkTimeoutSeconds: 3
+            }
+          },
+          {
+            // Prayer times API - StaleWhileRevalidate for instant display
+            urlPattern: /^https:\/\/api\.aladhan\.com\/.*/i,
+            handler: "StaleWhileRevalidate",
+            options: {
+              cacheName: "prayer-times-cache",
               expiration: {
                 maxEntries: 100,
                 maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
               },
               cacheableResponse: {
                 statuses: [0, 200]
-              },
-              networkTimeoutSeconds: 3 // Fallback to cache if network takes too long
+              }
             }
           },
           {
-            // For API calls - NetworkFirst with shorter cache
-            urlPattern: /^https:\/\/api\.aladhan\.com\/.*/i,
-            handler: "NetworkFirst",
+            // App assets - CacheFirst for performance
+            urlPattern: /^https:\/\/.*\/assets\/.*/i,
+            handler: "CacheFirst",
             options: {
-              cacheName: "api-cache",
+              cacheName: "static-assets-cache",
               expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 // 1 hour
+                maxEntries: 150,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               },
               cacheableResponse: {
                 statuses: [0, 200]
+              }
+            }
+          },
+          {
+            // Images - CacheFirst with longer expiration
+            urlPattern: /\.(png|jpg|jpeg|gif|webp|svg)$/i,
+            handler: "CacheFirst",
+            options: {
+              cacheName: "images-cache",
+              expiration: {
+                maxEntries: 300,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
               },
-              networkTimeoutSeconds: 5
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
             }
           },
           {
