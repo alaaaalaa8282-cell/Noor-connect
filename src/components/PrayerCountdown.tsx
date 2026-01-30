@@ -84,7 +84,11 @@ const PrayerCountdownComponent = function PrayerCountdown() {
     currentTime: new Date().toTimeString(),
     currentPrayer: currentPrayer?.name,
     nextPrayer: nextPrayer?.name,
-    prayersCount: prayersWithEndTimes.length
+    prayersCount: prayersWithEndTimes.length,
+    currentPrayerTime: currentPrayer?.datetime?.toTimeString(),
+    nextPrayerTime: nextPrayer?.datetime?.toTimeString(),
+    isCurrentPrayer: !!currentPrayer,
+    hasNextPrayer: !!nextPrayer
   });
 
   // ALWAYS call useCountdown hooks with default values - NEVER conditional
@@ -233,6 +237,15 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   };
 
   const getCardStyle = () => {
+    // Force test glow for debugging - always show blue glow
+    const testGlow = {
+      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
+      border: '3px solid rgb(59, 130, 246)'
+    };
+
+    console.log('getCardStyle called, testGlow:', testGlow);
+    return testGlow; // Always return test glow for now
+
     if (!isCurrentPrayer || !isValidCountdown) {
       // Test: Show glow even for next prayer to test the effect
       if (nextPrayer) {
