@@ -266,6 +266,20 @@ export default function Dashboard() {
               </span>
             </div>
             
+            {location.city && location.country && (
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <MapPin className="w-4 h-4" />
+                <span className="font-medium">
+                  {location.city}, {location.country}
+                </span>
+                {location.source === 'manual' && (
+                  <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                    Manual
+                  </span>
+                )}
+              </div>
+            )}
+            
             <div className="relative">
               <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 blur-xl"></div>
               <div className="relative bg-card/50 backdrop-blur-sm rounded-xl border border-primary/20 px-6 py-3">

@@ -6,6 +6,7 @@
 
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { AladhanAPI, type AladhanPrayerTime } from '@/lib/aladhan-api';
+import { GeocodingService } from '@/lib/geocoding';
 
 export interface PrayerTimes {
   fajr: Date;
@@ -46,6 +47,7 @@ export interface UsePrayerTimesReturn {
 }
 
 const LOCATION_STORAGE_KEY = 'user-location-data';
+const USER_LOCATION_KEY = 'user_location';
 
 // Default fallback locations
 const DEFAULT_LOCATIONS = [
@@ -230,6 +232,21 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     };
   }, []);
 
+  // Get user location (manual set by user)
+  const getUserLocation = useCallback((): LocationData | null => {
+    try {
+      const userLocation = localStorage.getItem(USER_LOCATION_KEY);
+      if (userLocation) {
+        const locationData = JSON.parse(userLocation);
+        console.log('Using user location:', locationData);
+        return locationData;
+      }
+    } catch (error) {
+      console.warn('Failed to parse user location:', error);
+    }
+    return null;
+  }, []);
+
   // Get stored location from localStorage
   const getStoredLocation = useCallback((): LocationData | null => {
     try {
@@ -265,40 +282,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       console.warn('Failed to save location to localStorage:', error);
     }
   }, []);
-
-  // Set manual location
-  const setManualLocation = useCallback(async (city: string, country: string) => {
-    try {
-      setIsLoading(true);
-      setError(null);
-      
-      // Use Aladhan API to get coordinates for the city
-      const timings = await AladhanAPI.getTodaysPrayerTimesByCity(city, country, 1);
-      
-      // For manual location, we'll use approximate coordinates based on the city
-      // In a real implementation, you might want a geocoding API here
-      const approximateCoords = DEFAULT_LOCATIONS.find(loc => 
-        loc.city.toLowerCase() === city.toLowerCase()
-      ) || DEFAULT_LOCATIONS[0];
-
-      const locationData: LocationData = {
-        latitude: approximateCoords.latitude,
-        longitude: approximateCoords.longitude,
-        city,
-        country,
-        source: 'manual'
-      };
-
-      saveLocation(locationData);
-      await fetchPrayerTimesWithCoordinates(locationData);
-      setNeedsManualLocation(false);
-    } catch (error) {
-      console.error('Failed to set manual location:', error);
-      setError('Failed to set location. Please try a different city.');
-    } finally {
-      setIsLoading(false);
-    }
-  }, [saveLocation]);
 
   // Fetch prayer times using coordinates
   const fetchPrayerTimesWithCoordinates = useCallback(async (locationData: LocationData) => {
@@ -353,6 +336,36 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     }
   }, []); // No dependencies - this function is stable
 
+  // Set manual location
+  const setManualLocation = useCallback(async (city: string, country: string) => {
+    try {
+      setIsLoading(true);
+      setError(null);
+      
+      // Use GeocodingService to get accurate coordinates
+      const coords = await GeocodingService.getCityCoordinates(city, country);
+      
+      const locationData: LocationData = {
+        latitude: coords.latitude,
+        longitude: coords.longitude,
+        city,
+        country,
+        source: 'manual'
+      };
+
+      // Save to user_location (persistent manual location)
+      localStorage.setItem(USER_LOCATION_KEY, JSON.stringify(locationData));
+      
+      await fetchPrayerTimesWithCoordinates(locationData);
+      setNeedsManualLocation(false);
+    } catch (error) {
+      console.error('Failed to set manual location:', error);
+      setError('Failed to set location. Please try a different city.');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [fetchPrayerTimesWithCoordinates]);
+
   // Main fetch function
   const fetchPrayerTimes = useCallback(async () => {
     // Prevent multiple simultaneous fetches
@@ -367,7 +380,14 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       setError(null);
       setNeedsManualLocation(false);
 
-      // Try to get stored location first
+      // Check for user location first (highest priority)
+      const userLocation = getUserLocation();
+      if (userLocation) {
+        await fetchPrayerTimesWithCoordinates(userLocation);
+        return;
+      }
+
+      // Try to get stored location second
       const storedLocation = getStoredLocation();
       if (storedLocation) {
         await fetchPrayerTimesWithCoordinates(storedLocation);
@@ -409,7 +429,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [getStoredLocation, getLocationFromGeolocation, getLocationFromIP, getDefaultLocation, saveLocation, fetchPrayerTimesWithCoordinates]);
+  }, [getUserLocation, getStoredLocation, getLocationFromGeolocation, getLocationFromIP, getDefaultLocation, saveLocation, fetchPrayerTimesWithCoordinates]);
 
   // Initial fetch - only run once
   useEffect(() => {
