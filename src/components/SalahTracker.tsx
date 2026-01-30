@@ -5,7 +5,8 @@
 import { useState, useEffect } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Checkbox } from "@/components/ui/checkbox";
-import { Flame, Check } from "lucide-react";
+import { Flame, Check, Clock, AlertCircle } from "lucide-react";
+import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { 
   getTodayPrayers, 
   togglePrayer, 
@@ -25,6 +26,8 @@ const prayerNames: { id: PrayerName; label: string }[] = [
 export function SalahTracker() {
   const [prayers, setPrayers] = useState<DailyPrayers | null>(null);
   const [stats, setStats] = useState({ currentStreak: 0, longestStreak: 0, totalPrayers: 0, todayCompleted: 0 });
+  const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
+  const { prayerTimesWithEnd } = usePrayerTimes();
 
   useEffect(() => {
     setPrayers(getTodayPrayers());
@@ -32,9 +35,38 @@ export function SalahTracker() {
   }, []);
 
   const handleToggle = (prayer: PrayerName) => {
-    togglePrayer(prayer);
-    setPrayers(getTodayPrayers());
-    setStats(getSalahStats());
+    // Prepare prayer times object for validation
+    const prayerTimes = prayerTimesWithEnd ? {
+      fajr: { start: prayerTimesWithEnd.fajr.start, end: prayerTimesWithEnd.fajr.end },
+      dhuhr: { start: prayerTimesWithEnd.dhuhr.start, end: prayerTimesWithEnd.dhuhr.end },
+      asr: { start: prayerTimesWithEnd.asr.start, end: prayerTimesWithEnd.asr.end },
+      maghrib: { start: prayerTimesWithEnd.maghrib.start, end: prayerTimesWithEnd.maghrib.end },
+      isha: { start: prayerTimesWithEnd.isha.start, end: prayerTimesWithEnd.isha.end },
+    } : undefined;
+
+    const result = togglePrayer(prayer, prayerTimes);
+    
+    if (result.success) {
+      setPrayers(getTodayPrayers());
+      setStats(getSalahStats());
+      setMessage({ type: 'success', text: result.message });
+    } else {
+      setMessage({ type: 'error', text: result.message });
+    }
+
+    // Clear message after 3 seconds
+    setTimeout(() => setMessage(null), 3000);
+  };
+
+  const isPrayerTimeAvailable = (prayer: PrayerName): boolean => {
+    if (!prayerTimesWithEnd) return true; // Allow if no prayer times available
+    
+    const now = new Date();
+    const prayerTime = prayerTimesWithEnd[prayer as keyof typeof prayerTimesWithEnd];
+    
+    if (!prayerTime) return true;
+    
+    return now >= prayerTime.start;
   };
 
   if (!prayers) return null;
@@ -55,25 +87,55 @@ export function SalahTracker() {
         </div>
       </CardHeader>
       <CardContent className="pb-4">
+        {/* Message Display */}
+        {message && (
+          <div className={`mb-3 p-2 rounded-lg text-xs text-center ${
+            message.type === 'success' 
+              ? 'bg-green-50 text-green-700 border border-green-200' 
+              : 'bg-orange-50 text-orange-700 border border-orange-200'
+          }`}>
+            <div className="flex items-center justify-center gap-1">
+              {message.type === 'error' && <Clock className="w-3 h-3" />}
+              <span>{message.text}</span>
+            </div>
+          </div>
+        )}
+
         <div className="flex items-center justify-between gap-2">
           {prayerNames.map((prayer) => {
             const isChecked = prayers[prayer.id];
+            const isTimeAvailable = isPrayerTimeAvailable(prayer.id);
+            const isDisabled = !isTimeAvailable && !isChecked; // Can't check in before time, but can uncheck anytime
+            
             return (
               <button
                 key={prayer.id}
                 onClick={() => handleToggle(prayer.id)}
-                className="flex flex-col items-center gap-1.5 group"
+                disabled={isDisabled}
+                className={`flex flex-col items-center gap-1.5 group transition-all duration-200 ${
+                  isDisabled ? 'cursor-not-allowed opacity-60' : 'cursor-pointer'
+                }`}
+                title={isDisabled ? `Cannot check in before ${prayer.label} time` : prayer.label}
               >
                 <div
                   className={`w-10 h-10 rounded-full flex items-center justify-center border-2 transition-all duration-200 ${
                     isChecked
                       ? "bg-primary border-primary text-primary-foreground"
+                      : isDisabled
+                      ? "border-muted-foreground/20 text-muted-foreground/40"
                       : "border-muted-foreground/30 text-muted-foreground group-hover:border-primary/50"
                   }`}
                 >
                   {isChecked && <Check className="w-5 h-5" />}
+                  {!isChecked && isDisabled && <Clock className="w-4 h-4" />}
                 </div>
-                <span className={`text-[10px] font-medium ${isChecked ? "text-primary" : "text-muted-foreground"}`}>
+                <span className={`text-[10px] font-medium ${
+                  isChecked 
+                    ? "text-primary" 
+                    : isDisabled 
+                    ? "text-muted-foreground/40" 
+                    : "text-muted-foreground"
+                }`}>
                   {prayer.label}
                 </span>
               </button>

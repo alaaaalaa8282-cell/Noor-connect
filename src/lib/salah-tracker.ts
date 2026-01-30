@@ -70,8 +70,8 @@ export const getTodayPrayers = (): DailyPrayers => {
   return days[today];
 };
 
-// Toggle prayer status
-export const togglePrayer = (prayer: PrayerName): boolean => {
+// Toggle prayer status (only if prayer time has arrived)
+export const togglePrayer = (prayer: PrayerName, prayerTimes?: Record<string, { start: Date; end: Date }>): { success: boolean; message: string; completed: boolean } => {
   const days = getAllDays();
   const today = getTodayKey();
   
@@ -85,12 +85,36 @@ export const togglePrayer = (prayer: PrayerName): boolean => {
       isha: false,
     };
   }
-  
+
+  // Check if prayer time has arrived
+  if (prayerTimes && prayerTimes[prayer]) {
+    const now = new Date();
+    const prayerTime = prayerTimes[prayer];
+    
+    if (now < prayerTime.start) {
+      return {
+        success: false,
+        message: `Cannot check in before ${prayer} time. Prayer starts at ${prayerTime.start.toLocaleTimeString()}`,
+        completed: days[today][prayer]
+      };
+    }
+  }
+
   days[today][prayer] = !days[today][prayer];
   saveAllDays(days);
   updateStreak();
   
-  return days[today][prayer];
+  return {
+    success: true,
+    message: days[today][prayer] ? `${prayer} marked as completed!` : `${prayer} unchecked`,
+    completed: days[today][prayer]
+  };
+};
+
+// Legacy toggle function for backward compatibility
+export const togglePrayerLegacy = (prayer: PrayerName): boolean => {
+  const result = togglePrayer(prayer);
+  return result.completed;
 };
 
 // Check if a day is complete (all 5 prayers)
