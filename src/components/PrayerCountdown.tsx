@@ -1,8 +1,9 @@
-import { useState, useEffect, memo } from "react";
+import { useState, useEffect, useCallback, useMemo, memo } from 'react';
 import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationSearch } from "@/components/LocationSearch";
+import { TimeDisplay } from "@/components/TimeDisplay";
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useCountdown } from "@/hooks/use-countdown";
 import { getTimeFormat, formatPrayerTime } from "@/lib/time-formatter";
@@ -78,18 +79,6 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   const nextPrayer = prayersWithEndTimes.find(p => 
     p.datetime > new Date() && p !== currentPrayer
   );
-
-  // Debug logging
-  console.log('Prayer Countdown Debug:', {
-    currentTime: new Date().toTimeString(),
-    currentPrayer: currentPrayer?.name,
-    nextPrayer: nextPrayer?.name,
-    prayersCount: prayersWithEndTimes.length,
-    currentPrayerTime: currentPrayer?.datetime?.toTimeString(),
-    nextPrayerTime: nextPrayer?.datetime?.toTimeString(),
-    isCurrentPrayer: !!currentPrayer,
-    hasNextPrayer: !!nextPrayer
-  });
 
   // ALWAYS call useCountdown hooks with default values - NEVER conditional
   const currentPrayerCountdown = useCountdown(currentPrayer?.endTime || new Date());
@@ -192,101 +181,47 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   // Show current prayer countdown if available, otherwise show next prayer
   const displayPrayer = currentPrayer || nextPrayer;
   const isCurrentPrayer = !!currentPrayer;
-  const countdown = isCurrentPrayer ? currentPrayerCountdown : nextPrayerCountdown;
+  const targetTime = isCurrentPrayer ? (currentPrayer?.endTime || new Date()) : (nextPrayer?.datetime || new Date());
   const isEndingSoon = currentPrayer && isPrayerEndingSoon(currentPrayer);
 
   // Only use countdown if we have a valid prayer
   const isValidCountdown = (currentPrayer && isCurrentPrayer) || (nextPrayer && !isCurrentPrayer);
 
   const getAlertColor = () => {
-    if (!isCurrentPrayer || !isValidCountdown) return 'text-primary';
-    if (countdown.totalSeconds <= 300) return 'text-red-500'; // Less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'text-orange-500'; // Less than 10 minutes
     return 'text-primary';
   };
 
   const getAlertBgColor = () => {
-    if (!isCurrentPrayer || !isValidCountdown) return 'bg-primary/10';
-    if (countdown.totalSeconds <= 300) return 'bg-red-100'; // Less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'bg-orange-100'; // Less than 10 minutes
     return 'bg-primary/10';
   };
 
   const getCardGlow = () => {
-    // For testing - always show glow if there's any prayer data
-    if (!isCurrentPrayer || !isValidCountdown) {
-      // Test: Show glow even for next prayer to test the effect
-      if (nextPrayer) return 'shadow-2xl';
-      return '';
-    }
-    if (countdown.totalSeconds <= 300) return 'shadow-2xl'; // Red glow for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'shadow-xl'; // Orange glow for less than 10 minutes
-    return 'shadow-lg'; // Primary glow for current prayer
+    return 'shadow-lg';
   };
 
   const getCardBorder = () => {
-    // For testing - always show border if there's any prayer data
-    if (!isCurrentPrayer || !isValidCountdown) {
-      // Test: Show border even for next prayer to test the effect
-      if (nextPrayer) return 'border-4';
-      return 'border-primary/20';
-    }
-    if (countdown.totalSeconds <= 300) return 'border-4 border-red-500'; // Red border for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'border-4 border-orange-500'; // Orange border for less than 10 minutes
-    return 'border-4 border-primary'; // Primary border for current prayer
+    return 'border-primary/20';
   };
 
-  const getCardStyle = () => {
-    // Force test glow for debugging - always show blue glow
-    const testGlow = {
-      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
-      border: '3px solid rgb(59, 130, 246)'
-    };
-
-    console.log('getCardStyle called, testGlow:', testGlow);
-    return testGlow; // Always return test glow for now
-
-    if (!isCurrentPrayer || !isValidCountdown) {
-      // Test: Show glow even for next prayer to test the effect
-      if (nextPrayer) {
-        return {
-          boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
-          border: '3px solid rgb(59, 130, 246)'
-        };
-      }
-      return {};
-    }
-    if (countdown.totalSeconds <= 300) {
-      return {
-        boxShadow: '0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3)',
-        border: '3px solid rgb(239, 68, 68)'
-      };
-    }
-    if (countdown.totalSeconds <= 600) {
-      return {
-        boxShadow: '0 0 20px rgba(251, 146, 60, 0.5), 0 0 40px rgba(251, 146, 60, 0.3)',
-        border: '3px solid rgb(251, 146, 60)'
-      };
-    }
+  const getCardStyle = useMemo(() => {
     return {
       boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
       border: '3px solid rgb(59, 130, 246)'
     };
-  };
+  }, [currentPrayer, nextPrayer, isCurrentPrayer, isValidCountdown]);
 
   return (
     <Card 
       className={`overflow-hidden transition-all duration-300 ${getCardBorder()} ${getCardGlow()}`}
-      style={getCardStyle()}
     >
       <div 
         className={`absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent transition-all duration-1000 ${isEndingSoon ? 'from-orange-100/20 to-transparent' : ''}`}
-        style={{ width: `${isCurrentPrayer && isValidCountdown ? Math.max(0, 100 - (countdown.totalSeconds / 3600) * 100) : 0}%` }}
+        style={{ width: '50%' }}
       />
       <div className="relative p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-full ${getAlertBgColor()} flex items-center justify-center ${getAlertColor()} ${isCurrentPrayer && isValidCountdown ? 'animate-pulse' : ''}`}>
+            <div className={`w-12 h-12 rounded-full ${getAlertBgColor()} flex items-center justify-center ${getAlertColor()}`}>
               {isEndingSoon && <AlertTriangle className="w-6 h-6" />}
               {!isEndingSoon && (prayerIcons[displayPrayer.name] || <Clock className="w-6 h-6" />)}
             </div>
@@ -309,7 +244,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
           </div>
           <div className="text-right">
             <p className={`text-3xl font-mono font-bold ${getAlertColor()}`}>
-              {isValidCountdown ? countdown.formattedTime : 'Loading...'}
+              <TimeDisplay targetTime={targetTime} className="text-3xl font-mono font-bold text-primary" />
             </p>
             <p className="text-xs text-muted-foreground">
               {formatPrayerTime(displayPrayer.datetime, timeFormat)}
@@ -325,7 +260,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
                 Started at {formatPrayerTime(displayPrayer.datetime, timeFormat)}
               </span>
               <span className={`font-medium ${getAlertColor()}`}>
-                {isEndingSoon ? 'Ending soon!' : `${Math.floor(countdown.totalSeconds / 60)} minutes remaining`}
+                {isEndingSoon ? 'Ending soon!' : 'In progress'}
               </span>
             </div>
           </div>
