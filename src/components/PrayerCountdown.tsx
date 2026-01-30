@@ -209,14 +209,24 @@ const PrayerCountdownComponent = function PrayerCountdown() {
   };
 
   const getCardGlow = () => {
-    if (!isCurrentPrayer || !isValidCountdown) return '';
+    // For testing - always show glow if there's any prayer data
+    if (!isCurrentPrayer || !isValidCountdown) {
+      // Test: Show glow even for next prayer to test the effect
+      if (nextPrayer) return 'ring-2 ring-primary/20 shadow-lg';
+      return '';
+    }
     if (countdown.totalSeconds <= 300) return 'ring-4 ring-red-200 ring-opacity-50 shadow-2xl'; // Red glow for less than 5 minutes
     if (countdown.totalSeconds <= 600) return 'ring-4 ring-orange-200 ring-opacity-50 shadow-xl'; // Orange glow for less than 10 minutes
     return 'ring-2 ring-primary/20 shadow-lg'; // Primary glow for current prayer
   };
 
   const getCardBorder = () => {
-    if (!isCurrentPrayer || !isValidCountdown) return 'border-primary/20';
+    // For testing - always show border if there's any prayer data
+    if (!isCurrentPrayer || !isValidCountdown) {
+      // Test: Show border even for next prayer to test the effect
+      if (nextPrayer) return 'border-primary';
+      return 'border-primary/20';
+    }
     if (countdown.totalSeconds <= 300) return 'border-red-500'; // Red border for less than 5 minutes
     if (countdown.totalSeconds <= 600) return 'border-orange-500'; // Orange border for less than 10 minutes
     return 'border-primary'; // Primary border for current prayer
