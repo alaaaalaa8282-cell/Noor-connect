@@ -147,6 +147,8 @@ export function QuranAudioPlayer({
   const getGlobalAyah = (surahNum: number, ayahNum: number) => {
     // Global ayah id is 1..6236. Surah starts are 0-based offsets (Surah 1 starts at 0, Surah 2 at 7, etc.)
     if (surahNum <= 0 || surahNum > 114) return 1;
+    if (ayahNum <= 0) return 1; // Ensure ayah starts at 1, not 0
+    
     const start0 = SURAH_STARTS[surahNum - 1] ?? 0;
     const global = start0 + ayahNum;
 
@@ -174,7 +176,8 @@ export function QuranAudioPlayer({
   const audioSrc = useMemo(() => {
     const globalAyah = getGlobalAyah(surahNumber, ayah);
     const base = `https://cdn.islamic.network/quran/audio`;
-    return `${base}/128/${edition}/${globalAyah}.mp3`;
+    const paddedAyah = String(globalAyah).padStart(3, '0'); // Zero-pad to 3 digits (e.g., 001, 002, 003)
+    return `${base}/128/${edition}/${paddedAyah}.mp3`;
   }, [ayah, edition, surahNumber]);
 
   const nextAudioSrc = useMemo(() => {
@@ -182,14 +185,16 @@ export function QuranAudioPlayer({
     const nextAyah = ayah + 1;
     const globalAyah = getGlobalAyah(surahNumber, nextAyah);
     const base = `https://cdn.islamic.network/quran/audio`;
-    return `${base}/128/${edition}/${globalAyah}.mp3`;
+    const paddedAyah = String(globalAyah).padStart(3, '0'); // Zero-pad to 3 digits
+    return `${base}/128/${edition}/${paddedAyah}.mp3`;
   }, [ayah, edition, surahNumber, totalAyahs]);
 
   const fallbackTo64 = useCallback(() => {
     if (retryingTo64Ref.current) return;
     retryingTo64Ref.current = true;
     const globalAyah = getGlobalAyah(surahNumber, ayah);
-    const fallbackUrl = `https://cdn.islamic.network/quran/audio/64/${edition}/${globalAyah}.mp3`;
+    const paddedAyah = String(globalAyah).padStart(3, '0'); // Zero-pad to 3 digits
+    const fallbackUrl = `https://cdn.islamic.network/quran/audio/64/${edition}/${paddedAyah}.mp3`;
     console.error(`Audio failed for slug (128): ${edition}; retrying with 64kbps`);
     const audio = audioRef.current;
     if (audio) {
@@ -428,8 +433,13 @@ export function QuranAudioPlayer({
     setProgress(audio.currentTime);
     setDuration(audio.duration || 0);
 
-    // Update media session position
-    if ('mediaSession' in navigator && navigator.mediaSession.setPositionState) {
+    // Update media session position - only if all values are valid numbers
+    if ('mediaSession' in navigator && 
+        navigator.mediaSession.setPositionState && 
+        !isNaN(audio.duration) && 
+        !isNaN(audio.playbackRate) && 
+        !isNaN(audio.currentTime) && 
+        audio.duration > 0) {
       navigator.mediaSession.setPositionState({
         duration: audio.duration,
         playbackRate: audio.playbackRate,
@@ -513,8 +523,8 @@ export function QuranAudioPlayer({
   };
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-50 shadow-lg bg-card/95 backdrop-blur-lg border-border">
-      <div className="p-4 space-y-3">
+    <Card className="fixed bottom-20 left-4 right-4 z-50 shadow-lg bg-card/95 backdrop-blur-lg border-border h-80">
+      <div className="p-4 space-y-3 h-full overflow-y-auto">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
