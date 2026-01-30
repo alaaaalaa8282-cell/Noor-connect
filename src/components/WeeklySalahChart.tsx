@@ -2,11 +2,19 @@
  * Weekly Salah History Chart
  * Shows prayer completion over the past 7 days
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
-import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from "recharts";
 import { TrendingUp, Calendar } from "lucide-react";
 import { getPrayerHistory, type DailyPrayers } from "@/lib/salah-tracker";
+import { Skeleton } from "@/components/LoadingSkeleton";
+
+// Lazy load Recharts components to reduce bundle size
+const BarChart = lazy(() => import('recharts').then(module => ({ default: module.BarChart })));
+const Bar = lazy(() => import('recharts').then(module => ({ default: module.Bar })));
+const XAxis = lazy(() => import('recharts').then(module => ({ default: module.XAxis })));
+const YAxis = lazy(() => import('recharts').then(module => ({ default: module.YAxis })));
+const ResponsiveContainer = lazy(() => import('recharts').then(module => ({ default: module.ResponsiveContainer })));
+const Cell = lazy(() => import('recharts').then(module => ({ default: module.Cell })));
 
 interface ChartData {
   day: string;
@@ -21,6 +29,7 @@ export function WeeklySalahChart() {
 
   useEffect(() => {
     const history = getPrayerHistory(7);
+    console.log('Prayer history data:', history); // Debug log
     
     // Reverse to show oldest first (left to right)
     const data = history.reverse().map((day: DailyPrayers) => {
@@ -34,6 +43,7 @@ export function WeeklySalahChart() {
       };
     });
     
+    console.log('Chart data:', data); // Debug log
     setChartData(data);
     
     // Calculate weekly stats
@@ -77,26 +87,34 @@ export function WeeklySalahChart() {
         
         {/* Chart */}
         <div className="h-24 w-full">
-          <ResponsiveContainer width="100%" height="100%">
-            <BarChart data={chartData} barCategoryGap="20%">
-              <XAxis 
-                dataKey="day" 
-                axisLine={false} 
-                tickLine={false}
-                tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
-              />
-              <YAxis hide domain={[0, 5]} />
-              <Bar 
-                dataKey="completed" 
-                radius={[4, 4, 0, 0]}
-                maxBarSize={28}
-              >
-                {chartData.map((entry, index) => (
-                  <Cell key={`cell-${index}`} fill={getBarColor(entry.completed)} />
-                ))}
-              </Bar>
-            </BarChart>
-          </ResponsiveContainer>
+          {chartData.length > 0 ? (
+            <Suspense fallback={<Skeleton className="h-full w-full" />}>
+              <ResponsiveContainer width="100%" height="100%">
+                <BarChart data={chartData} barCategoryGap="20%">
+                  <XAxis 
+                    dataKey="day" 
+                    axisLine={false} 
+                    tickLine={false}
+                    tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
+                  />
+                  <YAxis hide domain={[0, 5]} />
+                  <Bar 
+                    dataKey="completed" 
+                    radius={[4, 4, 0, 0]}
+                    maxBarSize={28}
+                  >
+                    {chartData.map((entry, index) => (
+                      <Cell key={`cell-${index}`} fill={getBarColor(entry.completed)} />
+                    ))}
+                  </Bar>
+                </BarChart>
+              </ResponsiveContainer>
+            </Suspense>
+          ) : (
+            <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
+              Loading chart...
+            </div>
+          )}
         </div>
 
         {/* Legend */}
