@@ -80,7 +80,7 @@ export function WeeklySalahChart() {
   };
 
   return (
-    <Card className="bg-card border-border overflow-hidden">
+    <Card className="bg-card border-border overflow-hidden min-h-[200px]">
       <CardHeader className="pb-2 pt-4">
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
@@ -101,8 +101,8 @@ export function WeeklySalahChart() {
           </span>
         </div>
         
-        {/* Chart */}
-        <div className="h-24 w-full">
+        {/* Chart with fixed height to prevent CLS */}
+        <div className="h-24 w-full min-h-[96px]">
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} barCategoryGap="20%">

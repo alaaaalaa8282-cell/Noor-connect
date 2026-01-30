@@ -60,9 +60,13 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   const [prayerTimes, setPrayerTimes] = useState<PrayerTimes | null>(null);
   const [prayerTimesWithEnd, setPrayerTimesWithEnd] = useState<PrayerTimesWithEnd | null>(null);
   const [location, setLocation] = useState<LocationData | null>(null);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsManualLocation, setNeedsManualLocation] = useState(false);
+  
+  // Add ref to prevent multiple fetches
+  const isFetchingRef = useRef(false);
+  const hasInitializedRef = useRef(false);
   
   // Track previous prayer times to prevent unnecessary notification scheduling
   const previousPrayerTimesRef = useRef<string | null>(null);
@@ -345,7 +349,14 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
   // Main fetch function
   const fetchPrayerTimes = useCallback(async () => {
+    // Prevent multiple simultaneous fetches
+    if (isFetchingRef.current) {
+      console.log('Already fetching, skipping...');
+      return;
+    }
+
     try {
+      isFetchingRef.current = true;
       setIsLoading(true);
       setError(null);
       setNeedsManualLocation(false);
@@ -390,24 +401,31 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       setError('Could not determine your location automatically. Please search for your city.');
     } finally {
       setIsLoading(false);
+      isFetchingRef.current = false;
     }
   }, [getStoredLocation, getLocationFromGeolocation, getLocationFromIP, getDefaultLocation, saveLocation, fetchPrayerTimesWithCoordinates]);
 
-  // Initial fetch
+  // Initial fetch - only run once
   useEffect(() => {
-    fetchPrayerTimes();
-  }, [fetchPrayerTimes]);
+    if (!hasInitializedRef.current) {
+      hasInitializedRef.current = true;
+      fetchPrayerTimes();
+    }
+  }, []); // Remove fetchPrayerTimes dependency to prevent re-runs
 
   // Auto-refresh prayer times every minute when location is available
   useEffect(() => {
     if (!location || needsManualLocation) return;
     
     const interval = setInterval(() => {
-      fetchPrayerTimesWithCoordinates(location);
+      // Only fetch if not already fetching
+      if (!isFetchingRef.current) {
+        fetchPrayerTimesWithCoordinates(location);
+      }
     }, 60000); // Refresh every minute
 
     return () => clearInterval(interval);
-  }, [location?.latitude, location?.longitude, needsManualLocation, fetchPrayerTimesWithCoordinates]); // Include the function dependency
+  }, [location?.latitude, location?.longitude, needsManualLocation]); // Remove fetchPrayerTimesWithCoordinates dependency
 
   // Schedule notifications only when prayer times actually change (deep comparison)
   useEffect(() => {

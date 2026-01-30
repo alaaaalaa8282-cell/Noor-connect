@@ -111,7 +111,7 @@ const App = () => {
 
   // Initialize notification system and Service Worker
   useEffect(() => {
-    // Start the notification manager
+    // Start the notification manager (only runs once per app load)
     notificationManager.start();
     
     // Register Service Worker (only if not already registered in main.tsx)
@@ -138,7 +138,7 @@ const App = () => {
     return () => {
       notificationManager.stop();
     };
-  }, []);
+  }, []); // Remove dependencies to prevent re-runs
 
   return (
     <TooltipProvider>

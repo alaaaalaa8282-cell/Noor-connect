@@ -24,13 +24,18 @@ export interface ScheduledNotification {
   prayerName: string;
 }
 
-class LocalNotificationsService {
-  private isInitialized = false;
-  private scheduledNotifications: Map<number, ScheduledNotification> = new Map();
+export class LocalNotificationManager {
+  private isInitialized: boolean = false;
+  private static hasStarted: boolean = false; // Global flag to prevent multiple starts
 
-  /**
-   * Check notification permissions without requesting them
-   */
+  constructor() {
+    // Check if LocalNotifications plugin is available
+    if (!LocalNotifications) {
+      console.warn('LocalNotifications plugin not available');
+      return;
+    }
+  }
+
   async checkPermissions(): Promise<boolean> {
     try {
       const permission = await LocalNotifications.checkPermissions();
@@ -60,6 +65,21 @@ class LocalNotificationsService {
       console.error('Failed to request notification permissions:', error);
       return false;
     }
+  }
+
+  /**
+   * Start the notification service (only runs once per app load)
+   */
+  async start(): Promise<void> {
+    // Prevent multiple starts
+    if (LocalNotificationManager.hasStarted) {
+      console.log('Notification service already started, skipping...');
+      return;
+    }
+
+    LocalNotificationManager.hasStarted = true;
+    await this.initialize();
+    console.log('Notification service started');
   }
 
   /**

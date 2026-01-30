@@ -127,6 +127,16 @@ export class QuranFontManager {
   }
 
   /**
+   * Check if a font is already loaded in the document
+   */
+  private isFontLoaded(fontName: string): boolean {
+    const existingLinks = document.querySelectorAll('link[rel="stylesheet"]');
+    return Array.from(existingLinks).some(link => 
+      (link as HTMLLinkElement).href && (link as HTMLLinkElement).href.includes(`family=${encodeURIComponent(fontName)}`)
+    );
+  }
+
+  /**
    * Load Google Fonts for a specific font
    */
   async loadGoogleFonts(font: QuranFont): Promise<void> {
@@ -136,8 +146,14 @@ export class QuranFontManager {
     }
 
     try {
-      // Create link elements for each font
+      // Create link elements for each font, but only if not already loaded
       const fontPromises = fontOption.googleFonts.map(fontName => {
+        // Skip if font is already loaded
+        if (this.isFontLoaded(fontName)) {
+          console.log(`Font ${fontName} already loaded, skipping...`);
+          return Promise.resolve();
+        }
+
         return new Promise<void>((resolve, reject) => {
           const link = document.createElement('link');
           link.rel = 'stylesheet';
