@@ -113,7 +113,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
     <Card 
       className={`transition-all duration-300 ${getCardBorder()} ${getStatusColor()} ${getBgColor()} ${
         isCurrent ? 'scale-[1.02]' : ''
-      } ${getCardGlow()}`}
+      } ${getCardGlow()} min-h-[80px]`}
       style={getCardStyle()}
     >
       <CardContent className="p-4">
@@ -322,7 +322,7 @@ const PrayerTimesListComponent = function PrayerTimesList() {
             </div>
           )}
         </div>
-        <Card className="border-red-200 bg-red-50">
+        <Card className="border-red-200 bg-red-50 min-h-[80px]">
           <CardContent className="p-4">
             <div className="flex items-center gap-3 text-red-600">
               <AlertTriangle className="w-5 h-5" />
@@ -356,7 +356,7 @@ const PrayerTimesListComponent = function PrayerTimesList() {
   }
 
   return (
-    <div className="space-y-3">
+    <div className="space-y-3 min-h-[600px]">
       <div className="flex items-center justify-between mb-4">
         <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
         {location && (
