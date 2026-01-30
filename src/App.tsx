@@ -145,7 +145,10 @@ const App = () => {
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="flex flex-col h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App" style={{ willChange: 'transform' }}>
+        <div className="flex flex-col h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App" style={{ 
+          willChange: 'transform, opacity',
+          transform: 'translateZ(0)'
+        }}>
           {/* Header/Top Elements */}
           <div className="flex-shrink-0">
             <GlobalPrayerAlarm />
