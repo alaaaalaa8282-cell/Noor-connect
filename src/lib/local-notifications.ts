@@ -27,6 +27,7 @@ export interface ScheduledNotification {
 export class LocalNotificationManager {
   private isInitialized: boolean = false;
   private static hasStarted: boolean = false; // Global flag to prevent multiple starts
+  private scheduledNotifications: Map<number, ScheduledNotification> = new Map();
 
   constructor() {
     // Check if LocalNotifications plugin is available
@@ -459,4 +460,4 @@ export class LocalNotificationManager {
   }
 }
 
-export const localNotifications = new LocalNotificationsService();
+export const localNotifications = new LocalNotificationManager();
