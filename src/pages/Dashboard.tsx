@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2 } from "lucide-react";
@@ -51,8 +51,21 @@ export default function Dashboard() {
     setTimeFormat(getTimeFormat());
   }, []);
 
+  // Helper function to format time from API using global formatter
+  const formatTimeFromAPI = useCallback((timeStr: string): string => {
+    return formatTime(timeStr, timeFormat);
+  }, [timeFormat]);
+
+  // Helper function to parse time string to Date
+  const parseTimeToDate = useCallback((timeStr: string): Date => {
+    const [hours, minutes] = timeStr.split(':').map(Number);
+    const date = new Date();
+    date.setHours(hours, minutes, 0, 0);
+    return date;
+  }, []);
+
   // Load prayer times using global location
-  const loadPrayerTimes = async () => {
+  const loadPrayerTimes = useCallback(async () => {
     setLoadingAPI(true);
     
     try {
@@ -124,20 +137,7 @@ export default function Dashboard() {
       setLoadingAPI(false);
       setInitialLoad(false);
     }
-  };
-
-  // Helper function to format time from API using global formatter
-  const formatTimeFromAPI = (timeStr: string): string => {
-    return formatTime(timeStr, timeFormat);
-  };
-
-  // Helper function to parse time string to Date
-  const parseTimeToDate = (timeStr: string): Date => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
-    const date = new Date();
-    date.setHours(hours, minutes, 0, 0);
-    return date;
-  };
+  }, [location.latitude, location.longitude, formatTimeFromAPI]); // Add dependencies
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -167,7 +167,7 @@ export default function Dashboard() {
     if (location.latitude && location.longitude) {
       loadPrayerTimes();
     }
-  }, [location.latitude, location.longitude, timeFormat]);
+  }, [location.latitude, location.longitude, timeFormat, loadPrayerTimes]); // Add loadPrayerTimes to dependencies
 
   // Memoize prayer cards to prevent re-renders during countdown updates
   const prayerCards = useMemo(() => {

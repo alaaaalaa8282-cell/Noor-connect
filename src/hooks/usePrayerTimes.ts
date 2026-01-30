@@ -337,13 +337,11 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       setPrayerTimesWithEnd(withEnd);
       setLocation(locationData);
       setError(null);
-      
-    } catch (err) {
-      console.error('Failed to fetch prayer times:', err);
-      setError(err instanceof Error ? err.message : 'Failed to fetch prayer times');
-      throw err;
+    } catch (error) {
+      console.error('Failed to fetch prayer times:', error);
+      setError('Failed to fetch prayer times. Please try again.');
     }
-  }, [parseTimeToDate, calculateEndTimes]);
+  }, []); // No dependencies - this function is stable
 
   // Main fetch function
   const fetchPrayerTimes = useCallback(async () => {
@@ -400,7 +398,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     fetchPrayerTimes();
   }, [fetchPrayerTimes]);
 
-  // Auto-refresh every minute - only refresh when location is stable
+  // Auto-refresh prayer times every minute when location is available
   useEffect(() => {
     if (!location || needsManualLocation) return;
     
@@ -409,7 +407,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     }, 60000); // Refresh every minute
 
     return () => clearInterval(interval);
-  }, [location?.latitude, location?.longitude, needsManualLocation]); // Only depend on coordinates, not the entire location object
+  }, [location?.latitude, location?.longitude, needsManualLocation, fetchPrayerTimesWithCoordinates]); // Include the function dependency
 
   // Schedule notifications only when prayer times actually change (deep comparison)
   useEffect(() => {
@@ -440,7 +438,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [JSON.stringify(prayerTimesWithEnd), location?.latitude, location?.longitude]);
+  }, [prayerTimesWithEnd?.fajr.start, prayerTimesWithEnd?.dhuhr.start, prayerTimesWithEnd?.asr.start, prayerTimesWithEnd?.maghrib.start, prayerTimesWithEnd?.isha.start, location?.latitude, location?.longitude]); // Use specific properties instead of JSON.stringify
 
   return {
     prayerTimes,
