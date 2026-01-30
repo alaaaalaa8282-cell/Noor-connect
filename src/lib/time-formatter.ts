@@ -92,9 +92,27 @@ export function getTimeFormat(): '12' | '24' {
 }
 
 /**
- * Set time format preference
+ * Pre-convert prayer times object to selected format to avoid on-the-fly calculations
+ * @param prayerTimes - Object with prayer time strings
  * @param format - Time format preference ('12' or '24')
+ * @returns Object with formatted prayer times
  */
-export function setTimeFormat(format: '12' | '24'): void {
-  localStorage.setItem('timeFormat', format);
+export function preConvertPrayerTimes(prayerTimes: Record<string, string>, format: '12' | '24' = '24'): Record<string, string> {
+  const converted: Record<string, string> = {};
+  
+  for (const [prayer, time] of Object.entries(prayerTimes)) {
+    converted[prayer] = formatPrayerTime(time, format);
+  }
+  
+  return converted;
+}
+
+/**
+ * Batch format multiple prayer times efficiently
+ * @param times - Array of time strings or Date objects
+ * @param format - Time format preference ('12' or '24')
+ * @returns Array of formatted time strings
+ */
+export function batchFormatTimes(times: (string | Date)[], format: '12' | '24' = '24'): string[] {
+  return times.map(time => formatPrayerTime(time, format));
 }

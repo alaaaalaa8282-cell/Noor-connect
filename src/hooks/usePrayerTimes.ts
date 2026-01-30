@@ -411,32 +411,36 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     return () => clearInterval(interval);
   }, [location?.latitude, location?.longitude, needsManualLocation]); // Only depend on coordinates, not the entire location object
 
-  // Schedule notifications only when prayer times actually change
+  // Schedule notifications only when prayer times actually change (deep comparison)
   useEffect(() => {
-    if (!prayerTimes || !location) return;
+    if (!prayerTimesWithEnd || !location) return;
     
-    // Create a stable string representation of prayer times for comparison
+    // Create deep comparison string to prevent unnecessary notification scheduling
     const prayerTimesString = JSON.stringify({
-      fajr: prayerTimes.fajr.toISOString(),
-      dhuhr: prayerTimes.dhuhr.toISOString(),
-      asr: prayerTimes.asr.toISOString(),
-      maghrib: prayerTimes.maghrib.toISOString(),
-      isha: prayerTimes.isha.toISOString()
+      fajr: prayerTimesWithEnd.fajr.start,
+      dhuhr: prayerTimesWithEnd.dhuhr.start,
+      asr: prayerTimesWithEnd.asr.start,
+      maghrib: prayerTimesWithEnd.maghrib.start,
+      isha: prayerTimesWithEnd.isha.start,
+      location: `${location.latitude},${location.longitude}`
     });
     
-    // Only schedule notifications if prayer times have actually changed
+    // Only schedule if prayer times have actually changed
     if (previousPrayerTimesRef.current !== prayerTimesString) {
-      console.log('Prayer times content changed, scheduling notifications...');
       previousPrayerTimesRef.current = prayerTimesString;
       
-      // Import and call notification scheduling
-      import('@/lib/local-notifications').then(({ localNotifications }) => {
-        localNotifications.schedulePrayerNotificationsFromAPI().catch(error => {
-          console.warn('Failed to schedule notifications:', error);
+      // Throttle notification scheduling to prevent rapid calls
+      const timeoutId = setTimeout(() => {
+        import('@/lib/local-notifications').then(({ localNotifications }) => {
+          localNotifications.schedulePrayerNotificationsFromAPI().catch((error) => {
+            console.error('Failed to schedule prayer notifications:', error);
+          });
         });
-      });
+      }, 1000); // 1 second throttle
+      
+      return () => clearTimeout(timeoutId);
     }
-  }, [JSON.stringify(prayerTimes), location?.latitude, location?.longitude]); // Use stringified prayer times in dependency
+  }, [JSON.stringify(prayerTimesWithEnd), location?.latitude, location?.longitude]);
 
   return {
     prayerTimes,

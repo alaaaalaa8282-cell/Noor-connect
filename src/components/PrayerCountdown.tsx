@@ -255,7 +255,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
       </div>
     </Card>
   );
-};
+}
 
 // Memoize the component to prevent unnecessary re-renders
 export const PrayerCountdown = memo(PrayerCountdownComponent);

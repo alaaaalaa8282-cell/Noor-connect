@@ -144,9 +144,9 @@ const App = () => {
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="flex flex-col h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App">
-          {/* Header/Top Elements - Fixed height to prevent CLS */}
-          <div className="flex-shrink-0 h-[64px]">
+        <div className="flex flex-col h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App" style={{ willChange: 'transform' }}>
+          {/* Header/Top Elements */}
+          <div className="flex-shrink-0">
             <GlobalPrayerAlarm />
             <SalamGreeting />
             <FestivePopup />
@@ -158,16 +158,14 @@ const App = () => {
             <AppRoutes />
           </LayoutManager>
           
-          {/* Bottom Navigation - Fixed height */}
-          <div className="flex-shrink-0 h-[80px]">
+          {/* Bottom Navigation */}
+          <div className="flex-shrink-0">
             <BottomNav />
           </div>
         </div>
         
-        {/* Global Radio Player - Fixed at bottom with explicit height */}
-        <div className="h-[96px]">
-          <GlobalRadioPlayer />
-        </div>
+        {/* Global Radio Player - Fixed at bottom with proper z-index */}
+        <GlobalRadioPlayer />
       </BrowserRouter>
     </TooltipProvider>
   );
