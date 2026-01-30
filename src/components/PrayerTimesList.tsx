@@ -32,6 +32,9 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
   const status = getPrayerStatus(prayer);
   const countdown = isCurrent ? useCountdown(prayer.endTime) : null;
   const isEndingSoon = isCurrent && isPrayerEndingSoon(prayer);
+  
+  // Get current time format preference
+  const timeFormat = getTimeFormat();
 
   const getStatusColor = () => {
     if (isCurrent) {
@@ -85,10 +88,10 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
               
               <div className="flex items-center gap-4 mt-1">
                 <span className="text-sm font-mono">
-                  {formatTime(prayer.datetime)}
+                  {formatPrayerTime(prayer.datetime, timeFormat)}
                 </span>
                 <span className="text-xs text-muted-foreground">
-                  → Ends at {prayer.endTimeFormatted}
+                  → Ends at {formatPrayerTime(prayer.endTime, timeFormat)}
                 </span>
               </div>
             </div>
@@ -120,7 +123,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
           <div className="mt-3 pt-3 border-t border-border/50">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
-                Started at {formatTime(prayer.datetime)}
+                Started at {formatPrayerTime(prayer.datetime, timeFormat)}
               </span>
               <span className={`font-medium ${getStatusColor()}`}>
                 {isEndingSoon ? 'Ending soon!' : `${Math.floor(countdown.totalSeconds / 60)}m ${countdown.seconds}s left`}

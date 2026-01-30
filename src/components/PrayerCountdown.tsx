@@ -230,11 +230,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
               {isValidCountdown ? countdown.formattedTime : 'Loading...'}
             </p>
             <p className="text-xs text-muted-foreground">
-              {displayPrayer.datetime.toLocaleTimeString('en-US', { 
-                hour: '2-digit', 
-                minute: '2-digit',
-                hour12: true 
-              })}
+              {formatPrayerTime(displayPrayer.datetime, timeFormat)}
             </p>
           </div>
         </div>
@@ -244,7 +240,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
           <div className="mt-3 pt-3 border-t border-border/50">
             <div className="flex items-center justify-between text-xs">
               <span className="text-muted-foreground">
-                Started at {formatTime(displayPrayer.datetime)}
+                Started at {formatPrayerTime(displayPrayer.datetime, timeFormat)}
               </span>
               <span className={`font-medium ${getAlertColor()}`}>
                 {isEndingSoon ? 'Ending soon!' : `${Math.floor(countdown.totalSeconds / 60)} minutes remaining`}
