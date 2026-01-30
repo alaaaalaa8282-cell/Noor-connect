@@ -86,7 +86,7 @@ class LocalNotificationsService {
 
   /**
    * Schedule prayer time notifications using Aladhan API for accurate times
-   * Only schedules when location is successfully resolved
+   * Only schedules when location is successfully resolved and times have actually changed
    */
   async schedulePrayerNotificationsFromAPI(): Promise<void> {
     if (!this.isInitialized) {
@@ -109,6 +109,15 @@ class LocalNotificationsService {
       // Only schedule if location is recent (less than 24 hours) and not manual/default
       if (hoursDiff >= 24 || locationData.source === 'manual' || locationData.source === 'default') {
         console.log('Location data is stale or manual, skipping notification scheduling');
+        return;
+      }
+
+      // Check if we already have notifications scheduled for today
+      const today = now.toDateString();
+      const lastScheduledDate = localStorage.getItem('last-notification-schedule-date');
+      
+      if (lastScheduledDate === today) {
+        console.log('Notifications already scheduled for today, skipping');
         return;
       }
 
@@ -170,7 +179,8 @@ class LocalNotificationsService {
               prayerName: prayer.name,
               prayerTime: prayer.time,
               type: 'prayer_reminder',
-              location: locationData
+              location: locationData,
+              scheduledDate: today
             }
           };
 
@@ -192,6 +202,9 @@ class LocalNotificationsService {
         await LocalNotifications.schedule({
           notifications
         });
+        
+        // Mark that we've scheduled notifications for today
+        localStorage.setItem('last-notification-schedule-date', today);
         
         console.log(`Scheduled ${notifications.length} prayer notifications for location: ${locationData.city || `${locationData.latitude.toFixed(2)},${locationData.longitude.toFixed(2)}`}`);
       }

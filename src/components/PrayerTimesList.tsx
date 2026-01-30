@@ -209,7 +209,7 @@ const PrayerTimesListComponent = function PrayerTimesList() {
     );
   }
 
-  // Enhanced loading skeleton to prevent CLS
+  // Enhanced loading skeleton to prevent CLS with fixed heights
   if (isLoading) {
     return (
       <div className="space-y-3">
@@ -221,23 +221,25 @@ const PrayerTimesListComponent = function PrayerTimesList() {
           </div>
         </div>
         {[...Array(6)].map((_, i) => (
-          <Card key={i} className="animate-pulse">
-            <CardContent className="p-4">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="w-10 h-10 rounded-full bg-muted" />
-                  <div className="flex-1">
-                    <div className="h-4 w-16 bg-muted rounded mb-2" />
-                    <div className="h-3 w-24 bg-muted rounded" />
+          <div key={i} className="h-20"> {/* Fixed height for each prayer card */}
+            <Card className="animate-pulse h-full">
+              <CardContent className="p-4 h-full">
+                <div className="flex items-center justify-between h-full">
+                  <div className="flex items-center gap-3">
+                    <div className="w-10 h-10 rounded-full bg-muted flex-shrink-0" />
+                    <div className="flex-1 min-w-0">
+                      <div className="h-4 w-16 bg-muted rounded mb-2" />
+                      <div className="h-3 w-24 bg-muted rounded" />
+                    </div>
+                  </div>
+                  <div className="text-right flex-shrink-0">
+                    <div className="h-4 w-12 bg-muted rounded mb-1" />
+                    <div className="h-3 w-16 bg-muted rounded" />
                   </div>
                 </div>
-                <div className="text-right">
-                  <div className="h-4 w-12 bg-muted rounded mb-1" />
-                  <div className="h-3 w-16 bg-muted rounded" />
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+              </CardContent>
+            </Card>
+          </div>
         ))}
       </div>
     );

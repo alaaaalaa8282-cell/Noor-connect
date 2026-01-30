@@ -415,24 +415,19 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   useEffect(() => {
     if (!prayerTimes || !location) return;
     
-    // Create a unique string representation of prayer times
-    const currentPrayerTimesString = JSON.stringify({
+    // Create a stable string representation of prayer times for comparison
+    const prayerTimesString = JSON.stringify({
       fajr: prayerTimes.fajr.toISOString(),
       dhuhr: prayerTimes.dhuhr.toISOString(),
       asr: prayerTimes.asr.toISOString(),
       maghrib: prayerTimes.maghrib.toISOString(),
-      isha: prayerTimes.isha.toISOString(),
-      location: {
-        latitude: location.latitude,
-        longitude: location.longitude,
-        source: location.source
-      }
+      isha: prayerTimes.isha.toISOString()
     });
     
     // Only schedule notifications if prayer times have actually changed
-    if (previousPrayerTimesRef.current !== currentPrayerTimesString) {
-      console.log('Prayer times changed, scheduling notifications...');
-      previousPrayerTimesRef.current = currentPrayerTimesString;
+    if (previousPrayerTimesRef.current !== prayerTimesString) {
+      console.log('Prayer times content changed, scheduling notifications...');
+      previousPrayerTimesRef.current = prayerTimesString;
       
       // Import and call notification scheduling
       import('@/lib/local-notifications').then(({ localNotifications }) => {
@@ -441,7 +436,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         });
       });
     }
-  }, [prayerTimes, location?.latitude, location?.longitude]); // Only depend on prayer times and coordinates
+  }, [JSON.stringify(prayerTimes), location?.latitude, location?.longitude]); // Use stringified prayer times in dependency
 
   return {
     prayerTimes,

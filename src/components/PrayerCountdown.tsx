@@ -102,66 +102,70 @@ const PrayerCountdownComponent = function PrayerCountdown() {
     );
   }
 
-  // Enhanced loading skeleton to prevent CLS
+  // Enhanced loading skeleton to prevent CLS with fixed height
   if (isLoading) {
     return (
-      <Card className="overflow-hidden border-primary/20">
-        <div className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-muted animate-pulse" />
-              <div className="flex-1">
-                <div className="h-5 w-24 bg-muted rounded mb-2 animate-pulse" />
-                <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+      <div className="h-32"> {/* Fixed height container to prevent CLS */}
+        <Card className="overflow-hidden border-primary/20 h-full">
+          <div className="p-4 h-full">
+            <div className="flex items-center justify-between h-full">
+              <div className="flex items-center gap-3">
+                <div className="w-12 h-12 rounded-full bg-muted animate-pulse flex-shrink-0" />
+                <div className="flex-1 min-w-0">
+                  <div className="h-5 w-24 bg-muted rounded mb-2 animate-pulse" />
+                  <div className="h-4 w-32 bg-muted rounded animate-pulse" />
+                </div>
+              </div>
+              <div className="text-right flex-shrink-0">
+                <div className="h-6 w-20 bg-muted rounded mb-1 animate-pulse" />
+                <div className="h-4 w-16 bg-muted rounded animate-pulse" />
               </div>
             </div>
-            <div className="text-right">
-              <div className="h-6 w-20 bg-muted rounded mb-1 animate-pulse" />
-              <div className="h-4 w-16 bg-muted rounded animate-pulse" />
+            <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
+              <Loader2 className="w-3 h-3 animate-spin" />
+              <span>Determining your location...</span>
             </div>
           </div>
-          <div className="mt-2 text-xs text-muted-foreground flex items-center gap-2">
-            <Loader2 className="w-3 h-3 animate-spin" />
-            <span>Determining your location...</span>
-          </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
     );
   }
 
-  // Error state
+  // Error state with fixed height to prevent CLS
   if (error) {
     return (
-      <Card className="border-red-200 bg-red-50">
-        <div className="p-4">
-          <div className="flex items-center gap-3 text-red-600">
-            <AlertTriangle className="w-5 h-5" />
-            <div className="flex-1">
-              <p className="font-medium">Failed to load prayer times</p>
-              <p className="text-sm">{error}</p>
-              {location && (
-                <p className="text-xs mt-1">
-                  📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
-                </p>
-              )}
-              <div className="flex gap-2 mt-2">
-                <button 
-                  onClick={refresh}
-                  className="text-sm underline hover:no-underline"
-                >
-                  Try again
-                </button>
-                <button 
-                  onClick={() => setManualLocation("Mecca", "Saudi Arabia")}
-                  className="text-sm underline hover:no-underline"
-                >
-                  Use Mecca
-                </button>
+      <div className="h-32"> {/* Fixed height container to prevent CLS */}
+        <Card className="border-red-200 bg-red-50 h-full">
+          <div className="p-4 h-full">
+            <div className="flex items-center gap-3 text-red-600 h-full">
+              <AlertTriangle className="w-5 h-5 flex-shrink-0" />
+              <div className="flex-1 min-w-0">
+                <p className="font-medium">Failed to load prayer times</p>
+                <p className="text-sm">{error}</p>
+                {location && (
+                  <p className="text-xs mt-1">
+                    📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
+                  </p>
+                )}
+                <div className="flex gap-2 mt-2">
+                  <button 
+                    onClick={refresh}
+                    className="text-sm underline hover:no-underline"
+                  >
+                    Try again
+                  </button>
+                  <button 
+                    onClick={() => setManualLocation("Mecca", "Saudi Arabia")}
+                    className="text-sm underline hover:no-underline"
+                  >
+                    Use Mecca
+                  </button>
+                </div>
               </div>
             </div>
           </div>
-        </div>
-      </Card>
+        </Card>
+      </div>
     );
   }
 
