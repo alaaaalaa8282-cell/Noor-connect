@@ -1,11 +1,10 @@
 import { useState, useEffect } from "react";
-import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle } from "lucide-react";
+import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
-import { getPrayerSettings } from "@/lib/storage";
-import { calculatePrayerTimes } from "@/lib/prayer-calculator";
+import { Skeleton } from "@/components/ui/skeleton";
+import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useCountdown } from "@/hooks/use-countdown";
 import { 
-  calculatePrayerEndTimes, 
   getCurrentPrayer, 
   getPrayerStatus,
   isPrayerEndingSoon,
@@ -133,55 +132,112 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
 };
 
 export function PrayerTimesList() {
-  const [prayersWithEndTimes, setPrayersWithEndTimes] = useState<PrayerWithEndTime[]>([]);
-  const [currentPrayer, setCurrentPrayer] = useState<PrayerWithEndTime | null>(null);
-  const [nextPrayer, setNextPrayer] = useState<PrayerWithEndTime | null>(null);
+  const { prayerTimesWithEnd, isLoading, error, refresh } = usePrayerTimes();
+  
+  // Convert to PrayerWithEndTime format for compatibility
+  const prayersWithEndTimes: PrayerWithEndTime[] = prayerTimesWithEnd ? [
+    {
+      name: 'Fajr',
+      time: formatTime(prayerTimesWithEnd.fajr.start),
+      datetime: prayerTimesWithEnd.fajr.start,
+      endTime: prayerTimesWithEnd.fajr.end,
+      endTimeFormatted: formatTime(prayerTimesWithEnd.fajr.end)
+    },
+    {
+      name: 'Sunrise',
+      time: formatTime(prayerTimesWithEnd.sunrise.start),
+      datetime: prayerTimesWithEnd.sunrise.start,
+      endTime: prayerTimesWithEnd.sunrise.end,
+      endTimeFormatted: formatTime(prayerTimesWithEnd.sunrise.end)
+    },
+    {
+      name: 'Dhuhr',
+      time: formatTime(prayerTimesWithEnd.dhuhr.start),
+      datetime: prayerTimesWithEnd.dhuhr.start,
+      endTime: prayerTimesWithEnd.dhuhr.end,
+      endTimeFormatted: formatTime(prayerTimesWithEnd.dhuhr.end)
+    },
+    {
+      name: 'Asr',
+      time: formatTime(prayerTimesWithEnd.asr.start),
+      datetime: prayerTimesWithEnd.asr.start,
+      endTime: prayerTimesWithEnd.asr.end,
+      endTimeFormatted: formatTime(prayerTimesWithEnd.asr.end)
+    },
+    {
+      name: 'Maghrib',
+      time: formatTime(prayerTimesWithEnd.maghrib.start),
+      datetime: prayerTimesWithEnd.maghrib.start,
+      endTime: prayerTimesWithEnd.maghrib.end,
+      endTimeFormatted: formatTime(prayerTimesWithEnd.maghrib.end)
+    },
+    {
+      name: 'Isha',
+      time: formatTime(prayerTimesWithEnd.isha.start),
+      datetime: prayerTimesWithEnd.isha.start,
+      endTime: prayerTimesWithEnd.isha.end,
+      endTimeFormatted: formatTime(prayerTimesWithEnd.isha.end)
+    }
+  ] : [];
 
-  useEffect(() => {
-    const updatePrayerData = () => {
-      const settings = getPrayerSettings();
-      if (settings.latitude && settings.longitude) {
-        // Get today's prayer times
-        const todayPrayers = calculatePrayerTimes(settings.latitude, settings.longitude);
-        
-        // Get tomorrow's prayer times for Isha end time calculation
-        const tomorrow = new Date();
-        tomorrow.setDate(tomorrow.getDate() + 1);
-        const tomorrowPrayers = calculatePrayerTimes(settings.latitude, settings.longitude, tomorrow);
-        
-        // Convert to PrayerSchedule format
-        const prayerSchedule = {
-          fajr: { name: 'Fajr', time: formatTime(todayPrayers.fajr), datetime: todayPrayers.fajr },
-          sunrise: { name: 'Sunrise', time: formatTime(todayPrayers.sunrise), datetime: todayPrayers.sunrise },
-          dhuhr: { name: 'Dhuhr', time: formatTime(todayPrayers.dhuhr), datetime: todayPrayers.dhuhr },
-          asr: { name: 'Asr', time: formatTime(todayPrayers.asr), datetime: todayPrayers.asr },
-          maghrib: { name: 'Maghrib', time: formatTime(todayPrayers.maghrib), datetime: todayPrayers.maghrib },
-          isha: { name: 'Isha', time: formatTime(todayPrayers.isha), datetime: todayPrayers.isha }
-        };
-        
-        const tomorrowSchedule = {
-          fajr: { name: 'Fajr', time: formatTime(tomorrowPrayers.fajr), datetime: tomorrowPrayers.fajr }
-        };
-        
-        // Calculate end times
-        const prayersWithEnds = calculatePrayerEndTimes(prayerSchedule, tomorrowSchedule);
-        setPrayersWithEndTimes(prayersWithEnds);
-        
-        // Get current and next prayers
-        const current = getCurrentPrayer(prayersWithEnds);
-        const next = prayersWithEnds.find(p => 
-          p.datetime > new Date() && p !== current
-        );
-        
-        setCurrentPrayer(current);
-        setNextPrayer(next || null);
-      }
-    };
+  const currentPrayer = getCurrentPrayer(prayersWithEndTimes);
+  const nextPrayer = prayersWithEndTimes.find(p => 
+    p.datetime > new Date() && p !== currentPrayer
+  );
 
-    updatePrayerData();
-    const interval = setInterval(updatePrayerData, 60000); // Update every minute
-    return () => clearInterval(interval);
-  }, []);
+  // Loading skeleton to prevent CLS
+  if (isLoading) {
+    return (
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Prayer Times</h2>
+        {[...Array(6)].map((_, i) => (
+          <Card key={i} className="animate-pulse">
+            <CardContent className="p-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-full bg-muted" />
+                  <div className="flex-1">
+                    <div className="h-4 w-16 bg-muted rounded mb-2" />
+                    <div className="h-3 w-24 bg-muted rounded" />
+                  </div>
+                </div>
+                <div className="text-right">
+                  <div className="h-4 w-12 bg-muted rounded mb-1" />
+                  <div className="h-3 w-16 bg-muted rounded" />
+                </div>
+              </div>
+            </CardContent>
+          </Card>
+        ))}
+      </div>
+    );
+  }
+
+  // Error state
+  if (error) {
+    return (
+      <div className="space-y-3">
+        <h2 className="text-lg font-semibold text-foreground mb-4">Prayer Times</h2>
+        <Card className="border-red-200 bg-red-50">
+          <CardContent className="p-4">
+            <div className="flex items-center gap-3 text-red-600">
+              <AlertTriangle className="w-5 h-5" />
+              <div>
+                <p className="font-medium">Failed to load prayer times</p>
+                <p className="text-sm">{error}</p>
+                <button 
+                  onClick={refresh}
+                  className="mt-2 text-sm underline hover:no-underline"
+                >
+                  Try again
+                </button>
+              </div>
+            </div>
+          </CardContent>
+        </Card>
+      </div>
+    );
+  }
 
   if (prayersWithEndTimes.length === 0) {
     return null;

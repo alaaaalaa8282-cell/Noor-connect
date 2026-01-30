@@ -5,6 +5,8 @@
  */
 
 import { LocalNotifications } from '@capacitor/local-notifications';
+import { AladhanAPI } from './aladhan-api';
+import { getPrayerSettings } from './storage';
 
 export interface PrayerTime {
   name: string;
@@ -81,8 +83,98 @@ class LocalNotificationsService {
   }
 
   /**
-   * Schedule prayer time notifications for the day
+   * Schedule prayer time notifications using Aladhan API for accurate times
    */
+  async schedulePrayerNotificationsFromAPI(): Promise<void> {
+    if (!this.isInitialized) {
+      await this.initialize();
+    }
+
+    try {
+      // Clear existing prayer notifications
+      await this.clearPrayerNotifications();
+
+      const settings = getPrayerSettings();
+      
+      if (!settings.latitude || !settings.longitude) {
+        console.warn('Location not set, cannot schedule prayer notifications');
+        return;
+      }
+
+      // Get today's prayer times from Aladhan API
+      const timings = await AladhanAPI.getTodaysPrayerTimes(
+        settings.latitude,
+        settings.longitude,
+        1 // Muslim World League method
+      );
+
+      const now = new Date();
+      const notifications = [];
+
+      // Parse prayer times and create notifications
+      const prayers = [
+        { name: 'Fajr', time: timings.Fajr },
+        { name: 'Dhuhr', time: timings.Dhuhr },
+        { name: 'Asr', time: timings.Asr },
+        { name: 'Maghrib', time: timings.Maghrib },
+        { name: 'Isha', time: timings.Isha }
+      ];
+
+      for (const prayer of prayers) {
+        const [hours, minutes] = prayer.time.split(':').map(Number);
+        const prayerDate = new Date();
+        prayerDate.setHours(hours, minutes, 0, 0);
+
+        // Only schedule future prayers for today
+        if (prayerDate > now) {
+          const notificationId = this.getNotificationId(prayer.name);
+          
+          const notification = {
+            id: notificationId,
+            title: `🕌 ${prayer.name} Prayer Time`,
+            body: `It's time for ${prayer.name} prayer. ${prayer.time}`,
+            schedule: {
+              at: prayerDate,
+              allowWhileIdle: true, // Wake up device
+              repeats: false,
+            },
+            sound: 'default',
+            smallIcon: 'ic_stat_notification',
+            iconColor: '#22c55e',
+            extra: {
+              prayerName: prayer.name,
+              prayerTime: prayer.time,
+              type: 'prayer_reminder'
+            }
+          };
+
+          notifications.push(notification);
+          
+          // Store for tracking
+          this.scheduledNotifications.set(notificationId, {
+            id: notificationId,
+            title: notification.title,
+            body: notification.body,
+            scheduleTime: prayerDate,
+            prayerName: prayer.name
+          });
+        }
+      }
+
+      // Schedule all notifications
+      if (notifications.length > 0) {
+        await LocalNotifications.schedule({
+          notifications
+        });
+        
+        console.log(`Scheduled ${notifications.length} prayer notifications using Aladhan API`);
+      }
+
+    } catch (error) {
+      console.error('Failed to schedule prayer notifications from API:', error);
+      throw error;
+    }
+  }
   async schedulePrayerNotifications(prayerTimes: PrayerTime[]): Promise<void> {
     if (!this.isInitialized) {
       await this.initialize();
