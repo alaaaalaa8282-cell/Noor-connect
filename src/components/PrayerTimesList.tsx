@@ -60,30 +60,62 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
     // For testing - always show glow for current or next prayer
     if (!isCurrent || !countdown) {
       // Test: Show glow for next prayer too
-      if (isNext) return 'ring-2 ring-blue-200 ring-opacity-50 shadow-lg';
+      if (isNext) return 'shadow-2xl';
       return '';
     }
-    if (countdown.totalSeconds <= 300) return 'ring-4 ring-red-200 ring-opacity-50 shadow-2xl animate-pulse'; // Red glow + pulse for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'ring-4 ring-orange-200 ring-opacity-50 shadow-xl'; // Orange glow for less than 10 minutes
-    return 'ring-2 ring-primary/20 shadow-lg'; // Primary glow for current prayer
+    if (countdown.totalSeconds <= 300) return 'shadow-2xl'; // Red glow + pulse for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'shadow-xl'; // Orange glow for less than 10 minutes
+    return 'shadow-lg'; // Primary glow for current prayer
   };
 
   const getCardBorder = () => {
     // For testing - always show border for current or next prayer
     if (!isCurrent || !countdown) {
       // Test: Show border for next prayer too
-      if (isNext) return 'border-blue-500';
+      if (isNext) return 'border-4 border-blue-500';
       return 'border-border/50';
     }
-    if (countdown.totalSeconds <= 300) return 'border-red-500'; // Red border for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'border-orange-500'; // Orange border for less than 10 minutes
-    return 'border-primary'; // Primary border for current prayer
+    if (countdown.totalSeconds <= 300) return 'border-4 border-red-500'; // Red border for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'border-4 border-orange-500'; // Orange border for less than 10 minutes
+    return 'border-4 border-primary'; // Primary border for current prayer
+  };
+
+  const getCardStyle = () => {
+    if (!isCurrent || !countdown) {
+      // Test: Show glow for next prayer too
+      if (isNext) {
+        return {
+          boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
+          border: '3px solid rgb(59, 130, 246)'
+        };
+      }
+      return {};
+    }
+    if (countdown.totalSeconds <= 300) {
+      return {
+        boxShadow: '0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3)',
+        border: '3px solid rgb(239, 68, 68)'
+      };
+    }
+    if (countdown.totalSeconds <= 600) {
+      return {
+        boxShadow: '0 0 20px rgba(251, 146, 60, 0.5), 0 0 40px rgba(251, 146, 60, 0.3)',
+        border: '3px solid rgb(251, 146, 60)'
+      };
+    }
+    return {
+      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
+      border: '3px solid rgb(59, 130, 246)'
+    };
   };
 
   return (
-    <Card className={`transition-all duration-300 ${getCardBorder()} ${getStatusColor()} ${getBgColor()} ${
-      isCurrent ? 'scale-[1.02]' : ''
-    } ${getCardGlow()}`}>
+    <Card 
+      className={`transition-all duration-300 ${getCardBorder()} ${getStatusColor()} ${getBgColor()} ${
+        isCurrent ? 'scale-[1.02]' : ''
+      } ${getCardGlow()}`}
+      style={getCardStyle()}
+    >
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">

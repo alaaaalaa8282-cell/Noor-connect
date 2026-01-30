@@ -212,28 +212,60 @@ const PrayerCountdownComponent = function PrayerCountdown() {
     // For testing - always show glow if there's any prayer data
     if (!isCurrentPrayer || !isValidCountdown) {
       // Test: Show glow even for next prayer to test the effect
-      if (nextPrayer) return 'ring-2 ring-primary/20 shadow-lg';
+      if (nextPrayer) return 'shadow-2xl';
       return '';
     }
-    if (countdown.totalSeconds <= 300) return 'ring-4 ring-red-200 ring-opacity-50 shadow-2xl'; // Red glow for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'ring-4 ring-orange-200 ring-opacity-50 shadow-xl'; // Orange glow for less than 10 minutes
-    return 'ring-2 ring-primary/20 shadow-lg'; // Primary glow for current prayer
+    if (countdown.totalSeconds <= 300) return 'shadow-2xl'; // Red glow for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'shadow-xl'; // Orange glow for less than 10 minutes
+    return 'shadow-lg'; // Primary glow for current prayer
   };
 
   const getCardBorder = () => {
     // For testing - always show border if there's any prayer data
     if (!isCurrentPrayer || !isValidCountdown) {
       // Test: Show border even for next prayer to test the effect
-      if (nextPrayer) return 'border-primary';
+      if (nextPrayer) return 'border-4';
       return 'border-primary/20';
     }
-    if (countdown.totalSeconds <= 300) return 'border-red-500'; // Red border for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'border-orange-500'; // Orange border for less than 10 minutes
-    return 'border-primary'; // Primary border for current prayer
+    if (countdown.totalSeconds <= 300) return 'border-4 border-red-500'; // Red border for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'border-4 border-orange-500'; // Orange border for less than 10 minutes
+    return 'border-4 border-primary'; // Primary border for current prayer
+  };
+
+  const getCardStyle = () => {
+    if (!isCurrentPrayer || !isValidCountdown) {
+      // Test: Show glow even for next prayer to test the effect
+      if (nextPrayer) {
+        return {
+          boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
+          border: '3px solid rgb(59, 130, 246)'
+        };
+      }
+      return {};
+    }
+    if (countdown.totalSeconds <= 300) {
+      return {
+        boxShadow: '0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3)',
+        border: '3px solid rgb(239, 68, 68)'
+      };
+    }
+    if (countdown.totalSeconds <= 600) {
+      return {
+        boxShadow: '0 0 20px rgba(251, 146, 60, 0.5), 0 0 40px rgba(251, 146, 60, 0.3)',
+        border: '3px solid rgb(251, 146, 60)'
+      };
+    }
+    return {
+      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
+      border: '3px solid rgb(59, 130, 246)'
+    };
   };
 
   return (
-    <Card className={`overflow-hidden transition-all duration-300 ${getCardBorder()} ${getCardGlow()}`}>
+    <Card 
+      className={`overflow-hidden transition-all duration-300 ${getCardBorder()} ${getCardGlow()}`}
+      style={getCardStyle()}
+    >
       <div 
         className={`absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent transition-all duration-1000 ${isEndingSoon ? 'from-orange-100/20 to-transparent' : ''}`}
         style={{ width: `${isCurrentPrayer && isValidCountdown ? Math.max(0, 100 - (countdown.totalSeconds / 3600) * 100) : 0}%` }}
