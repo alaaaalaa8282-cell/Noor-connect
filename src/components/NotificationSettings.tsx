@@ -2,8 +2,8 @@ import { useState, useEffect } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
-import { Bell, BellOff, Settings, CheckCircle, AlertCircle } from "lucide-react";
-import { localNotifications } from "@/lib/local-notifications";
+import { Bell, BellOff, Settings, CheckCircle, AlertCircle, Play } from "lucide-react";
+import { unifiedNotifications } from "@/lib/unified-notifications";
 import { useToast } from "@/hooks/use-toast";
 
 export const NotificationSettings = () => {
@@ -18,10 +18,10 @@ export const NotificationSettings = () => {
 
   const checkNotificationStatus = async () => {
     try {
-      const enabled = await localNotifications.areNotificationsEnabled();
-      setIsEnabled(enabled);
+      const enabled = await unifiedNotifications.getPermissionStatus();
+      setIsEnabled(enabled === 'granted');
       
-      const scheduled = await localNotifications.getScheduledPrayerNotifications();
+      const scheduled = await unifiedNotifications.getScheduledNotifications();
       setScheduledCount(scheduled.length);
     } catch (error) {
       console.error('Failed to check notification status:', error);
@@ -32,7 +32,7 @@ export const NotificationSettings = () => {
 
   const handleToggleNotifications = async (enabled: boolean) => {
     if (enabled) {
-      const success = await localNotifications.initialize();
+      const success = await unifiedNotifications.requestPermission();
       if (success) {
         setIsEnabled(true);
         toast({
@@ -47,7 +47,7 @@ export const NotificationSettings = () => {
         });
       }
     } else {
-      await localNotifications.clearPrayerNotifications();
+      await unifiedNotifications.clearAllNotifications();
       setIsEnabled(false);
       setScheduledCount(0);
       toast({
@@ -63,12 +63,32 @@ export const NotificationSettings = () => {
   };
 
   const handleClearNotifications = async () => {
-    await localNotifications.clearPrayerNotifications();
+    await unifiedNotifications.clearAllNotifications();
     setScheduledCount(0);
     toast({
       title: "Notifications Cleared",
       description: "All scheduled prayer reminders have been cancelled",
     });
+  };
+
+  const handleTestNotification = async () => {
+    const result = await unifiedNotifications.testNotification();
+    
+    if (result.success) {
+      toast({
+        title: "Test Notification Sent",
+        description: "Check your notification tray",
+      });
+    } else {
+      toast({
+        title: "Test Failed",
+        description: "Notifications may not be working properly",
+        variant: "destructive",
+      });
+      
+      // Show detailed debug info in console
+      console.log('Notification test details:', result.details);
+    }
   };
 
   return (
@@ -122,6 +142,16 @@ export const NotificationSettings = () => {
           >
             <Settings className="w-4 h-4 mr-2" />
             Refresh Status
+          </Button>
+          
+          <Button
+            variant="outline"
+            size="sm"
+            onClick={handleTestNotification}
+            disabled={isLoading}
+          >
+            <Play className="w-4 h-4 mr-2" />
+            Test Notification
           </Button>
           
           {isEnabled && scheduledCount > 0 && (

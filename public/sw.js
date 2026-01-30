@@ -120,7 +120,7 @@ self.addEventListener('fetch', (event) => {
 
 // Background sync and periodic sync
 self.addEventListener('sync', (event) => {
-  console.log('Service Worker: Background sync triggered');
+  console.log('Service Worker: Background sync triggered:', event.tag);
   if (event.tag === 'prayer-times-check') {
     event.waitUntil(checkPrayerTimes());
   } else if (event.tag === 'islamic-events-check') {
@@ -130,7 +130,7 @@ self.addEventListener('sync', (event) => {
 
 // Periodic sync for background checks
 self.addEventListener('periodicsync', (event) => {
-  console.log('Service Worker: Periodic sync triggered');
+  console.log('Service Worker: Periodic sync triggered:', event.tag);
   if (event.tag === 'prayer-times-check') {
     event.waitUntil(checkPrayerTimes());
   } else if (event.tag === 'islamic-events-check') {
@@ -383,6 +383,17 @@ self.addEventListener('message', (event) => {
       
     case 'TRIGGER_ISLAMIC_EVENTS_CHECK':
       checkIslamicEvents();
+      break;
+      
+    case 'TEST_NOTIFICATION':
+      // Handle test notification request
+      showNotification({
+        title: '🕌 Test Notification',
+        body: 'Service Worker test notification successful!',
+        tag: 'test-sw',
+        requireInteraction: false,
+        data: { test: true }
+      });
       break;
   }
 });
