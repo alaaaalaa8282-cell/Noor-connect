@@ -200,8 +200,15 @@ const PrayerCountdownComponent = function PrayerCountdown() {
     return 'bg-primary/10';
   };
 
+  const getCardGlow = () => {
+    if (!isCurrentPrayer || !isValidCountdown) return '';
+    if (countdown.totalSeconds <= 300) return 'shadow-red-500/50 shadow-xl'; // Red glow for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'shadow-orange-500/30 shadow-lg'; // Orange glow for less than 10 minutes
+    return 'shadow-primary/30 shadow-md'; // Primary glow for current prayer
+  };
+
   return (
-    <Card className="overflow-hidden border-primary/20">
+    <Card className={`overflow-hidden border-primary/20 transition-all duration-300 ${getCardGlow()}`}>
       <div 
         className={`absolute inset-0 bg-gradient-to-r from-primary/10 to-transparent transition-all duration-1000 ${isEndingSoon ? 'from-orange-100/20 to-transparent' : ''}`}
         style={{ width: `${isCurrentPrayer && isValidCountdown ? Math.max(0, 100 - (countdown.totalSeconds / 3600) * 100) : 0}%` }}
@@ -209,7 +216,7 @@ const PrayerCountdownComponent = function PrayerCountdown() {
       <div className="relative p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
-            <div className={`w-12 h-12 rounded-full ${getAlertBgColor()} flex items-center justify-center ${getAlertColor()}`}>
+            <div className={`w-12 h-12 rounded-full ${getAlertBgColor()} flex items-center justify-center ${getAlertColor()} ${isCurrentPrayer && isValidCountdown ? 'animate-pulse' : ''}`}>
               {isEndingSoon && <AlertTriangle className="w-6 h-6" />}
               {!isEndingSoon && (prayerIcons[displayPrayer.name] || <Clock className="w-6 h-6" />)}
             </div>
@@ -221,6 +228,11 @@ const PrayerCountdownComponent = function PrayerCountdown() {
               {isCurrentPrayer && (
                 <p className="text-xs text-muted-foreground">
                   Ends at {displayPrayer.endTimeFormatted}
+                </p>
+              )}
+              {!isCurrentPrayer && nextPrayer && (
+                <p className="text-xs text-muted-foreground">
+                  Starts at {formatPrayerTime(nextPrayer.datetime, timeFormat)}
                 </p>
               )}
             </div>

@@ -56,16 +56,23 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
     return 'bg-background';
   };
 
+  const getCardGlow = () => {
+    if (!isCurrent || !countdown) return '';
+    if (countdown.totalSeconds <= 300) return 'shadow-red-500/50 shadow-xl animate-pulse'; // Red glow + pulse for less than 5 minutes
+    if (countdown.totalSeconds <= 600) return 'shadow-orange-500/30 shadow-lg'; // Orange glow for less than 10 minutes
+    return 'shadow-primary/30 shadow-md'; // Primary glow for current prayer
+  };
+
   return (
     <Card className={`transition-all duration-300 ${getStatusColor()} ${getBgColor()} ${
-      isCurrent ? 'shadow-md scale-[1.02]' : ''
-    }`}>
+      isCurrent ? 'scale-[1.02]' : ''
+    } ${getCardGlow()}`}>
       <CardContent className="p-4">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-3">
             <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
               isCurrent ? 'bg-primary/20 text-primary' : 'bg-muted'
-            }`}>
+            } ${isCurrent && countdown && countdown.totalSeconds <= 300 ? 'animate-pulse' : ''}`}>
               {isCurrent && isEndingSoon && <AlertTriangle className="w-5 h-5" />}
               {(!isCurrent || !isEndingSoon) && (prayerIcons[prayer.name] || <Clock className="w-5 h-5" />)}
             </div>
