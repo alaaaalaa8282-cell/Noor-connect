@@ -142,7 +142,8 @@ export class LocalNotificationManager {
         return;
       }
 
-      // Clear existing prayer notifications
+      // Only clear existing prayer notifications if we're going to schedule new ones
+      // and we haven't already scheduled them today
       await this.clearPrayerNotifications();
 
       // Get today's prayer times from Aladhan API

@@ -302,6 +302,12 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
   // Fetch prayer times using coordinates
   const fetchPrayerTimesWithCoordinates = useCallback(async (locationData: LocationData) => {
+    // Prevent multiple simultaneous fetches
+    if (isFetchingRef.current) {
+      console.log('Already fetching coordinates, skipping...');
+      return;
+    }
+
     try {
       console.log('Fetching prayer times for location:', locationData);
       
