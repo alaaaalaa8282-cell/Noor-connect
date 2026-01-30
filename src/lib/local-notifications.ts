@@ -25,15 +25,49 @@ class LocalNotificationsService {
   private scheduledNotifications: Map<number, ScheduledNotification> = new Map();
 
   /**
-   * Initialize the local notifications service
+   * Check notification permissions without requesting them
    */
-  async initialize(): Promise<boolean> {
+  async checkPermissions(): Promise<boolean> {
     try {
-      // Request permission
+      const permission = await LocalNotifications.checkPermissions();
+      return permission.display === 'granted';
+    } catch (error) {
+      console.error('Failed to check notification permissions:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Request notification permissions (call this only when user toggles switch)
+   */
+  async requestPermissions(): Promise<boolean> {
+    try {
       const permission = await LocalNotifications.requestPermissions();
       
       if (permission.display !== 'granted') {
         console.warn('Notification permission not granted');
+        return false;
+      }
+
+      this.isInitialized = true;
+      console.log('Local notifications initialized successfully');
+      return true;
+    } catch (error) {
+      console.error('Failed to request notification permissions:', error);
+      return false;
+    }
+  }
+
+  /**
+   * Initialize the local notifications service (without requesting permissions)
+   */
+  async initialize(): Promise<boolean> {
+    try {
+      // Only check permissions, don't request them
+      const hasPermission = await this.checkPermissions();
+      
+      if (!hasPermission) {
+        console.log('Notification permission not yet granted');
         return false;
       }
 

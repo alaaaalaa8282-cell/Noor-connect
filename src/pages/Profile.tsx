@@ -1,6 +1,6 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, Calendar, Heart, BookOpen, Mail, HandHeart, Settings } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Settings, Type } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -18,17 +18,19 @@ import { isSalamGreetingEnabled, setSalamGreetingEnabled } from "@/components/Sa
 import { notificationManager, type NotificationPreferences } from "@/lib/notification-manager";
 import { localNotifications } from "@/lib/local-notifications";
 import { PrayerMethodSelector } from "@/components/PrayerMethodSelector";
+import { quranFontManager, type QuranFont } from "@/lib/quran-font-manager";
 
 const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const fileInputRef = useRef<HTMLInputElement>(null);
   
-  const [isDarkMode, setIsDarkMode] = useState(true);
+  const [isDarkMode, setIsDarkMode] = useState(false);
   const [madhab, setMadhabState] = useState<"shafi" | "hanafi">("shafi");
   const [timeFormat, setTimeFormatState] = useState<"12" | "24">("24");
   const [calculationMethod, setCalculationMethodState] = useState<CalculationMethodName>("MuslimWorldLeague");
   const [quranFontSize, setQuranFontSizeState] = useState(24);
+  const [quranFont, setQuranFontState] = useState<QuranFont>("uthmani");
   const [storageStats, setStorageStats] = useState({ totalBooks: 0, totalSize: 0 });
   const [salamGreetingEnabled, setSalamGreetingEnabledState] = useState(true);
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>({
@@ -52,7 +54,11 @@ const Profile = () => {
     setTimeFormatState(getTimeFormat());
     setCalculationMethodState(getCalculationMethod());
     setQuranFontSizeState(getQuranFontSize());
+    setQuranFontState(quranFontManager.getCurrentFont());
     setSalamGreetingEnabledState(isSalamGreetingEnabled());
+    
+    // Initialize Quran font manager
+    quranFontManager.initialize();
     
     // Load notification preferences
     setNotificationPrefs(notificationManager.getPreferences());
@@ -238,6 +244,20 @@ const Profile = () => {
     setQuranFontSize(size);
   };
 
+  const handleQuranFontChange = async (font: QuranFont) => {
+    setQuranFontState(font);
+    quranFontManager.setFont(font);
+    
+    // Load Google Fonts for the selected font
+    await quranFontManager.loadGoogleFonts(font);
+    
+    const fontOption = quranFontManager.getFontOption(font);
+    toast({ 
+      title: "Quran font changed", 
+      description: `Now using ${fontOption.name}` 
+    });
+  };
+
   const handleBackup = () => {
     downloadBackup();
     toast({ title: "Backup downloaded" });
@@ -318,6 +338,28 @@ const Profile = () => {
               step={2}
               className="w-full"
             />
+          </div>
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground flex items-center gap-2">
+              <Type className="w-3 h-3" />
+              Quran Font
+            </Label>
+            <Select value={quranFont} onValueChange={handleQuranFontChange}>
+              <SelectTrigger className="w-full">
+                <SelectValue placeholder="Select Quran font" />
+              </SelectTrigger>
+              <SelectContent>
+                {quranFontManager.getAvailableFonts().map((font) => (
+                  <SelectItem key={font.id} value={font.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{font.name}</span>
+                      <span className="text-xs text-muted-foreground">{font.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
           </div>
         </Card>
 

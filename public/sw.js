@@ -72,50 +72,60 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - handle network requests
 self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-  
-  // Cache API calls
-  if (url.pathname.startsWith('/api/') || url.hostname.includes('aladhan.com')) {
-    event.respondWith(
-      caches.open(API_CACHE_NAME)
-        .then((cache) => {
-          return cache.match(event.request)
-            .then((response) => {
-              if (response) {
-                // Return cached response, but also fetch fresh data
-                fetch(event.request).then((freshResponse) => {
-                  if (freshResponse.ok) {
-                    cache.put(event.request, freshResponse.clone());
-                  }
-                });
-                return response;
-              }
-              
-              // Fetch from network and cache
-              return fetch(event.request)
-                .then((response) => {
-                  if (response.ok) {
-                    cache.put(event.request, response.clone());
-                  }
+  try {
+    const url = new URL(event.request.url);
+    
+    // Ignore chrome-extension:// URLs to prevent errors
+    if (url.protocol === 'chrome-extension:') {
+      return;
+    }
+    
+    // Cache API calls
+    if (url.pathname.startsWith('/api/') || url.hostname.includes('aladhan.com')) {
+      event.respondWith(
+        caches.open(API_CACHE_NAME)
+          .then((cache) => {
+            return cache.match(event.request)
+              .then((response) => {
+                if (response) {
+                  // Return cached response, but also fetch fresh data
+                  fetch(event.request).then((freshResponse) => {
+                    if (freshResponse.ok) {
+                      cache.put(event.request, freshResponse.clone());
+                    }
+                  });
                   return response;
-                })
-                .catch(() => {
-                  // Return offline page or error
-                  return new Response('Offline', { status: 503 });
-                });
-            });
+                }
+                
+                // Fetch from network and cache
+                return fetch(event.request)
+                  .then((response) => {
+                    if (response.ok) {
+                      cache.put(event.request, response.clone());
+                    }
+                    return response;
+                  })
+                  .catch(() => {
+                    // Return offline page or error
+                    return new Response('Offline', { status: 503 });
+                  });
+              });
+          })
+      );
+      return;
+    }
+    
+    // Cache other files
+    event.respondWith(
+      caches.match(event.request)
+        .then((response) => {
+          return response || fetch(event.request);
         })
     );
-    return;
+  } catch (error) {
+    // If URL parsing fails, just let the request go through
+    console.warn('Service Worker: Failed to parse URL:', event.request.url, error);
   }
-  
-  // Cache other files
-  event.respondWith(
-    caches.match(event.request)
-      .then((response) => {
-        return response || fetch(event.request);
-      })
-  );
 });
 
 // Background sync and periodic sync
