@@ -145,7 +145,7 @@ const App = () => {
       <Toaster />
       <Sonner />
       <BrowserRouter>
-        <div className="flex flex-col h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App" style={{ 
+        <div className="flex flex-col min-h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App" style={{ 
           willChange: 'transform, opacity',
           transform: 'translateZ(0)'
         }}>

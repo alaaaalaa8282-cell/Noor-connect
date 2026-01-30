@@ -6,8 +6,6 @@ import { AppBar } from "@/components/AppBar";
 import { SalahTracker } from "@/components/SalahTracker";
 import { WeeklySalahChart } from "@/components/WeeklySalahChart";
 import { QazaTracker } from "@/components/QazaTracker";
-import { PrayerCountdown } from "@/components/PrayerCountdown";
-import { PrayerTimesList } from "@/components/PrayerTimesList";
 import { DailyAyah } from "@/components/DailyAyah";
 import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
@@ -15,6 +13,11 @@ import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { CitySearch } from "@/components/CitySearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { Suspense, lazy } from "react";
+
+// Dynamic imports for code splitting
+const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
+const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
 import { getTimeFormat, formatTime, setTimeFormat } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
@@ -307,12 +310,21 @@ export default function Dashboard() {
 
         {/* Prayer Countdown Widget */}
         <ErrorBoundary>
-          <PrayerCountdown />
+          <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
+            <PrayerCountdown />
+          </Suspense>
         </ErrorBoundary>
 
         {/* Prayer Times List */}
         <ErrorBoundary>
-          <PrayerTimesList />
+          <Suspense fallback={<div className="space-y-3">
+            <div className="h-6 bg-muted/20 animate-pulse rounded-lg w-32" />
+            {Array.from({ length: 3 }).map((_, i) => (
+              <div key={i} className="h-20 bg-muted/20 animate-pulse rounded-lg" />
+            ))}
+          </div>}>
+            <PrayerTimesList />
+          </Suspense>
         </ErrorBoundary>
 
         {/* Daily Ayah */}

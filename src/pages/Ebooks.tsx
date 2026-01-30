@@ -353,7 +353,7 @@ export default function Ebooks() {
   BookCard.displayName = 'BookCard';
 
   return (
-    <div className="min-h-screen bg-background pb-20">
+    <div className="min-h-screen bg-background">
       {/* Header */}
       <header className="sticky top-0 z-40 bg-background/95 backdrop-blur border-b border-border px-4 py-3">
         <h1 className="text-xl font-serif font-bold text-center mb-3">Islamic Library</h1>

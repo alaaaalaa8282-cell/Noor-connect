@@ -101,7 +101,7 @@ const Quran = () => {
           </div>
         ) : (
           <ScrollArea className="h-[calc(100vh-280px)]">
-            <div className="space-y-2 pb-20">
+            <div className="space-y-2">
               {filteredSurahs.map((surah) => (
                 <Card
                   key={surah.number}

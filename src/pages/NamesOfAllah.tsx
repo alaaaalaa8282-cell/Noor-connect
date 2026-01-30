@@ -147,7 +147,7 @@ export default function NamesOfAllah() {
   });
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background">
       <AppBar title="99 Names of Allah" showBack />
       
       <div className="max-w-lg mx-auto p-4 space-y-4">

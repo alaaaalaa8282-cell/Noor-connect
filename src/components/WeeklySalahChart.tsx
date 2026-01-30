@@ -37,26 +37,10 @@ export function WeeklySalahChart() {
       };
     });
     
-    // If no real data, create sample data for testing
-    if (data.length === 0 || data.every(d => d.completed === 0)) {
-      const sampleData = [
-        { day: 'Mon', fullDate: 'Jan 27', completed: 4, total: 5 },
-        { day: 'Tue', fullDate: 'Jan 28', completed: 5, total: 5 },
-        { day: 'Wed', fullDate: 'Jan 29', completed: 3, total: 5 },
-        { day: 'Thu', fullDate: 'Jan 30', completed: 2, total: 5 },
-        { day: 'Fri', fullDate: 'Jan 31', completed: 5, total: 5 },
-        { day: 'Sat', fullDate: 'Feb 1', completed: 4, total: 5 },
-        { day: 'Sun', fullDate: 'Feb 2', completed: 3, total: 5 },
-      ];
-      console.log('Using sample data:', sampleData);
-      setChartData(sampleData);
-      
-      const totalCompleted = sampleData.reduce((sum, d) => sum + d.completed, 0);
-      setWeeklyStats({
-        completed: totalCompleted,
-        total: 7 * 5,
-        percentage: Math.round((totalCompleted / 35) * 100)
-      });
+    // Only show real data - no fake/sample data
+    if (data.length === 0) {
+      setChartData([]);
+      setWeeklyStats({ completed: 0, total: 0, percentage: 0 });
     } else {
       console.log('Chart data:', data); // Debug log
       setChartData(data);
@@ -125,8 +109,10 @@ export function WeeklySalahChart() {
               </BarChart>
             </ResponsiveContainer>
           ) : (
-            <div className="h-full w-full flex items-center justify-center text-muted-foreground text-xs">
-              Loading chart...
+            <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground text-xs">
+              <Calendar className="w-8 h-8 mb-2 opacity-50" />
+              <p>No prayer data yet</p>
+              <p className="text-[10px] mt-1">Check in prayers to see your progress</p>
             </div>
           )}
         </div>

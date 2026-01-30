@@ -1,4 +1,3 @@
-// version 1.0.1
 import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
 import { ArrowLeft, Bookmark, Share2, BookmarkCheck, Play, Settings } from "lucide-react";
@@ -9,16 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { useToast } from "@/hooks/use-toast";
 import { getBookmarksForSurah, toggleBookmark } from "@/lib/storage";
 import { QuranAudioPlayer } from "@/components/QuranAudioPlayer";
-
-// Available Arabic fonts
-const ARABIC_FONTS = [
-  { id: "default", name: "Default", family: "var(--font-arabic)" },
-  { id: "amiri", name: "Amiri Quran", family: "'Amiri Quran', serif" },
-  { id: "scheherazade", name: "Scheherazade", family: "'Scheherazade New', serif" },
-  { id: "lateef", name: "Lateef", family: "'Lateef', serif" },
-  { id: "noto-naskh", name: "Noto Naskh Arabic", family: "'Noto Naskh Arabic', serif" },
-  { id: "kitab", name: "Kitab", family: "'Kitab', serif" },
-];
+import { quranFontManager, type QuranFont } from "@/lib/quran-font-manager";
 
 // Translation editions
 const TRANSLATIONS = [
@@ -59,74 +49,40 @@ interface SurahData {
   ayahs: Ayah[];
 }
 
-const FONT_KEY = 'quran-font';
-const TRANSLATION_KEY = 'quran-translation';
-const FONT_SIZE_KEY = 'quran-font-size';
-
 const SurahDetail = () => {
   const { surahNumber } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-
-  // Validate surahNumber parameter
-  useEffect(() => {
-    if (!surahNumber) {
-      navigate('/quran');
-      return;
-    }
-    
-    const surahNum = parseInt(surahNumber);
-    if (isNaN(surahNum) || surahNum < 1 || surahNum > 114) {
-      toast({
-        title: "Invalid Surah",
-        description: "Surah number must be between 1 and 114",
-        variant: "destructive"
-      });
-      navigate('/quran');
-      return;
-    }
-  }, [surahNumber, navigate, toast]);
+  const audioRef = useRef<HTMLAudioElement>(null);
+  
   const [surahData, setSurahData] = useState<SurahData | null>(null);
+  const [ayahs, setAyahs] = useState<Ayah[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookmarkedAyahs, setBookmarkedAyahs] = useState<Set<number>>(new Set());
+  const [showSettings, setShowSettings] = useState(false);
   const [showAudioPlayer, setShowAudioPlayer] = useState(false);
-  const [currentAyah, setCurrentAyah] = useState(1);
-  const [selectedFont, setSelectedFont] = useState(ARABIC_FONTS[0]);
   const [selectedTranslation, setSelectedTranslation] = useState(TRANSLATIONS[0]);
   const [fontSize, setFontSize] = useState(24);
-  const [showSettings, setShowSettings] = useState(false);
+  const [currentQuranFont, setCurrentQuranFont] = useState<QuranFont>('uthmani');
+  const [currentAyah, setCurrentAyah] = useState<number | null>(null);
 
-  // Load saved preferences
+  // Initialize Quran font manager and load preferences
   useEffect(() => {
-    const savedFont = localStorage.getItem(FONT_KEY);
-    const savedTrans = localStorage.getItem(TRANSLATION_KEY);
-    const savedSize = localStorage.getItem(FONT_SIZE_KEY);
+    // Set initial font from global manager
+    setCurrentQuranFont(quranFontManager.getCurrentFont());
+    setFontSize(24); // Default font size
     
-    if (savedFont) {
-      const font = ARABIC_FONTS.find(f => f.id === savedFont);
-      if (font) setSelectedFont(font);
-    }
+    // Load saved translation preference
+    const savedTrans = localStorage.getItem('quran-translation');
     if (savedTrans) {
       const trans = TRANSLATIONS.find(t => t.id === savedTrans);
       if (trans) setSelectedTranslation(trans);
     }
-    if (savedSize) {
-      setFontSize(parseInt(savedSize));
-    }
   }, []);
 
-  // Load Google Fonts dynamically
+  // Load Google Fonts for Quran
   useEffect(() => {
-    const link = document.createElement('link');
-    link.rel = 'stylesheet';
-    link.href = 'https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&family=Scheherazade+New:wght@400;700&family=Lateef:wght@400;700&family=Noto+Naskh+Arabic:wght@400;700&family=Amiri:wght@400;700&display=swap';
-    document.head.appendChild(link);
-    
-    return () => {
-      if (document.head.contains(link)) {
-        document.head.removeChild(link);
-      }
-    };
+    quranFontManager.initialize();
   }, []);
 
   const fetchSurah = useCallback(async () => {
@@ -226,58 +182,92 @@ const SurahDetail = () => {
     }
   };
 
-  const handleFontChange = (fontId: string) => {
-    const font = ARABIC_FONTS.find(f => f.id === fontId);
-    if (font) {
-      setSelectedFont(font);
-      localStorage.setItem(FONT_KEY, fontId);
-    }
+  const handleFontChange = async (font: QuranFont) => {
+    setCurrentQuranFont(font);
+    await quranFontManager.setFont(font);
+    
+    const fontOption = quranFontManager.getFontOption(font);
+    toast({ 
+      title: "Quran font changed", 
+      description: `Now using ${fontOption.name}` 
+    });
   };
 
   const handleTranslationChange = (transId: string) => {
     const trans = TRANSLATIONS.find(t => t.id === transId);
     if (trans) {
       setSelectedTranslation(trans);
-      localStorage.setItem(TRANSLATION_KEY, transId);
+      localStorage.setItem('quran-translation', transId);
+      toast({ title: "Translation updated" });
+      // Refetch surah with new translation
+      fetchSurah();
     }
   };
 
   const handleFontSizeChange = (size: number) => {
     setFontSize(size);
-    localStorage.setItem(FONT_SIZE_KEY, size.toString());
+    localStorage.setItem('quran-font-size', size.toString());
   };
 
   if (loading) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+      <div className="flex flex-col h-screen overflow-hidden">
+        {/* Header */}
+        <div className="flex-shrink-0 p-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/quran")} className="rounded-full">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1 text-center">
+              <h1 className="text-lg font-semibold">Loading...</h1>
+            </div>
+          </div>
+        </div>
+        
+        {/* Content */}
+        <main className="flex-1 flex items-center justify-center">
+          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+        </main>
       </div>
     );
   }
 
   if (!surahData) {
     return (
-      <div className="min-h-screen bg-background flex items-center justify-center">
-        <div className="text-center space-y-4">
-          <p className="text-muted-foreground">Surah not found</p>
-          <Button onClick={() => navigate("/quran")}>Back to Quran</Button>
+      <div className="flex flex-col h-screen overflow-hidden">
+        {/* Header */}
+        <div className="flex-shrink-0 p-4">
+          <div className="flex items-center gap-3">
+            <Button variant="ghost" size="icon" onClick={() => navigate("/quran")} className="rounded-full">
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+            <div className="flex-1 text-center">
+              <h1 className="text-lg font-semibold">Surah not found</h1>
+            </div>
+          </div>
         </div>
+        
+        {/* Content */}
+        <main className="flex-1 flex items-center justify-center">
+          <div className="text-center space-y-4">
+            <p className="text-muted-foreground">Surah not found</p>
+            <Button onClick={() => navigate("/quran")}>Back to Quran</Button>
+          </div>
+        </main>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        {/* Header */}
+    <div className="flex flex-col h-screen overflow-hidden">
+      {/* Header */}
+      <div className="flex-shrink-0 p-4">
         <div className="flex items-center gap-3">
           <Button variant="ghost" size="icon" onClick={() => navigate("/quran")} className="rounded-full">
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <div className="flex-1 text-center">
-            <h1 
-              className="text-2xl font-bold quran-arabic"
-            >
+            <h1 className="text-2xl font-bold quran-text">
               {surahData.name}
             </h1>
             <p className="text-sm text-primary">{surahData.englishName}</p>
@@ -304,85 +294,76 @@ const SurahDetail = () => {
             </Button>
           </div>
         </div>
-
-        {/* Settings Panel */}
-        {showSettings && (
-          <Card className="p-4 space-y-4">
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Arabic Font</label>
-              <Select value={selectedFont.id} onValueChange={handleFontChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {ARABIC_FONTS.map(font => (
-                    <SelectItem key={font.id} value={font.id}>
-                      {font.name}
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+      </div>
+      
+      {/* Settings Panel */}
+      {showSettings && (
+        <Card className="p-4 space-y-4">
+          <div className="space-y-2">
+            <label className="text-sm font-medium flex items-center gap-2">
+              <Settings className="w-4 h-4" />
+              Quran Font
+            </label>
+            <Select value={currentQuranFont} onValueChange={handleFontChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {quranFontManager.getAvailableFonts().map((font) => (
+                  <SelectItem key={font.id} value={font.id}>
+                    <div className="flex flex-col">
+                      <span className="font-medium">{font.name}</span>
+                      <span className="text-xs text-muted-foreground">{font.description}</span>
+                    </div>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Translation</label>
+            <Select value={selectedTranslation.id} onValueChange={handleTranslationChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                {TRANSLATIONS.map((trans) => (
+                  <SelectItem key={trans.id} value={trans.id}>
+                    {trans.name} ({trans.lang})
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+          </div>
+          
+          <div className="space-y-2">
+            <label className="text-sm font-medium">Font Size: {fontSize}px</label>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleFontSizeChange(Math.max(16, fontSize - 2))}
+              >
+                -
+              </Button>
+              <span className="text-sm font-mono w-12 text-center">{fontSize}px</span>
+              <Button 
+                variant="outline" 
+                size="sm"
+                onClick={() => handleFontSizeChange(Math.min(42, fontSize + 2))}
+              >
+                +
+              </Button>
             </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Translation</label>
-              <Select value={selectedTranslation.id} onValueChange={handleTranslationChange}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TRANSLATIONS.map(trans => (
-                    <SelectItem key={trans.id} value={trans.id}>
-                      {trans.name} ({trans.lang})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-            </div>
-            
-            <div className="space-y-2">
-              <label className="text-sm font-medium">Font Size: {fontSize}px</label>
-              <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleFontSizeChange(Math.max(16, fontSize - 2))}
-                >
-                  A-
-                </Button>
-                <div className="flex-1 h-2 bg-muted rounded-full">
-                  <div 
-                    className="h-full bg-primary rounded-full transition-all"
-                    style={{ width: `${((fontSize - 16) / 24) * 100}%` }}
-                  />
-                </div>
-                <Button 
-                  variant="outline" 
-                  size="sm"
-                  onClick={() => handleFontSizeChange(Math.min(40, fontSize + 2))}
-                >
-                  A+
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Bismillah */}
-        {surahData.number !== 9 && (
-          <Card className="p-6 bg-primary text-primary-foreground border-0 text-center">
-            <p 
-              className="text-3xl quran-arabic"
-            >
-              بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
-            </p>
-            <p className="text-xs mt-2 opacity-80">In the name of Allah, the Most Gracious, the Most Merciful</p>
-          </Card>
-        )}
-
-        {/* Ayahs */}
-        <ScrollArea className="h-[calc(100vh-320px)]" style={{ paddingBottom: showAudioPlayer ? '160px' : '0' }}>
-          <div className="space-y-3 pb-20">
+          </div>
+        </Card>
+      )}
+      
+      {/* Main Content - Verse List */}
+      <main className="flex-1 overflow-y-auto pb-32">
+        <ScrollArea className="h-full">
+          <div className="p-4 space-y-4">
             {surahData.ayahs.map((ayah) => (
               <Card key={ayah.numberInSurah} className="p-4 group">
                 <div className="flex items-start gap-3">
@@ -391,36 +372,33 @@ const SurahDetail = () => {
                   </div>
                   <div className="flex-1 min-w-0 space-y-3">
                     <p 
-                      className="text-right leading-[2.5] quran-arabic"
+                      className="quran-text leading-[2.5] text-right"
                       style={{ 
                         fontSize: `${fontSize}px`,
-                        fontFamily: selectedFont.family
+                        fontFamily: 'var(--quran-font)'
                       }}
-                      data-font-debug={selectedFont.id}
                     >
                       {ayah.words
                         .filter(w => w.char_type_name === 'word')
-                        .map((w) => (
-                          <span key={w.id}>
-                            {w.text_qpc_hafs ?? w.text}{' '}
-                          </span>
-                        ))}
+                        .map((word) => word.text_qpc_hafs || word.text)
+                        .join(' ')}
                     </p>
-                    {ayah.translation && (
+                    
+                    {selectedTranslation && ayah.translation && (
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {ayah.translation}
                       </p>
                     )}
                   </div>
-                  <div className="flex flex-col gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8" 
+                  <div className="flex gap-2">
+                    <Button
+                      variant={bookmarkedAyahs.has(ayah.numberInSurah) ? "default" : "outline"}
+                      size="icon"
                       onClick={() => handleToggleBookmark(ayah.numberInSurah)}
+                      className="h-8 w-8"
                     >
                       {bookmarkedAyahs.has(ayah.numberInSurah) ? (
-                        <BookmarkCheck className="w-4 h-4 text-primary" />
+                        <BookmarkCheck className="w-4 h-4" />
                       ) : (
                         <Bookmark className="w-4 h-4" />
                       )}
@@ -439,17 +417,22 @@ const SurahDetail = () => {
             ))}
           </div>
         </ScrollArea>
-
+      </main>
+      
+      {/* Bottom Navigation */}
+      <div className="flex-shrink-0">
         {/* Audio Player */}
         {showAudioPlayer && (
-          <QuranAudioPlayer
-            surahNumber={surahData.number}
-            surahName={surahData.englishName}
-            totalAyahs={surahData.numberOfAyahs}
-            currentAyah={currentAyah}
-            onAyahChange={setCurrentAyah}
-            onClose={() => setShowAudioPlayer(false)}
-          />
+          <Card className="m-4 p-4">
+            <QuranAudioPlayer
+              surahNumber={parseInt(surahNumber || "1")}
+              surahName={surahData.name}
+              ayahs={surahData.ayahs}
+              currentAyah={currentAyah}
+              onAyahChange={setCurrentAyah}
+              onClose={() => setShowAudioPlayer(false)}
+            />
+          </Card>
         )}
       </div>
     </div>

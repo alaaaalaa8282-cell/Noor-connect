@@ -1,10 +1,22 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, lazy, Suspense } from "react";
 import { AppBar } from "@/components/AppBar";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { BarChart, Bar, XAxis, YAxis, CartesianGrid, Tooltip, ResponsiveContainer, PieChart, Pie, Cell } from "recharts";
 import { Calendar, TrendingUp, Award, Target, CheckCircle, Circle } from "lucide-react";
 import { getPrayerHistory, type DailyPrayers } from "@/lib/salah-tracker";
+import { Skeleton } from "@/components/LoadingSkeleton";
+
+// Lazy load Recharts components to reduce bundle size
+const BarChart = lazy(() => import('recharts').then(module => ({ default: module.BarChart })));
+const Bar = lazy(() => import('recharts').then(module => ({ default: module.Bar })));
+const XAxis = lazy(() => import('recharts').then(module => ({ default: module.XAxis })));
+const YAxis = lazy(() => import('recharts').then(module => ({ default: module.YAxis })));
+const CartesianGrid = lazy(() => import('recharts').then(module => ({ default: module.CartesianGrid })));
+const Tooltip = lazy(() => import('recharts').then(module => ({ default: module.Tooltip })));
+const ResponsiveContainer = lazy(() => import('recharts').then(module => ({ default: module.ResponsiveContainer })));
+const PieChart = lazy(() => import('recharts').then(module => ({ default: module.PieChart })));
+const Pie = lazy(() => import('recharts').then(module => ({ default: module.Pie })));
+const Cell = lazy(() => import('recharts').then(module => ({ default: module.Cell })));
 
 const PRAYERS = ["Fajr", "Dhuhr", "Asr", "Maghrib", "Isha"];
 const PRAYER_KEYS = ["fajr", "dhuhr", "asr", "maghrib", "isha"] as const;
@@ -111,7 +123,7 @@ export default function PrayerStats() {
   }));
 
   return (
-    <div className="min-h-screen bg-background pb-24">
+    <div className="min-h-screen bg-background">
       <AppBar title="Prayer Statistics" showBack />
       
       <div className="max-w-lg mx-auto p-4 space-y-4">
@@ -170,21 +182,23 @@ export default function PrayerStats() {
           </CardHeader>
           <CardContent>
             <div className="h-48">
-              <ResponsiveContainer width="100%" height="100%">
-                <BarChart data={weeklyChartData}>
-                  <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
-                  <XAxis dataKey="date" tick={{ fontSize: 12 }} />
-                  <YAxis domain={[0, 5]} tick={{ fontSize: 12 }} />
-                  <Tooltip 
-                    contentStyle={{ 
-                      backgroundColor: 'hsl(var(--card))',
-                      border: '1px solid hsl(var(--border))',
-                      borderRadius: '8px',
-                    }}
-                  />
-                  <Bar dataKey="completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
-                </BarChart>
-              </ResponsiveContainer>
+              <Suspense fallback={<Skeleton className="h-full w-full" />}>
+                <ResponsiveContainer width="100%" height="100%">
+                  <BarChart data={weeklyChartData}>
+                    <CartesianGrid strokeDasharray="3 3" className="opacity-30" />
+                    <XAxis dataKey="date" tick={{ fontSize: 12 }} />
+                    <YAxis domain={[0, 5]} tick={{ fontSize: 12 }} />
+                    <Tooltip 
+                      contentStyle={{ 
+                        backgroundColor: 'hsl(var(--card))',
+                        border: '1px solid hsl(var(--border))',
+                        borderRadius: '8px',
+                      }}
+                    />
+                    <Bar dataKey="completed" fill="hsl(var(--primary))" radius={[4, 4, 0, 0]} />
+                  </BarChart>
+                </ResponsiveContainer>
+              </Suspense>
             </div>
           </CardContent>
         </Card>
@@ -197,22 +211,24 @@ export default function PrayerStats() {
           <CardContent>
             <div className="flex gap-4">
               <div className="w-32 h-32">
-                <ResponsiveContainer width="100%" height="100%">
-                  <PieChart>
-                    <Pie
-                      data={pieData}
-                      cx="50%"
-                      cy="50%"
-                      innerRadius={25}
-                      outerRadius={50}
-                      dataKey="value"
-                    >
-                      {pieData.map((entry, index) => (
-                        <Cell key={`cell-${index}`} fill={entry.fill} />
-                      ))}
-                    </Pie>
-                  </PieChart>
-                </ResponsiveContainer>
+                <Suspense fallback={<Skeleton className="w-full h-full rounded-full" />}>
+                  <ResponsiveContainer width="100%" height="100%">
+                    <PieChart>
+                      <Pie
+                        data={pieData}
+                        cx="50%"
+                        cy="50%"
+                        innerRadius={25}
+                        outerRadius={50}
+                        dataKey="value"
+                      >
+                        {pieData.map((entry, index) => (
+                          <Cell key={`cell-${index}`} fill={entry.fill} />
+                        ))}
+                      </Pie>
+                    </PieChart>
+                  </ResponsiveContainer>
+                </Suspense>
               </div>
               <div className="flex-1 space-y-2">
                 {stats.prayerBreakdown.map((prayer, index) => {

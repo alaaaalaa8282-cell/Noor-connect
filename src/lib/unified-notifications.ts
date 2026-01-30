@@ -11,7 +11,7 @@ export interface NotificationOptions {
   icon?: string;
   tag?: string;
   requireInteraction?: boolean;
-  data?: any;
+  data?: Record<string, unknown>;
 }
 
 class UnifiedNotificationService {
@@ -21,7 +21,7 @@ class UnifiedNotificationService {
 
   constructor() {
     this.isSupported = 'Notification' in window;
-    this.isCapacitor = !!(window as any).Capacitor;
+    this.isCapacitor = !!(window as unknown as { Capacitor?: unknown }).Capacitor;
     this.permission = this.isSupported ? Notification.permission : 'default';
   }
 
@@ -317,12 +317,16 @@ class UnifiedNotificationService {
   }
 
   // Get scheduled notifications (Capacitor only)
-  async getScheduledNotifications(): Promise<any[]> {
+  async getScheduledNotifications(): Promise<Array<{ id: number; title: string; body: string }>> {
     if (!this.isCapacitor) return [];
     
     try {
       const pending = await LocalNotifications.getPending();
-      return pending.notifications;
+      return pending.notifications.map(n => ({
+        id: n.id,
+        title: n.title || '',
+        body: n.body || ''
+      }));
     } catch (error) {
       console.error('Failed to get scheduled notifications:', error);
       return [];

@@ -81,7 +81,7 @@ const Duas = () => {
 
         {/* Duas List */}
         <ScrollArea className="h-[calc(100vh-220px)]">
-          <div className="space-y-3 pb-20">
+          <div className="space-y-3">
             {filteredDuas.map((dua) => (
               <Card key={dua.id} className="p-4">
                 <div className="space-y-3">

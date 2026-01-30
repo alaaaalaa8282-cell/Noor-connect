@@ -72,17 +72,11 @@ self.addEventListener('activate', (event) => {
 
 // Fetch event - handle network requests
 self.addEventListener('fetch', (event) => {
-  // Quick check for chrome-extension URLs at the top to prevent console spam
-  if (event.request.url.startsWith('chrome-extension')) return;
-  
   try {
     const url = new URL(event.request.url);
     
-    // Ignore browser extension URLs to prevent errors and console spam
-    if (url.protocol === 'chrome-extension:' || 
-        url.protocol === 'moz-extension:' || 
-        url.protocol === 'safari-extension:' ||
-        url.protocol === 'edge-extension:') {
+    // Ignore chrome-extension:// URLs to prevent errors
+    if (url.protocol === 'chrome-extension:') {
       return;
     }
     

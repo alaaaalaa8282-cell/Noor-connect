@@ -5,6 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { radioStations, type RadioStation } from "@/data/radio-stations";
 import { useToast } from "@/hooks/use-toast";
+import { androidAudioHelper } from "@/lib/android-audio-helper";
+import "@/lib/media-session-test";
 
 const QuranRadio = () => {
   const navigate = useNavigate();
@@ -17,12 +19,115 @@ const QuranRadio = () => {
   
   // Single audio instance using useRef
   const audioRef = useRef<HTMLAudioElement | null>(null);
+  const mediaSessionSetupRef = useRef(false);
+
+  // Setup Media Session API for lock screen controls
+  const setupMediaSession = (station: RadioStation) => {
+    if (!('mediaSession' in navigator)) return;
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: station.name,
+        artist: 'Noor Connect',
+        album: 'Quran Radio',
+        artwork: [
+          {
+            src: station.img,
+            sizes: '96x96',
+            type: 'image/png'
+          },
+          {
+            src: station.img,
+            sizes: '128x128',
+            type: 'image/png'
+          },
+          {
+            src: station.img,
+            sizes: '192x192',
+            type: 'image/png'
+          },
+          {
+            src: station.img,
+            sizes: '256x256',
+            type: 'image/png'
+          },
+          {
+            src: station.img,
+            sizes: '384x384',
+            type: 'image/png'
+          },
+          {
+            src: station.img,
+            sizes: '512x512',
+            type: 'image/png'
+          }
+        ]
+      });
+
+      // Action handlers for lock screen controls
+      navigator.mediaSession.setActionHandler('play', () => {
+        handlePlayPause();
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        handlePlayPause();
+      });
+
+      navigator.mediaSession.setActionHandler('stop', () => {
+        handleStopRadio();
+      });
+
+      navigator.mediaSession.setActionHandler('previoustrack', () => {
+        // Go to previous station
+        const currentIndex = allStations.findIndex(s => s.id === station.id);
+        if (currentIndex > 0) {
+          handleStationSelect(allStations[currentIndex - 1]);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('nexttrack', () => {
+        // Go to next station
+        const currentIndex = allStations.findIndex(s => s.id === station.id);
+        if (currentIndex < allStations.length - 1) {
+          handleStationSelect(allStations[currentIndex + 1]);
+        }
+      });
+
+      mediaSessionSetupRef.current = true;
+    } catch (error) {
+      console.warn('Media Session API setup failed:', error);
+    }
+  };
+
+  // Cleanup Media Session
+  const cleanupMediaSession = () => {
+    if (!('mediaSession' in navigator) || !mediaSessionSetupRef.current) return;
+
+    try {
+      navigator.mediaSession.setActionHandler('play', null);
+      navigator.mediaSession.setActionHandler('pause', null);
+      navigator.mediaSession.setActionHandler('stop', null);
+      navigator.mediaSession.setActionHandler('previoustrack', null);
+      navigator.mediaSession.setActionHandler('nexttrack', null);
+      mediaSessionSetupRef.current = false;
+    } catch (error) {
+      console.warn('Media Session cleanup failed:', error);
+    }
+  };
 
   useEffect(() => {
     loadStations();
     
+    // Check for Android audio issues and show recommendation if needed
+    const recommendation = androidAudioHelper.getCapacitorPluginRecommendation();
+    if (recommendation && process.env.NODE_ENV === 'development') {
+      console.log(recommendation);
+    }
+    
     // Cleanup on unmount
     return () => {
+      cleanupMediaSession();
+      androidAudioHelper.cleanup();
       if (audioRef.current) {
         audioRef.current.pause();
         audioRef.current.removeEventListener('play', handlePlay);
@@ -124,6 +229,9 @@ const QuranRadio = () => {
         return;
       }
 
+      // Setup Media Session for lock screen controls
+      setupMediaSession(station);
+
       // IMPORTANT: Stop current audio completely before starting new one
       if (audioRef.current) {
         audioRef.current.pause();
@@ -137,14 +245,27 @@ const QuranRadio = () => {
         audioRef.current.removeEventListener('ended', handleEnded);
       }
 
-      // Create new audio element (fresh instance)
-      const audio = new Audio();
-      audioRef.current = audio;
+      // Create or reuse audio element for better background performance
+      let audio = audioRef.current;
+      if (!audio) {
+        audio = new Audio();
+        audioRef.current = audio;
+        
+        // Configure audio for background playback
+        audio.preload = 'none';
+        audio.crossOrigin = 'anonymous';
+        
+        // Apply Android-specific optimizations
+        androidAudioHelper.setupAndroidOptimizations(audio);
+        
+        // Request audio focus for better mobile experience
+        if ('audioFocus' in navigator) {
+          (navigator as any).audioFocus.request();
+        }
+      }
       
-      // Set new source from hardcoded data
+      // Set new source
       audio.src = streamUrl;
-      audio.preload = 'none';
-      audio.crossOrigin = 'anonymous';
       
       // Add event listeners
       audio.addEventListener('play', handlePlay);
@@ -202,6 +323,9 @@ const QuranRadio = () => {
   };
 
   const handleStopRadio = () => {
+    // Cleanup Media Session
+    cleanupMediaSession();
+    
     if (audioRef.current) {
       audioRef.current.pause();
       audioRef.current.currentTime = 0;
@@ -250,7 +374,7 @@ const QuranRadio = () => {
       </div>
 
       {/* Main Content */}
-      <div className="max-w-7xl mx-auto px-4 py-6 pb-32">
+      <div className="max-w-7xl mx-auto px-4 py-6">
         {/* Popular Stations */}
         <div className="mb-8">
           <h2 className="text-xl font-bold mb-4 flex items-center gap-2">

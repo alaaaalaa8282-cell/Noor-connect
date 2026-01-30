@@ -190,7 +190,7 @@ export default function IslamicCalendar() {
   }
 
   return (
-    <div className="min-h-screen bg-background pb-24 pt-6 px-4">
+    <div className="min-h-screen bg-background pt-6 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
         {/* Current Islamic Date */}
         <Card className="bg-card elevation-4 border-primary/20">
