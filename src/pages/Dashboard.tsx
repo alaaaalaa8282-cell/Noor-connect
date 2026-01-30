@@ -7,6 +7,7 @@ import { SalahTracker } from "@/components/SalahTracker";
 import { WeeklySalahChart } from "@/components/WeeklySalahChart";
 import { QazaTracker } from "@/components/QazaTracker";
 import { PrayerCountdown } from "@/components/PrayerCountdown";
+import { PrayerTimesList } from "@/components/PrayerTimesList";
 import { DailyAyah } from "@/components/DailyAyah";
 import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
@@ -305,6 +306,9 @@ export default function Dashboard() {
 
         {/* Prayer Countdown Widget */}
         <PrayerCountdown />
+
+        {/* Prayer Times List */}
+        <PrayerTimesList />
 
         {/* Daily Ayah */}
         <DailyAyah />
