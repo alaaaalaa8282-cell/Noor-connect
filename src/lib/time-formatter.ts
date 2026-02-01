@@ -7,6 +7,7 @@ export interface TimeFormatOptions {
   format?: '12' | '24';
   showSeconds?: boolean;
   showAMPM?: boolean;
+  timeZone?: string;
 }
 
 /**
@@ -17,14 +18,14 @@ export interface TimeFormatOptions {
  * @returns Formatted time string
  */
 export function formatTime(
-  time: string | Date, 
+  time: string | Date,
   format: '12' | '24' = '24',
   options: TimeFormatOptions = {}
 ): string {
-  const { showSeconds = false, showAMPM = true } = options;
-  
+  const { showSeconds = false, showAMPM = true, timeZone } = options;
+
   let date: Date;
-  
+
   if (typeof time === 'string') {
     // Parse time string (HH:MM or HH:MM:SS)
     const [hours, minutes, seconds] = time.split(':').map(Number);
@@ -39,26 +40,28 @@ export function formatTime(
     const timeOptions: Intl.DateTimeFormatOptions = {
       hour: 'numeric',
       minute: '2-digit',
-      hour12: showAMPM
+      hour12: showAMPM,
+      timeZone: timeZone || undefined
     };
-    
+
     if (showSeconds) {
       timeOptions.second = '2-digit';
     }
-    
+
     return date.toLocaleTimeString('en-US', timeOptions);
   } else {
     // 24-hour format
     const timeOptions: Intl.DateTimeFormatOptions = {
       hour: '2-digit',
       minute: '2-digit',
-      hour12: false
+      hour12: false,
+      timeZone: timeZone || undefined
     };
-    
+
     if (showSeconds) {
       timeOptions.second = '2-digit';
     }
-    
+
     return date.toLocaleTimeString('en-US', timeOptions);
   }
 }
@@ -69,8 +72,8 @@ export function formatTime(
  * @param format - Time format preference ('12' or '24')
  * @returns Formatted time string
  */
-export function formatPrayerTime(time: string | Date, format: '12' | '24' = '24'): string {
-  return formatTime(time, format, { showSeconds: false, showAMPM: true });
+export function formatPrayerTime(time: string | Date, format: '12' | '24' = '24', timeZone?: string): string {
+  return formatTime(time, format, { showSeconds: false, showAMPM: true, timeZone });
 }
 
 /**
@@ -107,11 +110,11 @@ export function setTimeFormat(format: '12' | '24'): void {
  */
 export function preConvertPrayerTimes(prayerTimes: Record<string, string>, format: '12' | '24' = '24'): Record<string, string> {
   const converted: Record<string, string> = {};
-  
+
   for (const [prayer, time] of Object.entries(prayerTimes)) {
     converted[prayer] = formatPrayerTime(time, format);
   }
-  
+
   return converted;
 }
 

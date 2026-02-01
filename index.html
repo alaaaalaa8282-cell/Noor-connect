@@ -1,120 +1,108 @@
 <!doctype html>
 <html lang="en">
-  <head>
-    <meta charset="UTF-8" />
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
-    <!-- PWA Manifest and Icons -->
-    <link rel="icon" type="image/png" href="/favicon.png" />
-    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
-    <link rel="manifest" href="/manifest.json" />
-    
-    <!-- Apple Touch Icons for native app experience -->
-    <link rel="apple-touch-icon" sizes="72x72" href="/icon-72x72.png" />
-    <link rel="apple-touch-icon" sizes="96x96" href="/icon-96x96.png" />
-    <link rel="apple-touch-icon" sizes="128x128" href="/icon-128x128.png" />
-    <link rel="apple-touch-icon" sizes="144x144" href="/icon-144x144.png" />
-    <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
-    <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
-    <link rel="apple-touch-icon" sizes="384x384" href="/icon-384x384.png" />
-    <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
-    
-    <!-- Apple Safari and PWA meta tags -->
-    <meta name="mobile-web-app-capable" content="yes" />
-    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
-    <meta name="apple-mobile-web-app-title" content="Noor Connect" />
-    <meta name="application-name" content="Noor Connect" />
-    <meta name="msapplication-TileColor" content="#000000" />
-    <meta name="theme-color" content="#000000" />
-    <title>Noor Connect - Your Islamic Companion</title>
-    <meta name="description" content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
-    <meta name="author" content="Noor Connect" />
-    
-    <!-- Preconnect to critical origins -->
-    <link rel="preconnect" href="https://fonts.googleapis.com">
-    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-    
-    <!-- Preload critical fonts with font-display: swap -->
-    <link rel="preload" as="style" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap" onload="this.onload=null;this.rel='stylesheet'">
-    <noscript><link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap"></noscript>
-    
-    <!-- Open Graph / Twitter meta tags -->
-    <meta property="og:type" content="website" />
-    <meta property="og:title" content="Noor Connect - Your Islamic Companion">
-    <meta property="og:description" content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
-    <meta property="og:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/zG38t8JuUCWtfhLMVB31C72uggk1/social-images/social-1760802607316-ChatGPT Image Oct 17, 2025, 06_37_39 PM (1).png">
-    <meta name="twitter:card" content="summary_large_image" />
-    <meta name="twitter:site" content="@noor_connect" />
-    <meta name="twitter:title" content="Noor Connect - Your Islamic Companion">
-    <meta name="twitter:description" content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
-    <meta name="twitter:image" content="https://storage.googleapis.com/gpt-engineer-file-uploads/zG38t8JuUCWtfhLMVB31C72uggk1/social-images/social-1760802607316-ChatGPT Image Oct 17, 2025, 06_37_39 PM (1).png">
-    
-    <!-- Splash Screen CSS -->
-    <link rel="stylesheet" href="/src/splash-screen.css" />
-    
-    <!-- Inline critical CSS for faster FCP -->
-    <style>
-      /* Critical CSS for initial render */
-      body { 
-        font-family: system-ui, -apple-system, sans-serif; 
-        margin: 0;
-        background: #f7f7f7;
-        background: #171717;
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+  <!-- PWA Manifest and Icons -->
+  <link rel="icon" type="image/png" href="/favicon.png" />
+  <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+  <link rel="manifest" href="/manifest.json?v=1" />
+
+  <!-- Apple Touch Icons for native app experience -->
+  <link rel="apple-touch-icon" sizes="72x72" href="/icon-72x72.png" />
+  <link rel="apple-touch-icon" sizes="96x96" href="/icon-96x96.png" />
+  <link rel="apple-touch-icon" sizes="128x128" href="/icon-128x128.png" />
+  <link rel="apple-touch-icon" sizes="144x144" href="/icon-144x144.png" />
+  <link rel="apple-touch-icon" sizes="152x152" href="/icon-152x152.png" />
+  <link rel="apple-touch-icon" sizes="192x192" href="/icon-192x192.png" />
+  <link rel="apple-touch-icon" sizes="384x384" href="/icon-384x384.png" />
+  <link rel="apple-touch-icon" sizes="512x512" href="/icon-512x512.png" />
+
+  <!-- Apple Safari and PWA meta tags -->
+  <meta name="mobile-web-app-capable" content="yes" />
+  <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent" />
+  <meta name="apple-mobile-web-app-title" content="Noor Connect" />
+  <meta name="application-name" content="Noor Connect" />
+  <meta name="msapplication-TileColor" content="#000000" />
+  <meta name="theme-color" content="#000000" />
+  <!-- Content Security Policy to prevent external extension scripts and reduce noise -->
+  <meta http-equiv="Content-Security-Policy"
+    content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval' https://fonts.googleapis.com https://cdnjs.cloudflare.com http://cdnjs.cloudflare.com; script-src-elem 'self' 'unsafe-inline' https://cdnjs.cloudflare.com http://cdnjs.cloudflare.com; worker-src blob:; style-src 'self' 'unsafe-inline' https://fonts.googleapis.com; font-src 'self' https://fonts.gstatic.com data:; img-src 'self' data: https: blob: *; connect-src * blob:; media-src *; object-src 'none'; base-uri 'self';" />
+  <title>Noor Connect - Your Islamic Companion</title>
+  <meta name="description"
+    content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
+  <meta name="author" content="Noor Connect" />
+
+  <!-- Preconnect to critical origins -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+
+  <!-- Preload critical fonts with font-display: swap -->
+  <link rel="preload" as="style"
+    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap"
+    onload="this.onload=null;this.rel='stylesheet'">
+  <noscript>
+    <link rel="stylesheet"
+      href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap">
+  </noscript>
+
+  <!-- Open Graph / Twitter meta tags -->
+  <meta property="og:type" content="website" />
+  <meta property="og:title" content="Noor Connect - Your Islamic Companion">
+  <meta property="og:description"
+    content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
+  <meta property="og:image"
+    content="https://storage.googleapis.com/gpt-engineer-file-uploads/zG38t8JuUCWtfhLMVB31C72uggk1/social-images/social-1760802607316-ChatGPT Image Oct 17, 2025, 06_37_39 PM (1).png">
+  <meta name="twitter:card" content="summary_large_image" />
+  <meta name="twitter:site" content="@noor_connect" />
+  <meta name="twitter:title" content="Noor Connect - Your Islamic Companion">
+  <meta name="twitter:description"
+    content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
+  <meta name="twitter:image"
+    content="https://storage.googleapis.com/gpt-engineer-file-uploads/zG38t8JuUCWtfhLMVB31C72uggk1/social-images/social-1760802607316-ChatGPT Image Oct 17, 2025, 06_37_39 PM (1).png">
+
+  <!-- Splash Screen CSS -->
+  <link rel="stylesheet" href="/src/splash-screen.css" />
+
+  <!-- Inline critical CSS for faster FCP -->
+  <style>
+    /* Critical CSS for initial render */
+    body {
+      font-family: system-ui, -apple-system, sans-serif;
+      margin: 0;
+      background: #f7f7f7;
+      background: #171717;
+    }
+
+    #root {
+      height: 100vh;
+      width: 100vw;
+      display: block;
+    }
+
+    /* Initial loading indicator */
+    #root:empty::before {
+      content: '';
+      width: 40px;
+      height: 40px;
+      border: 3px solid #333;
+      border-top-color: #d4af37;
+      border-radius: 50%;
+      animation: spin 1s linear infinite;
+    }
+
+    @keyframes spin {
+      to {
+        transform: rotate(360deg);
       }
-      #root {
-        height: 100vh;
-        width: 100vw;
-        display: block;
-      }
-      /* Initial loading indicator */
-      #root:empty::before {
-        content: '';
-        width: 40px;
-        height: 40px;
-        border: 3px solid #333;
-        border-top-color: #d4af37;
-        border-radius: 50%;
-        animation: spin 1s linear infinite;
-      }
-      @keyframes spin {
-        to { transform: rotate(360deg); }
-      }
-    </style>
-  </head>
-  <body class="loading">
-    <!-- PWA Splash Screen -->
-    <div class="splash-screen" id="splash-screen">
-      <div class="splash-logo">نور</div>
-      <div class="splash-text">Noor Connect</div>
-      <div class="splash-subtitle">Your Islamic Companion</div>
-      <div class="splash-loader"></div>
-    </div>
-    
-    <div id="root"></div>
-    <script type="module" src="/src/main.tsx"></script>
-    
-    <!-- Hide splash screen when app loads -->
-    <script>
-      window.addEventListener('load', function() {
-        setTimeout(function() {
-          const splash = document.getElementById('splash-screen');
-          if (splash) {
-            splash.classList.add('fade-out');
-            setTimeout(function() {
-              splash.remove(); // Completely remove from DOM
-              document.body.classList.remove('loading');
-            }, 300);
-          }
-        }, 1000); // Show splash for at least 1 second
-      });
-      
-      // Fallback: Remove splash screen immediately if it's still blocking clicks
-      setTimeout(function() {
-        const splash = document.getElementById('splash-screen');
-        if (splash && splash.style.display !== 'none') {
-          splash.remove();
-          document.body.classList.remove('loading');
-        }
-      }, 5000);
-    </script>
-  </body>
+    }
+  </style>
+</head>
+
+<body class="loading">
+  <div id="root"></div>
+  <script type="module" src="/src/main.tsx"></script>
+</body>
+
 </html>

@@ -10,9 +10,9 @@ import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useLazyLoad } from "@/hooks/useLazyLoad";
 import { BookCardSkeleton } from "@/components/LoadingSkeleton";
-import { 
-  getDownloadedBooks, 
-  getUserBooks, 
+import {
+  getDownloadedBooks,
+  getUserBooks,
   downloadBook,
   deleteDownloadedBook,
   deleteUserBook,
@@ -22,11 +22,11 @@ import {
   type DownloadedBook,
   type UserBook
 } from "@/lib/ebooks-storage";
-import { 
-  getProgressPercentage, 
-  getRecentlyRead, 
+import {
+  getProgressPercentage,
+  getRecentlyRead,
   getReadingStats,
-  type ReadingProgress 
+  type ReadingProgress
 } from "@/lib/reading-progress";
 import ebooksData from "@/data/ebooks-library.json";
 import PdfViewer from "@/components/PdfViewer";
@@ -108,6 +108,23 @@ export default function Ebooks() {
     load();
   }, [viewingBook]);
 
+  // Handle hardware back button to close viewer
+  useEffect(() => {
+    if (viewingBook) {
+      // Add a dummy state to history so back button pops it instead of leaving page
+      window.history.pushState({ pdfOpen: true }, '');
+
+      const handlePopState = () => {
+        setViewingBook(null);
+      };
+
+      window.addEventListener('popstate', handlePopState);
+      return () => {
+        window.removeEventListener('popstate', handlePopState);
+      };
+    }
+  }, [viewingBook]);
+
   // Get alphabet letters with counts
   const letterCategories = useMemo(() => {
     const categorized = categorizeBooks(books);
@@ -119,13 +136,13 @@ export default function Ebooks() {
   // Memoized filtered books to prevent re-renders
   const filteredBooks = useMemo(() => {
     let filtered = books;
-    
+
     // Filter out the README file
-    filtered = filtered.filter(b => 
-      !b.title.toLowerCase().includes('read me first') && 
+    filtered = filtered.filter(b =>
+      !b.title.toLowerCase().includes('read me first') &&
       !b.title.toLowerCase().includes('table of contents')
     );
-    
+
     if (selectedLetter) {
       filtered = filtered.filter(b => {
         const firstChar = cleanTitle(b.title).charAt(0).toUpperCase();
@@ -133,14 +150,14 @@ export default function Ebooks() {
         return category === selectedLetter;
       });
     }
-    
+
     if (debouncedQuery) {
       const query = debouncedQuery.toLowerCase();
-      filtered = filtered.filter(b => 
+      filtered = filtered.filter(b =>
         cleanTitle(b.title).toLowerCase().includes(query)
       );
     }
-    
+
     // Sort alphabetically by title
     return [...filtered].sort((a, b) => cleanTitle(a.title).localeCompare(cleanTitle(b.title)));
   }, [selectedLetter, debouncedQuery]);
@@ -168,21 +185,21 @@ export default function Ebooks() {
   const handleDownload = async (book: LibraryBook) => {
     try {
       setDownloadProgress(prev => ({ ...prev, [book.url]: 0 }));
-      
+
       const downloaded = await downloadBook(
         { title: cleanTitle(book.title), url: book.url, category: '' },
         (progress) => {
           setDownloadProgress(prev => ({ ...prev, [book.url]: progress }));
         }
       );
-      
+
       setDownloadedBooks(prev => [...prev, downloaded]);
       setDownloadProgress(prev => {
         const newState = { ...prev };
         delete newState[book.url];
         return newState;
       });
-      
+
       toast({ title: "Downloaded", description: `${cleanTitle(book.title)} saved for offline reading` });
     } catch (error) {
       console.error("Download error:", error);
@@ -191,9 +208,9 @@ export default function Ebooks() {
         delete newState[book.url];
         return newState;
       });
-      
-      toast({ 
-        title: "Download failed", 
+
+      toast({
+        title: "Download failed",
         description: "Try opening in browser instead",
         variant: "destructive"
       });
@@ -217,12 +234,12 @@ export default function Ebooks() {
   const handleFileUpload = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
-    
+
     if (file.type !== 'application/pdf') {
       toast({ title: "Invalid file", description: "Please select a PDF file", variant: "destructive" });
       return;
     }
-    
+
     try {
       const title = file.name.replace('.pdf', '');
       const userBook = await addUserBook(file, title);
@@ -231,7 +248,7 @@ export default function Ebooks() {
     } catch {
       toast({ title: "Error", description: "Failed to add book", variant: "destructive" });
     }
-    
+
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
     }
@@ -258,11 +275,11 @@ export default function Ebooks() {
 
   if (viewingBook) {
     return (
-      <PdfViewer 
+      <PdfViewer
         url={viewingBook.url}
         title={viewingBook.title}
         localKey={viewingBook.localKey}
-        onClose={() => setViewingBook(null)}
+        onClose={() => window.history.back()}
       />
     );
   }
@@ -274,81 +291,91 @@ export default function Ebooks() {
     const readProgress = getProgressPercentage(ensureHttps(book.url));
     const title = cleanTitle(book.title);
     const size = formatSize(book.size);
-    
+    const firstLetter = title.charAt(0).toUpperCase();
+
+    // Generate a consistent color based on the title length/char
+    const hue = (title.length * 10) % 360;
+
     return (
-      <Card className="p-4 hover:bg-gradient-to-r hover:from-primary/5 hover:to-orange/5 transition-all duration-200 border-border hover:border-primary/30 hover:shadow-lg">
-        <div className="flex items-start gap-4">
-          <div 
-            className="w-14 h-14 rounded-lg bg-gradient-to-br from-primary/20 to-orange/20 flex items-center justify-center shrink-0 relative cursor-pointer hover:scale-105 transition-transform"
-            onClick={() => openBook(book)}
-          >
-            <Book className="w-7 h-7 text-primary" />
-            {downloaded && (
-              <div className="absolute -top-2 -right-2 w-5 h-5 bg-emerald-500 rounded-full flex items-center justify-center shadow-md">
-                <CheckCircle className="w-3 h-3 text-emerald-50" />
+      <div
+        className="group relative flex flex-col gap-2 cursor-pointer"
+        onClick={() => openBook(book)}
+      >
+        {/* Book Cover */}
+        <div className="aspect-[2/3] w-full relative rounded-lg overflow-hidden shadow-md transition-all duration-300 group-hover:shadow-xl group-hover:-translate-y-1">
+          {/* Dynamic Cover Background */}
+          <div
+            className="absolute inset-0 bg-gradient-to-br from-primary/80 to-primary/40"
+            style={{
+              background: `linear-gradient(135deg, hsl(${hue}, 40%, 40%) 0%, hsl(${hue}, 30%, 30%) 100%)`
+            }}
+          ></div>
+
+          {/* Spine Effect */}
+          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-white/20 backdrop-blur-sm z-10"></div>
+
+          {/* Cover Content */}
+          <div className="absolute inset-0 p-3 flex flex-col justify-between text-white">
+            <div className="text-[10px] opacity-70 font-serif tracking-widest text-right">ISLAMIC LIBRARY</div>
+
+            <div className="text-center">
+              <div className="w-8 h-8 mx-auto mb-2 text-white/80 border-2 border-white/20 rounded-full flex items-center justify-center font-serif text-lg">
+                {firstLetter}
               </div>
-            )}
-          </div>
-          <div className="flex-1 min-w-0 cursor-pointer" onClick={() => openBook(book)}>
-            <h3 className="font-semibold text-base text-foreground mb-1 line-clamp-2 leading-tight">
-              {title}
-            </h3>
-            <div className="flex items-center gap-3 mb-2">
-              <div className="flex items-center gap-1">
-                <Clock className="w-3 h-3 text-muted-foreground" />
-                <p className="text-xs text-muted-foreground">{size}</p>
-              </div>
-              {showProgress && readProgress > 0 && (
-                <Badge variant="secondary" className="text-[10px] px-2 py-0.5 bg-orange/10 text-orange border-orange/20">
-                  {readProgress}% Complete
-                </Badge>
-              )}
+              <h3 className="text-sm font-semibold leading-tight line-clamp-3 drop-shadow-sm">
+                {title}
+              </h3>
             </div>
-            {showProgress && readProgress > 0 && (
-              <div className="w-full">
-                <Progress value={readProgress} className="h-2 bg-muted/50" />
-                <p className="text-xs text-muted-foreground mt-1">
-                  {Math.round((readProgress / 100) * 200)} of 200 pages read
-                </p>
-              </div>
-            )}
+
+            <div className="flex justify-between items-end">
+              <div className="text-[10px] opacity-80 bg-black/20 px-1.5 py-0.5 rounded">PDF</div>
+              {downloaded && <CheckCircle className="w-4 h-4 text-emerald-300 drop-shadow-sm" />}
+            </div>
           </div>
-          <div className="flex flex-col items-end gap-2 shrink-0">
-            {progress !== undefined ? (
-              <div className="text-xs text-center text-primary font-medium bg-primary/10 px-2 py-1 rounded-full">
-                {progress}%
-              </div>
+
+          {/* Progress Bar Overlay */}
+          {showProgress && readProgress > 0 && (
+            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+              <div
+                className="h-full bg-emerald-400"
+                style={{ width: `${readProgress}%` }}
+              />
+            </div>
+          )}
+
+          {/* Hover Actions Overlay */}
+          <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
+            {downloaded ? (
+              <Button size="sm" variant="secondary" className="w-full text-xs h-8">
+                <BookOpen className="w-3 h-3 mr-2" /> Read
+              </Button>
             ) : (
               <Button
-                variant="outline"
                 size="sm"
+                className="w-full text-xs h-8"
                 onClick={(e) => {
                   e.stopPropagation();
                   handleDownload(book);
                 }}
-                className="text-xs h-7 px-2 hover:bg-primary/10 hover:text-primary hover:border-primary/30"
+                disabled={progress !== undefined}
               >
-                <Download className="w-3 h-3 mr-1" />
-                Get
-              </Button>
-            )}
-            {downloaded && (
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={(e) => {
-                  e.stopPropagation();
-                  openBook(book);
-                }}
-                className="text-xs h-7 px-2 hover:bg-primary/10 text-primary"
-              >
-                <BookOpen className="w-3 h-3 mr-1" />
-                Read
+                {progress !== undefined ? `${progress}%` : <><Download className="w-3 h-3 mr-2" /> Download</>}
               </Button>
             )}
           </div>
         </div>
-      </Card>
+
+        {/* Book Meta (Below Cover) */}
+        <div className="space-y-0.5 px-0.5">
+          <h4 className="text-xs font-medium truncate leading-tight group-hover:text-primary transition-colors">
+            {title}
+          </h4>
+          <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+            <span>{size}</span>
+            {showProgress && readProgress > 0 && <span>{readProgress}%</span>}
+          </div>
+        </div>
+      </div>
     );
   });
 
@@ -368,7 +395,7 @@ export default function Ebooks() {
             className="pl-10 pr-10 bg-card"
           />
           {searchQuery && (
-            <button 
+            <button
               onClick={() => setSearchQuery("")}
               className="absolute right-3 top-1/2 -translate-y-1/2"
             >
@@ -430,7 +457,7 @@ export default function Ebooks() {
                     if (!openTarget) return null;
 
                     return (
-                      <Card 
+                      <Card
                         key={item.bookUrl}
                         className="p-3 w-40 shrink-0 cursor-pointer hover:bg-accent/50"
                         onClick={() => openBook(openTarget)}
@@ -452,8 +479,8 @@ export default function Ebooks() {
 
           {/* Filter indicator */}
           {selectedLetter && (
-            <Badge 
-              variant="outline" 
+            <Badge
+              variant="outline"
               className="cursor-pointer text-xs"
               onClick={() => setSelectedLetter(null)}
             >
@@ -462,41 +489,50 @@ export default function Ebooks() {
           )}
 
           {/* Book List */}
-          <div className="space-y-2">
+          {/* Book List - Grid Layout */}
+          <div className="space-y-4">
             {selectedLetter && (
-              <button 
+              <button
                 onClick={() => setSelectedLetter(null)}
-                className="flex items-center gap-1 text-primary text-sm mb-2"
+                className="flex items-center gap-1 text-primary text-sm mb-4 bg-primary/10 px-3 py-1.5 rounded-full w-fit hover:bg-primary/20 transition-colors"
               >
-                ← All Books
+                ← Back to All Books
               </button>
             )}
-            
-            <p className="text-xs text-muted-foreground">
-              Showing {visibleItems.length} of {filteredBooks.length} books
-              {selectedLetter && ` starting with "${selectedLetter}"`}
-            </p>
-            
-            {/* Render visible books */}
-            {visibleItems.map((book, i) => (
-              <BookCard key={`${book.url}-${i}`} book={book} showProgress />
-            ))}
-            
-            {/* Loading skeleton for more items */}
-            {hasMore && (
-              <>
-                {Array.from({ length: 3 }).map((_, i) => (
-                  <BookCardSkeleton key={`skeleton-${i}`} />
-                ))}
-                <div ref={loadMoreRef} className="h-4" />
-              </>
-            )}
-            
+
+            <div className="flex items-center justify-between text-xs text-muted-foreground px-1">
+              <p>
+                Showing {visibleItems.length} of {filteredBooks.length} books
+                {selectedLetter && ` starting with "${selectedLetter}"`}
+              </p>
+            </div>
+
+            {/* Render visible books in Grid */}
+            <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-4">
+              {visibleItems.map((book, i) => (
+                <BookCard key={`${book.url}-${i}`} book={book} showProgress />
+              ))}
+
+              {/* Loading skeleton for more items */}
+              {hasMore && Array.from({ length: 4 }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="space-y-3">
+                  <div className="aspect-[2/3] bg-muted animate-pulse rounded-lg shadow-sm" />
+                  <div className="space-y-1">
+                    <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+                    <div className="h-3 bg-muted animate-pulse rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+
+            {/* Infinite Scroll Trigger */}
+            {hasMore && <div ref={loadMoreRef} className="h-4" />}
+
             {/* No more items indicator */}
             {!hasMore && visibleItems.length > 0 && (
-              <p className="text-center text-xs text-muted-foreground py-4">
-                All books loaded
-              </p>
+              <div className="flex items-center justify-center py-8 opacity-50">
+                <div className="h-1 w-24 bg-gradient-to-r from-transparent via-border to-transparent" />
+              </div>
             )}
           </div>
         </TabsContent>
@@ -505,7 +541,7 @@ export default function Ebooks() {
         <TabsContent value="letters" className="mt-0">
           <div className="grid grid-cols-4 gap-2">
             {letterCategories.map(({ letter, count }) => (
-              <Card 
+              <Card
                 key={letter}
                 className="p-3 cursor-pointer hover:bg-accent/50 transition-colors text-center"
                 onClick={() => {
@@ -525,7 +561,7 @@ export default function Ebooks() {
           <p className="text-sm text-muted-foreground">
             {downloadedBooks.length + userBooks.length} books saved offline
           </p>
-          
+
           {downloadedBooks.length === 0 && userBooks.length === 0 ? (
             <div className="text-center py-12">
               <Download className="w-12 h-12 text-muted-foreground mx-auto mb-3" />
@@ -533,8 +569,8 @@ export default function Ebooks() {
               <p className="text-sm text-muted-foreground mt-1">
                 Download books to read offline
               </p>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 className="mt-4"
                 onClick={() => setActiveTab("browse")}
               >
@@ -545,7 +581,7 @@ export default function Ebooks() {
             <div className="space-y-2">
               {downloadedBooks.map((book, i) => (
                 <Card key={i} className="p-3 flex items-center gap-3">
-                  <div 
+                  <div
                     className="w-10 h-10 rounded bg-emerald-500/10 flex items-center justify-center shrink-0 cursor-pointer"
                     onClick={() => openBook(book)}
                   >
@@ -563,16 +599,16 @@ export default function Ebooks() {
                     </div>
                   </div>
                   <div className="flex items-center gap-1 shrink-0">
-                    <Button 
-                      size="icon" 
+                    <Button
+                      size="icon"
                       variant="ghost"
                       className="h-8 w-8"
                       onClick={() => openBook(book)}
                     >
                       <BookOpen className="w-4 h-4" />
                     </Button>
-                    <Button 
-                      size="icon" 
+                    <Button
+                      size="icon"
                       variant="ghost"
                       className="h-8 w-8 text-destructive"
                       onClick={() => handleDelete(book.url)}
@@ -582,13 +618,13 @@ export default function Ebooks() {
                   </div>
                 </Card>
               ))}
-              
+
               {userBooks.length > 0 && (
                 <>
                   <h3 className="text-sm font-semibold mt-4 pt-4 border-t">Your Uploads</h3>
                   {userBooks.map((book, i) => (
                     <Card key={`user-${i}`} className="p-3 flex items-center gap-3">
-                      <div 
+                      <div
                         className="w-10 h-10 rounded bg-accent flex items-center justify-center shrink-0 cursor-pointer"
                         onClick={() => openBook(book)}
                       >
@@ -599,16 +635,16 @@ export default function Ebooks() {
                         <p className="text-xs text-muted-foreground">{formatFileSize(book.fileSize)}</p>
                       </div>
                       <div className="flex items-center gap-1 shrink-0">
-                        <Button 
-                          size="icon" 
+                        <Button
+                          size="icon"
                           variant="ghost"
                           className="h-8 w-8"
                           onClick={() => openBook(book)}
                         >
                           <BookOpen className="w-4 h-4" />
                         </Button>
-                        <Button 
-                          size="icon" 
+                        <Button
+                          size="icon"
                           variant="ghost"
                           className="h-8 w-8 text-destructive"
                           onClick={() => handleDeleteUserBook(book.id)}
@@ -632,8 +668,8 @@ export default function Ebooks() {
             <p className="text-sm text-muted-foreground mb-4">
               Upload a PDF from your device to read it in the app
             </p>
-            <input 
-              type="file" 
+            <input
+              type="file"
               accept=".pdf,application/pdf"
               ref={fileInputRef}
               onChange={handleFileUpload}
@@ -644,7 +680,7 @@ export default function Ebooks() {
               Select PDF File
             </Button>
           </Card>
-          
+
           <div className="mt-6 p-4 bg-muted/30 rounded-lg">
             <h4 className="font-medium text-sm mb-2">💡 Tips</h4>
             <ul className="text-xs text-muted-foreground space-y-1.5">

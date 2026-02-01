@@ -48,18 +48,20 @@ export function IslamicGreeting() {
   if (!greeting) return null;
 
   return (
-    <Card className="overflow-hidden bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 border-primary/30">
-      <CardContent className="p-4">
-        <div className="flex items-center justify-center gap-3">
-          <Sparkles className="w-5 h-5 text-primary animate-pulse" />
-          <div className="text-center">
-            <p className="text-lg font-arabic text-primary">{greeting.arabicGreeting}</p>
-            <p className="text-sm font-medium">{greeting.greeting}</p>
-            <p className="text-xs text-muted-foreground">{greeting.name}</p>
+
+    <div className="mb-4">
+      <div className="relative overflow-hidden rounded-full bg-gradient-to-r from-primary/20 via-primary/10 to-primary/5 border border-primary/20 p-1 shadow-sm">
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-sm"></div>
+        <div className="relative flex items-center justify-center gap-4 py-2 px-6">
+          <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
+          <div className="flex flex-col sm:flex-row items-center gap-1 sm:gap-3 text-center">
+            <span className="text-lg font-bold font-arabic text-primary leading-none mt-1">{greeting.arabicGreeting}</span>
+            <span className="hidden sm:inline text-primary/30">•</span>
+            <span className="text-sm font-medium text-foreground">{greeting.greeting}</span>
           </div>
-          <Sparkles className="w-5 h-5 text-primary animate-pulse" />
+          <Sparkles className="w-4 h-4 text-amber-500 animate-pulse" />
         </div>
-      </CardContent>
-    </Card>
+      </div>
+    </div>
   );
 }

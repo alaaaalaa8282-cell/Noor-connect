@@ -14,6 +14,7 @@ import { serviceWorkerManager } from "@/lib/service-worker-registration";
 import { getPerformanceMonitor } from "@/lib/performance-monitor";
 import { useGlobalRadio } from "@/lib/global-radio";
 import { LayoutManager } from "@/components/LayoutManager";
+import { SplashScreen } from "@/components/SplashScreen";
 
 // Set default theme to light if no preference saved
 if (!localStorage.getItem("theme")) {
@@ -42,6 +43,7 @@ const IslamicQuiz = lazy(() => import("./pages/IslamicQuiz"));
 const PrayerStats = lazy(() => import("./pages/PrayerStats"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const QuranRadio = lazy(() => import("./pages/QuranRadio"));
+const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const GlobalRadioPlayer = lazy(() => import("./components/GlobalRadioPlayer").then(module => ({ default: module.GlobalRadioPlayer })));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
@@ -76,6 +78,7 @@ function AppRoutes() {
         <Route path="/prayer-stats" element={<PrayerStats />} />
         <Route path="/habit-tracker" element={<HabitTracker />} />
         <Route path="/quran-radio" element={<QuranRadio />} />
+        <Route path="/live" element={<LiveStreams />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
@@ -86,7 +89,7 @@ const App = () => {
   // Initialize performance monitoring
   useEffect(() => {
     const monitor = getPerformanceMonitor();
-    
+
     // Log performance score after page load
     const logPerformance = () => {
       setTimeout(() => {
@@ -109,20 +112,23 @@ const App = () => {
     };
   }, []);
 
+  // Splash Screen State
+  const [showSplash, setShowSplash] = useState(true);
+
   // Initialize notification system and Service Worker
   useEffect(() => {
     // Start the notification manager (only runs once per app load)
     notificationManager.start();
-    
-    // Register Service Worker (only if not already registered in main.tsx)
-    if (!navigator.serviceWorker.controller) {
+
+    // Register Service Worker (only in production and if not already registered)
+    if (import.meta.env.PROD && !navigator.serviceWorker.controller) {
       serviceWorkerManager.register().then(success => {
         if (success) {
           console.log('Service Worker registered successfully');
         }
       });
     }
-    
+
     // Initialize global radio state
     const savedRadioState = localStorage.getItem('global-radio-state');
     if (savedRadioState) {
@@ -133,19 +139,23 @@ const App = () => {
         console.error('Failed to restore radio state:', error);
       }
     }
-    
+
     // Cleanup on unmount
     return () => {
       notificationManager.stop();
     };
   }, []); // Remove dependencies to prevent re-runs
 
+  if (showSplash) {
+    return <SplashScreen onComplete={() => setShowSplash(false)} />;
+  }
+
   return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
-      <BrowserRouter>
-        <div className="flex flex-col min-h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App" style={{ 
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <div className="flex flex-col min-h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App" style={{
           willChange: 'transform, opacity',
           transform: 'translateZ(0)'
         }}>
@@ -156,7 +166,7 @@ const App = () => {
             <FestivePopup />
             <PWAInstallPrompt />
           </div>
-          
+
           {/* Main Content - Takes available space */}
           <LayoutManager>
             <ErrorBoundary>
@@ -164,12 +174,12 @@ const App = () => {
             </ErrorBoundary>
           </LayoutManager>
         </div>
-        
+
         {/* Bottom Navigation - Fixed outside main container */}
         <div className="fixed bottom-0 left-0 right-0 z-[90]">
           <BottomNav />
         </div>
-        
+
         {/* Global Radio Player - Fixed at bottom with proper z-index */}
         <GlobalRadioPlayer />
       </BrowserRouter>

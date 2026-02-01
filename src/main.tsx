@@ -10,12 +10,26 @@ localNotifications.initialize().then(success => {
   }
 });
 
+import { LanguageProvider } from "@/contexts/LanguageContext";
+
 const rootElement = document.getElementById("root");
 if (rootElement) {
-  createRoot(rootElement).render(<App />);
+  createRoot(rootElement).render(
+    <LanguageProvider>
+      <App />
+    </LanguageProvider>
+  );
 } else {
   console.error("Root element not found");
 }
 
 // Service worker is handled automatically by vite-plugin-pwa (injectRegister: 'auto')
-// which ensures correct registration for production and store tools like PWABuilder.
+// in production. In development, we forcefully unregister to prevent console spam.
+if (import.meta.env.DEV && 'serviceWorker' in navigator) {
+  navigator.serviceWorker.getRegistrations().then(registrations => {
+    for (const registration of registrations) {
+      registration.unregister();
+      console.log('Service Worker unregistered in development mode to prevent console spam');
+    }
+  });
+}

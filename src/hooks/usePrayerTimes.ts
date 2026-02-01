@@ -7,6 +7,7 @@
 import { useState, useEffect, useCallback, useRef } from 'react';
 import { calculatePrayerTimes } from '@/lib/prayer-calculator';
 import { GeocodingService } from '@/lib/geocoding';
+import { AladhanAPI } from '@/lib/aladhan-api';
 import { calculatePrayerEndTimes } from '@/lib/prayer-end-times';
 import { formatPrayerTime } from '@/lib/time-formatter';
 
@@ -34,6 +35,7 @@ export interface LocationData {
   longitude: number;
   city?: string;
   country?: string;
+  timeZone?: string;
   source: 'geolocation' | 'ip' | 'stored' | 'manual' | 'default';
 }
 
@@ -241,6 +243,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       longitude: defaultLoc.longitude,
       city: defaultLoc.city,
       country: defaultLoc.country,
+      timeZone: 'Asia/Karachi',
       source: 'default'
     };
   }, []);
@@ -299,16 +302,25 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Fetch prayer times using coordinates
   const fetchPrayerTimesWithCoordinates = useCallback(async (locationData: LocationData) => {
     try {
-      // Prevent multiple simultaneous calculations
+      // Prevent multiple simultaneous calculations or rapid re-calculations
       if (isCalculatingRef.current) {
         console.log('Already calculating prayer times, skipping...');
+        return;
+      }
+
+      // OPTIMIZATION: Check if we just calculated for this location recently (debounce)
+      const locationKey = `${locationData.latitude.toFixed(4)},${locationData.longitude.toFixed(4)}`;
+      const now = new Date();
+      if (previousPrayerTimesRef.current === locationKey && prayerTimes) {
+        // If we have data and the location is effectively the same, only recalculate if it's been > 1 hour
+        // This prevents the "4x on load" issue if multiple components request data
+        console.log('Using cached prayer times for this session');
         return;
       }
 
       isCalculatingRef.current = true;
       console.log('Calculating prayer times for location:', locationData);
 
-      const now = new Date();
       const todayTimes = calculatePrayerTimes(locationData.latitude, locationData.longitude, now);
 
       const tomorrow = new Date(now);
@@ -342,13 +354,17 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       setPrayerTimesWithEnd(withEnd);
       setLocation(locationData);
       setError(null);
+
+      // Update our "cache" key
+      previousPrayerTimesRef.current = locationKey;
+
     } catch (error) {
       console.error('Failed to calculate prayer times:', error);
       setError('Failed to calculate prayer times. Please try again.');
     } finally {
       isCalculatingRef.current = false;
     }
-  }, []); // No dependencies - this function is stable
+  }, [prayerTimes]); // keeping prayerTimes as dep to check against it
 
   // Set manual location
   const setManualLocation = useCallback(async (city: string, country: string) => {
@@ -359,11 +375,15 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       // Use GeocodingService to get accurate coordinates
       const coords = await GeocodingService.getCityCoordinates(city, country);
 
+      // Use Aladhan API to get accurate prayer times and timezone
+      const { timezone } = await AladhanAPI.getTodaysPrayerTimes(coords.latitude, coords.longitude);
+
       const locationData: LocationData = {
         latitude: coords.latitude,
         longitude: coords.longitude,
         city,
         country,
+        timeZone: timezone,
         source: 'manual'
       };
 

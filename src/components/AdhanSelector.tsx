@@ -1,5 +1,5 @@
 import { useState, useRef, useEffect } from 'react';
-import { Volume2, Play, Pause } from 'lucide-react';
+import { Volume2, Play, Pause, ChevronDown, ChevronUp } from 'lucide-react';
 import { Card } from '@/components/ui/card';
 import {
   Select,
@@ -9,6 +9,13 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import {
+  getAdhanPreferences,
+  setAdhanForPrayer,
+  ALL_ADHAN_OPTIONS,
+  type PrayerName,
+  type AdhanPreferences
+} from '@/lib/adhan-preferences';
 
 export const ADHAN_OPTIONS = [
   { id: 'adhan-makkah', name: 'Makkah Adhan', url: '/audio/adhan-makkah.mp3' },
@@ -38,11 +45,12 @@ export const stopAllAdhanPreviews = () => {
   }
 };
 
+const PRAYERS: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
 export const AdhanSelector = () => {
-  const [selectedAdhan, setSelectedAdhan] = useState(() => {
-    return localStorage.getItem(ADHAN_STORAGE_KEY) || ADHAN_OPTIONS[0].id;
-  });
-  const [isPlaying, setIsPlaying] = useState(false);
+  const [preferences, setPreferences] = useState<AdhanPreferences>(getAdhanPreferences);
+  const [isExpanded, setIsExpanded] = useState(false);
+  const [playingPrayer, setPlayingPrayer] = useState<PrayerName | null>(null);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
   // Cleanup on unmount
@@ -52,33 +60,34 @@ export const AdhanSelector = () => {
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      setIsPlaying(false);
+      setPlayingPrayer(null);
     };
   }, []);
 
-  const handleAdhanChange = (value: string) => {
-    setSelectedAdhan(value);
-    localStorage.setItem(ADHAN_STORAGE_KEY, value);
-    
+  const handleAdhanChange = (prayer: PrayerName, adhanId: string) => {
+    setAdhanForPrayer(prayer, adhanId);
+    setPreferences(prev => ({ ...prev, [prayer]: adhanId }));
+
     // Stop any playing preview
     stopAllAdhanPreviews();
     if (timeoutRef.current) {
       clearTimeout(timeoutRef.current);
     }
-    setIsPlaying(false);
+    setPlayingPrayer(null);
   };
 
-  const handlePreview = () => {
-    const adhan = ADHAN_OPTIONS.find(a => a.id === selectedAdhan);
+  const handlePreview = (prayer: PrayerName) => {
+    const adhanId = preferences[prayer];
+    const adhan = ALL_ADHAN_OPTIONS.find(a => a.id === adhanId);
     if (!adhan) return;
 
-    // If already playing, stop it
-    if (isPlaying) {
+    // If already playing this prayer's adhan, stop it
+    if (playingPrayer === prayer) {
       stopAllAdhanPreviews();
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
-      setIsPlaying(false);
+      setPlayingPrayer(null);
       return;
     }
 
@@ -88,72 +97,94 @@ export const AdhanSelector = () => {
     // Create new audio instance
     globalPreviewAudio = new Audio(adhan.url);
     globalPreviewAudio.volume = 0.5;
-    
+
     const handleEnded = () => {
-      setIsPlaying(false);
+      setPlayingPrayer(null);
       globalPreviewAudio = null;
     };
 
     const handleError = () => {
-      setIsPlaying(false);
+      setPlayingPrayer(null);
       globalPreviewAudio = null;
     };
 
     globalPreviewAudio.addEventListener('ended', handleEnded);
     globalPreviewAudio.addEventListener('error', handleError);
-    
+
     globalPreviewAudio.play().then(() => {
-      setIsPlaying(true);
+      setPlayingPrayer(prayer);
     }).catch(() => {
-      setIsPlaying(false);
+      setPlayingPrayer(null);
       globalPreviewAudio = null;
     });
-
-    // Remove 10-second limit - let the Adhan play completely
-    // timeoutRef.current = setTimeout(() => {
-    //   stopAllAdhanPreviews();
-    //   setIsPlaying(false);
-    // }, 10000);
   };
 
   return (
     <Card className="p-4 bg-card border-border">
-      <div className="flex items-center gap-3 mb-3">
-        <Volume2 className="w-5 h-5 text-primary" />
-        <h3 className="font-semibold text-foreground">Adhan Sound</h3>
-      </div>
-      <div className="flex gap-2">
-        <Select value={selectedAdhan} onValueChange={handleAdhanChange}>
-          <SelectTrigger className="flex-1 bg-background">
-            <SelectValue placeholder="Select Adhan" />
-          </SelectTrigger>
-          <SelectContent className="bg-popover border-border z-50">
-            {ADHAN_OPTIONS.map((adhan) => (
-              <SelectItem key={adhan.id} value={adhan.id}>
-                {adhan.name}
-              </SelectItem>
-            ))}
-          </SelectContent>
-        </Select>
-        <Button
-          variant="outline"
-          size="icon"
-          onClick={handlePreview}
-          className="shrink-0"
-        >
-          {isPlaying ? (
-            <Pause className="w-4 h-4" />
+      <div
+        className="flex items-center justify-between cursor-pointer"
+        onClick={() => setIsExpanded(!isExpanded)}
+      >
+        <div className="flex items-center gap-3">
+          <Volume2 className="w-5 h-5 text-primary" />
+          <div>
+            <h3 className="font-semibold text-foreground">Adhan Sounds</h3>
+            <p className="text-xs text-muted-foreground">
+              Customize adhan for each prayer
+            </p>
+          </div>
+        </div>
+        <Button variant="ghost" size="icon" className="shrink-0">
+          {isExpanded ? (
+            <ChevronUp className="w-4 h-4" />
           ) : (
-            <Play className="w-4 h-4" />
+            <ChevronDown className="w-4 h-4" />
           )}
         </Button>
       </div>
-      <p className="text-xs text-muted-foreground mt-2">
-        Select your preferred Adhan for prayer notifications
-      </p>
-      <p className="text-xs text-primary/70 mt-1">
-        Note: Fajr has a dedicated Adhan that cannot be changed
-      </p>
+
+      {isExpanded && (
+        <div className="mt-4 space-y-3">
+          {PRAYERS.map((prayer) => (
+            <div key={prayer} className="flex items-center gap-2">
+              <span className="w-20 text-sm font-medium text-foreground">
+                {prayer}
+              </span>
+              <Select
+                value={preferences[prayer]}
+                onValueChange={(value) => handleAdhanChange(prayer, value)}
+              >
+                <SelectTrigger className="flex-1 bg-background h-9">
+                  <SelectValue placeholder="Select Adhan" />
+                </SelectTrigger>
+                <SelectContent className="bg-popover border-border z-50">
+                  {ALL_ADHAN_OPTIONS.map((adhan) => (
+                    <SelectItem key={adhan.id} value={adhan.id}>
+                      {adhan.name}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <Button
+                variant="outline"
+                size="icon"
+                onClick={() => handlePreview(prayer)}
+                className="shrink-0 h-9 w-9"
+              >
+                {playingPrayer === prayer ? (
+                  <Pause className="w-4 h-4" />
+                ) : (
+                  <Play className="w-4 h-4" />
+                )}
+              </Button>
+            </div>
+          ))}
+
+          <p className="text-xs text-primary/70 mt-3 pt-2 border-t border-border/50">
+            💡 Fajr defaults to a special Adhan, but you can change it
+          </p>
+        </div>
+      )}
     </Card>
   );
 };

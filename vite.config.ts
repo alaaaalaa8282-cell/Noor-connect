@@ -38,6 +38,38 @@ export default defineConfig(({ mode }) => ({
         "icon-152x152.png",
         "icon-384x384.png"
       ],
+      workbox: {
+        runtimeCaching: [
+          {
+            urlPattern: /^https:\/\/api\.aladhan\.com\/v1\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'prayer-times-cache',
+              expiration: {
+                maxEntries: 10,
+                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          },
+          {
+            urlPattern: /^https:\/\/www\.googleapis\.com\/youtube\/v3\/.*/i,
+            handler: 'NetworkFirst',
+            options: {
+              cacheName: 'youtube-api-cache',
+              expiration: {
+                maxEntries: 50,
+                maxAgeSeconds: 60 * 60 * 24 // 1 day
+              },
+              cacheableResponse: {
+                statuses: [0, 200]
+              }
+            }
+          }
+        ]
+      },
       manifest: {
         id: "com.noorconnect.app.v1",
         name: "Noor Connect - Islamic Companion",
@@ -117,31 +149,14 @@ export default defineConfig(({ mode }) => ({
             type: "image/png",
             purpose: "any maskable"
           }
-        ],
-        screenshots: [
-          {
-            src: "/screenshot-mobile.png",
-            sizes: "390x844",
-            type: "image/png",
-            form_factor: "narrow",
-            label: "Noor Connect mobile app showing prayer times and Quran"
-          },
-          {
-            src: "/screenshot-desktop.png",
-            sizes: "1280x720",
-            type: "image/png",
-            form_factor: "wide",
-            label: "Noor Connect desktop app with full dashboard"
-          }
         ]
       },
       injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        maximumFileSizeToCacheInBytes: 3000000,
+        maximumFileSizeToCacheInBytes: 5000000, // Increased for larger assets
       },
       devOptions: {
-        enabled: true,
-        type: 'module'
+        enabled: false // Disable SW in dev to prevent caching of Vite internal files
       }
     })
   ].filter(Boolean),

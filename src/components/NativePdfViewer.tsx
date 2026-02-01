@@ -251,8 +251,8 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
   // Loading state
   if (viewerMode === 'loading') {
     return (
-      <div className="fixed inset-0 bg-background z-[100] flex flex-col">
-        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0">
+      <div className="fixed inset-0 bg-background z-[1000] flex flex-col">
+        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
           <Button size="icon" variant="ghost" onClick={onClose}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -271,8 +271,8 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
   // Error state
   if (viewerMode === 'error') {
     return (
-      <div className="fixed inset-0 bg-background z-[100] flex flex-col">
-        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0">
+      <div className="fixed inset-0 bg-background z-[1000] flex flex-col">
+        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
           <Button size="icon" variant="ghost" onClick={onClose}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -323,9 +323,9 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
     const isArchiveOrg = url.includes('archive.org');
 
     return (
-      <div className="fixed inset-0 bg-background z-[100] flex flex-col">
+      <div className="fixed inset-0 bg-background z-[1000] flex flex-col">
         {/* Header */}
-        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0">
+        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
           <Button size="icon" variant="ghost" onClick={onClose}>
             <ArrowLeft className="w-5 h-5" />
           </Button>
@@ -379,9 +379,9 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
 
   // PDF.js canvas viewer mode (for PDFs without CORS issues)
   return (
-    <div className="fixed inset-0 bg-background z-[100] flex flex-col">
+    <div className="fixed inset-0 bg-background z-[1000] flex flex-col animate-in fade-in slide-in-from-bottom-5 duration-300">
       {/* Header */}
-      <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0">
+      <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
         <Button size="icon" variant="ghost" onClick={onClose}>
           <ArrowLeft className="w-5 h-5" />
         </Button>

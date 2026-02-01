@@ -10,6 +10,7 @@ export interface LocationState {
   longitude: number;
   locationName: string;
   isDetecting: boolean;
+  timeZone?: string;
   lastUpdated: string;
 }
 
@@ -18,6 +19,7 @@ const DEFAULT_LOCATION: LocationState = {
   longitude: 67.0011, // Karachi
   locationName: 'Karachi, Pakistan',
   isDetecting: false,
+  timeZone: 'Asia/Karachi',
   lastUpdated: new Date().toISOString()
 };
 
@@ -48,6 +50,7 @@ const saveLocation = (location: LocationState): void => {
       latitude: location.latitude,
       longitude: location.longitude,
       locationName: location.locationName,
+      timeZone: location.timeZone,
       lastUpdated: location.lastUpdated
     }));
   } catch (error) {
@@ -59,12 +62,13 @@ const saveLocation = (location: LocationState): void => {
 export const useLocationState = () => {
   const [location, setLocationState] = useState<LocationState>(loadStoredLocation);
 
-  const setLocation = useCallback((lat: number, lng: number, name?: string) => {
+  const setLocation = useCallback((lat: number, lng: number, name?: string, timeZone?: string) => {
     const newLocation: LocationState = {
       ...location,
       latitude: lat,
       longitude: lng,
       locationName: name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+      timeZone: timeZone || location.timeZone,
       lastUpdated: new Date().toISOString()
     };
     setLocationState(newLocation);
@@ -96,7 +100,7 @@ export const useLocationState = () => {
       });
 
       const { latitude, longitude } = position.coords;
-      
+
       // Get location name using reverse geocoding (optional)
       let locationName = 'Current Location';
       try {
@@ -104,7 +108,7 @@ export const useLocationState = () => {
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
           { headers: { 'User-Agent': 'IslamicCompanion/1.0' } }
         );
-        
+
         if (response.ok) {
           const data = await response.json();
           if (data.display_name) {

@@ -39,6 +39,8 @@ export class NotificationManager {
   private preferences: NotificationPreferences;
   private lastNotificationDate: string | null = null;
   private isSupported: boolean;
+  private intervalId: ReturnType<typeof setInterval> | null = null;
+  private static instance: NotificationManager | null = null;
 
   constructor() {
     this.isSupported = 'Notification' in window;
@@ -164,10 +166,10 @@ export class NotificationManager {
     }
 
     const today = new Date();
-    
+
     if (isRamadanCountdownPeriod(today)) {
       const daysUntil = getDaysUntilRamadan(today);
-      
+
       if (daysUntil > 0 && daysUntil <= 30) {
         const event: NotificationEvent = {
           id: `ramadan-countdown-${daysUntil}`,
@@ -190,7 +192,7 @@ export class NotificationManager {
 
     const today = new Date();
     const todayStr = today.toDateString();
-    
+
     // Don't send if already sent today
     if (this.lastNotificationDate === todayStr) {
       return;
@@ -199,9 +201,9 @@ export class NotificationManager {
     // Check for Eid-ul-Fitr (10th of Shawwal, Hijri month 10)
     // Check for Eid-ul-Adha (10th of Dhul Hijjah, Hijri month 12)
     // This is simplified - in production, you'd use a proper Hijri calendar API
-    
+
     const eidDates = importantIslamicDates.filter(date => date.type === 'eid');
-    
+
     for (const eid of eidDates) {
       // Simplified check - would need proper Hijri calendar conversion
       if (this.isEidDay(today, eid)) {
@@ -215,7 +217,7 @@ export class NotificationManager {
         };
 
         await this.sendNotification(event);
-        
+
         // Trigger festive UI event
         this.triggerFestiveUI(eid);
         break;
@@ -228,7 +230,7 @@ export class NotificationManager {
     // This is a placeholder - implement proper Hijri calendar conversion
     // For now, using approximate Gregorian dates
     const currentYear = date.getFullYear();
-    
+
     if (eid.id === 'eid-ul-fitr') {
       // Approximate dates for Eid-ul-Fitr
       const eidFitrDates: Record<number, { month: number; day: number }> = {
@@ -239,11 +241,11 @@ export class NotificationManager {
         2029: { month: 2, day: 15 },
         2030: { month: 2, day: 5 },
       };
-      
+
       const targetDate = eidFitrDates[currentYear];
       return targetDate && date.getMonth() === targetDate.month - 1 && date.getDate() === targetDate.day;
     }
-    
+
     if (eid.id === 'eid-ul-adha') {
       // Approximate dates for Eid-ul-Adha
       const eidAdhaDates: Record<number, { month: number; day: number }> = {
@@ -254,11 +256,11 @@ export class NotificationManager {
         2029: { month: 4, day: 25 },
         2030: { month: 4, day: 14 },
       };
-      
+
       const targetDate = eidAdhaDates[currentYear];
       return targetDate && date.getMonth() === targetDate.month - 1 && date.getDate() === targetDate.day;
     }
-    
+
     return false;
   }
 
@@ -270,7 +272,7 @@ export class NotificationManager {
 
     const today = new Date();
     const todayStr = today.toDateString();
-    
+
     // Don't send if already sent today
     if (this.lastNotificationDate === todayStr) {
       return;
@@ -298,7 +300,7 @@ export class NotificationManager {
 
     const today = new Date();
     const todayStr = today.toDateString();
-    
+
     // Don't send if already sent today
     if (this.lastNotificationDate === todayStr) {
       return;
@@ -307,7 +309,7 @@ export class NotificationManager {
     // Send at a specific time (e.g., 9 AM)
     if (today.getHours() === 9 && today.getMinutes() === 0) {
       const hadith = this.getRandomHadith();
-      
+
       const event: NotificationEvent = {
         id: `daily-hadith-${todayStr}`,
         title: 'Daily Hadith',
@@ -329,7 +331,7 @@ export class NotificationManager {
       "The strong believer is better and more beloved to Allah than the weak believer. - Muslim",
       "None of you truly believes until he wishes for his brother what he wishes for himself. - Bukhari",
     ];
-    
+
     return hadiths[Math.floor(Math.random() * hadiths.length)];
   }
 
@@ -344,7 +346,7 @@ export class NotificationManager {
         message: event.notificationMessage,
       },
     });
-    
+
     window.dispatchEvent(customEvent);
   }
 
@@ -362,10 +364,15 @@ export class NotificationManager {
     ]);
   }
 
-  // Start the notification service
+  // Start the notification service - runs outside React render cycle
   start(): void {
-    // Check notifications every minute
-    setInterval(() => {
+    // Prevent duplicate intervals
+    if (this.intervalId !== null) {
+      return;
+    }
+
+    // Check notifications every minute using plain setInterval (outside React)
+    this.intervalId = setInterval(() => {
       this.checkAllNotifications();
     }, 60000);
 
@@ -373,9 +380,12 @@ export class NotificationManager {
     this.checkAllNotifications();
   }
 
-  // Stop the notification service
+  // Stop the notification service and clean up interval
   stop(): void {
-    // In a real implementation, you'd clear the interval
+    if (this.intervalId !== null) {
+      clearInterval(this.intervalId);
+      this.intervalId = null;
+    }
     console.log('Notification service stopped');
   }
 }

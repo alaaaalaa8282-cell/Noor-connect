@@ -1,0 +1,89 @@
+/**
+ * Per-Prayer Adhan Preferences
+ * Allows users to set a specific adhan sound for each prayer
+ */
+
+import { ADHAN_OPTIONS } from '@/components/AdhanSelector';
+
+// Add special Fajr adhan to options
+export const FAJR_ADHAN_OPTION = {
+    id: 'adhan-fajr',
+    name: 'Fajr Special Adhan',
+    url: '/audio/adhan-fajr.mp3'
+};
+
+// All available adhans including Fajr-specific
+export const ALL_ADHAN_OPTIONS = [FAJR_ADHAN_OPTION, ...ADHAN_OPTIONS];
+
+export type PrayerName = 'Fajr' | 'Dhuhr' | 'Asr' | 'Maghrib' | 'Isha';
+
+export interface AdhanPreferences {
+    Fajr: string;
+    Dhuhr: string;
+    Asr: string;
+    Maghrib: string;
+    Isha: string;
+}
+
+const STORAGE_KEY = 'adhan-preferences';
+
+// Default preferences - Fajr gets special adhan, others get Makkah
+const DEFAULT_PREFERENCES: AdhanPreferences = {
+    Fajr: 'adhan-fajr',
+    Dhuhr: 'adhan-makkah',
+    Asr: 'adhan-makkah',
+    Maghrib: 'adhan-makkah',
+    Isha: 'adhan-makkah',
+};
+
+/**
+ * Get all adhan preferences
+ */
+export function getAdhanPreferences(): AdhanPreferences {
+    try {
+        const stored = localStorage.getItem(STORAGE_KEY);
+        if (stored) {
+            return { ...DEFAULT_PREFERENCES, ...JSON.parse(stored) };
+        }
+    } catch (error) {
+        console.error('Failed to load adhan preferences:', error);
+    }
+    return DEFAULT_PREFERENCES;
+}
+
+/**
+ * Get the adhan ID for a specific prayer
+ */
+export function getAdhanForPrayer(prayer: PrayerName): string {
+    const prefs = getAdhanPreferences();
+    return prefs[prayer] || DEFAULT_PREFERENCES[prayer];
+}
+
+/**
+ * Get the adhan URL for a specific prayer
+ */
+export function getAdhanUrlForPrayer(prayer: PrayerName): string {
+    const adhanId = getAdhanForPrayer(prayer);
+    const adhan = ALL_ADHAN_OPTIONS.find(a => a.id === adhanId);
+    return adhan?.url || ALL_ADHAN_OPTIONS[0].url;
+}
+
+/**
+ * Set the adhan for a specific prayer
+ */
+export function setAdhanForPrayer(prayer: PrayerName, adhanId: string): void {
+    try {
+        const prefs = getAdhanPreferences();
+        prefs[prayer] = adhanId;
+        localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+    } catch (error) {
+        console.error('Failed to save adhan preference:', error);
+    }
+}
+
+/**
+ * Reset all preferences to defaults
+ */
+export function resetAdhanPreferences(): void {
+    localStorage.removeItem(STORAGE_KEY);
+}

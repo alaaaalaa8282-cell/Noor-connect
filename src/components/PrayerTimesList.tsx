@@ -1,4 +1,5 @@
 import { useState, useEffect, memo } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
 import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
@@ -7,12 +8,12 @@ import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import type { LocationData, PrayerTimesWithEnd } from "@/hooks/usePrayerTimes";
 import { useCountdown } from "@/hooks/use-countdown";
 import { getTimeFormat, formatPrayerTime } from "@/lib/time-formatter";
-import { 
-  getCurrentPrayer, 
+import {
+  getCurrentPrayer,
   getPrayerStatus,
   isPrayerEndingSoon,
   formatTime,
-  type PrayerWithEndTime 
+  type PrayerWithEndTime
 } from "@/lib/prayer-end-times";
 
 const prayerIcons: Record<string, React.ReactNode> = {
@@ -27,169 +28,69 @@ interface PrayerTimeCardProps {
   prayer: PrayerWithEndTime;
   isCurrent: boolean;
   isNext: boolean;
+  timeZone?: string;
 }
 
-const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNext }) => {
+const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNext, timeZone }) => {
+  const { t } = useLanguage();
   const status = getPrayerStatus(prayer);
   const countdown = isCurrent ? useCountdown(prayer.endTime) : null;
   const isEndingSoon = isCurrent && isPrayerEndingSoon(prayer);
-  
-  // Get current time format preference
   const timeFormat = getTimeFormat();
 
-  const getStatusColor = () => {
-    if (isCurrent) {
-      if (countdown && countdown.totalSeconds <= 300) return 'text-red-500 border-red-200';
-      if (countdown && countdown.totalSeconds <= 600) return 'text-orange-500 border-orange-200';
-      return 'text-primary border-primary/30';
-    }
-    if (isNext) return 'text-blue-500 border-blue-200';
-    return 'text-muted-foreground border-border/50';
-  };
-
-  const getBgColor = () => {
-    if (isCurrent) {
-      if (countdown && countdown.totalSeconds <= 300) return 'bg-red-50';
-      if (countdown && countdown.totalSeconds <= 600) return 'bg-orange-50';
-      return 'bg-primary/5';
-    }
-    if (isNext) return 'bg-blue-50';
-    return 'bg-background';
-  };
-
-  const getCardGlow = () => {
-    // For testing - always show glow for current or next prayer
-    if (!isCurrent || !countdown) {
-      // Test: Show glow for next prayer too
-      if (isNext) return 'shadow-2xl';
-      return '';
-    }
-    if (countdown.totalSeconds <= 300) return 'shadow-2xl'; // Red glow + pulse for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'shadow-xl'; // Orange glow for less than 10 minutes
-    return 'shadow-lg'; // Primary glow for current prayer
-  };
-
-  const getCardBorder = () => {
-    // For testing - always show border for current or next prayer
-    if (!isCurrent || !countdown) {
-      // Test: Show border for next prayer too
-      if (isNext) return 'border-4 border-blue-500';
-      return 'border-border/50';
-    }
-    if (countdown.totalSeconds <= 300) return 'border-4 border-red-500'; // Red border for less than 5 minutes
-    if (countdown.totalSeconds <= 600) return 'border-4 border-orange-500'; // Orange border for less than 10 minutes
-    return 'border-4 border-primary'; // Primary border for current prayer
-  };
-
-  const getCardStyle = () => {
-    if (!isCurrent || !countdown) {
-      // Test: Show glow for next prayer too
-      if (isNext) {
-        return {
-          boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
-          border: '3px solid rgb(59, 130, 246)'
-        };
-      }
-      return {};
-    }
-    if (countdown.totalSeconds <= 300) {
-      return {
-        boxShadow: '0 0 20px rgba(239, 68, 68, 0.5), 0 0 40px rgba(239, 68, 68, 0.3)',
-        border: '3px solid rgb(239, 68, 68)'
-      };
-    }
-    if (countdown.totalSeconds <= 600) {
-      return {
-        boxShadow: '0 0 20px rgba(251, 146, 60, 0.5), 0 0 40px rgba(251, 146, 60, 0.3)',
-        border: '3px solid rgb(251, 146, 60)'
-      };
-    }
-    return {
-      boxShadow: '0 0 20px rgba(59, 130, 246, 0.5), 0 0 40px rgba(59, 130, 246, 0.3)',
-      border: '3px solid rgb(59, 130, 246)'
-    };
-  };
+  // Premium Styles
+  const containerClasses = isCurrent
+    ? "bg-gradient-to-r from-primary/10 to-transparent border-primary/30 shadow-md"
+    : isNext
+      ? "bg-secondary/30 border-secondary shadow-sm"
+      : "bg-card border-transparent hover:bg-accent/30 hover:border-border/50";
 
   return (
-    <Card 
-      className={`transition-all duration-300 ${getCardBorder()} ${getStatusColor()} ${getBgColor()} ${
-        isCurrent ? 'scale-[1.02]' : ''
-      } ${getCardGlow()} min-h-[80px]`}
-      style={getCardStyle()}
-    >
-      <CardContent className="p-4">
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-3">
-            <div className={`w-10 h-10 rounded-full flex items-center justify-center ${
-              isCurrent ? 'bg-primary/20 text-primary' : 'bg-muted'
-            } ${isCurrent && countdown && countdown.totalSeconds <= 300 ? 'animate-pulse' : ''}`}>
-              {isCurrent && isEndingSoon && <AlertTriangle className="w-5 h-5" />}
-              {(!isCurrent || !isEndingSoon) && (prayerIcons[prayer.name] || <Clock className="w-5 h-5" />)}
-            </div>
-            <div className="flex-1">
-              <div className="flex items-center gap-2">
-                <h3 className={`font-semibold ${getStatusColor()}`}>
-                  {prayer.name}
-                </h3>
-                {isCurrent && (
-                  <span className="text-xs px-2 py-1 bg-primary/20 text-primary rounded-full">
-                    Current
-                  </span>
-                )}
-                {isNext && !isCurrent && (
-                  <span className="text-xs px-2 py-1 bg-blue-100 text-blue-600 rounded-full">
-                    Next
-                  </span>
-                )}
-              </div>
-              
-              <div className="flex items-center gap-4 mt-1">
-                <span className="text-sm font-mono">
-                  {formatPrayerTime(prayer.datetime, timeFormat)}
-                </span>
-                <span className="text-xs text-muted-foreground">
-                  → Ends at {formatPrayerTime(prayer.endTime, timeFormat)}
-                </span>
-              </div>
-            </div>
+    <div className={`relative overflow-hidden rounded-xl border p-3.5 transition-all duration-300 group ${containerClasses}`}>
+      {/* Active Indicator Bar */}
+      {isCurrent && (
+        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+      )}
+
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-3.5">
+          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors
+                ${isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'}
+             `}>
+            {prayerIcons[prayer.name] || <Clock className="w-4 h-4" />}
           </div>
-          
-          <div className="text-right">
-            {isCurrent && countdown && (
-              <div className={`text-lg font-mono font-bold ${getStatusColor()}`}>
-                {countdown.formattedTime}
-              </div>
-            )}
-            
-            {status.status === 'upcoming' && status.timeUntilStart && (
-              <div className="text-sm text-muted-foreground">
-                in {Math.ceil(status.timeUntilStart / (1000 * 60))}m
-              </div>
-            )}
-            
-            {status.status === 'past' && (
-              <div className="text-sm text-muted-foreground">
-                Completed
-              </div>
-            )}
+
+          <div className="flex flex-col">
+            <div className="flex items-center gap-2">
+              <h3 className={`font-semibold text-sm ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+                {t(prayer.name.toLowerCase() as any)}
+              </h3>
+              {isCurrent && (
+                <span className="flex h-1.5 w-1.5 rounded-full bg-red-500 animate-pulse" />
+              )}
+            </div>
+            {isNext && !isCurrent && <span className="text-[10px] font-medium text-blue-500">{t('upcoming')}</span>}
           </div>
         </div>
-        
-        {/* Additional info for current prayer */}
-        {isCurrent && countdown && (
-          <div className="mt-3 pt-3 border-t border-border/50">
-            <div className="flex items-center justify-between text-xs">
-              <span className="text-muted-foreground">
-                Started at {formatPrayerTime(prayer.datetime, timeFormat)}
-              </span>
-              <span className={`font-medium ${getStatusColor()}`}>
-                {isEndingSoon ? 'Ending soon!' : countdown.formattedTime}
-              </span>
-            </div>
+
+        <div className="text-right">
+          <div className={`font-mono font-medium text-sm ${isCurrent ? 'text-primary font-bold' : ''}`}>
+            {formatPrayerTime(prayer.datetime, timeFormat, timeZone)}
           </div>
-        )}
-      </CardContent>
-    </Card>
+
+          {/* Countdown for current prayer */}
+          {isCurrent && countdown ? (
+            <div className="text-[10px] font-medium text-red-500 tabular-nums">
+              - {countdown.formattedTime}
+            </div>
+          ) : (
+            <div className="text-[10px] text-muted-foreground opacity-70">
+              {formatPrayerTime(prayer.endTime, timeFormat, timeZone)} {t('end')}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
   );
 };
 
@@ -201,9 +102,11 @@ export interface PrayerTimesListProps {
   needsManualLocation?: boolean;
   refresh?: () => Promise<void>;
   setManualLocation?: (city: string, country: string) => Promise<void>;
+  timeZone?: string;
 }
 
 const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesListProps) {
+  const { t } = useLanguage();
   const prayerTimesHook = usePrayerTimes();
   const prayerTimesWithEnd = props.timings ?? prayerTimesHook.prayerTimesWithEnd;
   const location = props.location ?? prayerTimesHook.location;
@@ -212,58 +115,58 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
   const needsManualLocation = props.needsManualLocation ?? prayerTimesHook.needsManualLocation;
   const refresh = props.refresh ?? prayerTimesHook.refresh;
   const setManualLocation = props.setManualLocation ?? prayerTimesHook.setManualLocation;
-  
+
   // Get current time format preference
   const timeFormat = getTimeFormat();
-  
+
   // Convert to PrayerWithEndTime format for compatibility
   const prayersWithEndTimes: PrayerWithEndTime[] = prayerTimesWithEnd ? [
     {
       name: 'Fajr',
-      time: formatPrayerTime(prayerTimesWithEnd.fajr.start, timeFormat),
+      time: formatPrayerTime(prayerTimesWithEnd.fajr.start, timeFormat, props.timeZone),
       datetime: prayerTimesWithEnd.fajr.start,
       endTime: prayerTimesWithEnd.fajr.end,
-      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.fajr.end, timeFormat)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.fajr.end, timeFormat, props.timeZone)
     },
     {
       name: 'Sunrise',
-      time: formatPrayerTime(prayerTimesWithEnd.sunrise.start, timeFormat),
+      time: formatPrayerTime(prayerTimesWithEnd.sunrise.start, timeFormat, props.timeZone),
       datetime: prayerTimesWithEnd.sunrise.start,
       endTime: prayerTimesWithEnd.sunrise.end,
-      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.sunrise.end, timeFormat)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.sunrise.end, timeFormat, props.timeZone)
     },
     {
       name: 'Dhuhr',
-      time: formatPrayerTime(prayerTimesWithEnd.dhuhr.start, timeFormat),
+      time: formatPrayerTime(prayerTimesWithEnd.dhuhr.start, timeFormat, props.timeZone),
       datetime: prayerTimesWithEnd.dhuhr.start,
       endTime: prayerTimesWithEnd.dhuhr.end,
-      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.dhuhr.end, timeFormat)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.dhuhr.end, timeFormat, props.timeZone)
     },
     {
       name: 'Asr',
-      time: formatPrayerTime(prayerTimesWithEnd.asr.start, timeFormat),
+      time: formatPrayerTime(prayerTimesWithEnd.asr.start, timeFormat, props.timeZone),
       datetime: prayerTimesWithEnd.asr.start,
       endTime: prayerTimesWithEnd.asr.end,
-      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.asr.end, timeFormat)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.asr.end, timeFormat, props.timeZone)
     },
     {
       name: 'Maghrib',
-      time: formatPrayerTime(prayerTimesWithEnd.maghrib.start, timeFormat),
+      time: formatPrayerTime(prayerTimesWithEnd.maghrib.start, timeFormat, props.timeZone),
       datetime: prayerTimesWithEnd.maghrib.start,
       endTime: prayerTimesWithEnd.maghrib.end,
-      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.maghrib.end, timeFormat)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.maghrib.end, timeFormat, props.timeZone)
     },
     {
       name: 'Isha',
-      time: formatPrayerTime(prayerTimesWithEnd.isha.start, timeFormat),
+      time: formatPrayerTime(prayerTimesWithEnd.isha.start, timeFormat, props.timeZone),
       datetime: prayerTimesWithEnd.isha.start,
       endTime: prayerTimesWithEnd.isha.end,
-      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.isha.end, timeFormat)
+      endTimeFormatted: formatPrayerTime(prayerTimesWithEnd.isha.end, timeFormat, props.timeZone)
     }
   ] : [];
 
   const currentPrayer = getCurrentPrayer(prayersWithEndTimes);
-  const nextPrayer = prayersWithEndTimes.find(p => 
+  const nextPrayer = prayersWithEndTimes.find(p =>
     p.datetime > new Date() && p !== currentPrayer
   );
 
@@ -272,7 +175,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('todaysPrayers')}</h2>
           {location && (
             <div className="text-xs text-muted-foreground">
               📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
@@ -282,7 +185,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
             </div>
           )}
         </div>
-        <LocationSearch 
+        <LocationSearch
           onLocationSelect={setManualLocation}
           isLoading={isLoading}
         />
@@ -295,7 +198,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('todaysPrayers')}</h2>
           <div className="h-6 w-32 bg-muted rounded animate-pulse"></div>
         </div>
         <div className="space-y-2">
@@ -330,7 +233,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
     return (
       <div className="space-y-3">
         <div className="flex items-center justify-between mb-4">
-          <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
+          <h2 className="text-lg font-semibold text-foreground">{t('todaysPrayers')}</h2>
           {location && (
             <div className="text-xs text-muted-foreground">
               📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
@@ -348,13 +251,13 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
                 <p className="font-medium">Failed to load prayer times</p>
                 <p className="text-sm">{error}</p>
                 <div className="flex gap-2 mt-2">
-                  <button 
+                  <button
                     onClick={refresh}
                     className="text-sm underline hover:no-underline"
                   >
                     Try again
                   </button>
-                  <button 
+                  <button
                     onClick={() => setManualLocation("Mecca", "Saudi Arabia")}
                     className="text-sm underline hover:no-underline"
                   >
@@ -376,7 +279,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
   return (
     <div className="space-y-3 min-h-[600px]">
       <div className="flex items-center justify-between mb-4">
-        <h2 className="text-lg font-semibold text-foreground">Prayer Times</h2>
+        <h2 className="text-lg font-semibold text-foreground">{t('todaysPrayers')}</h2>
         {location && (
           <div className="text-xs text-muted-foreground">
             📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
@@ -392,6 +295,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
           prayer={prayer}
           isCurrent={currentPrayer?.name === prayer.name}
           isNext={nextPrayer?.name === prayer.name}
+          timeZone={props.timeZone}
         />
       ))}
     </div>

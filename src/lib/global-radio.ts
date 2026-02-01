@@ -45,8 +45,9 @@ const loadStoredRadioState = (): RadioState => {
       };
     }
   } catch {
-    return DEFAULT_RADIO_STATE;
+    // Fall through to return default
   }
+  return DEFAULT_RADIO_STATE;
 };
 
 // Save radio state to localStorage

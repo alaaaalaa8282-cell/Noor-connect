@@ -1,6 +1,7 @@
 import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { getSelectedAdhanUrl, stopAllAdhanPreviews } from '@/components/AdhanSelector';
+import { stopAllAdhanPreviews } from '@/components/AdhanSelector';
+import { getAdhanUrlForPrayer, type PrayerName } from '@/lib/adhan-preferences';
 
 interface PrayerTime {
   name: string;
@@ -9,7 +10,6 @@ interface PrayerTime {
 
 const STORAGE_KEY = 'prayer-alarm-enabled';
 const LAST_PLAYED_KEY = 'prayer-alarm-last-played';
-const FAJR_ADHAN_URL = '/audio/adhan-fajr.mp3';
 
 // Global audio instance for prayer alarm to prevent multiple instances
 let prayerAlarmAudio: HTMLAudioElement | null = null;
@@ -48,12 +48,12 @@ export const usePrayerAlarm = () => {
       const response = await fetch(
         `https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=2`
       );
-      
+
       if (!response.ok) throw new Error('Failed to fetch prayer times');
-      
+
       const data = await response.json();
       const timings = data.data.timings;
-      
+
       prayerTimesRef.current = [
         { name: 'Fajr', time: timings.Fajr },
         { name: 'Dhuhr', time: timings.Dhuhr },
@@ -77,7 +77,7 @@ export const usePrayerAlarm = () => {
 
     for (const prayer of prayerTimesRef.current) {
       const prayerKey = `${todayDate}-${prayer.name}`;
-      
+
       if (prayer.time === currentTimeStr && lastPlayed !== prayerKey) {
         // It's prayer time!
         localStorage.setItem(LAST_PLAYED_KEY, prayerKey);
@@ -100,10 +100,13 @@ export const usePrayerAlarm = () => {
       prayerAlarmAudio = null;
     }
 
-    // Use dedicated Fajr Adhan for Fajr prayer, otherwise use user selection
-    const adhanUrl = prayerName === 'Fajr' ? FAJR_ADHAN_URL : getSelectedAdhanUrl();
+    // Get the adhan URL for this specific prayer (or default for non-standard prayers)
+    const validPrayers: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const adhanUrl = validPrayers.includes(prayerName as PrayerName)
+      ? getAdhanUrlForPrayer(prayerName as PrayerName)
+      : getAdhanUrlForPrayer('Dhuhr'); // Default for test/unknown prayers
     prayerAlarmAudio = new Audio(adhanUrl);
-    
+
     prayerAlarmAudio.addEventListener('ended', () => {
       setIsPlaying(false);
       setCurrentPrayer(null);
@@ -163,7 +166,7 @@ export const usePrayerAlarm = () => {
     }
 
     // Create a temporary audio to unlock audio playback
-    const tempAudio = new Audio(getSelectedAdhanUrl());
+    const tempAudio = new Audio(getAdhanUrlForPrayer('Dhuhr'));
     tempAudio.volume = 0;
     try {
       await tempAudio.play();
@@ -174,10 +177,10 @@ export const usePrayerAlarm = () => {
 
     setIsEnabled(true);
     localStorage.setItem(STORAGE_KEY, 'true');
-    
+
     // Fetch prayer times immediately
     await fetchPrayerTimes();
-    
+
     toast.success('Prayer Alarm Enabled', {
       description: 'You will hear the Adhan when prayer time arrives.',
     });
@@ -203,7 +206,7 @@ export const usePrayerAlarm = () => {
   useEffect(() => {
     if (isEnabled) {
       fetchPrayerTimes();
-      
+
       // Check every 30 seconds
       checkIntervalRef.current = setInterval(() => {
         checkPrayerTime();

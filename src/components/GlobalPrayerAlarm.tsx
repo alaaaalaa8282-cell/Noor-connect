@@ -1,7 +1,7 @@
 import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { prayerTimesApiResponseSchema, safeParseApiResponse } from '@/lib/api-schemas';
-import { getSelectedAdhanUrl } from '@/components/AdhanSelector';
+import { getAdhanUrlForPrayer, type PrayerName } from '@/lib/adhan-preferences';
 import { localNotifications } from '@/lib/local-notifications';
 
 const ADHAN_AUDIO_URL = 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/azan.mp3';
@@ -75,8 +75,11 @@ export const GlobalPrayerAlarm = () => {
     // 2. Guard against overlapping plays
     if (checkIntervalRef.current === null && !localStorage.getItem(STORAGE_KEY)) return;
 
-    // 3. Setup Adhan Audio
-    const adhanUrl = getSelectedAdhanUrl();
+    // 3. Setup Adhan Audio - use per-prayer preference
+    const validPrayers: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const adhanUrl = validPrayers.includes(prayerName as PrayerName)
+      ? getAdhanUrlForPrayer(prayerName as PrayerName)
+      : getAdhanUrlForPrayer('Dhuhr');
     const audio = new Audio(adhanUrl);
     audioRef.current = audio; // Keep reference to prevent GC
     audio.volume = 0.8;

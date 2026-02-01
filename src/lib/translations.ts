@@ -1,0 +1,205 @@
+export type Language = 'en' | 'ar' | 'ur';
+
+export const translations = {
+    en: {
+        appTitle: "Noor Connect",
+        // Navigation
+        home: "Home",
+        quran: "Quran",
+        qibla: "Qibla",
+        settings: "Settings",
+        profile: "Profile",
+
+        // Dashboard
+        nextPrayer: "Next Prayer",
+        todaysPrayers: "Today's Prayers",
+        viewAll: "View All",
+        dailyAyah: "Daily Ayah",
+        dailyHadith: "Daily Hadith",
+        readMore: "Read More",
+        share: "Share",
+
+        // Features
+        qazaTracker: "Qaza Tracker",
+        ramadanMode: "Ramadan Mode",
+        zakatCalculator: "Zakat Calculator",
+        islamicQuiz: "Islamic Quiz",
+        namesOfAllah: "99 Names",
+        tasbih: "Dhikr",
+        tracker: "Tracker",
+        calc: "Calc",
+        mode: "Mode",
+        islamic: "Islamic",
+        ofAllah: "of Allah",
+        direction: "Direction",
+
+        // Prayers
+        fajr: "Fajr",
+        sunrise: "Sunrise",
+        dhuhr: "Dhuhr",
+        asr: "Asr",
+        maghrib: "Maghrib",
+        isha: "Isha",
+
+        // Settings
+        appearance: "Appearance",
+        darkMode: "Dark Mode",
+        language: "Language",
+        prayerSettings: "Prayer Settings",
+        calculationMethod: "Calculation Method",
+        madhab: "Asr Calculation (Madhab)",
+        timeFormat: "Time Format",
+        audioSettings: "Audio Settings",
+        storageBackup: "Storage & Backup",
+        contactSupport: "Contact & Support",
+        about: "About Noor Connect",
+
+        // Misc
+        location: "Location",
+        detecting: "Detecting...",
+        manual: "Manual",
+        joinDiscord: "Join our Discord",
+        contactDeveloper: "Contact Developer",
+        makeDua: "Make Dua for Me",
+        upcoming: "Upcoming",
+        end: "end",
+        searchSurah: "Search Surah...",
+        ayahs: "Ayahs",
+        juz: "Juz",
+        surahs: "Surahs"
+    },
+    ar: {
+        appTitle: "نور كونيكت",
+        // Navigation
+        home: "الرئيسية",
+        quran: "القرآن",
+        qibla: "القبلة",
+        settings: "الإعدادات",
+        profile: "الملف الشخصي",
+
+        // Dashboard
+        nextPrayer: "الصلاة القادمة",
+        todaysPrayers: "صلوات اليوم",
+        viewAll: "عرض الكل",
+        dailyAyah: "آية اليوم",
+        dailyHadith: "حديث اليوم",
+        readMore: "اقرأ المزيد",
+        share: "مشاركة",
+
+        // Features
+        qazaTracker: "تتبع القضاء",
+        ramadanMode: "وضع رمضان",
+        zakatCalculator: "حاسبة الزكاة",
+        islamicQuiz: "مسابقة إسلامية",
+        namesOfAllah: "أسماء الله الحسنى",
+        tasbih: "الأذكار",
+        tracker: "تتبع",
+        calc: "حاسبة",
+        mode: "وضع",
+        islamic: "إسلامي",
+        ofAllah: "لله",
+        direction: "اتجاه",
+
+        // Prayers
+        fajr: "الفجر",
+        sunrise: "الشروق",
+        dhuhr: "الظهر",
+        asr: "العصر",
+        maghrib: "المغرب",
+        isha: "العشاء",
+
+        // Settings
+        appearance: "المظهر",
+        darkMode: "الوضع الداكن",
+        language: "اللغة",
+        prayerSettings: "إعدادات الصلاة",
+        calculationMethod: "طريقة الحساب",
+        madhab: "حساب العصر (المذهب)",
+        timeFormat: "تنسيق الوقت",
+        audioSettings: "إعدادات الصوت",
+        storageBackup: "التخزين والنسخ الاحتياطي",
+        contactSupport: "الاتصال والدعم",
+        about: "عن نور كونيكت",
+
+        // Misc
+        location: "الموقع",
+        detecting: "جار الكشف...",
+        manual: "يدوي",
+        joinDiscord: "انضم إلى ديسكورد",
+        contactDeveloper: "تواصل مع المطور",
+        makeDua: "ادع لي",
+        upcoming: "قادم",
+        end: "ينتهي",
+        searchSurah: "البحث عن سورة...",
+        ayahs: "آيات",
+        juz: "جزء",
+        surahs: "سور"
+    },
+    ur: {
+        appTitle: "نور کنیکٹ",
+        // Navigation
+        home: "ہوم",
+        quran: "قرآن",
+        qibla: "قبلہ",
+        settings: "ترتیبات",
+        profile: "پروفائل",
+
+        // Dashboard
+        nextPrayer: "اگلی نماز",
+        todaysPrayers: "آج کی نمازیں",
+        viewAll: "سب دیکھیں",
+        dailyAyah: "آج کی آیت",
+        dailyHadith: "آج کی حدیث",
+        readMore: "مزید پڑھیں",
+        share: "شیئر کریں",
+
+        // Features
+        qazaTracker: "قضا ٹریکر",
+        ramadanMode: "رمضان موڈ",
+        zakatCalculator: "زکوٰۃ کیلکولیٹر",
+        islamicQuiz: "اسلامی کوئز",
+        namesOfAllah: "اللہ کے 99 نام",
+        tasbih: "اذکار",
+        tracker: "ٹریکر",
+        calc: "کیلکولیٹر",
+        mode: "موڈ",
+        islamic: "اسلامی",
+        ofAllah: "اللہ کے",
+        direction: "سمت",
+
+        // Prayers
+        fajr: "فجر",
+        sunrise: "طلوع آفتاب",
+        dhuhr: "ظہر",
+        asr: "عصر",
+        maghrib: "مغرب",
+        isha: "عشاء",
+
+        // Settings
+        appearance: "ظاہری شکل",
+        darkMode: "ڈارک موڈ",
+        language: "زبان",
+        prayerSettings: "نماز کی ترتیبات",
+        calculationMethod: "حساب کا طریقہ",
+        madhab: "عصر کا حساب (مذہب)",
+        timeFormat: "وقت کا فارمیٹ",
+        audioSettings: "آڈیو ترتیبات",
+        storageBackup: "اسٹوریج اور بیک اپ",
+        contactSupport: "رابطہ اور سپورٹ",
+        about: "نور کنیکٹ کے بارے میں",
+
+        // Misc
+        location: "مقام",
+        detecting: "تلاش جاری...",
+        manual: "دستی",
+        joinDiscord: "ڈسکارڈ میں شامل ہوں",
+        contactDeveloper: "ڈویلپر سے رابطہ",
+        makeDua: "میرے لیے دعا کریں",
+        upcoming: "آنے والا",
+        end: "ختم",
+        searchSurah: "سورت تلاش کریں...",
+        ayahs: "آیات",
+        juz: "پارہ",
+        surahs: "سورتیں"
+    }
+};

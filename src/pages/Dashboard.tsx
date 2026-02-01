@@ -1,10 +1,10 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass } from "lucide-react";
 import { AppBar } from "@/components/AppBar";
-import { SalahTracker } from "@/components/SalahTracker";
-import { WeeklySalahChart } from "@/components/WeeklySalahChart";
+const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
+const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
 import { QazaTracker } from "@/components/QazaTracker";
 import { DailyAyah } from "@/components/DailyAyah";
 import { DailyHadith } from "@/components/DailyHadith";
@@ -13,9 +13,10 @@ import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { LocationSearch } from "@/components/LocationSearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Suspense, lazy } from "react";
+
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { LayoutManager } from "@/components/LayoutManager";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 // Dynamic imports for code splitting
 const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
@@ -27,6 +28,7 @@ import { localNotifications, type PrayerTime } from "@/lib/local-notifications";
 import { useToast } from "@/hooks/use-toast";
 import { LocationCardSkeleton, PrayerTimeSkeleton, CountdownCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
+import { GeocodingService } from "@/lib/geocoding";
 
 const prayerIcons: Record<string, React.ReactNode> = {
   Fajr: <Moon className="w-5 h-5" />,
@@ -38,6 +40,7 @@ const prayerIcons: Record<string, React.ReactNode> = {
 
 export default function Dashboard() {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [greeting, setGreeting] = useState("");
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
@@ -101,11 +104,12 @@ export default function Dashboard() {
 
   // Load prayer times using global location
   const loadPrayerTimes = useCallback(async () => {
+    if (!location.latitude || !location.longitude) return;
     setLoadingAPI(true);
 
     try {
-      // Check if we have cached data
-      const hasValidCache = AladhanAPI.isCachedDataValid();
+      // Check if we have cached data for this specific location
+      const hasValidCache = AladhanAPI.isCachedDataValid(location.latitude, location.longitude);
 
       if (!hasValidCache) {
         // Fetch fresh data for current month
@@ -118,22 +122,26 @@ export default function Dashboard() {
         );
       }
 
-      // Get timezone from stored data
-      const storedData = AladhanAPI.getStoredMonthlyData();
-      if (storedData?.data?.length) {
-        // Find today's data or fallback to first entry
-        const today = storedData.data.find(d => {
-          const apiDate = new Date(d.date.gregorian.date);
-          return apiDate.toDateString() === new Date().toDateString();
-        }) || storedData.data[0];
+      // Get today's prayer times and metadata (including timezone)
+      const { timings, timezone: fetchedTimezone } = await AladhanAPI.getTodaysPrayerTimes(location.latitude, location.longitude, 1);
 
-        if (today?.meta?.timezone) {
-          setTimezone(today.meta.timezone);
-        }
+      // Update global location state with the fetched timezone if it's different or not set
+      if (fetchedTimezone && fetchedTimezone !== location.timeZone) {
+        location.setLocation(location.latitude, location.longitude, location.locationName, fetchedTimezone);
       }
 
-      // Get today's prayer times
-      const timings = await AladhanAPI.getTodaysPrayerTimes(location.latitude, location.longitude, 1);
+      // Get Hijri date from stored data
+      const storedData = AladhanAPI.getStoredMonthlyData();
+      if (storedData?.data?.length) {
+        const today = storedData.data.find(day => {
+          const dayDate = new Date(parseInt(day.date.timestamp) * 1000);
+          return dayDate.toDateString() === new Date().toDateString();
+        }) || storedData.data[0];
+
+        if (today?.date?.hijri) {
+          setHijriDate(`${today.date.hijri.day} ${today.date.hijri.month.en} ${today.date.hijri.year}`);
+        }
+      }
 
       const prayerList: PrayerTime[] = [
         { name: "Fajr", time: formatTimeFromAPI(timings.Fajr), date: parseTimeToDate(timings.Fajr) },
@@ -165,14 +173,6 @@ export default function Dashboard() {
         { name: "Isha", time: formatTimeFromAPI(times.isha.toTimeString().slice(0, 5)), date: times.isha },
       ]);
 
-      setPrayers([
-        { name: "Fajr", time: formatTimeFromAPI(times.fajr.toTimeString().slice(0, 5)), date: times.fajr },
-        { name: "Dhuhr", time: formatTimeFromAPI(times.dhuhr.toTimeString().slice(0, 5)), date: times.dhuhr },
-        { name: "Asr", time: formatTimeFromAPI(times.asr.toTimeString().slice(0, 5)), date: times.asr },
-        { name: "Maghrib", time: formatTimeFromAPI(times.maghrib.toTimeString().slice(0, 5)), date: times.maghrib },
-        { name: "Isha", time: formatTimeFromAPI(times.isha.toTimeString().slice(0, 5)), date: times.isha },
-      ]);
-
       const { getNextPrayer } = await import('@/lib/prayer-calculator');
       const nextPrayer = getNextPrayer(location.latitude, location.longitude);
       if (nextPrayer) {
@@ -182,18 +182,38 @@ export default function Dashboard() {
       setLoadingAPI(false);
       setInitialLoad(false);
     }
-  }, [location.latitude, location.longitude, formatTimeFromAPI]); // Add dependencies
+  }, [location.latitude, location.longitude, location.timeZone, location.locationName, formatTimeFromAPI, parseTimeToDate]); // Add dependencies
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-
-    const hour = new Date().getHours();
-    if (hour < 12) setGreeting("Good Morning");
-    else if (hour < 18) setGreeting("Good Afternoon");
-    else setGreeting("Good Evening");
-
     return () => clearInterval(timer);
   }, []);
+
+  // Update greeting based on target timezone
+  useEffect(() => {
+    const getTargetHour = () => {
+      try {
+        const options: Intl.DateTimeFormatOptions = {
+          hour: 'numeric',
+          hour12: false,
+          timeZone: location.timeZone || undefined,
+        };
+        const formatter = new Intl.DateTimeFormat('en-US', options);
+        const parts = formatter.formatToParts(currentTime);
+        const hourPart = parts.find(p => p.type === 'hour');
+        return hourPart ? parseInt(hourPart.value, 10) : currentTime.getHours();
+      } catch (e) {
+        return currentTime.getHours();
+      }
+    };
+
+    const hour = getTargetHour();
+    if (hour < 5) setGreeting("Good Night");
+    else if (hour < 12) setGreeting("Good Morning");
+    else if (hour < 17) setGreeting("Good Afternoon");
+    else if (hour < 21) setGreeting("Good Evening");
+    else setGreeting("Good Night");
+  }, [currentTime, location.timeZone]);
 
   // Handle location detection
   const handleDetectLocation = async () => {
@@ -240,7 +260,7 @@ export default function Dashboard() {
               </div>
               <div className="flex-1">
                 <h3 className="font-medium text-sm">{prayer.name}</h3>
-                {isNext && <p className="text-xs opacity-80">Next Prayer</p>}
+                {isNext && <p className="text-xs opacity-80">{t('nextPrayer')}</p>}
               </div>
               <div className="text-xl font-bold font-mono">
                 {prayer.time}
@@ -280,68 +300,75 @@ export default function Dashboard() {
   return (
     <LayoutManager>
       <div className="min-h-screen bg-background">
-        <AppBar title="Noor Connect" />
+        <AppBar title={t('appTitle')} />
 
         <div className="max-w-lg mx-auto p-4 space-y-4">
           {/* Header */}
-          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/20 p-6 animate-fade-in">
-            {/* Decorative elements */}
-            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/30 to-transparent rounded-full blur-3xl"></div>
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-primary/20 to-transparent rounded-full blur-2xl"></div>
+          {/* Premium Hero Card */}
+          <div className="relative overflow-hidden rounded-3xl shadow-xl transition-all duration-300 hover:shadow-2xl group">
+            {/* Background with Gradient and Pattern */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-[#b38b5d] opacity-100"></div>
 
-            <div className="relative z-10 text-center space-y-3">
-              <div className="flex items-center justify-center gap-2">
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                  {greeting}!
-                </h1>
-                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              </div>
+            {/* Islamic Pattern Overlay (Abstract) */}
+            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] bg-repeat"></div>
 
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <Calendar className="w-4 h-4" />
-                <span className="font-medium">
-                  {currentTime.toLocaleDateString("en-US", {
-                    weekday: "long",
-                    month: "short",
-                    day: "numeric",
-                  })}
-                </span>
-              </div>
+            {/* Animated Glow Orbs */}
+            <div className="absolute top-[-50px] right-[-50px] w-40 h-40 bg-[#e0c097] rounded-full blur-[60px] opacity-20 animate-pulse"></div>
+            <div className="absolute bottom-[-30px] left-[-30px] w-32 h-32 bg-[#4fd1c5] rounded-full blur-[50px] opacity-20 animate-pulse"></div>
 
-              {locationLabel && (
-                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                  <MapPin className="w-4 h-4" />
-                  <span className="font-medium">
-                    {locationLabel}
-                  </span>
-                  {prayerLocation?.source === 'manual' && (
-                    <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                      Manual
-                    </span>
-                  )}
-                  {prayerLocation?.source === 'default' && (
-                    <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-full">
-                      Default
-                    </span>
-                  )}
-                </div>
-              )}
+            {/* Content Container */}
+            <div className="relative z-10 p-6 sm:p-8 flex flex-col items-center text-white space-y-4">
 
-              <div className="relative">
-                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 blur-xl"></div>
-                <div className="relative bg-card/50 backdrop-blur-sm rounded-xl border border-primary/20 px-6 py-3">
-                  <div className="text-2xl font-mono font-bold text-primary tracking-wider">
-                    {currentTime.toLocaleTimeString("en-US", {
-                      hour: timeFormat === '12' ? 'numeric' : '2-digit',
-                      minute: "2-digit",
-                      hour12: timeFormat === '12',
-                      timeZone: timezone || undefined
+              {/* Top Row: Date & Hijri */}
+              <div className="w-full flex justify-between items-center text-xs sm:text-sm font-medium text-white/80">
+                <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
+                  <Calendar className="w-3.5 h-3.5" />
+                  <span>
+                    {currentTime.toLocaleDateString("en-US", {
+                      weekday: "short",
+                      day: "numeric",
+                      month: "short"
                     })}
-                  </div>
+                  </span>
                 </div>
+                {hijriDate && (
+                  <div className="font-arabic tracking-wide text-[#e0c097]">
+                    {hijriDate}
+                  </div>
+                )}
               </div>
+
+              {/* Center: Greeting & Time */}
+              <div className="flex flex-col items-center space-y-1 py-2">
+                <div className="flex items-center gap-2 mb-1">
+                  <span className="text-sm font-medium tracking-widest uppercase text-[#e0c097]/90">
+                    {greeting}
+                  </span>
+                </div>
+
+                <h1 className="text-6xl sm:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-sm font-mono">
+                  {currentTime.toLocaleTimeString("en-US", {
+                    hour: timeFormat === '12' ? 'numeric' : '2-digit',
+                    minute: "2-digit",
+                    hour12: false,
+                    timeZone: location.timeZone || undefined
+                  })}
+                  <span className="text-xl sm:text-2xl ml-2 font-light text-white/60 tracking-normal font-sans">
+                    {timeFormat === '12' ? currentTime.toLocaleTimeString("en-US", { hour12: true, timeZone: location.timeZone }).split(' ')[1] : ''}
+                  </span>
+                </h1>
+
+                <p className="text-xs text-white/50 font-medium tracking-wide uppercase flex items-center gap-1.5 mt-1">
+                  <MapPin className="w-3 h-3" />
+                  {locationLabel}
+                  {location.timeZone && <span className="text-white/30">• {location.timeZone.split('/')[1]?.replace('_', ' ')}</span>}
+                </p>
+              </div>
+
             </div>
+
+            {/* Bottom Glass Bar */}
+            <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#e0c097]/50 to-transparent"></div>
           </div>
 
           {/* Hijri Date */}
@@ -365,6 +392,7 @@ export default function Dashboard() {
                 needsManualLocation={prayerTimesHook.needsManualLocation}
                 refresh={prayerTimesHook.refresh}
                 setManualLocation={prayerTimesHook.setManualLocation}
+                timeZone={location.timeZone}
               />
             </Suspense>
           </ErrorBoundary>
@@ -385,6 +413,7 @@ export default function Dashboard() {
                 needsManualLocation={prayerTimesHook.needsManualLocation}
                 refresh={prayerTimesHook.refresh}
                 setManualLocation={prayerTimesHook.setManualLocation}
+                timeZone={location.timeZone}
               />
             </Suspense>
           </ErrorBoundary>
@@ -399,62 +428,44 @@ export default function Dashboard() {
           <DhikrReminder />
 
           {/* Quick Access */}
-          <div className="grid grid-cols-2 gap-3">
-            <Card
-              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-              onClick={() => handleCardClick('Qibla Compass', '/qibla')}
-            >
-              <Compass className="w-6 h-6 text-primary mb-2" />
-              <p className="font-medium text-sm">Qibla Compass</p>
-              <p className="text-xs text-muted-foreground">Find prayer direction</p>
-            </Card>
-            <Card
-              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-              onClick={() => handleCardClick('Qaza Tracker', '/qaza')}
-            >
-              <Calendar className="w-6 h-6 text-primary mb-2" />
-              <p className="font-medium text-sm">Qaza Tracker</p>
-              <p className="text-xs text-muted-foreground">Manage missed prayers</p>
-            </Card>
-            <Card
-              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-              onClick={() => handleCardClick('Ramadan Mode', '/ramadan')}
-            >
-              <BookOpen className="w-6 h-6 text-primary mb-2" />
-              <p className="font-medium text-sm">Ramadan Mode</p>
-              <p className="text-xs text-muted-foreground">Fasting & Quran tracker</p>
-            </Card>
-            <Card
-              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-              onClick={() => handleCardClick('Zakat Calculator', '/zakat')}
-            >
-              <Calculator className="w-6 h-6 text-primary mb-2" />
-              <p className="font-medium text-sm">Zakat Calculator</p>
-              <p className="text-xs text-muted-foreground">Calculate your zakat</p>
-            </Card>
-            <Card
-              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-              onClick={() => handleCardClick('Islamic Quiz', '/quiz')}
-            >
-              <Trophy className="w-6 h-6 text-primary mb-2" />
-              <p className="font-medium text-sm">Islamic Quiz</p>
-              <p className="text-xs text-muted-foreground">Test your knowledge</p>
-            </Card>
-            <Card
-              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors col-span-2 interactive-layer"
-              onClick={() => handleCardClick('99 Names of Allah', '/names-of-allah')}
-            >
-              <Star className="w-6 h-6 text-primary mb-2" />
-              <p className="font-medium text-sm">99 Names of Allah</p>
-              <p className="text-xs text-muted-foreground">Learn the beautiful names</p>
-            </Card>
+          {/* Quick Access Grid */}
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+            {[
+              { icon: Compass, label: t('qibla'), sub: t('direction'), link: '/qibla', color: 'text-emerald-500' },
+              { icon: Calendar, label: t('qazaTracker'), sub: t('tracker'), link: '/qaza', color: 'text-orange-500' },
+              { icon: BookOpen, label: t('ramadanMode'), sub: t('mode'), link: '/ramadan', color: 'text-blue-500' },
+              { icon: Calculator, label: t('zakatCalculator'), sub: t('calc'), link: '/zakat', color: 'text-purple-500' },
+              { icon: Trophy, label: t('islamicQuiz'), sub: t('islamic'), link: '/quiz', color: 'text-yellow-500' },
+              { icon: Star, label: t('namesOfAllah'), sub: t('ofAllah'), link: '/names-of-allah', color: 'text-teal-500' },
+            ].map((item, idx) => (
+              <div
+                key={idx}
+                className="group relative overflow-hidden rounded-2xl bg-card border border-border/50 p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer"
+                onClick={() => handleCardClick(item.label, item.link)}
+              >
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                <div className="relative z-10 flex flex-col items-center text-center gap-2">
+                  <div className={`p-2.5 rounded-full bg-background shadow-sm group-hover:scale-110 transition-transform ${item.color}`}>
+                    <item.icon className="w-6 h-6" />
+                  </div>
+                  <div className="space-y-0.5">
+                    <h3 className="font-semibold text-sm">{item.label}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.sub}</p>
+                  </div>
+                </div>
+              </div>
+            ))}
           </div>
 
           {/* Salah Tracker */}
-          <SalahTracker />
+          <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
+            <SalahTracker />
+          </Suspense>
 
           {/* Weekly Progress Chart */}
-          <WeeklySalahChart />
+          <Suspense fallback={<div className="h-60 bg-muted/20 animate-pulse rounded-lg" />}>
+            <WeeklySalahChart />
+          </Suspense>
 
           {/* Qaza Tracker (compact view) */}
           <QazaTracker compact />
@@ -466,7 +477,7 @@ export default function Dashboard() {
             <Card className="p-4 border-border">
               <div className="flex items-center justify-between">
                 <div>
-                  <h3 className="font-medium text-sm">Location</h3>
+                  <h3 className="font-medium text-sm">{t('location')}</h3>
                   <p className="text-xs text-muted-foreground">{location.locationName}</p>
                 </div>
                 <div className="flex gap-2">
@@ -477,7 +488,7 @@ export default function Dashboard() {
                     className="gap-2"
                   >
                     <MapPin className="w-4 h-4" />
-                    Manual
+                    {t('manual')}
                   </Button>
                   <Button
                     variant="outline"
@@ -489,12 +500,12 @@ export default function Dashboard() {
                     {location.isDetecting ? (
                       <>
                         <LoadingSpinner size="sm" />
-                        Detecting...
+                        {t('detecting')}
                       </>
                     ) : (
                       <>
                         <Navigation className="w-4 h-4" />
-                        Detect Location
+                        {t('location')}
                       </>
                     )}
                   </Button>
@@ -522,12 +533,52 @@ export default function Dashboard() {
                   </div>
                   <LocationSearch
                     onLocationSelect={async (city, country) => {
-                      await prayerTimesHook.setManualLocation(city, country);
-                      setShowManualLocationDialog(false);
-                      toast({
-                        title: "Location Updated",
-                        description: `Prayer times updated for ${city}, ${country}`
-                      });
+                      try {
+                        setLoadingAPI(true);
+
+                        // Clear stale prayer data cache to force fresh fetch for new location
+                        AladhanAPI.clearCachedData();
+
+                        // Step 1: Get coordinates
+                        const coords = await GeocodingService.getCityCoordinates(city, country);
+
+                        // Step 2: Fetch EVERYTHING (times + timezone) from Aladhan API
+                        const result = await AladhanAPI.getTodaysPrayerTimes(
+                          coords.latitude,
+                          coords.longitude,
+                          1
+                        );
+
+                        const fetchedTimezone = result.timezone;
+
+                        console.log(`[Dashboard] Selected ${city}, fetched timezone: ${fetchedTimezone}`);
+
+                        // Step 3: Set state synchronously
+                        location.setLocation(
+                          coords.latitude,
+                          coords.longitude,
+                          `${city}, ${country}`,
+                          fetchedTimezone
+                        );
+
+                        // Step 4: Refresh hook
+                        await prayerTimesHook.setManualLocation(city, country);
+
+                        setShowManualLocationDialog(false);
+                        toast({
+                          title: "Location Updated",
+                          description: `Time adjusted to ${fetchedTimezone}`
+                        });
+                      } catch (err) {
+                        console.error('[Dashboard] Location selection error:', err);
+                        toast({
+                          title: "Selection Failed",
+                          description: "Could not sync timezone. Please try again.",
+                          variant: "destructive"
+                        });
+                      } finally {
+                        setLoadingAPI(false);
+                      }
                     }}
                     isLoading={prayerTimesHook.isLoading}
                   />

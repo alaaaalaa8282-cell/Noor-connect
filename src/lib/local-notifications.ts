@@ -167,11 +167,13 @@ export class LocalNotificationManager {
         );
       } else {
         // Use coordinates-based API
-        timings = await AladhanAPI.getTodaysPrayerTimes(
+        // Use coordinates-based API
+        const result = await AladhanAPI.getTodaysPrayerTimes(
           locationData.latitude,
           locationData.longitude,
           1 // Muslim World League method
         );
+        timings = result.timings;
       }
 
       const notifications = [];
@@ -452,10 +454,33 @@ export class LocalNotificationManager {
    * Show an immediate notification using Service Worker Registration
    * Task 2: Native Push Notifications logic
    */
+  /**
+   * Helper to get the active SW registration
+   */
+  private async getSWRegistration(): Promise<ServiceWorkerRegistration | null> {
+    if (swRegistration) return swRegistration;
+    if ('serviceWorker' in navigator) {
+      try {
+        const reg = await navigator.serviceWorker.ready;
+        swRegistration = reg;
+        return reg;
+      } catch (e) {
+        console.error('Error getting SW registration:', e);
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Show an immediate notification using Service Worker Registration
+   * Task 2: Native Push Notifications logic
+   */
   async showNativeNotification(title: string, body: string, data: any = {}): Promise<void> {
     try {
-      if (!swRegistration) {
-        // Fallback if SW not ready
+      const reg = await this.getSWRegistration();
+
+      if (!reg) {
+        // Fallback for Safari/No-SW environments
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(title, {
             body,
@@ -480,7 +505,7 @@ export class LocalNotificationManager {
         tag: data.tag || 'prayer-reminder'
       };
 
-      await swRegistration.showNotification(title, options);
+      await reg.showNotification(title, options);
       console.log('Native SW notification shown:', title);
     } catch (error) {
       console.error('Failed to show native notification:', error);

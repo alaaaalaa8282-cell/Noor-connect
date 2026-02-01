@@ -206,7 +206,10 @@ export function GlobalRadioPlayer() {
     const audio = audioRef.current;
     if (!audio || !globalRadio) return;
 
-    audio.volume = globalRadio.isMuted ? 0 : globalRadio.volume / 100;
+    const volume = globalRadio.isMuted ? 0 : globalRadio.volume / 100;
+    if (isFinite(volume)) {
+      audio.volume = volume;
+    }
   }, [globalRadio?.volume, globalRadio?.isMuted]);
 
   // Integrated Player Controller (Handles station changes and play/pause intents)

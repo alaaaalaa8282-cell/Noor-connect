@@ -138,9 +138,16 @@ export class AladhanAPI {
   /**
    * Get prayer times for a specific date from cached data
    */
-  static getPrayerTimesForDate(date: Date): AladhanPrayerTime | null {
+  static getPrayerTimesForDate(date: Date, latitude?: number, longitude?: number): AladhanDayData | null {
     const monthlyData = this.getStoredMonthlyData();
     if (!monthlyData) return null;
+
+    // Verify it's the correct location if coordinates provided
+    if (latitude !== undefined && longitude !== undefined) {
+      const latDiff = Math.abs(monthlyData.latitude - latitude);
+      const lngDiff = Math.abs(monthlyData.longitude - longitude);
+      if (latDiff > 0.1 || lngDiff > 0.1) return null; // Cache for different location
+    }
 
     const targetDate = new Date(date);
     const isSameMonth = targetDate.getFullYear() === monthlyData.year &&
@@ -148,12 +155,14 @@ export class AladhanAPI {
 
     if (!isSameMonth) return null;
 
+    // Use timestamp for reliable comparison
+    const targetTimestamp = Math.floor(targetDate.getTime() / 1000);
     const dayData = monthlyData.data.find(day => {
-      const apiDate = new Date(day.date.gregorian.date);
-      return apiDate.toDateString() === targetDate.toDateString();
+      const dayDate = new Date(parseInt(day.date.timestamp) * 1000);
+      return dayDate.toDateString() === targetDate.toDateString();
     });
 
-    return dayData?.timings || null;
+    return dayData || null;
   }
 
   /**
@@ -192,54 +201,76 @@ export class AladhanAPI {
     latitude: number,
     longitude: number,
     method: number = 1
-  ): Promise<AladhanPrayerTime> {
-    // Try to get from cached data first
-    const cached = this.getPrayerTimesForDate(new Date());
-    if (cached) return cached;
+  ): Promise<{ timings: AladhanPrayerTime, timezone: string }> {
+    // Try to get from cached data first (must be for same location)
+    const cachedDay = this.getPrayerTimesForDate(new Date(), latitude, longitude);
+    if (cachedDay) {
+      return {
+        timings: cachedDay.timings,
+        timezone: cachedDay.meta.timezone
+      };
+    }
 
     // If no cached data, try to fetch current month
     try {
       const monthlyData = await this.fetchMonthlyCalendar(latitude, longitude, undefined, undefined, method);
       const today = monthlyData.data.find(day => {
-        const apiDate = new Date(day.date.gregorian.date);
-        return apiDate.toDateString() === new Date().toDateString();
-      });
+        const dayDate = new Date(parseInt(day.date.timestamp) * 1000);
+        return dayDate.toDateString() === new Date().toDateString();
+      }) || monthlyData.data[0];
 
-      if (today?.timings) {
-        return today.timings;
-      }
+      return {
+        timings: today.timings,
+        timezone: today.meta.timezone
+      };
     } catch (error) {
       console.warn('Failed to fetch API data, will use offline calculation');
     }
 
-    // Fallback to offline calculation (convert to Aladhan format)
+    // Fallback to offline calculation
     const { calculatePrayerTimes } = await import('./prayer-calculator');
     const times = calculatePrayerTimes(latitude, longitude, new Date());
+    const timezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
 
     return {
-      Fajr: times.fajr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      Sunrise: times.sunrise.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      Dhuhr: times.dhuhr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      Asr: times.asr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      Maghrib: times.maghrib.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      Isha: times.isha.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
-      Imsak: times.fajr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }), // Approximate
-      Midnight: '00:00',
-      Firstthird: '00:00',
-      Lastthird: '00:00'
+      timings: {
+        Fajr: times.fajr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        Sunrise: times.sunrise.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        Dhuhr: times.dhuhr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        Asr: times.asr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        Maghrib: times.maghrib.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        Isha: times.isha.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        Imsak: times.fajr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
+        Midnight: '00:00',
+        Firstthird: '00:00',
+        Lastthird: '00:00'
+      },
+      timezone
     };
   }
 
   /**
    * Check if cached data is still valid (same month and year)
    */
-  static isCachedDataValid(): boolean {
+  static isCachedDataValid(latitude?: number, longitude?: number): boolean {
     const monthlyData = this.getStoredMonthlyData();
     if (!monthlyData) return false;
 
     const now = new Date();
-    return monthlyData.year === now.getFullYear() &&
+    const isSameDate = monthlyData.year === now.getFullYear() &&
       monthlyData.month === now.getMonth() + 1;
+
+    if (!isSameDate) return false;
+
+    // If coordinates provided, check if they match (with tolerance)
+    if (latitude !== undefined && longitude !== undefined) {
+      const latDiff = Math.abs(monthlyData.latitude - latitude);
+      const lngDiff = Math.abs(monthlyData.longitude - longitude);
+      // 0.1 degree tolerance (approx 11km)
+      return latDiff < 0.1 && lngDiff < 0.1;
+    }
+
+    return true;
   }
 
   /**
@@ -281,7 +312,7 @@ export class AladhanAPI {
     method: number = 1
   ): Promise<{ suhoor: string; iftar: string } | null> {
     try {
-      const timings = await this.getTodaysPrayerTimes(latitude, longitude, method);
+      const { timings } = await this.getTodaysPrayerTimes(latitude, longitude, method);
 
       return {
         suhoor: timings.Imsak || timings.Fajr,
@@ -302,7 +333,7 @@ export class AladhanAPI {
     isRamadan: boolean = false
   ): Promise<{ name: string; time: string; countdown: string } | null> {
     try {
-      const timings = await this.getTodaysPrayerTimes(latitude, longitude, method);
+      const { timings } = await this.getTodaysPrayerTimes(latitude, longitude, method);
       const now = new Date();
 
       // Convert prayer times to Date objects
@@ -345,7 +376,7 @@ export class AladhanAPI {
       // If all events passed, get tomorrow's first prayer
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowTimings = await this.getTodaysPrayerTimes(latitude, longitude, method);
+      const { timings: tomorrowTimings } = await this.getTodaysPrayerTimes(latitude, longitude, method);
       const firstPrayerTime = this.parseTime(tomorrowTimings.Fajr);
 
       const diff = firstPrayerTime.getTime() - now.getTime();
