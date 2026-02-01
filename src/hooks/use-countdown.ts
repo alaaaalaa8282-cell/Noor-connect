@@ -35,9 +35,11 @@ export const useCountdown = (targetTime: Date): CountdownReturn => {
   
   const formattedTime = isExpired 
     ? 'Expired' 
-    : minutes > 0 
-      ? `${minutes}m ${seconds}s left`
-      : `${seconds}s left`;
+    : minutes >= 60
+      ? `${Math.floor(minutes / 60)}h ${minutes % 60}m ${seconds}s left`
+      : minutes > 0 
+        ? `${minutes}m ${seconds}s left`
+        : `${seconds}s left`;
 
   return {
     minutes,

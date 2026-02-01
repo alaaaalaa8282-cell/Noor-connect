@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
-import { Search, Book, Download, Folder, Plus, X, Trash2, ExternalLink, CheckCircle, Clock, BookOpen, RefreshCw } from "lucide-react";
+import { Search, Book, Download, Plus, X, Trash2, CheckCircle, Clock, BookOpen } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -9,7 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { ScrollArea, ScrollBar } from "@/components/ui/scroll-area";
 import { useToast } from "@/hooks/use-toast";
 import { useLazyLoad } from "@/hooks/useLazyLoad";
-import { BookCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
+import { BookCardSkeleton } from "@/components/LoadingSkeleton";
 import { 
   getDownloadedBooks, 
   getUserBooks, 
@@ -84,6 +84,8 @@ export default function Ebooks() {
   const [activeTab, setActiveTab] = useState("browse");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
+
+  const LOCAL_PREFIX = 'local:';
 
   // Debounce search
   useEffect(() => {
@@ -417,16 +419,24 @@ export default function Ebooks() {
               <ScrollArea className="w-full whitespace-nowrap">
                 <div className="flex gap-2 pb-2">
                   {recentlyRead.map((item) => {
-                    const book = books.find(b => ensureHttps(b.url) === item.bookUrl);
-                    if (!book) return null;
+                    const isLocal = item.bookUrl.startsWith(LOCAL_PREFIX);
+                    const localKey = isLocal ? item.bookUrl.slice(LOCAL_PREFIX.length) : null;
+
+                    const book = !isLocal ? books.find(b => ensureHttps(b.url) === item.bookUrl) : null;
+                    const userBook = isLocal && localKey ? userBooks.find(b => b.localKey === localKey) : null;
+                    const downloadedBook = isLocal && localKey ? downloadedBooks.find(b => b.localKey === localKey) : null;
+
+                    const openTarget = book || userBook || downloadedBook;
+                    if (!openTarget) return null;
+
                     return (
                       <Card 
                         key={item.bookUrl}
                         className="p-3 w-40 shrink-0 cursor-pointer hover:bg-accent/50"
-                        onClick={() => openBook(book)}
+                        onClick={() => openBook(openTarget)}
                       >
                         <Book className="w-6 h-6 text-primary mb-2" />
-                        <p className="text-xs font-medium truncate">{cleanTitle(book.title)}</p>
+                        <p className="text-xs font-medium truncate">{"file" in openTarget ? cleanTitle(openTarget.title) : openTarget.title}</p>
                         <Progress value={Math.round((item.currentPage / item.totalPages) * 100)} className="h-1 mt-2" />
                         <p className="text-[10px] text-muted-foreground mt-1">
                           Page {item.currentPage}/{item.totalPages}

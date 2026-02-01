@@ -399,4 +399,31 @@ All colors MUST be HSL.
   .scrollbar-hide::-webkit-scrollbar {
     display: none;
   }
+
+  /* Fix z-index hierarchy and prevent overlay blocking */
+  .interactive-layer {
+    position: relative;
+    z-index: 1;
+    pointer-events: auto;
+  }
+
+  /* Ensure all interactive elements can receive clicks */
+  button, a, input, [role="button"], [tabindex] {
+    position: relative;
+    z-index: 10;
+    pointer-events: auto;
+  }
+
+  /* Remove any potential overlay blocking */
+  .overlay-blocker {
+    pointer-events: none !important;
+  }
+
+  /* Fix for any invisible overlays */
+  .fixed-overlay {
+    pointer-events: none;
+  }
+  .fixed-overlay > * {
+    pointer-events: auto;
+  }
 }

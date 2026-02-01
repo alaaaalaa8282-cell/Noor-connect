@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2 } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass } from "lucide-react";
 import { AppBar } from "@/components/AppBar";
 import { SalahTracker } from "@/components/SalahTracker";
 import { WeeklySalahChart } from "@/components/WeeklySalahChart";
@@ -11,9 +11,12 @@ import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { CitySearch } from "@/components/CitySearch";
+import { NotificationSettings } from "@/components/NotificationSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Suspense, lazy } from "react";
+import { usePrayerTimes } from "@/hooks/usePrayerTimes";
+import { LayoutManager } from "@/components/LayoutManager";
 
 // Dynamic imports for code splitting
 const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
@@ -50,6 +53,99 @@ export default function Dashboard() {
   
   // Global location state
   const location = useLocationState();
+
+  const [showManualLocationDialog, setShowManualLocationDialog] = useState(false);
+
+  // Debug: Check for any overlays on mount
+  useEffect(() => {
+    const checkOverlays = () => {
+      const overlays = document.querySelectorAll('[style*="position: fixed"], [style*="position: absolute"]');
+      console.log('Overlays found:', overlays.length);
+      overlays.forEach((overlay, index) => {
+        const rect = overlay.getBoundingClientRect();
+        const computedStyle = window.getComputedStyle(overlay);
+        console.log(`Overlay ${index}:`, {
+          element: overlay.tagName,
+          className: overlay.className,
+          id: overlay.id,
+          textContent: overlay.textContent?.substring(0, 50),
+          zIndex: computedStyle.zIndex,
+          pointerEvents: computedStyle.pointerEvents,
+          position: computedStyle.position,
+          display: computedStyle.display,
+          rect: {
+            width: rect.width,
+            height: rect.height,
+            top: rect.top,
+            left: rect.left,
+            bottom: rect.bottom,
+            right: rect.right
+          }
+        });
+      });
+
+      // Also check for any elements covering the dashboard area
+      const dashboardArea = document.querySelector('#main-content');
+      if (dashboardArea) {
+        const dashboardRect = dashboardArea.getBoundingClientRect();
+        const elementsAtPoint = document.elementsFromPoint(
+          dashboardRect.left + dashboardRect.width / 2,
+          dashboardRect.top + 200
+        );
+        console.log('Elements at dashboard center:', elementsAtPoint.map(el => ({
+          tag: el.tagName,
+          class: el.className,
+          text: el.textContent?.substring(0, 30)
+        })));
+      }
+    };
+    
+    // Check immediately and after a delay
+    checkOverlays();
+    setTimeout(checkOverlays, 2000);
+
+    // Global click listener for debugging
+    const handleGlobalClick = (e: MouseEvent) => {
+      console.log('Global click detected:', {
+        target: e.target,
+        targetElement: (e.target as HTMLElement).tagName,
+        targetClass: (e.target as HTMLElement).className,
+        targetText: (e.target as HTMLElement).textContent,
+        x: e.clientX,
+        y: e.clientY
+      });
+    };
+
+    document.addEventListener('click', handleGlobalClick, true);
+    
+    return () => {
+      document.removeEventListener('click', handleGlobalClick, true);
+    };
+  }, []);
+
+  // Visual feedback for clicks
+  const handleCardClick = (cardName: string, route: string) => {
+    console.log(`${cardName} card clicked - navigating to ${route}`);
+    
+    // Visual feedback
+    const card = event?.currentTarget as HTMLElement;
+    if (card) {
+      card.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
+      setTimeout(() => {
+        card.style.backgroundColor = '';
+      }, 200);
+    }
+    
+    // Navigate
+    navigate(route);
+  };
+
+  const prayerTimesHook = usePrayerTimes();
+
+  const prayerLocation = prayerTimesHook.location;
+  const locationLabel = prayerLocation?.city && prayerLocation?.country
+    ? `${prayerLocation.city}, ${prayerLocation.country}`
+    : location.locationName;
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
@@ -239,8 +335,9 @@ export default function Dashboard() {
   }, [location.latitude, location.longitude]);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <AppBar title="Noor Connect" />
+    <LayoutManager>
+      <div className="min-h-screen bg-background">
+        <AppBar title="Noor Connect" />
       
       <div className="max-w-lg mx-auto p-4 space-y-4">
         {/* Header */}
@@ -269,15 +366,20 @@ export default function Dashboard() {
               </span>
             </div>
             
-            {location.city && location.country && (
+            {locationLabel && (
               <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
                 <MapPin className="w-4 h-4" />
                 <span className="font-medium">
-                  {location.city}, {location.country}
+                  {locationLabel}
                 </span>
-                {location.source === 'manual' && (
+                {prayerLocation?.source === 'manual' && (
                   <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
                     Manual
+                  </span>
+                )}
+                {prayerLocation?.source === 'default' && (
+                  <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-full">
+                    Default
                   </span>
                 )}
               </div>
@@ -311,7 +413,15 @@ export default function Dashboard() {
         {/* Prayer Countdown Widget */}
         <ErrorBoundary>
           <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
-            <PrayerCountdown />
+            <PrayerCountdown
+              timings={prayerTimesHook.prayerTimesWithEnd}
+              location={prayerTimesHook.location}
+              isLoading={prayerTimesHook.isLoading}
+              error={prayerTimesHook.error}
+              needsManualLocation={prayerTimesHook.needsManualLocation}
+              refresh={prayerTimesHook.refresh}
+              setManualLocation={prayerTimesHook.setManualLocation}
+            />
           </Suspense>
         </ErrorBoundary>
 
@@ -323,7 +433,15 @@ export default function Dashboard() {
               <div key={i} className="h-20 bg-muted/20 animate-pulse rounded-lg" />
             ))}
           </div>}>
-            <PrayerTimesList />
+            <PrayerTimesList
+              timings={prayerTimesHook.prayerTimesWithEnd}
+              location={prayerTimesHook.location}
+              isLoading={prayerTimesHook.isLoading}
+              error={prayerTimesHook.error}
+              needsManualLocation={prayerTimesHook.needsManualLocation}
+              refresh={prayerTimesHook.refresh}
+              setManualLocation={prayerTimesHook.setManualLocation}
+            />
           </Suspense>
         </ErrorBoundary>
 
@@ -339,40 +457,48 @@ export default function Dashboard() {
         {/* Quick Access */}
         <div className="grid grid-cols-2 gap-3">
           <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-            onClick={() => navigate('/qaza')}
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+            onClick={() => handleCardClick('Qibla Compass', '/qibla')}
+          >
+            <Compass className="w-6 h-6 text-primary mb-2" />
+            <p className="font-medium text-sm">Qibla Compass</p>
+            <p className="text-xs text-muted-foreground">Find prayer direction</p>
+          </Card>
+          <Card 
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+            onClick={() => handleCardClick('Qaza Tracker', '/qaza')}
           >
             <Calendar className="w-6 h-6 text-primary mb-2" />
             <p className="font-medium text-sm">Qaza Tracker</p>
             <p className="text-xs text-muted-foreground">Manage missed prayers</p>
           </Card>
           <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-            onClick={() => navigate('/ramadan')}
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+            onClick={() => handleCardClick('Ramadan Mode', '/ramadan')}
           >
             <BookOpen className="w-6 h-6 text-primary mb-2" />
             <p className="font-medium text-sm">Ramadan Mode</p>
             <p className="text-xs text-muted-foreground">Fasting & Quran tracker</p>
           </Card>
           <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-            onClick={() => navigate('/zakat')}
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+            onClick={() => handleCardClick('Zakat Calculator', '/zakat')}
           >
             <Calculator className="w-6 h-6 text-primary mb-2" />
             <p className="font-medium text-sm">Zakat Calculator</p>
             <p className="text-xs text-muted-foreground">Calculate your zakat</p>
           </Card>
           <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors"
-            onClick={() => navigate('/quiz')}
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+            onClick={() => handleCardClick('Islamic Quiz', '/quiz')}
           >
             <Trophy className="w-6 h-6 text-primary mb-2" />
             <p className="font-medium text-sm">Islamic Quiz</p>
             <p className="text-xs text-muted-foreground">Test your knowledge</p>
           </Card>
           <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors col-span-2"
-            onClick={() => navigate('/names-of-allah')}
+            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors col-span-2 interactive-layer"
+            onClick={() => handleCardClick('99 Names of Allah', '/names-of-allah')}
           >
             <Star className="w-6 h-6 text-primary mb-2" />
             <p className="font-medium text-sm">99 Names of Allah</p>
@@ -399,27 +525,74 @@ export default function Dashboard() {
                 <h3 className="font-medium text-sm">Location</h3>
                 <p className="text-xs text-muted-foreground">{location.locationName}</p>
               </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleDetectLocation}
-                disabled={location.isDetecting}
-                className="gap-2"
-              >
-                {location.isDetecting ? (
-                  <>
-                    <LoadingSpinner size="sm" />
-                    Detecting...
-                  </>
-                ) : (
-                  <>
-                    <Navigation className="w-4 h-4" />
-                    Detect Location
-                  </>
+              <div className="flex gap-2">
+                {prayerTimesHook.needsManualLocation && (
+                  <Button
+                    variant="default"
+                    size="sm"
+                    onClick={() => setShowManualLocationDialog(true)}
+                    className="gap-2"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Manual Location
+                  </Button>
                 )}
-              </Button>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDetectLocation}
+                  disabled={location.isDetecting}
+                  className="gap-2"
+                >
+                  {location.isDetecting ? (
+                    <>
+                      <LoadingSpinner size="sm" />
+                      Detecting...
+                    </>
+                  ) : (
+                    <>
+                      <Navigation className="w-4 h-4" />
+                      Detect Location
+                    </>
+                  )}
+                </Button>
+              </div>
             </div>
           </Card>
+        )}
+
+        {/* Notification Settings */}
+        <NotificationSettings />
+
+        {/* Manual Location Dialog */}
+        {showManualLocationDialog && (
+          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+            <div className="bg-background rounded-lg max-w-md w-full max-h-[80vh] overflow-auto">
+              <div className="p-6">
+                <div className="flex items-center justify-between mb-4">
+                  <h3 className="text-lg font-semibold">Set Manual Location</h3>
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowManualLocationDialog(false)}
+                  >
+                    ×
+                  </Button>
+                </div>
+                <LocationSearch 
+                  onLocationSelect={async (city, country) => {
+                    await prayerTimesHook.setManualLocation(city, country);
+                    setShowManualLocationDialog(false);
+                    toast({ 
+                      title: "Location Updated", 
+                      description: `Prayer times updated for ${city}, ${country}` 
+                    });
+                  }}
+                  isLoading={prayerTimesHook.isLoading}
+                />
+              </div>
+            </div>
+          </div>
         )}
 
         {/* Footer */}
@@ -440,5 +613,6 @@ export default function Dashboard() {
         </Card>
       </div>
     </div>
+    </LayoutManager>
   );
 }

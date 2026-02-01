@@ -325,6 +325,16 @@ async function sendFridayKahfNotification() {
 // Helper function to show notifications
 async function showNotification(options) {
   try {
+    // Check if we have permission before showing notification
+    // In service worker, we can only check existing permission, not request it
+    const notifications = await self.registration.getNotifications();
+    const hasPermission = notifications !== null;
+    
+    if (!hasPermission) {
+      console.log('Service Worker: No notification permission, skipping notification');
+      return;
+    }
+
     await self.registration.showNotification(options.title, {
       body: options.body,
       icon: '/icon-192x192.png',
@@ -337,7 +347,12 @@ async function showNotification(options) {
       tag: options.tag || 'default'
     });
   } catch (error) {
-    console.error('Service Worker: Failed to show notification:', error);
+    // If permission is denied, just log and continue
+    if (error.message.includes('notification permission')) {
+      console.log('Service Worker: Notification permission not granted, skipping notification');
+    } else {
+      console.error('Service Worker: Failed to show notification:', error);
+    }
   }
 }
 

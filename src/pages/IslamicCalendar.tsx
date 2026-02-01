@@ -67,6 +67,7 @@ interface CalendarDay {
 export default function IslamicCalendar() {
   const [islamicDate, setIslamicDate] = useState<IslamicDate | null>(null);
   const [loading, setLoading] = useState(true);
+  const [dateLoading, setDateLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -80,6 +81,7 @@ export default function IslamicCalendar() {
 
   const fetchIslamicDate = async () => {
     try {
+      setDateLoading(true);
       const today = new Date();
       const formattedDate = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
       
@@ -96,6 +98,8 @@ export default function IslamicCalendar() {
     } catch (error) {
       console.error('Error fetching Islamic date:', error);
       toast.error('Failed to load Islamic calendar');
+    } finally {
+      setDateLoading(false);
     }
   };
 
@@ -178,17 +182,6 @@ export default function IslamicCalendar() {
     setSelectedDate(null);
   };
 
-  if (loading) {
-    return (
-      <div className="min-h-screen bg-gradient-primary flex items-center justify-center">
-        <div className="text-center">
-          <Moon className="h-12 w-12 animate-pulse mx-auto mb-4 text-primary" />
-          <p className="text-lg">Loading Islamic Calendar...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div className="min-h-screen bg-background pt-6 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -202,7 +195,16 @@ export default function IslamicCalendar() {
             <CardDescription>Today's Hijri Date</CardDescription>
           </CardHeader>
           <CardContent className="text-center space-y-4">
-            {islamicDate && (
+            {dateLoading && (
+              <div className="bg-gradient-primary rounded-xl p-6 space-y-3 text-primary-foreground min-h-[220px]">
+                <div className="h-10 w-3/4 mx-auto bg-white/20 rounded animate-pulse" />
+                <div className="h-9 w-4/5 mx-auto bg-white/15 rounded animate-pulse" />
+                <div className="h-4 w-40 mx-auto bg-white/10 rounded animate-pulse" />
+                <div className="h-4 w-56 mx-auto bg-white/10 rounded animate-pulse" />
+              </div>
+            )}
+
+            {!dateLoading && islamicDate && (
               <>
                 <div className="bg-gradient-primary rounded-xl p-6 space-y-2 text-primary-foreground">
                   <div className="text-4xl font-bold mb-2">
@@ -245,6 +247,9 @@ export default function IslamicCalendar() {
               <CardTitle className="flex items-center gap-2">
                 <Moon className="h-5 w-5 text-primary" />
                 {monthData && `${monthData.hijri.month.en} ${monthData.hijri.year} AH`}
+                {!monthData && (
+                  <span className="inline-block h-5 w-40 bg-muted rounded animate-pulse" />
+                )}
               </CardTitle>
               <div className="flex items-center gap-2">
                 <Button 
@@ -272,6 +277,9 @@ export default function IslamicCalendar() {
             </div>
             <CardDescription>
               {monthData && `${monthData.gregorian.month.en} ${monthData.gregorian.year}`}
+              {!monthData && (
+                <span className="inline-block h-4 w-28 bg-muted rounded animate-pulse" />
+              )}
             </CardDescription>
           </CardHeader>
           <CardContent style={{ contentVisibility: "auto", containIntrinsicSize: "800px" }}>
@@ -285,7 +293,21 @@ export default function IslamicCalendar() {
                 ))}
                 
                 {/* Calendar days */}
-                {calendarDays.map((day, index) => (
+                {loading && (
+                  Array.from({ length: 35 }).map((_, index) => (
+                    <div
+                      key={`cal-skel-${index}`}
+                      className="aspect-square min-w-0 p-1 border border-border bg-card min-h-[40px]"
+                    >
+                      <div className="flex flex-col h-full min-w-0">
+                        <div className="h-4 w-6 bg-muted rounded animate-pulse mb-1" />
+                        <div className="h-3 w-12 bg-muted/70 rounded animate-pulse" />
+                      </div>
+                    </div>
+                  ))
+                )}
+
+                {!loading && calendarDays.map((day, index) => (
                   <div
                     key={index}
                     className={`

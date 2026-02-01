@@ -163,11 +163,11 @@ const App = () => {
               <AppRoutes />
             </ErrorBoundary>
           </LayoutManager>
-          
-          {/* Bottom Navigation */}
-          <div className="flex-shrink-0">
-            <BottomNav />
-          </div>
+        </div>
+        
+        {/* Bottom Navigation - Fixed outside main container */}
+        <div className="fixed bottom-0 left-0 right-0 z-[90]">
+          <BottomNav />
         </div>
         
         {/* Global Radio Player - Fixed at bottom with proper z-index */}

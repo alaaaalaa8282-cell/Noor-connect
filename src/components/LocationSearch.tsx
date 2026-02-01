@@ -141,7 +141,7 @@ export function LocationSearch({ onLocationSelect, isLoading = false }: Location
 
         <div className="mt-4 text-center">
           <p className="text-xs text-muted-foreground">
-            Prayer times are calculated using the Aladhan API
+            Location search uses OpenStreetMap (Nominatim) and prayer times are calculated locally
           </p>
         </div>
       </CardContent>

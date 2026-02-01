@@ -5,7 +5,7 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { AladhanAPI, type AladhanPrayerTime } from '@/lib/aladhan-api';
+import { calculatePrayerTimes } from '@/lib/prayer-calculator';
 import { GeocodingService } from '@/lib/geocoding';
 import { calculatePrayerEndTimes } from '@/lib/prayer-end-times';
 import { formatPrayerTime } from '@/lib/time-formatter';
@@ -70,6 +70,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   
   // Add ref to prevent multiple fetches
   const isFetchingRef = useRef(false);
+  const isCalculatingRef = useRef(false);
   const hasInitializedRef = useRef(false);
   
   // Track previous prayer times to prevent unnecessary notification scheduling
@@ -142,6 +143,16 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
               country: data.country
             };
           }
+        },
+        {
+          name: 'ipapi.co',
+          url: 'https://ipapi.co/json/',
+          parser: (data: { latitude: number; longitude: number; city: string; country_name: string }) => ({
+            latitude: data.latitude,
+            longitude: data.longitude,
+            city: data.city,
+            country: data.country_name
+          })
         }
       ];
 
@@ -224,7 +235,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
   // Get default location
   const getDefaultLocation = useCallback((): LocationData => {
-    const defaultLoc = DEFAULT_LOCATIONS[0]; // Mecca as primary default
+    const defaultLoc = DEFAULT_LOCATIONS.find((loc) => loc.city === 'Karachi') || DEFAULT_LOCATIONS[1] || DEFAULT_LOCATIONS[0];
     return {
       latitude: defaultLoc.latitude,
       longitude: defaultLoc.longitude,
@@ -287,64 +298,44 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
   // Fetch prayer times using coordinates
   const fetchPrayerTimesWithCoordinates = useCallback(async (locationData: LocationData) => {
-    // Prevent multiple simultaneous fetches
-    if (isFetchingRef.current) {
-      console.log('Already fetching coordinates, skipping...');
-      return;
-    }
-
     try {
-      console.log('Fetching prayer times for location:', locationData);
-      
-      let timings: AladhanPrayerTime;
-
-      if (locationData.city && locationData.country) {
-        // Use city-based API for locations with city/country data
-        timings = await AladhanAPI.getTodaysPrayerTimesByCity(
-          locationData.city,
-          locationData.country,
-          1 // Muslim World League method
-        );
-      } else {
-        // Use coordinates-based API
-        timings = await AladhanAPI.getTodaysPrayerTimes(
-          locationData.latitude,
-          locationData.longitude,
-          1 // Muslim World League method
-        );
+      // Prevent multiple simultaneous calculations
+      if (isCalculatingRef.current) {
+        console.log('Already calculating prayer times, skipping...');
+        return;
       }
 
-      // Convert API times to Date objects
+      isCalculatingRef.current = true;
+      console.log('Calculating prayer times for location:', locationData);
+
+      const now = new Date();
+      const todayTimes = calculatePrayerTimes(locationData.latitude, locationData.longitude, now);
+
+      const tomorrow = new Date(now);
+      tomorrow.setDate(tomorrow.getDate() + 1);
+      const tomorrowTimes = calculatePrayerTimes(locationData.latitude, locationData.longitude, tomorrow);
+
+      const midnight = new Date(now);
+      midnight.setDate(midnight.getDate() + 1);
+      midnight.setHours(0, 0, 0, 0);
+
       const times: PrayerTimes = {
-        fajr: parseTimeToDate(timings.Fajr),
-        sunrise: parseTimeToDate(timings.Sunrise),
-        dhuhr: parseTimeToDate(timings.Dhuhr),
-        asr: parseTimeToDate(timings.Asr),
-        maghrib: parseTimeToDate(timings.Maghrib),
-        isha: parseTimeToDate(timings.Isha),
-        midnight: parseTimeToDate(timings.Midnight)
+        fajr: todayTimes.fajr,
+        sunrise: todayTimes.sunrise,
+        dhuhr: todayTimes.dhuhr,
+        asr: todayTimes.asr,
+        maghrib: todayTimes.maghrib,
+        isha: todayTimes.isha,
+        midnight
       };
 
-      // Calculate end times - convert to PrayerSchedule format first
-      const prayerSchedule = {
-        fajr: { name: 'Fajr', time: formatPrayerTime(times.fajr, '24'), datetime: times.fajr },
-        sunrise: { name: 'Sunrise', time: formatPrayerTime(times.sunrise, '24'), datetime: times.sunrise },
-        dhuhr: { name: 'Dhuhr', time: formatPrayerTime(times.dhuhr, '24'), datetime: times.dhuhr },
-        asr: { name: 'Asr', time: formatPrayerTime(times.asr, '24'), datetime: times.asr },
-        maghrib: { name: 'Maghrib', time: formatPrayerTime(times.maghrib, '24'), datetime: times.maghrib },
-        isha: { name: 'Isha', time: formatPrayerTime(times.isha, '24'), datetime: times.isha }
-      };
-      
-      const prayerEndTimes = calculatePrayerEndTimes(prayerSchedule);
-      
-      // Convert to PrayerTimesWithEnd format
       const withEnd: PrayerTimesWithEnd = {
-        fajr: { start: prayerEndTimes.find(p => p.name === 'Fajr')?.datetime || times.fajr, end: prayerEndTimes.find(p => p.name === 'Fajr')?.endTime || times.fajr },
-        sunrise: { start: prayerEndTimes.find(p => p.name === 'Sunrise')?.datetime || times.sunrise, end: prayerEndTimes.find(p => p.name === 'Sunrise')?.endTime || times.sunrise },
-        dhuhr: { start: prayerEndTimes.find(p => p.name === 'Dhuhr')?.datetime || times.dhuhr, end: prayerEndTimes.find(p => p.name === 'Dhuhr')?.endTime || times.dhuhr },
-        asr: { start: prayerEndTimes.find(p => p.name === 'Asr')?.datetime || times.asr, end: prayerEndTimes.find(p => p.name === 'Asr')?.endTime || times.asr },
-        maghrib: { start: prayerEndTimes.find(p => p.name === 'Maghrib')?.datetime || times.maghrib, end: prayerEndTimes.find(p => p.name === 'Maghrib')?.endTime || times.maghrib },
-        isha: { start: prayerEndTimes.find(p => p.name === 'Isha')?.datetime || times.isha, end: prayerEndTimes.find(p => p.name === 'Isha')?.endTime || times.isha }
+        fajr: { start: times.fajr, end: times.sunrise },
+        sunrise: { start: times.sunrise, end: times.dhuhr },
+        dhuhr: { start: times.dhuhr, end: times.asr },
+        asr: { start: times.asr, end: times.maghrib },
+        maghrib: { start: times.maghrib, end: times.isha },
+        isha: { start: times.isha, end: tomorrowTimes.fajr }
       };
 
       setPrayerTimes(times);
@@ -352,8 +343,10 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       setLocation(locationData);
       setError(null);
     } catch (error) {
-      console.error('Failed to fetch prayer times:', error);
-      setError('Failed to fetch prayer times. Please try again.');
+      console.error('Failed to calculate prayer times:', error);
+      setError('Failed to calculate prayer times. Please try again.');
+    } finally {
+      isCalculatingRef.current = false;
     }
   }, []); // No dependencies - this function is stable
 
@@ -408,24 +401,14 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         return;
       }
 
-      // Try to get stored location second
+      // Try to use cached IP-based location (treated as part of IP detection)
       const storedLocation = getStoredLocation();
-      if (storedLocation) {
+      if (storedLocation && storedLocation.source === 'ip') {
         await fetchPrayerTimesWithCoordinates(storedLocation);
         return;
       }
 
-      // Try geolocation first
-      try {
-        const geoLocation = await getLocationFromGeolocation();
-        saveLocation(geoLocation);
-        await fetchPrayerTimesWithCoordinates(geoLocation);
-        return;
-      } catch (geoError) {
-        console.warn('Geolocation failed, trying IP-based location:', geoError);
-      }
-
-      // Try IP-based location
+      // Try IP-based location (Karachi-first fallback path)
       try {
         const ipLocation = await getLocationFromIP();
         saveLocation(ipLocation);
@@ -435,8 +418,8 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         console.warn('IP location failed:', ipError);
       }
 
-      // All auto-detection failed - use default location
-      console.log('Using default location (Mecca)');
+      // All auto-detection failed - use Karachi default
+      console.log('Using default location (Karachi)');
       const defaultLocation = getDefaultLocation();
       saveLocation(defaultLocation);
       await fetchPrayerTimesWithCoordinates(defaultLocation);
@@ -450,7 +433,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       setIsLoading(false);
       isFetchingRef.current = false;
     }
-  }, [getUserLocation, getStoredLocation, getLocationFromGeolocation, getLocationFromIP, getDefaultLocation, saveLocation, fetchPrayerTimesWithCoordinates]);
+  }, [getUserLocation, getStoredLocation, getLocationFromGeolocation, getLocationFromIP, getDefaultLocation, saveLocation]); // Remove fetchPrayerTimesWithCoordinates dependency
 
   // Initial fetch - only run once
   useEffect(() => {
@@ -466,25 +449,25 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     
     const interval = setInterval(() => {
       // Only fetch if not already fetching
-      if (!isFetchingRef.current) {
+      if (!isFetchingRef.current && !isCalculatingRef.current) {
         fetchPrayerTimesWithCoordinates(location);
       }
     }, 60000); // Refresh every minute
 
     return () => clearInterval(interval);
-  }, [location?.latitude, location?.longitude, needsManualLocation]); // Remove fetchPrayerTimesWithCoordinates dependency
+  }, [location?.latitude, location?.longitude, needsManualLocation]); // Use specific location properties
 
   // Schedule notifications only when prayer times actually change (deep comparison)
   useEffect(() => {
-    if (!prayerTimesWithEnd || !location) return;
+    if (!prayerTimes || !location) return;
     
-    // Create deep comparison string to prevent unnecessary notification scheduling
+    // Create comparison string using only time strings to prevent Date object changes
     const prayerTimesString = JSON.stringify({
-      fajr: prayerTimesWithEnd.fajr.start,
-      dhuhr: prayerTimesWithEnd.dhuhr.start,
-      asr: prayerTimesWithEnd.asr.start,
-      maghrib: prayerTimesWithEnd.maghrib.start,
-      isha: prayerTimesWithEnd.isha.start,
+      fajr: formatPrayerTime(prayerTimes.fajr, '24'),
+      dhuhr: formatPrayerTime(prayerTimes.dhuhr, '24'),
+      asr: formatPrayerTime(prayerTimes.asr, '24'),
+      maghrib: formatPrayerTime(prayerTimes.maghrib, '24'),
+      isha: formatPrayerTime(prayerTimes.isha, '24'),
       location: `${location.latitude},${location.longitude}`
     });
     
@@ -495,7 +478,13 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       // Throttle notification scheduling to prevent rapid calls
       const timeoutId = setTimeout(() => {
         import('@/lib/local-notifications').then(({ localNotifications }) => {
-          localNotifications.schedulePrayerNotificationsFromAPI().catch((error) => {
+          localNotifications.schedulePrayerNotifications([
+            { name: 'Fajr', time: formatPrayerTime(prayerTimes.fajr, '24'), date: prayerTimes.fajr },
+            { name: 'Dhuhr', time: formatPrayerTime(prayerTimes.dhuhr, '24'), date: prayerTimes.dhuhr },
+            { name: 'Asr', time: formatPrayerTime(prayerTimes.asr, '24'), date: prayerTimes.asr },
+            { name: 'Maghrib', time: formatPrayerTime(prayerTimes.maghrib, '24'), date: prayerTimes.maghrib },
+            { name: 'Isha', time: formatPrayerTime(prayerTimes.isha, '24'), date: prayerTimes.isha }
+          ]).catch((error) => {
             console.error('Failed to schedule prayer notifications:', error);
           });
         });
@@ -503,7 +492,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       
       return () => clearTimeout(timeoutId);
     }
-  }, [prayerTimesWithEnd?.fajr.start, prayerTimesWithEnd?.dhuhr.start, prayerTimesWithEnd?.asr.start, prayerTimesWithEnd?.maghrib.start, prayerTimesWithEnd?.isha.start, location?.latitude, location?.longitude]); // Use specific properties instead of JSON.stringify
+  }, [prayerTimes?.fajr, prayerTimes?.dhuhr, prayerTimes?.asr, prayerTimes?.maghrib, prayerTimes?.isha, location?.latitude, location?.longitude]); // Use specific properties instead of JSON.stringify
 
   return {
     prayerTimes,

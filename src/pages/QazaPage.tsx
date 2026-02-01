@@ -6,6 +6,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { Progress } from "@/components/ui/progress";
 import { AppBar } from "@/components/AppBar";
+import { LayoutManager } from "@/components/LayoutManager";
 import { useToast } from "@/hooks/use-toast";
 import { 
   getQazaPrayers, 
@@ -124,8 +125,9 @@ export default function QazaPage() {
   const weeklyTotal = last7Days.reduce((sum, h) => sum + h.completed, 0);
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <AppBar title="Qaza Tracker" />
+    <LayoutManager>
+      <div className="min-h-screen bg-background">
+        <AppBar title="Qaza Tracker" />
       
       <div className="max-w-lg mx-auto p-4 space-y-4">
         {/* Header */}
@@ -318,5 +320,6 @@ export default function QazaPage() {
         </Button>
       </div>
     </div>
+    </LayoutManager>
   );
 }

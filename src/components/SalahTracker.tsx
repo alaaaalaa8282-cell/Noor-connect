@@ -66,6 +66,7 @@ export function SalahTracker() {
     
     if (!prayerTime) return true;
     
+    // Allow checking in if prayer time has started OR if it's already checked
     return now >= prayerTime.start;
   };
 

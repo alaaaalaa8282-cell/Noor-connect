@@ -1,8 +1,9 @@
 import { useState, useEffect } from "react";
 import { AppBar } from "@/components/AppBar";
-import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Progress } from "@/components/ui/progress";
+import { LayoutManager } from "@/components/LayoutManager";
 import { Trophy, RotateCcw, CheckCircle, XCircle, Lightbulb, Award } from "lucide-react";
 
 interface Question {
@@ -231,12 +232,14 @@ export default function IslamicQuiz() {
 
   if (shuffledQuestions.length === 0) {
     return (
-      <div className="min-h-screen bg-background pb-24">
-        <AppBar title="Islamic Quiz" showBack />
-        <div className="flex items-center justify-center h-64">
-          <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+      <LayoutManager>
+        <div className="min-h-screen bg-background">
+          <AppBar title="Islamic Quiz" showBack />
+          <div className="flex items-center justify-center h-64">
+            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
+          </div>
         </div>
-      </div>
+      </LayoutManager>
     );
   }
 
@@ -244,10 +247,11 @@ export default function IslamicQuiz() {
   const progress = ((currentQuestion + 1) / shuffledQuestions.length) * 100;
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <AppBar title="Islamic Quiz" showBack />
+    <LayoutManager>
+      <div className="min-h-screen bg-background">
+        <AppBar title="Islamic Quiz" showBack />
       
-      <div className="max-w-lg mx-auto p-4 space-y-4">
+        <div className="max-w-lg mx-auto p-4 space-y-4">
         {!quizComplete ? (
           <>
             {/* Progress */}
@@ -377,5 +381,6 @@ export default function IslamicQuiz() {
         )}
       </div>
     </div>
+    </LayoutManager>
   );
 }

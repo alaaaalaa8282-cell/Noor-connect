@@ -1,10 +1,11 @@
-import { useState, useEffect } from "react";
+import { useMemo, useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, Moon, Sun, BookOpen, Calendar, Flame, Check, Plus, Minus, Clock, RefreshCw, MapPin } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
-import { Progress } from "@/components/ui/progress";
 import { AppBar } from "@/components/AppBar";
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
+import { Button } from "@/components/ui/button";
+import { Calendar, Moon, Sun, CheckCircle, TrendingUp, AlertCircle, ArrowLeft, MapPin, Clock, RefreshCw, Flame, Check, BookOpen, Minus, Plus } from "lucide-react";
+import { LayoutManager } from "@/components/LayoutManager";
+import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
@@ -203,8 +204,9 @@ export default function RamadanMode() {
   };
 
   return (
-    <div className="min-h-screen bg-background pb-24">
-      <AppBar title="Ramadan Mode" />
+    <LayoutManager>
+      <div className="min-h-screen bg-background">
+        <AppBar title="Ramadan Mode" />
       
       <div className="max-w-lg mx-auto p-4 space-y-4">
         {/* Header */}
@@ -450,5 +452,6 @@ export default function RamadanMode() {
         </Button>
       </div>
     </div>
+    </LayoutManager>
   );
 }

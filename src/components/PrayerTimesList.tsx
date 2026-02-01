@@ -4,6 +4,7 @@ import { Card, CardContent } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationSearch } from "@/components/LocationSearch";
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
+import type { LocationData, PrayerTimesWithEnd } from "@/hooks/usePrayerTimes";
 import { useCountdown } from "@/hooks/use-countdown";
 import { getTimeFormat, formatPrayerTime } from "@/lib/time-formatter";
 import { 
@@ -182,7 +183,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
                 Started at {formatPrayerTime(prayer.datetime, timeFormat)}
               </span>
               <span className={`font-medium ${getStatusColor()}`}>
-                {isEndingSoon ? 'Ending soon!' : `${Math.floor(countdown.totalSeconds / 60)}m ${countdown.seconds}s left`}
+                {isEndingSoon ? 'Ending soon!' : countdown.formattedTime}
               </span>
             </div>
           </div>
@@ -192,8 +193,25 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
   );
 };
 
-const PrayerTimesListComponent = function PrayerTimesList() {
-  const { prayerTimesWithEnd, location, isLoading, error, needsManualLocation, refresh, setManualLocation } = usePrayerTimes();
+export interface PrayerTimesListProps {
+  timings?: PrayerTimesWithEnd | null;
+  location?: LocationData | null;
+  isLoading?: boolean;
+  error?: string | null;
+  needsManualLocation?: boolean;
+  refresh?: () => Promise<void>;
+  setManualLocation?: (city: string, country: string) => Promise<void>;
+}
+
+const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesListProps) {
+  const prayerTimesHook = usePrayerTimes();
+  const prayerTimesWithEnd = props.timings ?? prayerTimesHook.prayerTimesWithEnd;
+  const location = props.location ?? prayerTimesHook.location;
+  const isLoading = props.isLoading ?? prayerTimesHook.isLoading;
+  const error = props.error ?? prayerTimesHook.error;
+  const needsManualLocation = props.needsManualLocation ?? prayerTimesHook.needsManualLocation;
+  const refresh = props.refresh ?? prayerTimesHook.refresh;
+  const setManualLocation = props.setManualLocation ?? prayerTimesHook.setManualLocation;
   
   // Get current time format preference
   const timeFormat = getTimeFormat();
@@ -259,7 +277,7 @@ const PrayerTimesListComponent = function PrayerTimesList() {
             <div className="text-xs text-muted-foreground">
               📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
               <span className="ml-2 px-2 py-1 bg-muted rounded">
-                {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'ip' ? '🌐 IP' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
+                {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
               </span>
             </div>
           )}
@@ -317,7 +335,7 @@ const PrayerTimesListComponent = function PrayerTimesList() {
             <div className="text-xs text-muted-foreground">
               📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
               <span className="ml-2 px-2 py-1 bg-muted rounded">
-                {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'ip' ? '🌐 IP' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
+                {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
               </span>
             </div>
           )}
@@ -363,7 +381,7 @@ const PrayerTimesListComponent = function PrayerTimesList() {
           <div className="text-xs text-muted-foreground">
             📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
             <span className="ml-2 px-2 py-1 bg-muted rounded">
-              {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'ip' ? '🌐 IP' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
+              {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
             </span>
           </div>
         )}
