@@ -122,12 +122,17 @@ self.addEventListener('fetch', (event) => {
       return;
     }
 
-    // Cache other files
+    // Default: Workbox Precache or runtime cache fallback
     event.respondWith(
-      caches.match(event.request)
-        .then((response) => {
-          return response || fetch(event.request);
-        })
+      caches.match(event.request).then((response) => {
+        return response || fetch(event.request).catch(() => {
+          // If both fail, return the offline fallback for navigation requests
+          if (event.request.mode === 'navigate') {
+            return caches.match('/index.html');
+          }
+          return new Response('Offline', { status: 503 });
+        });
+      })
     );
   } catch (error) {
     // If URL parsing fails, just let the request go through
@@ -350,20 +355,16 @@ async function showNotification(options) {
       body: options.body,
       icon: '/icon-192x192.png',
       badge: '/icon-192x192.png',
-      vibrate: [200, 100, 200],
+      vibrate: [500, 200, 500, 200, 500, 200, 500], // Longer vibration for alarm
       data: options.data || {},
       actions: options.actions || [],
-      requireInteraction: true, // Task 2: Stay on screen until swiped
-      silent: options.silent || false,
+      requireInteraction: true,
+      renotify: true, // Wake up screen if same tag
+      silent: false, // Ensure it makes sound
       tag: options.tag || 'default'
     });
   } catch (error) {
-    // If permission is denied, just log and continue
-    if (error.message.includes('notification permission')) {
-      console.log('Service Worker: Notification permission not granted, skipping notification');
-    } else {
-      console.error('Service Worker: Failed to show notification:', error);
-    }
+    console.error('Service Worker: Failed to show notification:', error);
   }
 }
 

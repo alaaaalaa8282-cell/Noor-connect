@@ -18,6 +18,7 @@ interface PrayerTime {
 
 export const GlobalPrayerAlarm = () => {
   const checkIntervalRef = useRef<NodeJS.Timeout | null>(null);
+  const audioRef = useRef<HTMLAudioElement | null>(null);
 
   const fetchAndCachePrayerTimes = useCallback(async () => {
     try {
@@ -63,32 +64,72 @@ export const GlobalPrayerAlarm = () => {
     }
   }, []);
 
-  const playAdhan = useCallback((prayerName: string) => {
-    // Get user-selected Adhan URL
-    const adhanUrl = getSelectedAdhanUrl();
+  const playAdhan = useCallback(async (prayerName: string) => {
+    // 1. Cleanup existing audio if any
+    if (audioRef.current) {
+      audioRef.current.pause();
+      audioRef.current.src = '';
+      audioRef.current = null;
+    }
 
-    // Create new audio instance with selected Adhan
+    // 2. Guard against overlapping plays
+    if (checkIntervalRef.current === null && !localStorage.getItem(STORAGE_KEY)) return;
+
+    // 3. Setup Adhan Audio
+    const adhanUrl = getSelectedAdhanUrl();
     const audio = new Audio(adhanUrl);
-    audio.volume = 0.7;
+    audioRef.current = audio; // Keep reference to prevent GC
+    audio.volume = 0.8;
     audio.preload = 'auto';
+
+    // 3. Media Session API - Crucial for background priority
+    if ('mediaSession' in navigator) {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: `${prayerName} Adhan`,
+        artist: 'Noor Connect',
+        album: 'Prayer Call',
+        artwork: [
+          { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png' },
+        ]
+      });
+
+      // Cleanup handlers to stop Adhan if user uses lock screen controls
+      navigator.mediaSession.setActionHandler('stop', () => {
+        audio.pause();
+        audio.src = '';
+      });
+      navigator.mediaSession.setActionHandler('pause', () => {
+        audio.pause();
+      });
+    }
 
     toast.success(`${prayerName} Time!`, {
       description: 'It is time for prayer. Adhan is playing.',
-      duration: 30000, // Longer duration for full Adhan
+      duration: 30000,
     });
 
     localNotifications.showNativeNotification(
-      `${prayerName} Prayer Time`,
+      `🕌 ${prayerName} Prayer Time`,
       'It is time for prayer. Click to open companion.',
       { url: '/dashboard', tag: 'prayer-alarm' }
     );
 
-    audio.play().catch((error) => {
-      console.error('Failed to play Adhan:', error);
-      toast.error('Failed to play Adhan', {
-        description: 'Please check your audio settings',
-      });
-    });
+    // 4. Play with Promise protection (Task 4)
+    try {
+      const playPromise = audio.play();
+      if (playPromise !== undefined) {
+        await playPromise;
+        console.log('Adhan playback started successfully');
+      }
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Failed to play Adhan:', error);
+        toast.error('Audio Blocked', {
+          description: 'Please tap anywhere to enable Adhan audio.',
+        });
+      }
+    }
   }, []);
 
   const playReminder = useCallback((prayerName: string, minutesBefore: number) => {
