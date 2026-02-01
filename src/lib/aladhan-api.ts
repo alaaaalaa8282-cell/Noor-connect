@@ -59,6 +59,22 @@ export interface AladhanDayData {
     };
   };
   timings: AladhanPrayerTime;
+  meta: {
+    latitude: number;
+    longitude: number;
+    timezone: string;
+    method: {
+      id: number;
+      name: string;
+      params: {
+        Fajr: number;
+        Isha: number;
+      };
+    };
+    latitudeAdjustmentMethod: string;
+    midnightMode: string;
+    school: string;
+  };
 }
 
 export interface AladhanMonthlyData {
@@ -86,19 +102,19 @@ export class AladhanAPI {
     method: number = 1 // Pakistan/Karachi (1), ISNA (2)
   ): Promise<AladhanMonthlyData> {
     const url = `${API_BASE}/calendar/${year}/${month}?latitude=${latitude}&longitude=${longitude}&method=${method}`;
-    
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
-      
+
       if (result.code !== 200) {
         throw new Error(`API Error: ${result.status}`);
       }
-      
+
       const monthlyData: AladhanMonthlyData = {
         month,
         year,
@@ -108,10 +124,10 @@ export class AladhanAPI {
         data: result.data,
         lastUpdated: new Date().toISOString()
       };
-      
+
       // Save to localStorage
       this.saveMonthlyData(monthlyData);
-      
+
       return monthlyData;
     } catch (error) {
       console.error('Failed to fetch monthly calendar:', error);
@@ -127,9 +143,9 @@ export class AladhanAPI {
     if (!monthlyData) return null;
 
     const targetDate = new Date(date);
-    const isSameMonth = targetDate.getFullYear() === monthlyData.year && 
-                       targetDate.getMonth() + 1 === monthlyData.month;
-    
+    const isSameMonth = targetDate.getFullYear() === monthlyData.year &&
+      targetDate.getMonth() + 1 === monthlyData.month;
+
     if (!isSameMonth) return null;
 
     const dayData = monthlyData.data.find(day => {
@@ -149,19 +165,19 @@ export class AladhanAPI {
     method: number = 1
   ): Promise<AladhanPrayerTime> {
     const url = `${API_BASE}/timingsByCity?city=${encodeURIComponent(city)}&country=${encodeURIComponent(country)}&method=${method}`;
-    
+
     try {
       const response = await fetch(url);
       if (!response.ok) {
         throw new Error(`HTTP ${response.status}: ${response.statusText}`);
       }
-      
+
       const result = await response.json();
-      
+
       if (result.code !== 200) {
         throw new Error(`API Error: ${result.status}`);
       }
-      
+
       return result.data.timings;
     } catch (error) {
       console.error('Failed to fetch prayer times by city:', error);
@@ -188,7 +204,7 @@ export class AladhanAPI {
         const apiDate = new Date(day.date.gregorian.date);
         return apiDate.toDateString() === new Date().toDateString();
       });
-      
+
       if (today?.timings) {
         return today.timings;
       }
@@ -199,7 +215,7 @@ export class AladhanAPI {
     // Fallback to offline calculation (convert to Aladhan format)
     const { calculatePrayerTimes } = await import('./prayer-calculator');
     const times = calculatePrayerTimes(latitude, longitude, new Date());
-    
+
     return {
       Fajr: times.fajr.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
       Sunrise: times.sunrise.toLocaleTimeString('en-US', { hour: '2-digit', minute: '2-digit', hour12: false }),
@@ -222,8 +238,8 @@ export class AladhanAPI {
     if (!monthlyData) return false;
 
     const now = new Date();
-    return monthlyData.year === now.getFullYear() && 
-           monthlyData.month === now.getMonth() + 1;
+    return monthlyData.year === now.getFullYear() &&
+      monthlyData.month === now.getMonth() + 1;
   }
 
   /**
@@ -266,7 +282,7 @@ export class AladhanAPI {
   ): Promise<{ suhoor: string; iftar: string } | null> {
     try {
       const timings = await this.getTodaysPrayerTimes(latitude, longitude, method);
-      
+
       return {
         suhoor: timings.Imsak || timings.Fajr,
         iftar: timings.Maghrib
@@ -288,7 +304,7 @@ export class AladhanAPI {
     try {
       const timings = await this.getTodaysPrayerTimes(latitude, longitude, method);
       const now = new Date();
-      
+
       // Convert prayer times to Date objects
       const prayerTimes = [
         { name: 'Fajr', time: this.parseTime(timings.Fajr) },
@@ -313,13 +329,13 @@ export class AladhanAPI {
           const diff = prayer.time.getTime() - now.getTime();
           const hours = Math.floor(diff / (1000 * 60 * 60));
           const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-          
+
           return {
             name: prayer.name,
-            time: prayer.time.toLocaleTimeString('en-US', { 
-              hour: '2-digit', 
+            time: prayer.time.toLocaleTimeString('en-US', {
+              hour: '2-digit',
               minute: '2-digit',
-              hour12: true 
+              hour12: true
             }),
             countdown: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
           };
@@ -331,17 +347,17 @@ export class AladhanAPI {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const tomorrowTimings = await this.getTodaysPrayerTimes(latitude, longitude, method);
       const firstPrayerTime = this.parseTime(tomorrowTimings.Fajr);
-      
+
       const diff = firstPrayerTime.getTime() - now.getTime();
       const hours = Math.floor(diff / (1000 * 60 * 60));
       const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
-      
+
       return {
         name: 'Fajr (Tomorrow)',
-        time: firstPrayerTime.toLocaleTimeString('en-US', { 
-          hour: '2-digit', 
+        time: firstPrayerTime.toLocaleTimeString('en-US', {
+          hour: '2-digit',
           minute: '2-digit',
-          hour12: true 
+          hour12: true
         }),
         countdown: `${hours}h ${minutes}m`
       };

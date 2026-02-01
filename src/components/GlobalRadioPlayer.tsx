@@ -1,10 +1,22 @@
 import { useEffect, useRef, useState } from "react";
-import { Play, Pause, Volume2, VolumeX, Radio, X } from "lucide-react";
+import { Play, Pause, Volume2, VolumeX, Radio, X, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalRadio, getGlobalAudioRef, setGlobalAudioRef } from "@/lib/global-radio";
+
+// Helper to format seconds to MM:SS or HH:MM:SS
+const formatDuration = (totalSeconds: number): string => {
+  const hours = Math.floor(totalSeconds / 3600);
+  const minutes = Math.floor((totalSeconds % 3600) / 60);
+  const seconds = totalSeconds % 60;
+
+  if (hours > 0) {
+    return `${hours.toString().padStart(2, '0')}:${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+  }
+  return `${minutes.toString().padStart(2, '0')}:${seconds.toString().padStart(2, '0')}`;
+};
 
 export function GlobalRadioPlayer() {
   const { toast } = useToast();
@@ -12,11 +24,68 @@ export function GlobalRadioPlayer() {
   const globalRadio = useGlobalRadio();
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
+  const [displayDuration, setDisplayDuration] = useState(0);
 
   // Initialize global audio reference
   useEffect(() => {
     setGlobalAudioRef(audioRef.current);
   }, []);
+
+  // Listening timer - uses Date.now() delta for accuracy even when backgrounded
+  useEffect(() => {
+    if (!globalRadio.isPlaying || !globalRadio.sessionStartTime) {
+      // When paused, just show accumulated time
+      setDisplayDuration(globalRadio.accumulatedTime);
+      return;
+    }
+
+    const updateTimer = () => {
+      const currentSessionTime = Math.floor((Date.now() - globalRadio.sessionStartTime!) / 1000);
+      setDisplayDuration(globalRadio.accumulatedTime + currentSessionTime);
+    };
+
+    updateTimer(); // Initial update
+    const interval = setInterval(updateTimer, 1000);
+    return () => clearInterval(interval);
+  }, [globalRadio.isPlaying, globalRadio.sessionStartTime, globalRadio.accumulatedTime]);
+
+  // Media Session API - for lock screen controls
+  useEffect(() => {
+    if (!('mediaSession' in navigator) || !globalRadio.currentStation) return;
+
+    try {
+      navigator.mediaSession.metadata = new MediaMetadata({
+        title: globalRadio.currentStation.name,
+        artist: 'Noor Connect',
+        album: 'Quran Radio',
+      });
+
+      navigator.mediaSession.setActionHandler('play', () => {
+        handlePlayPause();
+      });
+
+      navigator.mediaSession.setActionHandler('pause', () => {
+        handlePlayPause();
+      });
+
+      navigator.mediaSession.setActionHandler('stop', () => {
+        globalRadio.stopRadio();
+        setIsVisible(false);
+      });
+    } catch (error) {
+      console.warn('Media Session API setup failed:', error);
+    }
+
+    return () => {
+      try {
+        navigator.mediaSession.setActionHandler('play', null);
+        navigator.mediaSession.setActionHandler('pause', null);
+        navigator.mediaSession.setActionHandler('stop', null);
+      } catch (e) {
+        // Ignore cleanup errors
+      }
+    };
+  }, [globalRadio.currentStation]);
 
   // Handle audio element events
   useEffect(() => {
@@ -24,21 +93,29 @@ export function GlobalRadioPlayer() {
     if (!audio) return;
 
     const handlePlay = () => {
-      globalRadio.updateRadioState({ isPlaying: true });
+      globalRadio.updateRadioState({ isPlaying: true, sessionStartTime: Date.now() });
     };
 
     const handlePause = () => {
-      globalRadio.updateRadioState({ isPlaying: false });
+      // Calculate additional time before updating state
+      const additionalTime = globalRadio.sessionStartTime
+        ? Math.floor((Date.now() - globalRadio.sessionStartTime) / 1000)
+        : 0;
+      globalRadio.updateRadioState({
+        isPlaying: false,
+        sessionStartTime: null,
+        accumulatedTime: globalRadio.accumulatedTime + additionalTime
+      });
     };
 
     const handleError = (e: Event) => {
       console.error('Global radio error:', e);
       globalRadio.updateRadioState({ isPlaying: false });
       setIsLoading(false);
-      
+
       const audio = e.target as HTMLAudioElement;
       let errorMessage = "Failed to play radio station.";
-      
+
       if (audio.error) {
         switch (audio.error.code) {
           case MediaError.MEDIA_ERR_ABORTED:
@@ -57,7 +134,7 @@ export function GlobalRadioPlayer() {
             errorMessage = `Audio error: ${audio.error.message}`;
         }
       }
-      
+
       toast({
         title: "Radio Error",
         description: errorMessage,
@@ -97,7 +174,6 @@ export function GlobalRadioPlayer() {
     if (!audio || !globalRadio?.currentStation) return;
 
     if (globalRadio.isPlaying) {
-      // Only play if not already playing
       if (audio.paused) {
         audio.play().catch(error => {
           console.error('Global radio play error:', error);
@@ -105,7 +181,6 @@ export function GlobalRadioPlayer() {
         });
       }
     } else {
-      // Only pause if currently playing
       if (!audio.paused) {
         audio.pause();
       }
@@ -117,7 +192,6 @@ export function GlobalRadioPlayer() {
     const audio = audioRef.current;
     if (!audio || !globalRadio.currentStation) return;
 
-    // Only update if the station actually changed
     if (audio.src !== globalRadio.currentStation.url) {
       audio.src = globalRadio.currentStation.url;
       audio.crossOrigin = 'anonymous';
@@ -164,63 +238,82 @@ export function GlobalRadioPlayer() {
   };
 
   const handleClose = () => {
+    if (audioRef.current) {
+      audioRef.current.pause();
+    }
+    globalRadio?.stopRadio();
     setIsVisible(false);
   };
 
-  if (!globalRadio?.currentStation || !isVisible) {
-    return null;
-  }
-
+  // Always render audio element, but conditionally show UI
   return (
-    <Card className="fixed bottom-20 left-0 right-0 z-[60] shadow-lg bg-card/95 backdrop-blur-lg border-border border-t">
-      <div className="p-4 space-y-3">
-        {/* Header */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2">
-            <Radio className="w-5 h-5 text-primary" />
-            <h3 className="font-semibold">Quran Radio</h3>
-          </div>
-          <Button variant="ghost" size="icon" onClick={handleClose}>
-            <X className="w-4 h-4" />
-          </Button>
-        </div>
+    <>
+      {/* Hidden Audio Element - ALWAYS rendered */}
+      <audio
+        ref={audioRef}
+        preload="none"
+        crossOrigin="anonymous"
+        style={{ display: 'none' }}
+      />
 
-        {/* Current Track Info */}
-        <div className="p-2 bg-muted/30 rounded-lg">
-          <p className="text-sm font-medium truncate">{globalRadio?.currentTrackInfo || ''}</p>
-          <p className="text-xs text-muted-foreground">Live Quran Recitation</p>
-        </div>
+      {/* Mini Player UI - only shown when visible and station selected */}
+      {globalRadio?.currentStation && isVisible && (
+        <Card className="fixed bottom-20 left-0 right-0 z-40 shadow-lg bg-card/95 backdrop-blur-lg border-border border-t">
+          <div className="p-3">
+            {/* Compact Header with Station Info and Timer */}
+            <div className="flex items-center gap-3">
+              {/* Radio Icon & Station Info */}
+              <div className="flex items-center gap-2 flex-1 min-w-0">
+                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
+                  <Radio className="w-5 h-5 text-primary" />
+                </div>
+                <div className="min-w-0 flex-1">
+                  <p className="text-sm font-medium truncate">{globalRadio?.currentTrackInfo || 'Unknown Station'}</p>
+                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
+                    <Clock className="w-3 h-3" />
+                    <span className="font-mono">{formatDuration(displayDuration)}</span>
+                    <span className="text-primary">•</span>
+                    <span>{globalRadio.isPlaying ? 'Playing' : 'Paused'}</span>
+                  </div>
+                </div>
+              </div>
 
-        {/* Audio Controls */}
-        <div className="space-y-3">
-          {/* Play/Pause Button */}
-          <div className="flex justify-center">
-            <Button
-              size="lg"
-              onClick={handlePlayPause}
-              disabled={isLoading}
-              className="w-20 h-20 rounded-full"
-            >
-              {isLoading ? (
-                <div className="w-8 h-8 animate-spin rounded-full border-2 border-primary border-t-transparent"></div>
-              ) : globalRadio?.isPlaying ? (
-                <Pause className="w-8 h-8" />
-              ) : (
-                <Play className="w-8 h-8 ml-1" />
-              )}
-            </Button>
-          </div>
+              {/* Controls */}
+              <div className="flex items-center gap-1">
+                {/* Play/Pause Button */}
+                <Button
+                  size="icon"
+                  onClick={handlePlayPause}
+                  disabled={isLoading}
+                  className="rounded-full w-10 h-10"
+                >
+                  {isLoading ? (
+                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"></div>
+                  ) : globalRadio?.isPlaying ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4 ml-0.5" />
+                  )}
+                </Button>
 
-          {/* Volume Control */}
-          <div className="space-y-2">
-            <div className="flex items-center gap-2">
-              <Button variant="ghost" size="icon" onClick={toggleMute}>
-                {globalRadio?.isMuted ? (
-                  <VolumeX className="w-4 h-4" />
-                ) : (
-                  <Volume2 className="w-4 h-4" />
-                )}
-              </Button>
+                {/* Mute Toggle */}
+                <Button variant="ghost" size="icon" onClick={toggleMute} className="w-8 h-8">
+                  {globalRadio?.isMuted ? (
+                    <VolumeX className="w-4 h-4" />
+                  ) : (
+                    <Volume2 className="w-4 h-4" />
+                  )}
+                </Button>
+
+                {/* Close */}
+                <Button variant="ghost" size="icon" onClick={handleClose} className="w-8 h-8">
+                  <X className="w-4 h-4" />
+                </Button>
+              </div>
+            </div>
+
+            {/* Volume Slider */}
+            <div className="mt-2 flex items-center gap-2">
               <Slider
                 value={[globalRadio?.volume || 0]}
                 onValueChange={handleVolumeChange}
@@ -228,18 +321,12 @@ export function GlobalRadioPlayer() {
                 step={1}
                 className="flex-1"
               />
-              <span className="text-sm text-muted-foreground w-10">{globalRadio?.volume || 0}%</span>
+              <span className="text-xs text-muted-foreground w-8 text-right">{globalRadio?.volume || 0}%</span>
             </div>
           </div>
-        </div>
-
-        {/* Hidden Audio Element */}
-        <audio
-          ref={audioRef}
-          preload="none"
-          crossOrigin="anonymous"
-        />
-      </div>
-    </Card>
+        </Card>
+      )}
+    </>
   );
 }
+

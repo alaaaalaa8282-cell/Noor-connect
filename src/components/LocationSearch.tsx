@@ -1,9 +1,10 @@
-import { useState } from "react";
+import { useState, useEffect, useRef } from "react";
 import { Search, MapPin, Loader2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { useToast } from "@/hooks/use-toast";
+import { GeocodingService, type GeocodingResult } from "@/lib/geocoding";
 
 interface LocationSearchProps {
   onLocationSelect: (city: string, country: string) => Promise<void>;
@@ -27,41 +28,79 @@ const POPULAR_CITIES = [
 
 export function LocationSearch({ onLocationSelect, isLoading = false }: LocationSearchProps) {
   const [searchQuery, setSearchQuery] = useState("");
-  const [searchCity, setSearchCity] = useState("");
-  const [searchCountry, setSearchCountry] = useState("");
+  const [suggestions, setSuggestions] = useState<GeocodingResult[]>([]);
+  const [isSearching, setIsSearching] = useState(false);
+  const [showSuggestions, setShowSuggestions] = useState(false);
+  const wrapperRef = useRef<HTMLDivElement>(null);
   const { toast } = useToast();
 
-  const handleSearch = async () => {
-    if (!searchCity.trim()) {
-      toast({
-        title: "City Required",
-        description: "Please enter a city name",
-        variant: "destructive"
-      });
-      return;
+  // Handle outside click to close suggestions
+  useEffect(() => {
+    function handleClickOutside(event: MouseEvent) {
+      if (wrapperRef.current && !wrapperRef.current.contains(event.target as Node)) {
+        setShowSuggestions(false);
+      }
     }
+    document.addEventListener("mousedown", handleClickOutside);
+    return () => document.removeEventListener("mousedown", handleClickOutside);
+  }, []);
 
+  // Debounced search
+  useEffect(() => {
+    const timer = setTimeout(async () => {
+      if (searchQuery.trim().length < 2) {
+        setSuggestions([]);
+        return;
+      }
+
+      setIsSearching(true);
+      try {
+        const results = await GeocodingService.searchLocation(searchQuery);
+        setSuggestions(results);
+        setShowSuggestions(true);
+      } catch (error) {
+        console.error("Search failed:", error);
+      } finally {
+        setIsSearching(false);
+      }
+    }, 500); // 500ms debounce
+
+    return () => clearTimeout(timer);
+  }, [searchQuery]);
+
+  const handleSuggestionSelect = async (place: GeocodingResult) => {
     try {
-      await onLocationSelect(searchCity.trim(), searchCountry.trim() || "");
-      setSearchQuery("");
-      setSearchCity("");
-      setSearchCountry("");
+      const city = place.address.city || place.address.town || place.address.village || place.address.county || place.address.state || "";
+      const country = place.address.country || "";
+
+      setSearchQuery(place.display_name);
+      setShowSuggestions(false);
+
+      await onLocationSelect(city, country);
     } catch (error) {
       toast({
-        title: "Location Not Found",
-        description: "Could not find prayer times for this location. Please try a different city.",
+        title: "Selection Failed",
+        description: "Could not select this location.",
         variant: "destructive"
       });
     }
   };
 
-  const handlePopularCity = async (city: string, country: string) => {
+  const handleManualSearch = async () => {
+    if (!searchQuery.trim()) return;
+
+    // Split by comma if present to try and parse city/country
+    const parts = searchQuery.split(',');
+    const city = parts[0].trim();
+    const country = parts.length > 1 ? parts[1].trim() : "";
+
     try {
       await onLocationSelect(city, country);
+      setShowSuggestions(false);
     } catch (error) {
       toast({
         title: "Location Not Found",
-        description: "Could not find prayer times for this location. Please try a different city.",
+        description: "Could not find prayer times for this location.",
         variant: "destructive"
       });
     }
@@ -69,7 +108,7 @@ export function LocationSearch({ onLocationSelect, isLoading = false }: Location
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter') {
-      handleSearch();
+      handleManualSearch();
     }
   };
 
@@ -80,42 +119,55 @@ export function LocationSearch({ onLocationSelect, isLoading = false }: Location
           <MapPin className="w-12 h-12 mx-auto mb-3 text-primary" />
           <h3 className="text-lg font-semibold mb-2">Find Your Location</h3>
           <p className="text-sm text-muted-foreground">
-            We couldn't detect your location automatically. Please search for your city.
+            Search for your city to get accurate prayer times.
           </p>
         </div>
 
-        <div className="space-y-4">
-          <div className="flex gap-2">
+        <div className="space-y-4 relative" ref={wrapperRef}>
+          <div className="relative">
             <Input
-              placeholder="City name"
-              value={searchCity}
-              onChange={(e) => setSearchCity(e.target.value)}
+              placeholder="Search city (e.g. London, UK)"
+              value={searchQuery}
+              onChange={(e) => setSearchQuery(e.target.value)}
               onKeyPress={handleKeyPress}
-              className="flex-1"
+              className="pr-10"
             />
-            <Input
-              placeholder="Country"
-              value={searchCountry}
-              onChange={(e) => setSearchCountry(e.target.value)}
-              onKeyPress={handleKeyPress}
-              className="flex-1"
-            />
+            {isSearching && (
+              <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                <Loader2 className="w-4 h-4 animate-spin text-muted-foreground" />
+              </div>
+            )}
           </div>
 
-          <Button 
-            onClick={handleSearch} 
-            disabled={isLoading || !searchCity.trim()}
+          {/* Suggestions Dropdown */}
+          {showSuggestions && suggestions.length > 0 && (
+            <div className="absolute z-50 w-full mt-1 bg-popover rounded-md border shadow-md max-h-[200px] overflow-auto">
+              {suggestions.map((place, index) => (
+                <button
+                  key={index}
+                  className="w-full text-left px-4 py-2 text-sm hover:bg-accent hover:text-accent-foreground transition-colors border-b last:border-0"
+                  onClick={() => handleSuggestionSelect(place)}
+                >
+                  <p className="font-medium truncate">{place.display_name}</p>
+                </button>
+              ))}
+            </div>
+          )}
+
+          <Button
+            onClick={handleManualSearch}
+            disabled={isLoading || !searchQuery.trim()}
             className="w-full"
           >
             {isLoading ? (
               <>
                 <Loader2 className="w-4 h-4 mr-2 animate-spin" />
-                Searching...
+                Setting Location...
               </>
             ) : (
               <>
                 <Search className="w-4 h-4 mr-2" />
-                Search Location
+                Set Location
               </>
             )}
           </Button>
@@ -129,7 +181,10 @@ export function LocationSearch({ onLocationSelect, isLoading = false }: Location
                 key={`${city.city}-${city.country}`}
                 variant="outline"
                 size="sm"
-                onClick={() => handlePopularCity(city.city, city.country)}
+                onClick={() => {
+                  setSearchQuery(`${city.city}, ${city.country}`);
+                  onLocationSelect(city.city, city.country);
+                }}
                 disabled={isLoading}
                 className="text-xs h-auto py-2 px-2"
               >
@@ -141,7 +196,7 @@ export function LocationSearch({ onLocationSelect, isLoading = false }: Location
 
         <div className="mt-4 text-center">
           <p className="text-xs text-muted-foreground">
-            Location search uses OpenStreetMap (Nominatim) and prayer times are calculated locally
+            Search provided by OpenStreetMap
           </p>
         </div>
       </CardContent>

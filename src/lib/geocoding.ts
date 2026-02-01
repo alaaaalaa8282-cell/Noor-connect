@@ -11,6 +11,7 @@ export interface GeocodingResult {
     city?: string;
     town?: string;
     village?: string;
+    county?: string;
     country: string;
     state?: string;
     postcode?: string;
@@ -26,7 +27,7 @@ export class GeocodingService {
   static async searchLocation(query: string): Promise<GeocodingResult[]> {
     try {
       const url = `${this.NOMINATIM_BASE}?q=${encodeURIComponent(query)}&format=json&limit=5&addressdetails=1`;
-      
+
       const response = await fetch(url, {
         headers: {
           'User-Agent': 'Noor-Connect-Islamic-App/1.0' // Required by Nominatim policy
@@ -61,7 +62,7 @@ export class GeocodingService {
     }
 
     // Find the best match (prefer exact city matches)
-    const bestMatch = results.find(result => 
+    const bestMatch = results.find(result =>
       result.address.city?.toLowerCase() === city.toLowerCase() ||
       result.address.town?.toLowerCase() === city.toLowerCase() ||
       result.address.village?.toLowerCase() === city.toLowerCase()

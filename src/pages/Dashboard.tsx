@@ -11,7 +11,6 @@ import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { LocationSearch } from "@/components/LocationSearch";
-import { NotificationSettings } from "@/components/NotificationSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Suspense, lazy } from "react";
@@ -48,6 +47,7 @@ export default function Dashboard() {
   const [nextPrayerName, setNextPrayerName] = useState<string>("");
   const [nextEventCountdown, setNextEventCountdown] = useState<{ name: string; time: string; countdown: string } | null>(null);
   const [loadingAPI, setLoadingAPI] = useState(false);
+  const [timezone, setTimezone] = useState<string>("");
   const [initialLoad, setInitialLoad] = useState(true);
   const { toast } = useToast();
 
@@ -116,6 +116,20 @@ export default function Dashboard() {
           undefined,
           1 // Pakistan/Karachi method
         );
+      }
+
+      // Get timezone from stored data
+      const storedData = AladhanAPI.getStoredMonthlyData();
+      if (storedData?.data?.length) {
+        // Find today's data or fallback to first entry
+        const today = storedData.data.find(d => {
+          const apiDate = new Date(d.date.gregorian.date);
+          return apiDate.toDateString() === new Date().toDateString();
+        }) || storedData.data[0];
+
+        if (today?.meta?.timezone) {
+          setTimezone(today.meta.timezone);
+        }
       }
 
       // Get today's prayer times
@@ -325,7 +339,8 @@ export default function Dashboard() {
                     {currentTime.toLocaleTimeString("en-US", {
                       hour: timeFormat === '12' ? 'numeric' : '2-digit',
                       minute: "2-digit",
-                      hour12: timeFormat === '12'
+                      hour12: timeFormat === '12',
+                      timeZone: timezone || undefined
                     })}
                   </div>
                 </div>
@@ -459,17 +474,15 @@ export default function Dashboard() {
                   <p className="text-xs text-muted-foreground">{location.locationName}</p>
                 </div>
                 <div className="flex gap-2">
-                  {prayerTimesHook.needsManualLocation && (
-                    <Button
-                      variant="default"
-                      size="sm"
-                      onClick={() => setShowManualLocationDialog(true)}
-                      className="gap-2"
-                    >
-                      <MapPin className="w-4 h-4" />
-                      Manual Location
-                    </Button>
-                  )}
+                  <Button
+                    variant="ghost"
+                    size="sm"
+                    onClick={() => setShowManualLocationDialog(true)}
+                    className="gap-2"
+                  >
+                    <MapPin className="w-4 h-4" />
+                    Manual
+                  </Button>
                   <Button
                     variant="outline"
                     size="sm"
@@ -494,8 +507,7 @@ export default function Dashboard() {
             </Card>
           )}
 
-          {/* Notification Settings */}
-          <NotificationSettings />
+
 
           {/* Manual Location Dialog */}
           {showManualLocationDialog && (

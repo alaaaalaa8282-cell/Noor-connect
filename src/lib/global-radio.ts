@@ -15,6 +15,8 @@ export interface RadioState {
   volume: number;
   isMuted: boolean;
   currentTrackInfo: string;
+  sessionStartTime: number | null; // Timestamp when current playback segment started
+  accumulatedTime: number; // Total seconds listened before current segment
 }
 
 const DEFAULT_RADIO_STATE: RadioState = {
@@ -22,7 +24,9 @@ const DEFAULT_RADIO_STATE: RadioState = {
   currentStation: null,
   volume: 70,
   isMuted: false,
-  currentTrackInfo: ''
+  currentTrackInfo: '',
+  sessionStartTime: null,
+  accumulatedTime: 0
 };
 
 const STORAGE_KEY = 'global-radio-state';
@@ -82,30 +86,51 @@ export const useGlobalRadio = () => {
 
   // Play radio
   const playRadio = useCallback((station: { id: number; name: string; url: string }) => {
-    updateRadioState({
-      currentStation: station,
-      isPlaying: true,
-      currentTrackInfo: station.name
+    setRadioState(prev => {
+      const currentState = prev || DEFAULT_RADIO_STATE;
+      const isSameStation = currentState.currentStation?.id === station.id;
+      return {
+        ...currentState,
+        currentStation: station,
+        isPlaying: true,
+        currentTrackInfo: station.name,
+        sessionStartTime: Date.now(),
+        // If switching stations, reset accumulated time
+        accumulatedTime: isSameStation ? currentState.accumulatedTime : 0
+      };
     });
-  }, [updateRadioState]);
+  }, []);
 
   // Pause radio
   const pauseRadio = useCallback(() => {
-    updateRadioState({ isPlaying: false });
-  }, [updateRadioState]);
+    setRadioState(prev => {
+      const currentState = prev || DEFAULT_RADIO_STATE;
+      const additionalTime = currentState.sessionStartTime
+        ? Math.floor((Date.now() - currentState.sessionStartTime) / 1000)
+        : 0;
+      return {
+        ...currentState,
+        isPlaying: false,
+        sessionStartTime: null,
+        accumulatedTime: currentState.accumulatedTime + additionalTime
+      };
+    });
+  }, []);
 
   // Stop radio
   const stopRadio = useCallback(() => {
     updateRadioState({
       isPlaying: false,
       currentStation: null,
-      currentTrackInfo: ''
+      currentTrackInfo: '',
+      sessionStartTime: null,
+      accumulatedTime: 0
     });
   }, [updateRadioState]);
 
   // Set volume
   const setVolume = useCallback((volume: number) => {
-    updateRadioState({ 
+    updateRadioState({
       volume: Math.max(0, Math.min(100, volume)),
       isMuted: false // Unmute when setting volume
     });

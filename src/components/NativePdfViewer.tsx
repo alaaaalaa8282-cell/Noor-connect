@@ -1,6 +1,6 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2, ExternalLink } from 'lucide-react';
+import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2, ExternalLink, Scroll } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { getPdfBlobUrl } from '@/lib/ebooks-storage';
 
@@ -16,6 +16,89 @@ interface NativePdfViewerProps {
 
 type ViewerMode = 'loading' | 'pdfjs' | 'iframe' | 'error';
 
+// Sub-component for rendering individual pages in vertical mode
+function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; scale: number }) {
+  const canvasRef = useRef<HTMLCanvasElement>(null);
+  const containerRef = useRef<HTMLDivElement>(null);
+  const [inView, setInView] = useState(false);
+  const renderTaskRef = useRef<any>(null);
+
+  useEffect(() => {
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        setInView(entry.isIntersecting);
+      },
+      { rootMargin: '100% 0px' } // Preload nicely
+    );
+
+    if (containerRef.current) {
+      observer.observe(containerRef.current);
+    }
+
+    return () => observer.disconnect();
+  }, []);
+
+  useEffect(() => {
+    if (!inView || !pdf || !canvasRef.current) return;
+
+    let mounted = true;
+
+    const render = async () => {
+      try {
+        const page = await pdf.getPage(pageNumber);
+        if (!mounted) return;
+
+        const viewport = page.getViewport({ scale });
+        const canvas = canvasRef.current;
+        if (!canvas) return;
+
+        const context = canvas.getContext('2d');
+        if (!context) return;
+
+        // Only resize if different to avoid flickering
+        if (canvas.height !== viewport.height || canvas.width !== viewport.width) {
+          canvas.height = viewport.height;
+          canvas.width = viewport.width;
+        }
+
+        // Cancel previous render if any
+        if (renderTaskRef.current) {
+          renderTaskRef.current.cancel();
+        }
+
+        const renderContext = {
+          canvasContext: context,
+          viewport: viewport,
+        };
+
+        const renderTask = page.render(renderContext);
+        renderTaskRef.current = renderTask;
+
+        await renderTask.promise;
+      } catch (error: any) {
+        if (error.name !== 'RenderingCancelledException') {
+          console.error('Error rendering page', pageNumber, error);
+        }
+      }
+    };
+
+    render();
+
+    return () => {
+      mounted = false;
+      if (renderTaskRef.current) {
+        renderTaskRef.current.cancel();
+      }
+    };
+  }, [inView, pdf, pageNumber, scale]);
+
+  return (
+    <div ref={containerRef} className="flex justify-center my-4 min-h-[400px]">
+      <canvas ref={canvasRef} className="border border-border shadow-lg bg-white" />
+    </div>
+  );
+}
+
 export default function NativePdfViewer({ url, title, localKey, onClose }: NativePdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
@@ -24,6 +107,7 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
   const [scale, setScale] = useState(1.0);
   const [viewerMode, setViewerMode] = useState<ViewerMode>('loading');
   const [error, setError] = useState<string | null>(null);
+  const [isVertical, setIsVertical] = useState(false); // New state for vertical scroll mode
 
   useEffect(() => {
     loadPdf();
@@ -71,7 +155,10 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
       setCurrentPage(1);
       setViewerMode('pdfjs');
 
-      await renderPage(pdf, 1, scale);
+      // Only render page 1 if we remain in single-page mode or want to init
+      if (!isVertical) {
+        await renderPage(pdf, 1, scale);
+      }
     } catch (err: any) {
       console.error('Failed to load PDF with pdf.js:', err);
 
@@ -120,13 +207,15 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
     if (newPage < 1 || newPage > totalPages || !pdfDocument) return;
 
     setCurrentPage(newPage);
-    renderPage(pdfDocument, newPage, scale);
+    if (!isVertical) {
+      renderPage(pdfDocument, newPage, scale);
+    }
   };
 
   const zoomIn = () => {
     const newScale = Math.min(scale + 0.25, 3.0);
     setScale(newScale);
-    if (pdfDocument) {
+    if (pdfDocument && !isVertical) {
       renderPage(pdfDocument, currentPage, newScale);
     }
   };
@@ -134,20 +223,29 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
   const zoomOut = () => {
     const newScale = Math.max(scale - 0.25, 0.5);
     setScale(newScale);
-    if (pdfDocument) {
+    if (pdfDocument && !isVertical) {
       renderPage(pdfDocument, currentPage, newScale);
     }
   };
 
   const rotate = () => {
-    // For simplicity, we'll just reload the page
-    if (pdfDocument) {
+    // For simplicity, we'll just reload the page/layout
+    if (pdfDocument && !isVertical) {
       renderPage(pdfDocument, currentPage, scale);
     }
   };
 
   const downloadPdf = () => {
     window.open(url, '_blank');
+  };
+
+  const toggleLayout = () => {
+    setIsVertical(!isVertical);
+    // If switching back to single page, re-render current page
+    if (isVertical && pdfDocument) {
+      // We need to wait for layout change then render, but effect might handle or we can just trigger it
+      setTimeout(() => renderPage(pdfDocument, currentPage, scale), 50);
+    }
   };
 
   // Loading state
@@ -289,6 +387,14 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
         </Button>
         <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
         <div className="flex items-center gap-1">
+          <Button
+            size="icon"
+            variant={isVertical ? "secondary" : "ghost"}
+            onClick={toggleLayout}
+            title={isVertical ? "Switch to Page View" : "Switch to Vertical Scroll"}
+          >
+            <Scroll className="w-4 h-4" />
+          </Button>
           <Button size="icon" variant="ghost" onClick={downloadPdf}>
             <Download className="w-4 h-4" />
           </Button>
@@ -298,25 +404,34 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
       {/* PDF Controls */}
       <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
         <div className="flex items-center gap-2">
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => changePage(currentPage - 1)}
-            disabled={currentPage <= 1}
-          >
-            Previous
-          </Button>
-          <span className="text-sm font-medium px-2">
-            {currentPage} / {totalPages}
-          </span>
-          <Button
-            size="sm"
-            variant="outline"
-            onClick={() => changePage(currentPage + 1)}
-            disabled={currentPage >= totalPages}
-          >
-            Next
-          </Button>
+          {!isVertical && (
+            <>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => changePage(currentPage - 1)}
+                disabled={currentPage <= 1}
+              >
+                Previous
+              </Button>
+              <span className="text-sm font-medium px-2">
+                {currentPage} / {totalPages}
+              </span>
+              <Button
+                size="sm"
+                variant="outline"
+                onClick={() => changePage(currentPage + 1)}
+                disabled={currentPage >= totalPages}
+              >
+                Next
+              </Button>
+            </>
+          )}
+          {isVertical && (
+            <span className="text-sm font-medium px-2">
+              {totalPages} Pages
+            </span>
+          )}
         </div>
 
         <div className="flex items-center gap-2">
@@ -329,20 +444,35 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
           <Button size="sm" variant="outline" onClick={zoomIn}>
             <ZoomIn className="w-4 h-4" />
           </Button>
-          <Button size="sm" variant="outline" onClick={rotate}>
-            <RotateCw className="w-4 h-4" />
-          </Button>
+          {!isVertical && (
+            <Button size="sm" variant="outline" onClick={rotate}>
+              <RotateCw className="w-4 h-4" />
+            </Button>
+          )}
         </div>
       </div>
 
-      {/* PDF Canvas */}
+      {/* PDF Content Area */}
       <div className="flex-1 overflow-auto bg-muted/30 p-4">
-        <div className="flex justify-center">
-          <canvas
-            ref={canvasRef}
-            className="border border-border shadow-lg bg-white"
-            style={{ maxWidth: '100%', height: 'auto' }}
-          />
+        <div className="flex justify-center flex-col items-center">
+          {isVertical ? (
+            // Vertical Scroll Mode: Render all pages with lazy loading
+            Array.from({ length: totalPages }, (_, i) => (
+              <PdfPage
+                key={i + 1}
+                pdf={pdfDocument}
+                pageNumber={i + 1}
+                scale={scale}
+              />
+            ))
+          ) : (
+            // Single Page Mode: Render simplified single canvas
+            <canvas
+              ref={canvasRef}
+              className="border border-border shadow-lg bg-white"
+              style={{ maxWidth: '100%', height: 'auto' }}
+            />
+          )}
         </div>
       </div>
     </div>
