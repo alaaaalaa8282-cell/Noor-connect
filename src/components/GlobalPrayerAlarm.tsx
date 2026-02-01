@@ -2,6 +2,7 @@ import { useEffect, useRef, useCallback } from 'react';
 import { toast } from 'sonner';
 import { prayerTimesApiResponseSchema, safeParseApiResponse } from '@/lib/api-schemas';
 import { getSelectedAdhanUrl } from '@/components/AdhanSelector';
+import { localNotifications } from '@/lib/local-notifications';
 
 const ADHAN_AUDIO_URL = 'https://download.quranicaudio.com/quran/mishaari_raashid_al_3afaasee/azan.mp3';
 const STORAGE_KEY = 'prayer-alarm-enabled';
@@ -32,19 +33,19 @@ export const GlobalPrayerAlarm = () => {
       const response = await fetch(
         `https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=2`
       );
-      
+
       if (!response.ok) return;
-      
+
       const rawData = await response.json();
       const parseResult = safeParseApiResponse(prayerTimesApiResponseSchema, rawData);
-      
+
       if (!parseResult.success) {
         console.error('Invalid prayer times API response');
         return;
       }
-      
+
       const timings = parseResult.data.data.timings;
-      
+
       const prayerTimes: PrayerTime[] = [
         { name: 'Fajr', time: timings.Fajr },
         { name: 'Dhuhr', time: timings.Dhuhr },
@@ -52,7 +53,7 @@ export const GlobalPrayerAlarm = () => {
         { name: 'Maghrib', time: timings.Maghrib },
         { name: 'Isha', time: timings.Isha },
       ];
-      
+
       localStorage.setItem(PRAYER_TIMES_KEY, JSON.stringify({
         times: prayerTimes,
         date: new Date().toDateString()
@@ -65,7 +66,7 @@ export const GlobalPrayerAlarm = () => {
   const playAdhan = useCallback((prayerName: string) => {
     // Get user-selected Adhan URL
     const adhanUrl = getSelectedAdhanUrl();
-    
+
     // Create new audio instance with selected Adhan
     const audio = new Audio(adhanUrl);
     audio.volume = 0.7;
@@ -76,14 +77,11 @@ export const GlobalPrayerAlarm = () => {
       duration: 30000, // Longer duration for full Adhan
     });
 
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(`${prayerName} Prayer Time`, {
-        body: 'It is time for prayer',
-        icon: '/favicon.png',
-        tag: 'prayer-alarm',
-        requireInteraction: true,
-      });
-    }
+    localNotifications.showNativeNotification(
+      `${prayerName} Prayer Time`,
+      'It is time for prayer. Click to open companion.',
+      { url: '/dashboard', tag: 'prayer-alarm' }
+    );
 
     audio.play().catch((error) => {
       console.error('Failed to play Adhan:', error);
@@ -99,13 +97,11 @@ export const GlobalPrayerAlarm = () => {
       duration: 10000,
     });
 
-    if ('Notification' in window && Notification.permission === 'granted') {
-      new Notification(`${prayerName} Prayer Coming Up`, {
-        body: `${prayerName} prayer will begin in ${minutesBefore} minutes`,
-        icon: '/favicon.png',
-        tag: 'prayer-reminder',
-      });
-    }
+    localNotifications.showNativeNotification(
+      `${prayerName} Prayer Coming Up`,
+      `${prayerName} prayer will begin in ${minutesBefore} minutes`,
+      { url: '/dashboard', tag: 'prayer-reminder' }
+    );
   }, []);
 
   const checkPrayerTime = useCallback(() => {
@@ -117,7 +113,7 @@ export const GlobalPrayerAlarm = () => {
 
     const { times, date } = JSON.parse(cached);
     const today = new Date().toDateString();
-    
+
     // Refresh if date changed
     if (date !== today) {
       fetchAndCachePrayerTimes();
@@ -133,7 +129,7 @@ export const GlobalPrayerAlarm = () => {
     for (const prayer of times as PrayerTime[]) {
       const prayerKey = `${today}-${prayer.name}`;
       const reminderKey = `${today}-${prayer.name}-reminder`;
-      
+
       // Check for exact prayer time (play Adhan)
       if (prayer.time === currentTimeStr && lastPlayed !== prayerKey) {
         localStorage.setItem(LAST_PLAYED_KEY, prayerKey);
@@ -146,10 +142,10 @@ export const GlobalPrayerAlarm = () => {
         const [prayerHour, prayerMinute] = prayer.time.split(':').map(Number);
         const prayerDate = new Date();
         prayerDate.setHours(prayerHour, prayerMinute, 0, 0);
-        
+
         const reminderTime = new Date(prayerDate.getTime() - reminderMinutes * 60 * 1000);
         const reminderTimeStr = `${reminderTime.getHours().toString().padStart(2, '0')}:${reminderTime.getMinutes().toString().padStart(2, '0')}`;
-        
+
         if (currentTimeStr === reminderTimeStr) {
           localStorage.setItem(LAST_REMINDER_KEY, reminderKey);
           playReminder(prayer.name, reminderMinutes);
@@ -164,7 +160,7 @@ export const GlobalPrayerAlarm = () => {
     const isEnabled = localStorage.getItem(STORAGE_KEY) === 'true';
     if (isEnabled) {
       fetchAndCachePrayerTimes();
-      
+
       // Check every 30 seconds
       checkIntervalRef.current = setInterval(checkPrayerTime, 30000);
       checkPrayerTime();

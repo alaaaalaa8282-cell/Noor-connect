@@ -8,6 +8,14 @@ import { LocalNotifications } from '@capacitor/local-notifications';
 import { AladhanAPI, type AladhanPrayerTime } from './aladhan-api';
 import { getPrayerSettings } from './storage';
 
+// Task 2: Use SW registration for more robust "Native" notifications
+let swRegistration: ServiceWorkerRegistration | null = null;
+if ('serviceWorker' in navigator) {
+  navigator.serviceWorker.ready.then(reg => {
+    swRegistration = reg;
+  });
+}
+
 const LOCATION_STORAGE_KEY = 'user-location-data';
 
 export interface PrayerTime {
@@ -53,7 +61,7 @@ export class LocalNotificationManager {
   async requestPermissions(): Promise<boolean> {
     try {
       const permission = await LocalNotifications.requestPermissions();
-      
+
       if (permission.display !== 'granted') {
         console.warn('Notification permission not granted');
         return false;
@@ -74,13 +82,14 @@ export class LocalNotificationManager {
   async start(): Promise<void> {
     // Prevent multiple starts
     if (LocalNotificationManager.hasStarted) {
-      console.log('Notification service already started, skipping...');
       return;
     }
 
     LocalNotificationManager.hasStarted = true;
-    await this.initialize();
-    console.log('Notification service started');
+    const initialized = await this.initialize();
+    if (initialized) {
+      console.log('Notification service started');
+    }
   }
 
   /**
@@ -90,9 +99,8 @@ export class LocalNotificationManager {
     try {
       // Only check permissions, don't request them
       const hasPermission = await this.checkPermissions();
-      
+
       if (!hasPermission) {
-        console.log('Notification permission not yet granted');
         return false;
       }
 
@@ -111,7 +119,8 @@ export class LocalNotificationManager {
    */
   async schedulePrayerNotificationsFromAPI(): Promise<void> {
     if (!this.isInitialized) {
-      await this.initialize();
+      const initialized = await this.initialize();
+      if (!initialized) return;
     }
 
     try {
@@ -126,7 +135,7 @@ export class LocalNotificationManager {
       const now = new Date();
       const storedTime = new Date(locationData.timestamp);
       const hoursDiff = (now.getTime() - storedTime.getTime()) / (1000 * 60 * 60);
-      
+
       // Only schedule if location is recent (less than 24 hours) and not manual/default
       if (hoursDiff >= 24 || locationData.source === 'manual' || locationData.source === 'default') {
         console.log('Location data is stale or manual, skipping notification scheduling');
@@ -136,7 +145,7 @@ export class LocalNotificationManager {
       // Check if we already have notifications scheduled for today
       const today = now.toDateString();
       const lastScheduledDate = localStorage.getItem('last-notification-schedule-date');
-      
+
       if (lastScheduledDate === today) {
         console.log('Notifications already scheduled for today, skipping');
         return;
@@ -184,7 +193,7 @@ export class LocalNotificationManager {
         // Only schedule future prayers for today
         if (prayerDate > now) {
           const notificationId = this.getNotificationId(prayer.name);
-          
+
           const notification = {
             id: notificationId,
             title: `🕌 ${prayer.name} Prayer Time`,
@@ -207,7 +216,7 @@ export class LocalNotificationManager {
           };
 
           notifications.push(notification);
-          
+
           // Store for tracking
           this.scheduledNotifications.set(notificationId, {
             id: notificationId,
@@ -224,10 +233,17 @@ export class LocalNotificationManager {
         await LocalNotifications.schedule({
           notifications
         });
-        
+
         // Mark that we've scheduled notifications for today
         localStorage.setItem('last-notification-schedule-date', today);
-        
+
+        // Sync with Service Worker for background persistence (for PWA/APK)
+        const swTimings: Record<string, { time: string }> = {};
+        for (const p of prayers) {
+          swTimings[p.name.toLowerCase()] = { time: p.time };
+        }
+        this.syncWithServiceWorker(swTimings);
+
         console.log(`Scheduled ${notifications.length} prayer notifications for location: ${locationData.city || `${locationData.latitude.toFixed(2)},${locationData.longitude.toFixed(2)}`}`);
       }
 
@@ -238,7 +254,8 @@ export class LocalNotificationManager {
   }
   async schedulePrayerNotifications(prayerTimes: PrayerTime[]): Promise<void> {
     if (!this.isInitialized) {
-      await this.initialize();
+      const initialized = await this.initialize();
+      if (!initialized) return;
     }
 
     try {
@@ -252,7 +269,7 @@ export class LocalNotificationManager {
         // Only schedule future prayers for today
         if (prayer.date > now) {
           const notificationId = this.getNotificationId(prayer.name);
-          
+
           const notification = {
             id: notificationId,
             title: `🕌 ${prayer.name} Prayer Time`,
@@ -273,7 +290,7 @@ export class LocalNotificationManager {
           };
 
           notifications.push(notification);
-          
+
           // Store for tracking
           this.scheduledNotifications.set(notificationId, {
             id: notificationId,
@@ -290,7 +307,14 @@ export class LocalNotificationManager {
         await LocalNotifications.schedule({
           notifications
         });
-        
+
+        // Sync with Service Worker
+        const swTimings: Record<string, { time: string }> = {};
+        for (const p of prayerTimes) {
+          swTimings[p.name.toLowerCase()] = { time: p.time };
+        }
+        this.syncWithServiceWorker(swTimings);
+
         console.log(`Scheduled ${notifications.length} prayer notifications`);
       }
     } catch (error) {
@@ -302,17 +326,18 @@ export class LocalNotificationManager {
    * Schedule a single prayer notification
    */
   async scheduleSinglePrayerNotification(
-    prayerName: string, 
-    prayerTime: string, 
+    prayerName: string,
+    prayerTime: string,
     prayerDate: Date
   ): Promise<void> {
     if (!this.isInitialized) {
-      await this.initialize();
+      const initialized = await this.initialize();
+      if (!initialized) return;
     }
 
     try {
       const notificationId = this.getNotificationId(prayerName);
-      
+
       await LocalNotifications.schedule({
         notifications: [{
           id: notificationId,
@@ -376,10 +401,10 @@ export class LocalNotificationManager {
         await LocalNotifications.cancel({
           notifications: prayerNotificationIds.map(id => ({ id }))
         });
-        
+
         // Clear from our tracking
         prayerNotificationIds.forEach(id => this.scheduledNotifications.delete(id));
-        
+
         console.log(`Cancelled ${prayerNotificationIds.length} prayer notifications`);
       }
     } catch (error) {
@@ -424,11 +449,51 @@ export class LocalNotificationManager {
   }
 
   /**
+   * Show an immediate notification using Service Worker Registration
+   * Task 2: Native Push Notifications logic
+   */
+  async showNativeNotification(title: string, body: string, data: any = {}): Promise<void> {
+    try {
+      if (!swRegistration) {
+        // Fallback if SW not ready
+        if ('Notification' in window && Notification.permission === 'granted') {
+          new Notification(title, {
+            body,
+            icon: '/favicon.png',
+            requireInteraction: true,
+            data: { ...data, url: data.url || '/dashboard' }
+          });
+        }
+        return;
+      }
+
+      const options: any = {
+        body,
+        icon: '/icon-192x192.png',
+        badge: '/icon-192x192.png',
+        vibrate: [200, 100, 200],
+        requireInteraction: true, // task 2 requirement
+        data: {
+          ...data,
+          url: data.url || '/dashboard' // opens dashboard by default
+        },
+        tag: data.tag || 'prayer-reminder'
+      };
+
+      await swRegistration.showNotification(title, options);
+      console.log('Native SW notification shown:', title);
+    } catch (error) {
+      console.error('Failed to show native notification:', error);
+    }
+  }
+
+  /**
    * Schedule daily notification reset (for next day's prayers)
    */
   async scheduleDailyReset(): Promise<void> {
     if (!this.isInitialized) {
-      await this.initialize();
+      const initialized = await this.initialize();
+      if (!initialized) return;
     }
 
     try {
@@ -457,6 +522,25 @@ export class LocalNotificationManager {
       console.log('Scheduled daily prayer time reset at 2 AM');
     } catch (error) {
       console.error('Failed to schedule daily reset:', error);
+    }
+  }
+
+  /**
+   * Sync prayer times to the Service Worker for persistent background checks
+   */
+  private syncWithServiceWorker(timings: any): void {
+    if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
+      navigator.serviceWorker.controller.postMessage({
+        type: 'UPDATE_PRAYER_TIMES',
+        data: { timings }
+      });
+      console.log('Prayer times synced to Service Worker');
+    } else if (swRegistration?.active) {
+      swRegistration.active.postMessage({
+        type: 'UPDATE_PRAYER_TIMES',
+        data: { timings }
+      });
+      console.log('Prayer times synced to active Service Worker registration');
     }
   }
 }

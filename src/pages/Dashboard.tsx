@@ -145,9 +145,6 @@ export default function Dashboard() {
 
       setPrayers(prayerList);
 
-      // Schedule prayer notifications
-      await localNotifications.schedulePrayerNotifications(prayerList);
-
       // Get next prayer countdown
       const nextEvent = await AladhanAPI.getNextEventCountdown(location.latitude, location.longitude, 1, false);
       if (nextEvent) {
@@ -168,8 +165,7 @@ export default function Dashboard() {
         { name: "Isha", time: formatTimeFromAPI(times.isha.toTimeString().slice(0, 5)), date: times.isha },
       ]);
 
-      // Schedule prayer notifications for fallback times
-      await localNotifications.schedulePrayerNotifications([
+      setPrayers([
         { name: "Fajr", time: formatTimeFromAPI(times.fajr.toTimeString().slice(0, 5)), date: times.fajr },
         { name: "Dhuhr", time: formatTimeFromAPI(times.dhuhr.toTimeString().slice(0, 5)), date: times.dhuhr },
         { name: "Asr", time: formatTimeFromAPI(times.asr.toTimeString().slice(0, 5)), date: times.asr },

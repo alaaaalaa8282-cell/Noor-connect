@@ -6,14 +6,9 @@
 const CACHE_NAME = 'noor-connect-v1';
 const API_CACHE_NAME = 'noor-connect-api-v1';
 
-// Islamic prayer times and events data
-const PRAYER_TIMES = {
-  fajr: { time: '05:30', adhan: 'fajr-adhan.mp3' },
-  dhuhr: { time: '12:30', adhan: 'dhuhr-adhan.mp3' },
-  asr: { time: '15:45', adhan: 'asr-adhan.mp3' },
-  maghrib: { time: '18:15', adhan: 'maghrib-adhan.mp3' },
-  isha: { time: '19:30', adhan: 'isha-adhan.mp3' }
-};
+// Islamic prayer times and events data - populated dynamically from the app
+let PRAYER_TIMES = {};
+let lastCheckDate = '';
 
 // 2026 Islamic Events Data
 const ISLAMIC_EVENTS_2026 = {
@@ -74,12 +69,18 @@ self.addEventListener('activate', (event) => {
 self.addEventListener('fetch', (event) => {
   try {
     const url = new URL(event.request.url);
-    
+
     // Ignore chrome-extension:// URLs to prevent errors
     if (url.protocol === 'chrome-extension:') {
       return;
     }
-    
+
+    // Task 3: Radio domains - Strictly NetworkOnly to avoid interference
+    if (url.hostname.includes('qurango.net') || url.hostname.includes('mp3quran.net') || url.pathname.includes('/radio/')) {
+      event.respondWith(fetch(event.request));
+      return;
+    }
+
     // Cache API calls
     if (url.pathname.startsWith('/api/') || url.hostname.includes('aladhan.com')) {
       event.respondWith(
@@ -96,7 +97,7 @@ self.addEventListener('fetch', (event) => {
                   });
                   return response;
                 }
-                
+
                 // Fetch from network and cache
                 return fetch(event.request)
                   .then((response) => {
@@ -114,7 +115,7 @@ self.addEventListener('fetch', (event) => {
       );
       return;
     }
-    
+
     // Cache other files
     event.respondWith(
       caches.match(event.request)
@@ -151,11 +152,11 @@ self.addEventListener('periodicsync', (event) => {
 // Push notification handler
 self.addEventListener('push', (event) => {
   console.log('Service Worker: Push notification received');
-  
+
   if (!event.data) {
     return;
   }
-  
+
   const data = event.data.json();
   const options = {
     body: data.body,
@@ -168,7 +169,7 @@ self.addEventListener('push', (event) => {
     silent: data.silent || false,
     tag: data.tag || 'default'
   };
-  
+
   event.waitUntil(
     self.registration.showNotification(data.title, options)
   );
@@ -177,11 +178,11 @@ self.addEventListener('push', (event) => {
 // Notification click handler
 self.addEventListener('notificationclick', (event) => {
   console.log('Service Worker: Notification clicked');
-  
+
   event.notification.close();
-  
+
   const urlToOpen = event.notification.data?.url || '/';
-  
+
   event.waitUntil(
     clients.matchAll({ type: 'window', includeUncontrolled: true })
       .then((clientList) => {
@@ -191,7 +192,7 @@ self.addEventListener('notificationclick', (event) => {
             return client.focus();
           }
         }
-        
+
         // Open new window
         if (clients.openWindow) {
           return clients.openWindow(urlToOpen);
@@ -200,16 +201,20 @@ self.addEventListener('notificationclick', (event) => {
   );
 });
 
-// Check prayer times and send notifications
 async function checkPrayerTimes() {
-  console.log('Service Worker: Checking prayer times...');
-  
   const now = new Date();
   const currentTime = formatTime(now);
-  
-  for (const [prayer, config] of Object.entries(PRAYER_TIMES)) {
-    if (currentTime === config.time) {
-      await sendPrayerNotification(prayer, config);
+  const today = now.toDateString();
+
+  // Reset check state if it's a new day
+  if (lastCheckDate !== today) {
+    lastCheckDate = today;
+  }
+
+  // check dynamic timings
+  for (const [prayer, data] of Object.entries(PRAYER_TIMES)) {
+    if (currentTime === data.time) {
+      await sendPrayerNotification(prayer, data);
     }
   }
 }
@@ -217,28 +222,28 @@ async function checkPrayerTimes() {
 // Check Islamic events and send notifications
 async function checkIslamicEvents() {
   console.log('Service Worker: Checking Islamic events...');
-  
+
   const now = new Date();
   const today = now.toDateString();
-  
+
   // Check Ramadan countdown
   if (now >= ISLAMIC_EVENTS_2026.ramadan.countdownStart && now < ISLAMIC_EVENTS_2026.ramadan.start) {
     const daysUntil = Math.ceil((ISLAMIC_EVENTS_2026.ramadan.start - now) / (1000 * 60 * 60 * 24));
     await sendRamadanCountdownNotification(daysUntil);
   }
-  
+
   // Check Eid events
   if (now.toDateString() === ISLAMIC_EVENTS_2026.eidFitr.toDateString()) {
     await sendEidNotification('Eid-ul-Fitr');
   }
-  
+
   if (now.toDateString() === ISLAMIC_EVENTS_2026.eidAdha.toDateString()) {
     await sendEidNotification('Eid-ul-Adha');
   }
-  
+
   // Check Friday Surah Kahf reminder
-  if (now.getDay() === ISLAMIC_EVENTS_2026.fridayKahf.day && 
-      formatTime(now) === ISLAMIC_EVENTS_2026.fridayKahf.time) {
+  if (now.getDay() === ISLAMIC_EVENTS_2026.fridayKahf.day &&
+    formatTime(now) === ISLAMIC_EVENTS_2026.fridayKahf.time) {
     await sendFridayKahfNotification();
   }
 }
@@ -247,7 +252,7 @@ async function checkIslamicEvents() {
 async function sendPrayerNotification(prayer, config) {
   const title = `${prayer.charAt(0).toUpperCase() + prayer.slice(1)} Adhan`;
   const body = `It's time for ${prayer} prayer. Click to play Adhan.`;
-  
+
   await showNotification({
     title,
     body,
@@ -265,7 +270,7 @@ async function sendPrayerNotification(prayer, config) {
       }
     ]
   });
-  
+
   addToHistory({ type: 'prayer', title, body, timestamp: Date.now() });
 }
 
@@ -273,7 +278,7 @@ async function sendPrayerNotification(prayer, config) {
 async function sendRamadanCountdownNotification(daysUntil) {
   const title = 'Ramadan Countdown';
   const body = `${daysUntil} day${daysUntil > 1 ? 's' : ''} until Ramadan 1447 AH`;
-  
+
   await showNotification({
     title,
     body,
@@ -282,7 +287,7 @@ async function sendRamadanCountdownNotification(daysUntil) {
       url: '/ramadan'
     }
   });
-  
+
   addToHistory({ type: 'ramadan-countdown', title, body, timestamp: Date.now() });
 }
 
@@ -290,7 +295,7 @@ async function sendRamadanCountdownNotification(daysUntil) {
 async function sendEidNotification(eidName) {
   const title = eidName;
   const body = `Eid Mubarak! May Allah accept your good deeds and fasting.`;
-  
+
   await showNotification({
     title,
     body,
@@ -301,7 +306,7 @@ async function sendEidNotification(eidName) {
       eid: eidName
     }
   });
-  
+
   addToHistory({ type: 'eid', title, body, timestamp: Date.now() });
 }
 
@@ -309,7 +314,7 @@ async function sendEidNotification(eidName) {
 async function sendFridayKahfNotification() {
   const title = 'Friday Reminder';
   const body = 'Don\'t forget to read Surah Al-Kahf today! It\'s a Sunnah with great rewards.';
-  
+
   await showNotification({
     title,
     body,
@@ -318,7 +323,7 @@ async function sendFridayKahfNotification() {
       url: '/quran/18'
     }
   });
-  
+
   addToHistory({ type: 'friday-kahf', title, body, timestamp: Date.now() });
 }
 
@@ -329,7 +334,7 @@ async function showNotification(options) {
     // In service worker, we can only check existing permission, not request it
     const notifications = await self.registration.getNotifications();
     const hasPermission = notifications !== null;
-    
+
     if (!hasPermission) {
       console.log('Service Worker: No notification permission, skipping notification');
       return;
@@ -342,7 +347,7 @@ async function showNotification(options) {
       vibrate: [200, 100, 200],
       data: options.data || {},
       actions: options.actions || [],
-      requireInteraction: options.requireInteraction || false,
+      requireInteraction: true, // Task 2: Stay on screen until swiped
       silent: options.silent || false,
       tag: options.tag || 'default'
     });
@@ -359,12 +364,12 @@ async function showNotification(options) {
 // Add notification to history
 function addToHistory(notification) {
   notificationHistory.unshift(notification);
-  
+
   // Keep only last 100 notifications
   if (notificationHistory.length > 100) {
     notificationHistory = notificationHistory.slice(0, 100);
   }
-  
+
   // Save to IndexedDB or localStorage via client message
   self.clients.matchAll().then(clients => {
     clients.forEach(client => {
@@ -386,7 +391,7 @@ function formatTime(date) {
 // Message handler from client
 self.addEventListener('message', (event) => {
   const data = event.data;
-  
+
   switch (data.type) {
     case 'GET_NOTIFICATION_HISTORY':
       event.ports[0].postMessage({
@@ -394,22 +399,27 @@ self.addEventListener('message', (event) => {
         data: notificationHistory
       });
       break;
-      
+
     case 'CLEAR_NOTIFICATION_HISTORY':
       notificationHistory = [];
       event.ports[0].postMessage({
         type: 'NOTIFICATION_HISTORY_CLEARED'
       });
       break;
-      
+
     case 'TRIGGER_PRAYER_CHECK':
       checkPrayerTimes();
       break;
-      
+
     case 'TRIGGER_ISLAMIC_EVENTS_CHECK':
       checkIslamicEvents();
       break;
-      
+
+    case 'UPDATE_PRAYER_TIMES':
+      PRAYER_TIMES = data.timings;
+      console.log('Service Worker: Prayer times updated:', PRAYER_TIMES);
+      break;
+
     case 'TEST_NOTIFICATION':
       // Handle test notification request
       showNotification({
@@ -427,10 +437,10 @@ self.addEventListener('message', (event) => {
 function startPeriodicChecks() {
   // Check prayer times every minute
   setInterval(checkPrayerTimes, 60000);
-  
+
   // Check Islamic events every hour
   setInterval(checkIslamicEvents, 3600000);
-  
+
   // Initial checks
   checkPrayerTimes();
   checkIslamicEvents();

@@ -58,100 +58,100 @@ const saveRadioState = (state: RadioState): void => {
   }
 };
 
-// Global radio state hook
-export const useGlobalRadio = () => {
-  const [radioState, setRadioState] = useState<RadioState>(() => {
-    try {
-      return loadStoredRadioState();
-    } catch (error) {
-      console.error('Failed to load radio state:', error);
-      return DEFAULT_RADIO_STATE;
-    }
-  });
+// --- Singleton State Implementation ---
 
-  // Save state to localStorage whenever it changes
-  useEffect(() => {
-    if (radioState) {
-      saveRadioState(radioState);
-    }
-  }, [radioState]);
+// The single source of truth
+let globalState: RadioState = loadStoredRadioState();
+const listeners = new Set<(state: RadioState) => void>();
 
-  // Update radio state
-  const updateRadioState = useCallback((updates: Partial<RadioState>) => {
-    setRadioState(prev => {
-      const currentState = prev || DEFAULT_RADIO_STATE;
-      return { ...currentState, ...updates };
-    });
-  }, []);
+const notifyListeners = () => {
+  listeners.forEach(listener => listener(globalState));
+  saveRadioState(globalState);
+};
 
-  // Play radio
-  const playRadio = useCallback((station: { id: number; name: string; url: string }) => {
-    setRadioState(prev => {
-      const currentState = prev || DEFAULT_RADIO_STATE;
-      const isSameStation = currentState.currentStation?.id === station.id;
-      return {
-        ...currentState,
-        currentStation: station,
-        isPlaying: true,
-        currentTrackInfo: station.name,
-        sessionStartTime: Date.now(),
-        // If switching stations, reset accumulated time
-        accumulatedTime: isSameStation ? currentState.accumulatedTime : 0
-      };
-    });
-  }, []);
+// Actions that modify the global state
+const actions = {
+  updateRadioState: (updates: Partial<RadioState>) => {
+    globalState = { ...globalState, ...updates };
+    notifyListeners();
+  },
 
-  // Pause radio
-  const pauseRadio = useCallback(() => {
-    setRadioState(prev => {
-      const currentState = prev || DEFAULT_RADIO_STATE;
-      const additionalTime = currentState.sessionStartTime
-        ? Math.floor((Date.now() - currentState.sessionStartTime) / 1000)
-        : 0;
-      return {
-        ...currentState,
-        isPlaying: false,
-        sessionStartTime: null,
-        accumulatedTime: currentState.accumulatedTime + additionalTime
-      };
-    });
-  }, []);
+  playRadio: (station: { id: number; name: string; url: string }) => {
+    const isSameStation = globalState.currentStation?.id === station.id;
+    globalState = {
+      ...globalState,
+      currentStation: station,
+      isPlaying: true,
+      currentTrackInfo: station.name,
+      sessionStartTime: Date.now(),
+      // If switching stations, reset accumulated time
+      accumulatedTime: isSameStation ? globalState.accumulatedTime : 0
+    };
+    notifyListeners();
+  },
 
-  // Stop radio
-  const stopRadio = useCallback(() => {
-    updateRadioState({
+  pauseRadio: () => {
+    const additionalTime = globalState.sessionStartTime
+      ? Math.floor((Date.now() - globalState.sessionStartTime) / 1000)
+      : 0;
+    globalState = {
+      ...globalState,
+      isPlaying: false,
+      sessionStartTime: null,
+      accumulatedTime: globalState.accumulatedTime + additionalTime
+    };
+    notifyListeners();
+  },
+
+  stopRadio: () => {
+    globalState = {
+      ...globalState,
       isPlaying: false,
       currentStation: null,
       currentTrackInfo: '',
       sessionStartTime: null,
       accumulatedTime: 0
-    });
-  }, [updateRadioState]);
+    };
+    notifyListeners();
+  },
 
-  // Set volume
-  const setVolume = useCallback((volume: number) => {
-    updateRadioState({
+  setVolume: (volume: number) => {
+    globalState = {
+      ...globalState,
       volume: Math.max(0, Math.min(100, volume)),
       isMuted: false // Unmute when setting volume
-    });
-  }, [updateRadioState]);
+    };
+    notifyListeners();
+  },
 
-  // Toggle mute
-  const toggleMute = useCallback(() => {
-    setRadioState(prev => {
-      const currentState = prev || DEFAULT_RADIO_STATE;
-      return { ...currentState, isMuted: !currentState.isMuted };
-    });
+  toggleMute: () => {
+    globalState = { ...globalState, isMuted: !globalState.isMuted };
+    notifyListeners();
+  }
+};
+
+// Global radio state hook
+export const useGlobalRadio = () => {
+  const [state, setState] = useState<RadioState>(globalState);
+
+  useEffect(() => {
+    const listener = (newState: RadioState) => setState(newState);
+    listeners.add(listener);
+    // Sync immediately
+    setState(globalState);
+    return () => {
+      listeners.delete(listener);
+    };
   }, []);
 
   return {
-    ...(radioState || DEFAULT_RADIO_STATE),
-    updateRadioState,
-    playRadio,
-    pauseRadio,
-    stopRadio,
-    setVolume,
-    toggleMute
+    ...state,
+    updateRadioState: actions.updateRadioState,
+    playRadio: actions.playRadio,
+    pauseRadio: actions.pauseRadio,
+    stopRadio: actions.stopRadio,
+    setVolume: actions.setVolume,
+    toggleMute: actions.toggleMute
   };
 };
 

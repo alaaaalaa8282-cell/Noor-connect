@@ -67,12 +67,12 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   const [isLoading, setIsLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [needsManualLocation, setNeedsManualLocation] = useState(false);
-  
+
   // Add ref to prevent multiple fetches
   const isFetchingRef = useRef(false);
   const isCalculatingRef = useRef(false);
   const hasInitializedRef = useRef(false);
-  
+
   // Track previous prayer times to prevent unnecessary notification scheduling
   const previousPrayerTimesRef = useRef<string | null>(null);
 
@@ -118,7 +118,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   const getLocationFromIP = useCallback(async (): Promise<LocationData> => {
     try {
       console.log('Getting location from IP...');
-      
+
       // Try multiple IP services with CORS-safe approach
       const ipServices = [
         {
@@ -164,14 +164,14 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
             mode: 'cors',
             cache: 'no-cache'
           });
-          
+
           if (!response.ok) {
             throw new Error(`${service.name} responded with ${response.status}`);
           }
-          
+
           const data = await response.json();
           const locationData = service.parser(data);
-          
+
           if (!locationData.latitude || !locationData.longitude) {
             throw new Error(`${service.name} did not return valid coordinates`);
           }
@@ -208,7 +208,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       }
 
       console.log('Getting location from geolocation...');
-      
+
       navigator.geolocation.getCurrentPosition(
         (position) => {
           const locationData: LocationData = {
@@ -270,7 +270,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         const storedTime = new Date(locationData.timestamp);
         const now = new Date();
         const hoursDiff = (now.getTime() - storedTime.getTime()) / (1000 * 60 * 60);
-        
+
         if (hoursDiff < 24) {
           console.log('Using stored location:', locationData);
           return locationData;
@@ -355,10 +355,10 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     try {
       setIsLoading(true);
       setError(null);
-      
+
       // Use GeocodingService to get accurate coordinates
       const coords = await GeocodingService.getCityCoordinates(city, country);
-      
+
       const locationData: LocationData = {
         latitude: coords.latitude,
         longitude: coords.longitude,
@@ -369,7 +369,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
       // Save to user_location (persistent manual location)
       localStorage.setItem(USER_LOCATION_KEY, JSON.stringify(locationData));
-      
+
       await fetchPrayerTimesWithCoordinates(locationData);
       setNeedsManualLocation(false);
     } catch (error) {
@@ -423,7 +423,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       const defaultLocation = getDefaultLocation();
       saveLocation(defaultLocation);
       await fetchPrayerTimesWithCoordinates(defaultLocation);
-      
+
     } catch (err) {
       console.error('All location methods failed:', err);
       // Don't show error - instead show manual location option
@@ -446,7 +446,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Auto-refresh prayer times every minute when location is available
   useEffect(() => {
     if (!location || needsManualLocation) return;
-    
+
     const interval = setInterval(() => {
       // Only fetch if not already fetching
       if (!isFetchingRef.current && !isCalculatingRef.current) {
@@ -460,7 +460,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Schedule notifications only when prayer times actually change (deep comparison)
   useEffect(() => {
     if (!prayerTimes || !location) return;
-    
+
     // Create comparison string using only time strings to prevent Date object changes
     const prayerTimesString = JSON.stringify({
       fajr: formatPrayerTime(prayerTimes.fajr, '24'),
@@ -470,11 +470,11 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       isha: formatPrayerTime(prayerTimes.isha, '24'),
       location: `${location.latitude},${location.longitude}`
     });
-    
+
     // Only schedule if prayer times have actually changed
     if (previousPrayerTimesRef.current !== prayerTimesString) {
       previousPrayerTimesRef.current = prayerTimesString;
-      
+
       // Throttle notification scheduling to prevent rapid calls
       const timeoutId = setTimeout(() => {
         import('@/lib/local-notifications').then(({ localNotifications }) => {
@@ -489,10 +489,18 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
           });
         });
       }, 1000); // 1 second throttle
-      
+
       return () => clearTimeout(timeoutId);
     }
-  }, [prayerTimes?.fajr, prayerTimes?.dhuhr, prayerTimes?.asr, prayerTimes?.maghrib, prayerTimes?.isha, location?.latitude, location?.longitude]); // Use specific properties instead of JSON.stringify
+  }, [
+    prayerTimes?.fajr?.getTime(),
+    prayerTimes?.dhuhr?.getTime(),
+    prayerTimes?.asr?.getTime(),
+    prayerTimes?.maghrib?.getTime(),
+    prayerTimes?.isha?.getTime(),
+    location?.latitude,
+    location?.longitude
+  ]); // Use timestamps for stable comparison
 
   return {
     prayerTimes,

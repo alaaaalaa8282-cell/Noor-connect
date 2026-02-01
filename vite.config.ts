@@ -23,8 +23,8 @@ export default defineConfig(({ mode }) => ({
       registerType: "autoUpdate",
       injectRegister: null, // Defer SW registration to not block FCP
       includeAssets: [
-        "favicon.png", 
-        "icon-192x192.png", 
+        "favicon.png",
+        "icon-192x192.png",
         "icon-512x512.png",
         "apple-touch-icon.png",
         "icon-72x72.png",
@@ -35,6 +35,7 @@ export default defineConfig(({ mode }) => ({
         "icon-384x384.png"
       ],
       manifest: {
+        id: "com.noorconnect.app",
         name: "Noor Connect - Islamic Companion",
         short_name: "Noor Connect",
         description: "Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.",
@@ -44,9 +45,25 @@ export default defineConfig(({ mode }) => ({
         orientation: "portrait",
         start_url: "/",
         scope: "/",
-        categories: ["lifestyle", "education", "utilities"],
+        categories: ["books", "education", "productivity"],
         lang: "en",
         dir: "ltr",
+        shortcuts: [
+          {
+            name: "Radio",
+            short_name: "Radio",
+            description: "Listen to Quran Radio",
+            url: "/quran-radio",
+            icons: [{ src: "/icon-192x192.png", sizes: "192x192" }]
+          },
+          {
+            name: "Prayer Times",
+            short_name: "Prayers",
+            description: "Check Prayer Times",
+            url: "/dashboard",
+            icons: [{ src: "/icon-192x192.png", sizes: "192x192" }]
+          }
+        ],
         icons: [
           {
             src: "/icon-72x72.png",
@@ -106,7 +123,7 @@ export default defineConfig(({ mode }) => ({
             label: "Noor Connect mobile app showing prayer times and Quran"
           },
           {
-            src: "/screenshot-desktop.png", 
+            src: "/screenshot-desktop.png",
             sizes: "1280x720",
             type: "image/png",
             form_factor: "wide",
@@ -123,7 +140,14 @@ export default defineConfig(({ mode }) => ({
         skipWaiting: true,
         // Claim clients immediately so new SW takes over
         clientsClaim: true,
+        // Exclude radio streams and audio files from navigation fallback
+        navigateFallbackDenylist: [/^\/radio/, /\.mp3$/],
         runtimeCaching: [
+          {
+            // Radio domains - Force network only to avoid CORS/SW issues
+            urlPattern: /.*(qurango\.net|mp3quran\.net|radio).*/i,
+            handler: "NetworkOnly"
+          },
           {
             // Quran content - CacheFirst for instant offline access
             urlPattern: /^https:\/\/.*\/quran\/.*/i,
@@ -139,22 +163,7 @@ export default defineConfig(({ mode }) => ({
               }
             }
           },
-          {
-            // Radio streams - NetworkFirst with fallback
-            urlPattern: /^https:\/\/.*\/radio\/.*/i,
-            handler: "NetworkFirst",
-            options: {
-              cacheName: "radio-streams-cache",
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 * 24 // 24 hours
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              },
-              networkTimeoutSeconds: 3
-            }
-          },
+
           {
             // Prayer times API - StaleWhileRevalidate for instant display
             urlPattern: /^https:\/\/api\.aladhan\.com\/.*/i,

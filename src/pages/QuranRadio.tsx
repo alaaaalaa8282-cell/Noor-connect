@@ -4,7 +4,7 @@ import { ArrowLeft, Radio, Play, Pause, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { radioStations, type RadioStation } from "@/data/radio-stations";
-import { useGlobalRadio, getGlobalAudioRef } from "@/lib/global-radio";
+import { useGlobalRadio } from "@/lib/global-radio";
 
 const QuranRadio = () => {
   const navigate = useNavigate();
@@ -36,21 +36,16 @@ const QuranRadio = () => {
   };
 
   const handleStationSelect = (station: RadioStation) => {
-    // Get the global audio element
-    const audio = getGlobalAudioRef();
-
     // If clicking on the currently playing station, toggle play/pause
     if (globalRadio.currentStation?.id === station.id) {
       if (globalRadio.isPlaying) {
         globalRadio.pauseRadio();
-        audio?.pause();
       } else {
         globalRadio.playRadio({
           id: station.id,
           name: station.name,
           url: station.url
         });
-        audio?.play();
       }
       return;
     }
@@ -65,23 +60,15 @@ const QuranRadio = () => {
 
   const handleStopRadio = () => {
     globalRadio.stopRadio();
-    const audio = getGlobalAudioRef();
-    if (audio) {
-      audio.pause();
-      audio.src = '';
-    }
   };
 
   const handlePlayPause = () => {
-    const audio = getGlobalAudioRef();
-    if (!audio || !globalRadio.currentStation) return;
+    if (!globalRadio.currentStation) return;
 
     if (globalRadio.isPlaying) {
       globalRadio.pauseRadio();
-      audio.pause();
     } else {
       globalRadio.playRadio(globalRadio.currentStation);
-      audio.play();
     }
   };
 
@@ -159,8 +146,8 @@ const StationCard: React.FC<StationCardProps> = ({ station, isPlaying, onSelect 
   return (
     <Card
       className={`group relative overflow-hidden rounded-2xl shadow-md hover:shadow-lg transition-all duration-300 cursor-pointer ${isPlaying
-          ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
-          : 'hover:scale-105'
+        ? 'ring-2 ring-primary ring-offset-2 ring-offset-background'
+        : 'hover:scale-105'
         }`}
       onClick={onSelect}
     >

@@ -5,6 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalRadio, getGlobalAudioRef, setGlobalAudioRef } from "@/lib/global-radio";
+import { radioStations } from "@/data/radio-stations";
 
 // Helper to format seconds to MM:SS or HH:MM:SS
 const formatDuration = (totalSeconds: number): string => {
@@ -25,6 +26,11 @@ export function GlobalRadioPlayer() {
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [displayDuration, setDisplayDuration] = useState(0);
+
+  // Protection refs
+  const playPromiseRef = useRef<Promise<void> | null>(null);
+  const isTransitioning = useRef(false);
+  const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
   // Initialize global audio reference
   useEffect(() => {
@@ -49,16 +55,36 @@ export function GlobalRadioPlayer() {
     return () => clearInterval(interval);
   }, [globalRadio.isPlaying, globalRadio.sessionStartTime, globalRadio.accumulatedTime]);
 
-  // Media Session API - for lock screen controls
+  // Media Session API - for lock screen controls and background stability
   useEffect(() => {
     if (!('mediaSession' in navigator) || !globalRadio.currentStation) return;
 
     try {
+      const station = globalRadio.currentStation;
+      const stationData = radioStations.find(s => s.id === station.id);
+      const artworkUrl = stationData?.img || '/icon-192x192.png';
+
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: globalRadio.currentStation.name,
-        artist: 'Noor Connect',
-        album: 'Quran Radio',
+        title: station.name,
+        artist: 'Quran Reciter',
+        album: 'Noor Connect Radio',
+        artwork: [
+          { src: artworkUrl, sizes: '96x96', type: 'image/png' },
+          { src: artworkUrl, sizes: '128x128', type: 'image/png' },
+          { src: artworkUrl, sizes: '192x192', type: 'image/png' },
+          { src: artworkUrl, sizes: '256x256', type: 'image/png' },
+          { src: artworkUrl, sizes: '384x384', type: 'image/png' },
+          { src: artworkUrl, sizes: '512x512', type: 'image/png' },
+        ]
       });
+
+      const updatePlaybackState = () => {
+        if ('playbackState' in navigator.mediaSession) {
+          navigator.mediaSession.playbackState = globalRadio.isPlaying ? 'playing' : 'paused';
+        }
+      };
+
+      updatePlaybackState();
 
       navigator.mediaSession.setActionHandler('play', () => {
         handlePlayPause();
@@ -85,39 +111,51 @@ export function GlobalRadioPlayer() {
         // Ignore cleanup errors
       }
     };
-  }, [globalRadio.currentStation]);
+  }, [globalRadio.currentStation, globalRadio.isPlaying]);
 
   // Handle audio element events
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handlePlay = () => {
+    const handlePlaying = () => {
+      isTransitioning.current = false;
       globalRadio.updateRadioState({ isPlaying: true, sessionStartTime: Date.now() });
+      setIsLoading(false);
     };
 
     const handlePause = () => {
+      isTransitioning.current = false;
+
       // Calculate additional time before updating state
       const additionalTime = globalRadio.sessionStartTime
         ? Math.floor((Date.now() - globalRadio.sessionStartTime) / 1000)
         : 0;
+
       globalRadio.updateRadioState({
         isPlaying: false,
         sessionStartTime: null,
         accumulatedTime: globalRadio.accumulatedTime + additionalTime
       });
+      setIsLoading(false);
+    };
+
+    const handleEnded = () => {
+      isTransitioning.current = false;
+      globalRadio.updateRadioState({ isPlaying: false });
     };
 
     const handleError = (e: Event) => {
-      console.error('Global radio error:', e);
+      isTransitioning.current = false;
+      const audioElem = e.target as HTMLAudioElement;
+      console.error('Global radio error:', audioElem.error);
+
       globalRadio.updateRadioState({ isPlaying: false });
       setIsLoading(false);
 
-      const audio = e.target as HTMLAudioElement;
       let errorMessage = "Failed to play radio station.";
-
-      if (audio.error) {
-        switch (audio.error.code) {
+      if (audioElem.error) {
+        switch (audioElem.error.code) {
           case MediaError.MEDIA_ERR_ABORTED:
             errorMessage = "Playback was aborted.";
             break;
@@ -130,30 +168,33 @@ export function GlobalRadioPlayer() {
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
             errorMessage = "Radio stream not available.";
             break;
-          default:
-            errorMessage = `Audio error: ${audio.error.message}`;
         }
       }
 
-      toast({
-        title: "Radio Error",
-        description: errorMessage,
-        variant: "destructive"
-      });
+      // Only show toast if it's not an abort error and we were trying to play
+      if (audioElem.error?.code !== MediaError.MEDIA_ERR_ABORTED) {
+        toast({
+          title: "Radio Error",
+          description: errorMessage,
+          variant: "destructive"
+        });
+      }
     };
 
     const handleLoadStart = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
 
-    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('playing', handlePlaying);
     audio.addEventListener('pause', handlePause);
+    audio.addEventListener('ended', handleEnded);
     audio.addEventListener('error', handleError);
     audio.addEventListener('loadstart', handleLoadStart);
     audio.addEventListener('canplay', handleCanPlay);
 
     return () => {
-      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('playing', handlePlaying);
       audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('ended', handleEnded);
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('canplay', handleCanPlay);
@@ -168,36 +209,72 @@ export function GlobalRadioPlayer() {
     audio.volume = globalRadio.isMuted ? 0 : globalRadio.volume / 100;
   }, [globalRadio?.volume, globalRadio?.isMuted]);
 
-  // Handle play/pause based on global state
-  useEffect(() => {
-    const audio = audioRef.current;
-    if (!audio || !globalRadio?.currentStation) return;
-
-    if (globalRadio.isPlaying) {
-      if (audio.paused) {
-        audio.play().catch(error => {
-          console.error('Global radio play error:', error);
-          globalRadio?.updateRadioState({ isPlaying: false });
-        });
-      }
-    } else {
-      if (!audio.paused) {
-        audio.pause();
-      }
-    }
-  }, [globalRadio?.isPlaying, globalRadio?.currentStation]);
-
-  // Handle station changes
+  // Integrated Player Controller (Handles station changes and play/pause intents)
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio || !globalRadio.currentStation) return;
 
-    if (audio.src !== globalRadio.currentStation.url) {
-      audio.src = globalRadio.currentStation.url;
-      audio.crossOrigin = 'anonymous';
-      audio.load();
-    }
-  }, [globalRadio.currentStation]);
+    if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+
+    debounceTimerRef.current = setTimeout(async () => {
+      // 1. Handle Station Change
+      if (audio.src !== globalRadio.currentStation!.url) {
+        if (isTransitioning.current) {
+          // Retry later if transitioning
+          debounceTimerRef.current = setTimeout(() => {
+            if (globalRadio.currentStation && audio.src !== globalRadio.currentStation.url) {
+              globalRadio.updateRadioState({ isPlaying: false });
+            }
+          }, 200);
+          return;
+        }
+
+        try {
+          isTransitioning.current = true;
+          audio.pause();
+          audio.src = globalRadio.currentStation!.url;
+          audio.load(); // Explicit load as requested
+
+          if (globalRadio.isPlaying) {
+            const promise = audio.play();
+            playPromiseRef.current = promise;
+            await promise;
+          }
+        } catch (e: any) {
+          if (e.name !== 'AbortError') console.error('Station change play error:', e);
+        } finally {
+          isTransitioning.current = false;
+          playPromiseRef.current = null;
+        }
+        return;
+      }
+
+      // 2. Handle Play/Pause Sync
+      if (isTransitioning.current) return;
+
+      try {
+        if (globalRadio.isPlaying && audio.paused) {
+          isTransitioning.current = true;
+          const promise = audio.play();
+          playPromiseRef.current = promise;
+          await promise;
+        } else if (!globalRadio.isPlaying && !audio.paused) {
+          audio.pause();
+        }
+      } catch (error: any) {
+        if (error.name !== 'AbortError') {
+          console.error('Remote sync error:', error);
+        }
+      } finally {
+        isTransitioning.current = false;
+        playPromiseRef.current = null;
+      }
+    }, 200);
+
+    return () => {
+      if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
+    };
+  }, [globalRadio.currentStation?.url, globalRadio.isPlaying]);
 
   // Auto-show player when radio starts playing
   useEffect(() => {
@@ -207,25 +284,33 @@ export function GlobalRadioPlayer() {
   }, [globalRadio.isPlaying, globalRadio.currentStation]);
 
   const handlePlayPause = async () => {
-    if (!audioRef.current || !globalRadio.currentStation) return;
+    const audio = audioRef.current;
+    if (!audio || !globalRadio.currentStation || isTransitioning.current) return;
 
     try {
+      isTransitioning.current = true;
       if (globalRadio.isPlaying) {
-        audioRef.current.pause();
-        globalRadio.pauseRadio();
+        audio.pause();
+        // UI state updates via handlePause listener
       } else {
         setIsLoading(true);
-        await audioRef.current.play();
-        globalRadio.playRadio(globalRadio.currentStation);
+        const promise = audio.play();
+        playPromiseRef.current = promise;
+        await promise;
+        // UI state updates via handlePlaying listener
       }
-    } catch (error) {
-      console.error('Play/pause error:', error);
-      setIsLoading(false);
-      toast({
-        title: "Playback Error",
-        description: "Failed to play radio. Please try again.",
-        variant: "destructive"
-      });
+    } catch (error: any) {
+      if (error.name !== 'AbortError') {
+        console.error('Manual play/pause error:', error);
+        toast({
+          title: "Playback Error",
+          description: "Failed to toggle radio. Please try again.",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      isTransitioning.current = false;
+      playPromiseRef.current = null;
     }
   };
 
@@ -251,8 +336,8 @@ export function GlobalRadioPlayer() {
       {/* Hidden Audio Element - ALWAYS rendered */}
       <audio
         ref={audioRef}
-        preload="none"
-        crossOrigin="anonymous"
+        preload="auto"
+        playsInline
         style={{ display: 'none' }}
       />
 
@@ -329,4 +414,3 @@ export function GlobalRadioPlayer() {
     </>
   );
 }
-
