@@ -1,73 +1,69 @@
-# Welcome to your Lovable project
+# Noor Connect
 
-## Project info
+This is a hybrid application built using web technologies and wrapped for Android using Capacitor.
 
-**URL**: https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca
-
-## How can I edit this code?
-
-There are several ways of editing your application.
-
-**Use Lovable**
-
-Simply visit the [Lovable Project](https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca) and start prompting.
-
-Changes made via Lovable will be committed automatically to this repo.
-
-**Use your preferred IDE**
-
-If you want to work locally using your own IDE, you can clone this repo and push changes. Pushed changes will also be reflected in Lovable.
-
-The only requirement is having Node.js & npm installed - [install with nvm](https://github.com/nvm-sh/nvm#installing-and-updating)
-
-Follow these steps:
-
-```sh
-# Step 1: Clone the repository using the project's Git URL.
-git clone <YOUR_GIT_URL>
-
-# Step 2: Navigate to the project directory.
-cd <YOUR_PROJECT_NAME>
-
-# Step 3: Install the necessary dependencies.
-npm i
-
-# Step 4: Start the development server with auto-reloading and an instant preview.
-npm run dev
-```
-
-**Edit a file directly in GitHub**
-
-- Navigate to the desired file(s).
-- Click the "Edit" button (pencil icon) at the top right of the file view.
-- Make your changes and commit the changes.
-
-**Use GitHub Codespaces**
-
-- Navigate to the main page of your repository.
-- Click on the "Code" button (green button) near the top right.
-- Select the "Codespaces" tab.
-- Click on "New codespace" to launch a new Codespace environment.
-- Edit files directly within the Codespace and commit and push your changes once you're done.
-
-## What technologies are used for this project?
+## Technologies Used
 
 This project is built with:
 
-- Vite
-- TypeScript
-- React
-- shadcn-ui
-- Tailwind CSS
+*   **Vite:** For the web frontend development server and build tooling.
+*   **React:** For building the user interface.
+*   **TypeScript:** For type-safe JavaScript.
+*   **shadcn/ui:** A collection of reusable UI components.
+*   **Tailwind CSS:** For styling the application.
+*   **Capacitor:** For creating the native Android wrapper.
 
-## How can I deploy this project?
+## Getting Started
 
-Simply open [Lovable](https://lovable.dev/projects/72fb17dc-55a4-4f73-8d15-d20ea90627ca) and click on Share -> Publish.
+To get a local copy up and running, follow these simple steps.
 
-## Can I connect a custom domain to my Lovable project?
+### Prerequisites
 
-Yes, you can!
+*   **Node.js and npm:** Make sure you have Node.js and npm installed. You can download them from [nodejs.org](https://nodejs.org/).
+*   **Android Studio:** You will need Android Studio to build and run the Android application on an emulator or a physical device. Download it from [developer.android.com/studio](https://developer.android.com/studio).
 
-To connect a domain, navigate to Project > Settings > Domains and click Connect Domain.
+### Development Workflow
 
-Read more here: [Setting up a custom domain](https://docs.lovable.dev/features/custom-domain#custom-domain)
+1.  **Clone the repository:**
+    ```sh
+    git clone <YOUR_GIT_URL>
+    cd Noor-connect
+    ```
+
+2.  **Install web dependencies:**
+    ```sh
+    npm install
+    ```
+
+3.  **Run the web app in a browser:**
+    To run the web application in a development server with hot-reloading:
+    ```sh
+    npm run dev
+    ```
+    This is useful for developing and testing the UI in a browser.
+
+4.  **Build and run the Android app:**
+    a. **Build the web assets:**
+       ```sh
+       npm run build
+       ```
+       This command will create a `dist` folder with the compiled web assets.
+
+    b. **Sync the web assets with the Android project:**
+       ```sh
+       npx capacitor sync android
+       ```
+       This command copies the web assets into the native Android project. It may also ask you to install the Android platform if it's the first time.
+
+    c. **Open the Android project in Android Studio:**
+       ```sh
+       npx capacitor open android
+       ```
+       This will open the `android` directory of your project in Android Studio.
+
+    d. **Run the app:**
+       From Android Studio, you can run the application on an Android emulator or a connected physical device by clicking the "Run" button.
+
+## Building for Production
+
+To create a production build of the application, follow the standard Android app release process in Android Studio to generate a signed APK or App Bundle. Make sure you have run `npm run build` before building the native app to ensure the latest web code is included.
