@@ -1,7 +1,8 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2 } from 'lucide-react';
+import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2, ExternalLink } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
+import { getPdfBlobUrl } from '@/lib/ebooks-storage';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -9,77 +10,84 @@ pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.j
 interface NativePdfViewerProps {
   url: string;
   title: string;
+  localKey?: string;
   onClose: () => void;
 }
 
-export default function NativePdfViewer({ url, title, onClose }: NativePdfViewerProps) {
+type ViewerMode = 'loading' | 'pdfjs' | 'iframe' | 'error';
+
+export default function NativePdfViewer({ url, title, localKey, onClose }: NativePdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.0);
-  const [loading, setLoading] = useState(true);
+  const [viewerMode, setViewerMode] = useState<ViewerMode>('loading');
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
     loadPdf();
-  }, [url]);
+  }, [url, localKey]);
+
 
   const loadPdf = async () => {
     try {
-      setLoading(true);
+      setViewerMode('loading');
       setError(null);
-      
-      // Use a reliable PDF source that doesn't have CORS issues
+
       let pdfUrl = url;
-      
-      // If the original URL has CORS issues, use a working alternative
-      if (url.includes('archive.org')) {
-        console.log('Archive.org URL detected, using alternative PDF source');
-        // Use a known working Islamic PDF that doesn't have CORS issues
-        pdfUrl = 'https://www.waqfeya.com/book.php?book=3225';
+
+      // If we have a localKey, get the blob URL from storage
+      if (localKey) {
+        console.log('Loading local PDF from storage:', localKey);
+        const blobUrl = await getPdfBlobUrl(localKey);
+        if (blobUrl) {
+          pdfUrl = blobUrl;
+        } else if (!url) {
+          throw new Error('Local PDF not found in storage');
+        }
       }
-      
+
+      if (!pdfUrl) {
+        throw new Error('No PDF URL available');
+      }
+
       console.log('Loading PDF from:', pdfUrl);
-      
+
       // Configure PDF.js with proper settings
       const loadingTask = pdfjsLib.getDocument({
         url: pdfUrl,
         cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
         cMapPacked: true,
         enableXfa: true,
+        // Add withCredentials: false to avoid credential issues
+        withCredentials: false,
       });
-      
+
       const pdf = await loadingTask.promise;
-      
+
       setPdfDocument(pdf);
       setTotalPages(pdf.numPages);
       setCurrentPage(1);
-      
+      setViewerMode('pdfjs');
+
       await renderPage(pdf, 1, scale);
-    } catch (err) {
-      console.error('Failed to load PDF:', err);
-      
-      // Try a different PDF source as fallback
-      try {
-        console.log('Trying fallback PDF...');
-        const fallbackUrl = 'https://www.waqfeya.com/book.php?book=3225';
-        const loadingTask = pdfjsLib.getDocument({
-          url: fallbackUrl,
-          cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-          cMapPacked: true,
-        });
-        
-        const pdf = await loadingTask.promise;
-        setPdfDocument(pdf);
-        setTotalPages(pdf.numPages);
-        setCurrentPage(1);
-        await renderPage(pdf, 1, scale);
-      } catch (fallbackErr) {
-        setError('Unable to load PDF. The PDF source may be restricted by CORS policy.');
+    } catch (err: any) {
+      console.error('Failed to load PDF with pdf.js:', err);
+
+      // Check if it's a CORS error
+      const isCorsError = err?.message?.includes('Failed to fetch') ||
+        err?.name === 'UnknownErrorException' ||
+        err?.message?.includes('CORS');
+
+      if (isCorsError) {
+        console.log('CORS error detected, switching to iframe viewer');
+        // Fall back to iframe-based viewer for CORS-restricted PDFs
+        setViewerMode('iframe');
+      } else {
+        setError(`Unable to load PDF: ${err?.message || 'Unknown error'}`);
+        setViewerMode('error');
       }
-    } finally {
-      setLoading(false);
     }
   };
 
@@ -110,7 +118,7 @@ export default function NativePdfViewer({ url, title, onClose }: NativePdfViewer
 
   const changePage = (newPage: number) => {
     if (newPage < 1 || newPage > totalPages || !pdfDocument) return;
-    
+
     setCurrentPage(newPage);
     renderPage(pdfDocument, newPage, scale);
   };
@@ -142,7 +150,8 @@ export default function NativePdfViewer({ url, title, onClose }: NativePdfViewer
     window.open(url, '_blank');
   };
 
-  if (loading) {
+  // Loading state
+  if (viewerMode === 'loading') {
     return (
       <div className="fixed inset-0 bg-background z-[100] flex flex-col">
         <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0">
@@ -161,7 +170,8 @@ export default function NativePdfViewer({ url, title, onClose }: NativePdfViewer
     );
   }
 
-  if (error) {
+  // Error state
+  if (viewerMode === 'error') {
     return (
       <div className="fixed inset-0 bg-background z-[100] flex flex-col">
         <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0">
@@ -174,14 +184,15 @@ export default function NativePdfViewer({ url, title, onClose }: NativePdfViewer
           <div className="text-center max-w-md">
             <p className="text-destructive mb-2 text-sm">{error}</p>
             <p className="text-xs text-muted-foreground mb-4">
-              Some PDF sources may be restricted by browser CORS policies. 
+              Some PDF sources may be restricted by browser CORS policies.
               You can try opening the PDF directly in your browser.
             </p>
-            <div className="flex gap-2 flex-col sm:flex-row">
+            <div className="flex gap-2 flex-col sm:flex-row justify-center">
               <Button variant="outline" onClick={loadPdf}>
                 Retry
               </Button>
               <Button variant="default" onClick={() => window.open(url, '_blank', 'noopener,noreferrer')}>
+                <ExternalLink className="w-4 h-4 mr-2" />
                 Open in Browser
               </Button>
               <Button variant="ghost" onClick={onClose}>
@@ -194,6 +205,81 @@ export default function NativePdfViewer({ url, title, onClose }: NativePdfViewer
     );
   }
 
+  // Helper to handle archive.org URLs and other external links
+  const getBetterViewerUrl = (pdfUrl: string): string => {
+    if (pdfUrl.includes('archive.org')) {
+      const downloadMatch = pdfUrl.match(/archive\.org\/download\/([^/]+)/);
+      if (downloadMatch?.[1]) {
+        return `https://archive.org/details/${downloadMatch[1]}`;
+      }
+      if (pdfUrl.includes('archive.org/details/')) {
+        return pdfUrl;
+      }
+    }
+    return pdfUrl;
+  };
+
+  // External viewer mode (fallback for CORS-restricted PDFs)
+  if (viewerMode === 'iframe') {
+    const viewerUrl = getBetterViewerUrl(url);
+    const isArchiveOrg = url.includes('archive.org');
+
+    return (
+      <div className="fixed inset-0 bg-background z-[100] flex flex-col">
+        {/* Header */}
+        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0">
+          <Button size="icon" variant="ghost" onClick={onClose}>
+            <ArrowLeft className="w-5 h-5" />
+          </Button>
+          <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
+        </header>
+
+        {/* Content - Prompt to open in browser */}
+        <div className="flex-1 flex items-center justify-center px-4 bg-muted/30">
+          <div className="text-center max-w-md bg-card p-6 rounded-xl shadow-lg border border-border">
+            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
+              <ExternalLink className="w-8 h-8 text-primary" />
+            </div>
+            <h2 className="text-lg font-semibold mb-2">
+              {isArchiveOrg ? 'View on Archive.org' : 'Open PDF in Browser'}
+            </h2>
+            <p className="text-sm text-muted-foreground mb-6">
+              {isArchiveOrg
+                ? 'This book is hosted on Archive.org. Tap below to view it in their specialized reader.'
+                : 'This PDF is hosted on an external server. For the best experience, open it in your browser.'}
+            </p>
+            <div className="flex flex-col gap-3">
+              <Button
+                size="lg"
+                className="w-full"
+                onClick={() => window.open(viewerUrl, '_blank', 'noopener,noreferrer')}
+              >
+                <ExternalLink className="w-4 h-4 mr-2" />
+                {isArchiveOrg ? 'View Book' : 'Open PDF'}
+              </Button>
+              <Button
+                variant="outline"
+                className="w-full"
+                onClick={downloadPdf}
+              >
+                <Download className="w-4 h-4 mr-2" />
+                Download PDF
+              </Button>
+              <Button
+                variant="ghost"
+                className="w-full"
+                onClick={onClose}
+              >
+                Go Back
+              </Button>
+            </div>
+          </div>
+        </div>
+      </div>
+    );
+  }
+
+  // PDF.js canvas viewer mode (for PDFs without CORS issues)
   return (
     <div className="fixed inset-0 bg-background z-[100] flex flex-col">
       {/* Header */}
@@ -232,7 +318,7 @@ export default function NativePdfViewer({ url, title, onClose }: NativePdfViewer
             Next
           </Button>
         </div>
-        
+
         <div className="flex items-center gap-2">
           <Button size="sm" variant="outline" onClick={zoomOut}>
             <ZoomOut className="w-4 h-4" />
@@ -262,3 +348,4 @@ export default function NativePdfViewer({ url, title, onClose }: NativePdfViewer
     </div>
   );
 }
+

@@ -70,7 +70,8 @@ export default function PdfViewer({ url, title, localKey, onClose }: PdfViewerPr
 
   // Use native PDF viewer
   if (useNativeViewer) {
-    return <NativePdfViewer url={url} title={title} onClose={onClose} />;
+    return <NativePdfViewer url={url} title={title} localKey={localKey} onClose={onClose} />;
+
   }
 
   // Fallback to old implementation (if needed)
@@ -82,9 +83,9 @@ export default function PdfViewer({ url, title, localKey, onClose }: PdfViewerPr
         </Button>
         <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
         <div className="flex items-center gap-1">
-          <Button 
-            size="icon" 
-            variant="ghost" 
+          <Button
+            size="icon"
+            variant="ghost"
             onClick={() => setUseNativeViewer(true)}
             className="h-8 w-8"
             title="Use Native Viewer"
@@ -98,7 +99,7 @@ export default function PdfViewer({ url, title, localKey, onClose }: PdfViewerPr
           )}
         </div>
       </header>
-      
+
       <div className="flex-1 flex items-center justify-center px-4">
         <div className="text-center">
           <BookOpen className="w-12 h-12 text-muted-foreground mb-4" />

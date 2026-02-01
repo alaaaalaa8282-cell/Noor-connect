@@ -10,7 +10,7 @@ import { DailyAyah } from "@/components/DailyAyah";
 import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
-import { CitySearch } from "@/components/CitySearch";
+import { LocationSearch } from "@/components/LocationSearch";
 import { NotificationSettings } from "@/components/NotificationSettings";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
@@ -50,83 +50,18 @@ export default function Dashboard() {
   const [loadingAPI, setLoadingAPI] = useState(false);
   const [initialLoad, setInitialLoad] = useState(true);
   const { toast } = useToast();
-  
+
   // Global location state
   const location = useLocationState();
 
   const [showManualLocationDialog, setShowManualLocationDialog] = useState(false);
 
-  // Debug: Check for any overlays on mount
-  useEffect(() => {
-    const checkOverlays = () => {
-      const overlays = document.querySelectorAll('[style*="position: fixed"], [style*="position: absolute"]');
-      console.log('Overlays found:', overlays.length);
-      overlays.forEach((overlay, index) => {
-        const rect = overlay.getBoundingClientRect();
-        const computedStyle = window.getComputedStyle(overlay);
-        console.log(`Overlay ${index}:`, {
-          element: overlay.tagName,
-          className: overlay.className,
-          id: overlay.id,
-          textContent: overlay.textContent?.substring(0, 50),
-          zIndex: computedStyle.zIndex,
-          pointerEvents: computedStyle.pointerEvents,
-          position: computedStyle.position,
-          display: computedStyle.display,
-          rect: {
-            width: rect.width,
-            height: rect.height,
-            top: rect.top,
-            left: rect.left,
-            bottom: rect.bottom,
-            right: rect.right
-          }
-        });
-      });
 
-      // Also check for any elements covering the dashboard area
-      const dashboardArea = document.querySelector('#main-content');
-      if (dashboardArea) {
-        const dashboardRect = dashboardArea.getBoundingClientRect();
-        const elementsAtPoint = document.elementsFromPoint(
-          dashboardRect.left + dashboardRect.width / 2,
-          dashboardRect.top + 200
-        );
-        console.log('Elements at dashboard center:', elementsAtPoint.map(el => ({
-          tag: el.tagName,
-          class: el.className,
-          text: el.textContent?.substring(0, 30)
-        })));
-      }
-    };
-    
-    // Check immediately and after a delay
-    checkOverlays();
-    setTimeout(checkOverlays, 2000);
-
-    // Global click listener for debugging
-    const handleGlobalClick = (e: MouseEvent) => {
-      console.log('Global click detected:', {
-        target: e.target,
-        targetElement: (e.target as HTMLElement).tagName,
-        targetClass: (e.target as HTMLElement).className,
-        targetText: (e.target as HTMLElement).textContent,
-        x: e.clientX,
-        y: e.clientY
-      });
-    };
-
-    document.addEventListener('click', handleGlobalClick, true);
-    
-    return () => {
-      document.removeEventListener('click', handleGlobalClick, true);
-    };
-  }, []);
 
   // Visual feedback for clicks
   const handleCardClick = (cardName: string, route: string) => {
-    console.log(`${cardName} card clicked - navigating to ${route}`);
-    
+
+
     // Visual feedback
     const card = event?.currentTarget as HTMLElement;
     if (card) {
@@ -135,7 +70,7 @@ export default function Dashboard() {
         card.style.backgroundColor = '';
       }, 200);
     }
-    
+
     // Navigate
     navigate(route);
   };
@@ -167,11 +102,11 @@ export default function Dashboard() {
   // Load prayer times using global location
   const loadPrayerTimes = useCallback(async () => {
     setLoadingAPI(true);
-    
+
     try {
       // Check if we have cached data
       const hasValidCache = AladhanAPI.isCachedDataValid();
-      
+
       if (!hasValidCache) {
         // Fetch fresh data for current month
         await AladhanAPI.fetchMonthlyCalendar(
@@ -185,7 +120,7 @@ export default function Dashboard() {
 
       // Get today's prayer times
       const timings = await AladhanAPI.getTodaysPrayerTimes(location.latitude, location.longitude, 1);
-      
+
       const prayerList: PrayerTime[] = [
         { name: "Fajr", time: formatTimeFromAPI(timings.Fajr), date: parseTimeToDate(timings.Fajr) },
         { name: "Dhuhr", time: formatTimeFromAPI(timings.Dhuhr), date: parseTimeToDate(timings.Dhuhr) },
@@ -193,7 +128,7 @@ export default function Dashboard() {
         { name: "Maghrib", time: formatTimeFromAPI(timings.Maghrib), date: parseTimeToDate(timings.Maghrib) },
         { name: "Isha", time: formatTimeFromAPI(timings.Isha), date: parseTimeToDate(timings.Isha) },
       ];
-      
+
       setPrayers(prayerList);
 
       // Schedule prayer notifications
@@ -210,7 +145,7 @@ export default function Dashboard() {
       // Fallback to offline calculation
       const { calculatePrayerTimes, formatPrayerTime } = await import('@/lib/prayer-calculator');
       const times = calculatePrayerTimes(location.latitude, location.longitude, new Date());
-      
+
       setPrayers([
         { name: "Fajr", time: formatTimeFromAPI(times.fajr.toTimeString().slice(0, 5)), date: times.fajr },
         { name: "Dhuhr", time: formatTimeFromAPI(times.dhuhr.toTimeString().slice(0, 5)), date: times.dhuhr },
@@ -241,7 +176,7 @@ export default function Dashboard() {
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
-    
+
     const hour = new Date().getHours();
     if (hour < 12) setGreeting("Good Morning");
     else if (hour < 18) setGreeting("Good Afternoon");
@@ -286,13 +221,11 @@ export default function Dashboard() {
           className="animate-slide-in"
           style={{ animationDelay: `${index * 50}ms` }}
         >
-          <Card className={`p-3 border-0 transition-colors ${
-            isNext ? "bg-primary text-primary-foreground" : "bg-card"
-          }`}>
+          <Card className={`p-3 border-0 transition-colors ${isNext ? "bg-primary text-primary-foreground" : "bg-card"
+            }`}>
             <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${
-                isNext ? "bg-primary-foreground/20" : "bg-primary/10"
-              }`}>
+              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isNext ? "bg-primary-foreground/20" : "bg-primary/10"
+                }`}>
                 <span className={isNext ? "" : "text-primary"}>{icon}</span>
               </div>
               <div className="flex-1">
@@ -338,281 +271,281 @@ export default function Dashboard() {
     <LayoutManager>
       <div className="min-h-screen bg-background">
         <AppBar title="Noor Connect" />
-      
-      <div className="max-w-lg mx-auto p-4 space-y-4">
-        {/* Header */}
-        <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/20 p-6 animate-fade-in">
-          {/* Decorative elements */}
-          <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/30 to-transparent rounded-full blur-3xl"></div>
-          <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-primary/20 to-transparent rounded-full blur-2xl"></div>
-          
-          <div className="relative z-10 text-center space-y-3">
-            <div className="flex items-center justify-center gap-2">
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-              <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
-                {greeting}!
-              </h1>
-              <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
-            </div>
-            
-            <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-              <Calendar className="w-4 h-4" />
-              <span className="font-medium">
-                {currentTime.toLocaleDateString("en-US", {
-                  weekday: "long",
-                  month: "short",
-                  day: "numeric",
-                })}
-              </span>
-            </div>
-            
-            {locationLabel && (
-              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
-                <MapPin className="w-4 h-4" />
-                <span className="font-medium">
-                  {locationLabel}
-                </span>
-                {prayerLocation?.source === 'manual' && (
-                  <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
-                    Manual
-                  </span>
-                )}
-                {prayerLocation?.source === 'default' && (
-                  <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-full">
-                    Default
-                  </span>
-                )}
+
+        <div className="max-w-lg mx-auto p-4 space-y-4">
+          {/* Header */}
+          <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border border-primary/20 p-6 animate-fade-in">
+            {/* Decorative elements */}
+            <div className="absolute top-0 right-0 w-32 h-32 bg-gradient-to-br from-primary/30 to-transparent rounded-full blur-3xl"></div>
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-gradient-to-tr from-primary/20 to-transparent rounded-full blur-2xl"></div>
+
+            <div className="relative z-10 text-center space-y-3">
+              <div className="flex items-center justify-center gap-2">
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
+                <h1 className="text-3xl font-bold bg-gradient-to-r from-primary to-primary/80 bg-clip-text text-transparent">
+                  {greeting}!
+                </h1>
+                <div className="w-2 h-2 bg-primary rounded-full animate-pulse"></div>
               </div>
-            )}
-            
-            <div className="relative">
-              <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 blur-xl"></div>
-              <div className="relative bg-card/50 backdrop-blur-sm rounded-xl border border-primary/20 px-6 py-3">
-                <div className="text-2xl font-mono font-bold text-primary tracking-wider">
-                  {currentTime.toLocaleTimeString("en-US", {
-                    hour: timeFormat === '12' ? 'numeric' : '2-digit',
-                    minute: "2-digit",
-                    hour12: timeFormat === '12'
+
+              <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                <Calendar className="w-4 h-4" />
+                <span className="font-medium">
+                  {currentTime.toLocaleDateString("en-US", {
+                    weekday: "long",
+                    month: "short",
+                    day: "numeric",
                   })}
+                </span>
+              </div>
+
+              {locationLabel && (
+                <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
+                  <MapPin className="w-4 h-4" />
+                  <span className="font-medium">
+                    {locationLabel}
+                  </span>
+                  {prayerLocation?.source === 'manual' && (
+                    <span className="text-xs px-2 py-1 bg-primary/10 text-primary rounded-full">
+                      Manual
+                    </span>
+                  )}
+                  {prayerLocation?.source === 'default' && (
+                    <span className="text-xs px-2 py-1 bg-muted text-muted-foreground rounded-full">
+                      Default
+                    </span>
+                  )}
+                </div>
+              )}
+
+              <div className="relative">
+                <div className="absolute inset-0 bg-gradient-to-r from-primary/20 to-primary/10 blur-xl"></div>
+                <div className="relative bg-card/50 backdrop-blur-sm rounded-xl border border-primary/20 px-6 py-3">
+                  <div className="text-2xl font-mono font-bold text-primary tracking-wider">
+                    {currentTime.toLocaleTimeString("en-US", {
+                      hour: timeFormat === '12' ? 'numeric' : '2-digit',
+                      minute: "2-digit",
+                      hour12: timeFormat === '12'
+                    })}
+                  </div>
                 </div>
               </div>
             </div>
           </div>
-        </div>
 
-        {/* Hijri Date */}
-        {hijriDate && (
-          <Card className="p-3 bg-primary text-primary-foreground border-0">
-            <p className="text-center font-arabic text-lg">{hijriDate}</p>
-          </Card>
-        )}
+          {/* Hijri Date */}
+          {hijriDate && (
+            <Card className="p-3 bg-primary text-primary-foreground border-0">
+              <p className="text-center font-arabic text-lg">{hijriDate}</p>
+            </Card>
+          )}
 
-        {/* Islamic Greeting (shows on special days) */}
-        <IslamicGreeting />
+          {/* Islamic Greeting (shows on special days) */}
+          <IslamicGreeting />
 
-        {/* Prayer Countdown Widget */}
-        <ErrorBoundary>
-          <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
-            <PrayerCountdown
-              timings={prayerTimesHook.prayerTimesWithEnd}
-              location={prayerTimesHook.location}
-              isLoading={prayerTimesHook.isLoading}
-              error={prayerTimesHook.error}
-              needsManualLocation={prayerTimesHook.needsManualLocation}
-              refresh={prayerTimesHook.refresh}
-              setManualLocation={prayerTimesHook.setManualLocation}
-            />
-          </Suspense>
-        </ErrorBoundary>
+          {/* Prayer Countdown Widget */}
+          <ErrorBoundary>
+            <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
+              <PrayerCountdown
+                timings={prayerTimesHook.prayerTimesWithEnd}
+                location={prayerTimesHook.location}
+                isLoading={prayerTimesHook.isLoading}
+                error={prayerTimesHook.error}
+                needsManualLocation={prayerTimesHook.needsManualLocation}
+                refresh={prayerTimesHook.refresh}
+                setManualLocation={prayerTimesHook.setManualLocation}
+              />
+            </Suspense>
+          </ErrorBoundary>
 
-        {/* Prayer Times List */}
-        <ErrorBoundary>
-          <Suspense fallback={<div className="space-y-3">
-            <div className="h-6 bg-muted/20 animate-pulse rounded-lg w-32" />
-            {Array.from({ length: 3 }).map((_, i) => (
-              <div key={i} className="h-20 bg-muted/20 animate-pulse rounded-lg" />
-            ))}
-          </div>}>
-            <PrayerTimesList
-              timings={prayerTimesHook.prayerTimesWithEnd}
-              location={prayerTimesHook.location}
-              isLoading={prayerTimesHook.isLoading}
-              error={prayerTimesHook.error}
-              needsManualLocation={prayerTimesHook.needsManualLocation}
-              refresh={prayerTimesHook.refresh}
-              setManualLocation={prayerTimesHook.setManualLocation}
-            />
-          </Suspense>
-        </ErrorBoundary>
+          {/* Prayer Times List */}
+          <ErrorBoundary>
+            <Suspense fallback={<div className="space-y-3">
+              <div className="h-6 bg-muted/20 animate-pulse rounded-lg w-32" />
+              {Array.from({ length: 3 }).map((_, i) => (
+                <div key={i} className="h-20 bg-muted/20 animate-pulse rounded-lg" />
+              ))}
+            </div>}>
+              <PrayerTimesList
+                timings={prayerTimesHook.prayerTimesWithEnd}
+                location={prayerTimesHook.location}
+                isLoading={prayerTimesHook.isLoading}
+                error={prayerTimesHook.error}
+                needsManualLocation={prayerTimesHook.needsManualLocation}
+                refresh={prayerTimesHook.refresh}
+                setManualLocation={prayerTimesHook.setManualLocation}
+              />
+            </Suspense>
+          </ErrorBoundary>
 
-        {/* Daily Ayah */}
-        <DailyAyah />
+          {/* Daily Ayah */}
+          <DailyAyah />
 
-        {/* Daily Hadith */}
-        <DailyHadith />
+          {/* Daily Hadith */}
+          <DailyHadith />
 
-        {/* Dhikr Reminder */}
-        <DhikrReminder />
+          {/* Dhikr Reminder */}
+          <DhikrReminder />
 
-        {/* Quick Access */}
-        <div className="grid grid-cols-2 gap-3">
-          <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-            onClick={() => handleCardClick('Qibla Compass', '/qibla')}
-          >
-            <Compass className="w-6 h-6 text-primary mb-2" />
-            <p className="font-medium text-sm">Qibla Compass</p>
-            <p className="text-xs text-muted-foreground">Find prayer direction</p>
-          </Card>
-          <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-            onClick={() => handleCardClick('Qaza Tracker', '/qaza')}
-          >
-            <Calendar className="w-6 h-6 text-primary mb-2" />
-            <p className="font-medium text-sm">Qaza Tracker</p>
-            <p className="text-xs text-muted-foreground">Manage missed prayers</p>
-          </Card>
-          <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-            onClick={() => handleCardClick('Ramadan Mode', '/ramadan')}
-          >
-            <BookOpen className="w-6 h-6 text-primary mb-2" />
-            <p className="font-medium text-sm">Ramadan Mode</p>
-            <p className="text-xs text-muted-foreground">Fasting & Quran tracker</p>
-          </Card>
-          <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-            onClick={() => handleCardClick('Zakat Calculator', '/zakat')}
-          >
-            <Calculator className="w-6 h-6 text-primary mb-2" />
-            <p className="font-medium text-sm">Zakat Calculator</p>
-            <p className="text-xs text-muted-foreground">Calculate your zakat</p>
-          </Card>
-          <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
-            onClick={() => handleCardClick('Islamic Quiz', '/quiz')}
-          >
-            <Trophy className="w-6 h-6 text-primary mb-2" />
-            <p className="font-medium text-sm">Islamic Quiz</p>
-            <p className="text-xs text-muted-foreground">Test your knowledge</p>
-          </Card>
-          <Card 
-            className="p-4 cursor-pointer hover:bg-accent/50 transition-colors col-span-2 interactive-layer"
-            onClick={() => handleCardClick('99 Names of Allah', '/names-of-allah')}
-          >
-            <Star className="w-6 h-6 text-primary mb-2" />
-            <p className="font-medium text-sm">99 Names of Allah</p>
-            <p className="text-xs text-muted-foreground">Learn the beautiful names</p>
-          </Card>
-        </div>
+          {/* Quick Access */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card
+              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+              onClick={() => handleCardClick('Qibla Compass', '/qibla')}
+            >
+              <Compass className="w-6 h-6 text-primary mb-2" />
+              <p className="font-medium text-sm">Qibla Compass</p>
+              <p className="text-xs text-muted-foreground">Find prayer direction</p>
+            </Card>
+            <Card
+              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+              onClick={() => handleCardClick('Qaza Tracker', '/qaza')}
+            >
+              <Calendar className="w-6 h-6 text-primary mb-2" />
+              <p className="font-medium text-sm">Qaza Tracker</p>
+              <p className="text-xs text-muted-foreground">Manage missed prayers</p>
+            </Card>
+            <Card
+              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+              onClick={() => handleCardClick('Ramadan Mode', '/ramadan')}
+            >
+              <BookOpen className="w-6 h-6 text-primary mb-2" />
+              <p className="font-medium text-sm">Ramadan Mode</p>
+              <p className="text-xs text-muted-foreground">Fasting & Quran tracker</p>
+            </Card>
+            <Card
+              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+              onClick={() => handleCardClick('Zakat Calculator', '/zakat')}
+            >
+              <Calculator className="w-6 h-6 text-primary mb-2" />
+              <p className="font-medium text-sm">Zakat Calculator</p>
+              <p className="text-xs text-muted-foreground">Calculate your zakat</p>
+            </Card>
+            <Card
+              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors interactive-layer"
+              onClick={() => handleCardClick('Islamic Quiz', '/quiz')}
+            >
+              <Trophy className="w-6 h-6 text-primary mb-2" />
+              <p className="font-medium text-sm">Islamic Quiz</p>
+              <p className="text-xs text-muted-foreground">Test your knowledge</p>
+            </Card>
+            <Card
+              className="p-4 cursor-pointer hover:bg-accent/50 transition-colors col-span-2 interactive-layer"
+              onClick={() => handleCardClick('99 Names of Allah', '/names-of-allah')}
+            >
+              <Star className="w-6 h-6 text-primary mb-2" />
+              <p className="font-medium text-sm">99 Names of Allah</p>
+              <p className="text-xs text-muted-foreground">Learn the beautiful names</p>
+            </Card>
+          </div>
 
-        {/* Salah Tracker */}
-        <SalahTracker />
+          {/* Salah Tracker */}
+          <SalahTracker />
 
-        {/* Weekly Progress Chart */}
-        <WeeklySalahChart />
+          {/* Weekly Progress Chart */}
+          <WeeklySalahChart />
 
-        {/* Qaza Tracker (compact view) */}
-        <QazaTracker compact />
+          {/* Qaza Tracker (compact view) */}
+          <QazaTracker compact />
 
-        {/* Location Detection Card */}
-        {initialLoad ? (
-          <LocationCardSkeleton />
-        ) : (
-          <Card className="p-4 border-border">
-            <div className="flex items-center justify-between">
-              <div>
-                <h3 className="font-medium text-sm">Location</h3>
-                <p className="text-xs text-muted-foreground">{location.locationName}</p>
-              </div>
-              <div className="flex gap-2">
-                {prayerTimesHook.needsManualLocation && (
+          {/* Location Detection Card */}
+          {initialLoad ? (
+            <LocationCardSkeleton />
+          ) : (
+            <Card className="p-4 border-border">
+              <div className="flex items-center justify-between">
+                <div>
+                  <h3 className="font-medium text-sm">Location</h3>
+                  <p className="text-xs text-muted-foreground">{location.locationName}</p>
+                </div>
+                <div className="flex gap-2">
+                  {prayerTimesHook.needsManualLocation && (
+                    <Button
+                      variant="default"
+                      size="sm"
+                      onClick={() => setShowManualLocationDialog(true)}
+                      className="gap-2"
+                    >
+                      <MapPin className="w-4 h-4" />
+                      Manual Location
+                    </Button>
+                  )}
                   <Button
-                    variant="default"
+                    variant="outline"
                     size="sm"
-                    onClick={() => setShowManualLocationDialog(true)}
+                    onClick={handleDetectLocation}
+                    disabled={location.isDetecting}
                     className="gap-2"
                   >
-                    <MapPin className="w-4 h-4" />
-                    Manual Location
-                  </Button>
-                )}
-                <Button
-                  variant="outline"
-                  size="sm"
-                  onClick={handleDetectLocation}
-                  disabled={location.isDetecting}
-                  className="gap-2"
-                >
-                  {location.isDetecting ? (
-                    <>
-                      <LoadingSpinner size="sm" />
-                      Detecting...
-                    </>
-                  ) : (
-                    <>
-                      <Navigation className="w-4 h-4" />
-                      Detect Location
-                    </>
-                  )}
-                </Button>
-              </div>
-            </div>
-          </Card>
-        )}
-
-        {/* Notification Settings */}
-        <NotificationSettings />
-
-        {/* Manual Location Dialog */}
-        {showManualLocationDialog && (
-          <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
-            <div className="bg-background rounded-lg max-w-md w-full max-h-[80vh] overflow-auto">
-              <div className="p-6">
-                <div className="flex items-center justify-between mb-4">
-                  <h3 className="text-lg font-semibold">Set Manual Location</h3>
-                  <Button
-                    variant="ghost"
-                    size="sm"
-                    onClick={() => setShowManualLocationDialog(false)}
-                  >
-                    ×
+                    {location.isDetecting ? (
+                      <>
+                        <LoadingSpinner size="sm" />
+                        Detecting...
+                      </>
+                    ) : (
+                      <>
+                        <Navigation className="w-4 h-4" />
+                        Detect Location
+                      </>
+                    )}
                   </Button>
                 </div>
-                <LocationSearch 
-                  onLocationSelect={async (city, country) => {
-                    await prayerTimesHook.setManualLocation(city, country);
-                    setShowManualLocationDialog(false);
-                    toast({ 
-                      title: "Location Updated", 
-                      description: `Prayer times updated for ${city}, ${country}` 
-                    });
-                  }}
-                  isLoading={prayerTimesHook.isLoading}
-                />
+              </div>
+            </Card>
+          )}
+
+          {/* Notification Settings */}
+          <NotificationSettings />
+
+          {/* Manual Location Dialog */}
+          {showManualLocationDialog && (
+            <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+              <div className="bg-background rounded-lg max-w-md w-full max-h-[80vh] overflow-auto">
+                <div className="p-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h3 className="text-lg font-semibold">Set Manual Location</h3>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setShowManualLocationDialog(false)}
+                    >
+                      ×
+                    </Button>
+                  </div>
+                  <LocationSearch
+                    onLocationSelect={async (city, country) => {
+                      await prayerTimesHook.setManualLocation(city, country);
+                      setShowManualLocationDialog(false);
+                      toast({
+                        title: "Location Updated",
+                        description: `Prayer times updated for ${city}, ${country}`
+                      });
+                    }}
+                    isLoading={prayerTimesHook.isLoading}
+                  />
+                </div>
               </div>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* Footer */}
-        <Card className="bg-card border-border">
-          <CardHeader className="pb-2 pt-4">
-            <CardTitle className="text-center text-base text-primary">
-              100% Private • Offline-first
-            </CardTitle>
-            <CardDescription className="text-center text-xs">
-              No tracking • FOSS Architecture
-            </CardDescription>
-          </CardHeader>
-          <CardContent className="pb-4">
-            <p className="text-center text-xs text-muted-foreground italic">
-              "In the remembrance of Allah do hearts find rest." — 13:28
-            </p>
-          </CardContent>
-        </Card>
+          {/* Footer */}
+          <Card className="bg-card border-border">
+            <CardHeader className="pb-2 pt-4">
+              <CardTitle className="text-center text-base text-primary">
+                100% Private • Offline-first
+              </CardTitle>
+              <CardDescription className="text-center text-xs">
+                No tracking • FOSS Architecture
+              </CardDescription>
+            </CardHeader>
+            <CardContent className="pb-4">
+              <p className="text-center text-xs text-muted-foreground italic">
+                "In the remembrance of Allah do hearts find rest." — 13:28
+              </p>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
     </LayoutManager>
   );
 }
