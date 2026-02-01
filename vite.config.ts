@@ -20,8 +20,11 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: "autoUpdate",
-      injectRegister: null, // Defer SW registration to not block FCP
+      injectRegister: 'auto', // Let Vite register the SW so PWABuilder sees it
       includeAssets: [
         "favicon.png",
         "icon-192x192.png",
@@ -131,110 +134,13 @@ export default defineConfig(({ mode }) => ({
           }
         ]
       },
-      workbox: {
+      injectManifest: {
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
         maximumFileSizeToCacheInBytes: 3000000,
-        // Clean up old caches on new SW activation
-        cleanupOutdatedCaches: true,
-        // Skip waiting to activate new SW immediately
-        skipWaiting: true,
-        // Claim clients immediately so new SW takes over
-        clientsClaim: true,
-        // Exclude radio streams and audio files from navigation fallback
-        navigateFallbackDenylist: [/^\/radio/, /\.mp3$/],
-        runtimeCaching: [
-          {
-            // Radio domains - Force network only to avoid CORS/SW issues
-            urlPattern: /.*(qurango\.net|mp3quran\.net|radio).*/i,
-            handler: "NetworkOnly"
-          },
-          {
-            // Quran content - CacheFirst for instant offline access
-            urlPattern: /^https:\/\/.*\/quran\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "quran-content-cache",
-              expiration: {
-                maxEntries: 200,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-
-          {
-            // Prayer times API - StaleWhileRevalidate for instant display
-            urlPattern: /^https:\/\/api\.aladhan\.com\/.*/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "prayer-times-cache",
-              expiration: {
-                maxEntries: 100,
-                maxAgeSeconds: 60 * 60 * 24 * 7 // 7 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            // App assets - CacheFirst for performance
-            urlPattern: /^https:\/\/.*\/assets\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "static-assets-cache",
-              expiration: {
-                maxEntries: 150,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            // Images - CacheFirst with longer expiration
-            urlPattern: /\.(png|jpg|jpeg|gif|webp|svg)$/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "images-cache",
-              expiration: {
-                maxEntries: 300,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.googleapis\.com\/.*/i,
-            handler: "StaleWhileRevalidate",
-            options: {
-              cacheName: "google-fonts-cache",
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/fonts\.gstatic\.com\/.*/i,
-            handler: "CacheFirst",
-            options: {
-              cacheName: "google-fonts-static-cache",
-              expiration: {
-                maxEntries: 20,
-                maxAgeSeconds: 60 * 60 * 24 * 365 // 1 year
-              }
-            }
-          }
-        ]
       },
       devOptions: {
-        enabled: true
+        enabled: true,
+        type: 'module'
       }
     })
   ].filter(Boolean),
