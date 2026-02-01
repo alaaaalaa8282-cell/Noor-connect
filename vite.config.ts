@@ -23,6 +23,7 @@ export default defineConfig(({ mode }) => ({
       strategies: 'injectManifest',
       srcDir: 'src',
       filename: 'sw.js',
+      manifestFilename: 'manifest.json',
       registerType: "autoUpdate",
       injectRegister: 'auto', // Let Vite register the SW so PWABuilder sees it
       includeAssets: [
@@ -38,7 +39,7 @@ export default defineConfig(({ mode }) => ({
         "icon-384x384.png"
       ],
       manifest: {
-        id: "com.noorconnect.app",
+        id: "com.noorconnect.app.v1",
         name: "Noor Connect - Islamic Companion",
         short_name: "Noor Connect",
         description: "Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.",
