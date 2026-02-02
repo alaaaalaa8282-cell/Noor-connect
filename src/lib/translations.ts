@@ -66,7 +66,18 @@ export const translations = {
         searchSurah: "Search Surah...",
         ayahs: "Ayahs",
         juz: "Juz",
-        surahs: "Surahs"
+        surahs: "Surahs",
+        notificationPreferences: "Notification Preferences",
+        prayerNotifications: "Prayer Notifications",
+        ramadanCountdown: "Ramadan Countdown",
+        eidGreetings: "Eid Greetings",
+        fridayKahfReminder: "Friday Kahf Reminder",
+        morningReminders: "Morning Reminders",
+        eveningReminders: "Evening Reminders",
+        testNotification: "Send Test Notification",
+        enableNotifications: "Enable Notifications",
+        notificationHistory: "Notification History",
+        notificationHistoryDesc: "View and manage your notification history from prayer times, Ramadan countdowns, and Islamic events."
     },
     ar: {
         appTitle: "نور كونيكت",
@@ -133,7 +144,18 @@ export const translations = {
         searchSurah: "البحث عن سورة...",
         ayahs: "آيات",
         juz: "جزء",
-        surahs: "سور"
+        surahs: "سور",
+        notificationPreferences: "تفضيلات الإشعارات",
+        prayerNotifications: "تنبيهات الصلاة",
+        ramadanCountdown: "تنازلي لرمضان",
+        eidGreetings: "تهاني العيد",
+        fridayKahfReminder: "تذكير سورة الكهف",
+        morningReminders: "أذكار الصباح",
+        eveningReminders: "أذكار المساء",
+        testNotification: "إرسال إشعار تجريبي",
+        enableNotifications: "تفعيل الإشعارات",
+        notificationHistory: "سجل الإشعارات",
+        notificationHistoryDesc: "عرض وإدارة سجل الإشعارات الخاص بمواعيد الصلاة، تنازلي رمضان، والمناسبات الإسلامية."
     },
     ur: {
         appTitle: "نور کنیکٹ",
@@ -200,6 +222,17 @@ export const translations = {
         searchSurah: "سورت تلاش کریں...",
         ayahs: "آیات",
         juz: "پارہ",
-        surahs: "سورتیں"
+        surahs: "سورتیں",
+        notificationPreferences: "نوٹیفکیشن کی ترتیبات",
+        prayerNotifications: "نماز کی اطلاع",
+        ramadanCountdown: "رمضان کاؤنٹ ڈاؤن",
+        eidGreetings: "عید کی مبارکباد",
+        fridayKahfReminder: "جمعہ کہف کی یاددہانی",
+        morningReminders: "صبح کے اذکار",
+        eveningReminders: "شام کے اذکار",
+        testNotification: "ٹیسٹ نوٹیفکیشن بھیجیں",
+        enableNotifications: "نوٹیفیکیشن فعال کریں",
+        notificationHistory: "نوٹیفکیشن کی تاریخ",
+        notificationHistoryDesc: "نماز کے اوقات، رمضان کاؤنٹ ڈاؤن اور اسلامی واقعات سے اپنی نوٹیفکیشن کی تاریخ دیکھیں اور منظم کریں۔"
     }
 };

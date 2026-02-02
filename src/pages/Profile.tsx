@@ -490,7 +490,7 @@ const Profile = () => {
         <Card className="p-4 bg-muted/30">
           <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
             <Bell className="w-4 h-4" />
-            Notification Preferences
+            {t('notificationPreferences')}
           </h3>
 
           {!notificationsSupported ? (
@@ -504,12 +504,117 @@ const Profile = () => {
                 variant="outline"
               >
                 <Bell className="w-4 h-4 mr-2" />
-                Enable Notifications
+                {t('enableNotifications')}
               </Button>
             </div>
           ) : (
             <div className="space-y-4">
-              {/* ... (prayer notifications omitted for brevity but they are in the same card) ... */}
+              <div className="flex items-center justify-between">
+                <div>
+                  <Label>{t('prayerNotifications')}</Label>
+                  <p className="text-xs text-muted-foreground">Receive reminders for daily prayer times</p>
+                </div>
+                <Switch
+                  checked={prayerNotificationsEnabled}
+                  onCheckedChange={handlePrayerNotificationToggle}
+                  disabled={prayerNotificationsLoading}
+                />
+              </div>
+
+              {prayerNotificationsEnabled && scheduledPrayerCount > 0 && (
+                <div className="flex items-center justify-between bg-background/50 p-2 rounded-md border border-border/50">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-3 h-3 text-primary" />
+                    <span className="text-xs font-medium">{scheduledPrayerCount} {t('upcoming')}</span>
+                  </div>
+                  <div className="flex gap-1">
+                    <Button variant="ghost" size="icon" className="h-6 w-6" onClick={handleRefreshPrayerNotifications}>
+                      <Calculator className="w-3 h-3" />
+                    </Button>
+                    <Button variant="ghost" size="icon" className="h-6 w-6 text-destructive" onClick={handleClearPrayerNotifications}>
+                      <Trash2 className="w-3 h-3" />
+                    </Button>
+                  </div>
+                </div>
+              )}
+
+              <div className="border-t border-border/50 my-2 pt-2">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 block">Islamic Events</Label>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Bell className="w-4 h-4 text-muted-foreground" />
+                      <Label className="text-sm">{t('ramadanCountdown')}</Label>
+                    </div>
+                    <Switch
+                      checked={notificationPrefs.ramadanCountdowns}
+                      onCheckedChange={(v) => handleNotificationToggle('ramadanCountdowns', v)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <Heart className="w-4 h-4 text-muted-foreground" />
+                      <Label className="text-sm">{t('eidGreetings')}</Label>
+                    </div>
+                    <Switch
+                      checked={notificationPrefs.eidGreetings}
+                      onCheckedChange={(v) => handleNotificationToggle('eidGreetings', v)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <BookOpen className="w-4 h-4 text-muted-foreground" />
+                      <Label className="text-sm">{t('fridayKahfReminder')}</Label>
+                    </div>
+                    <Switch
+                      checked={notificationPrefs.fridayKahfReminders}
+                      onCheckedChange={(v) => handleNotificationToggle('fridayKahfReminders', v)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <div className="border-t border-border/50 my-2 pt-2">
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 block">Daily Reminders</Label>
+
+                <div className="space-y-3">
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">{t('dailyHadith')}</Label>
+                    <Switch
+                      checked={notificationPrefs.dailyHadithNotifications}
+                      onCheckedChange={(v) => handleNotificationToggle('dailyHadithNotifications', v)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">{t('morningReminders')}</Label>
+                    <Switch
+                      checked={notificationPrefs.morningReminders}
+                      onCheckedChange={(v) => handleNotificationToggle('morningReminders', v)}
+                    />
+                  </div>
+
+                  <div className="flex items-center justify-between">
+                    <Label className="text-sm">{t('eveningReminders')}</Label>
+                    <Switch
+                      checked={notificationPrefs.eveningReminders}
+                      onCheckedChange={(v) => handleNotificationToggle('eveningReminders', v)}
+                    />
+                  </div>
+                </div>
+              </div>
+
+              <Button
+                variant="outline"
+                size="sm"
+                className="w-full mt-2"
+                onClick={handleTestNotification}
+              >
+                {t('testNotification')}
+              </Button>
             </div>
           )}
         </Card>
@@ -519,7 +624,7 @@ const Profile = () => {
           <div className="flex items-center justify-between mb-3">
             <h3 className="font-semibold text-sm flex items-center gap-2">
               <Bell className="w-4 h-4" />
-              Notification History
+              {t('notificationHistory')}
             </h3>
             <Button
               variant="outline"
@@ -530,7 +635,7 @@ const Profile = () => {
             </Button>
           </div>
           <p className="text-xs text-muted-foreground">
-            View and manage your notification history from prayer times, Ramadan countdowns, and Islamic events.
+            {t('notificationHistoryDesc')}
           </p>
         </Card>
 
