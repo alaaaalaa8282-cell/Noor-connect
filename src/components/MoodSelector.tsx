@@ -4,7 +4,7 @@ import { Card } from "./ui/card";
 import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "./ui/drawer";
 import { Button } from "./ui/button";
 import { ScrollArea } from "./ui/scroll-area";
-import { Play, Copy, Check, Sparkles, BookOpen, Quote } from "lucide-react";
+import { Play, Copy, Check, Sparkles, BookOpen, Quote, X } from "lucide-react";
 import { useGlobalQuran } from "@/lib/global-quran";
 import { useToast } from "@/hooks/use-toast";
 import { motion, AnimatePresence } from "framer-motion";
@@ -125,7 +125,7 @@ export function MoodSelector() {
                     <div className="mx-auto w-full max-w-lg bg-background rounded-t-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-full ring-1 ring-border/50">
                         <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-muted-foreground/20" />
 
-                        <div className="p-8 pb-4 text-center space-y-4">
+                        <DrawerHeader className="p-8 pb-4 text-center space-y-4">
                             <motion.div
                                 initial={{ scale: 0 }}
                                 animate={{ scale: 1 }}
@@ -136,14 +136,24 @@ export function MoodSelector() {
                             </motion.div>
 
                             <div className="space-y-1">
-                                <h2 className="text-3xl font-black tracking-tight">
+                                <DrawerTitle className="text-3xl font-black tracking-tight text-center">
                                     Feeling <span className={`${selectedMood?.color}`}>{selectedMood?.label}</span>?
-                                </h2>
-                                <p className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1.5">
+                                </DrawerTitle>
+                                <DrawerDescription className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1.5">
                                     <BookOpen className="w-4 h-4" /> Spiritual Healing & Comfort
-                                </p>
+                                </DrawerDescription>
                             </div>
-                        </div>
+
+                            {/* Hidden Close for Focus Trap */}
+                            <Button
+                                variant="ghost"
+                                size="sm"
+                                className="absolute top-2 right-4 rounded-full opacity-40 hover:opacity-100"
+                                onClick={() => setSelectedMood(null)}
+                            >
+                                <X className="w-4 h-4" />
+                            </Button>
+                        </DrawerHeader>
 
                         <ScrollArea className="flex-1 px-6 pb-12 overflow-y-auto">
                             <div className="space-y-6">
