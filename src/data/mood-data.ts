@@ -15,6 +15,7 @@ export interface Mood {
     icon: any;
     color: string;
     gradient: string;
+    glow: string;
     content: MoodContent[];
 }
 
@@ -23,8 +24,9 @@ export const moods: Mood[] = [
         id: "anxious",
         label: "Anxious",
         icon: CloudRain,
-        color: "bg-blue-500",
-        gradient: "from-blue-400/20 to-blue-600/20",
+        color: "text-blue-500",
+        gradient: "from-blue-500/10 via-blue-500/5 to-transparent",
+        glow: "shadow-blue-500/20",
         content: [
             {
                 type: "surah",
@@ -51,8 +53,9 @@ export const moods: Mood[] = [
         id: "sad",
         label: "Sad",
         icon: Frown,
-        color: "bg-indigo-500",
-        gradient: "from-indigo-400/20 to-indigo-600/20",
+        color: "text-indigo-500",
+        gradient: "from-indigo-500/10 via-indigo-500/5 to-transparent",
+        glow: "shadow-indigo-500/20",
         content: [
             {
                 type: "surah",
@@ -73,8 +76,9 @@ export const moods: Mood[] = [
         id: "happy",
         label: "Happy",
         icon: Smile,
-        color: "bg-yellow-500",
-        gradient: "from-yellow-400/20 to-yellow-600/20",
+        color: "text-amber-500",
+        gradient: "from-amber-500/10 via-amber-500/5 to-transparent",
+        glow: "shadow-amber-500/20",
         content: [
             {
                 type: "surah",
@@ -95,8 +99,9 @@ export const moods: Mood[] = [
         id: "lost",
         label: "Lost",
         icon: Zap,
-        color: "bg-purple-500",
-        gradient: "from-purple-400/20 to-purple-600/20",
+        color: "text-purple-500",
+        gradient: "from-purple-500/10 via-purple-500/5 to-transparent",
+        glow: "shadow-purple-500/20",
         content: [
             {
                 type: "ayah",
@@ -117,8 +122,9 @@ export const moods: Mood[] = [
         id: "grateful",
         label: "Grateful",
         icon: Heart,
-        color: "bg-pink-500",
-        gradient: "from-pink-400/20 to-pink-600/20",
+        color: "text-rose-500",
+        gradient: "from-rose-500/10 via-rose-500/5 to-transparent",
+        glow: "shadow-rose-500/20",
         content: [
             {
                 type: "ayah",
@@ -131,9 +137,10 @@ export const moods: Mood[] = [
     {
         id: "tired",
         label: "Tired",
-        icon: Sun, // Using Sun as a metaphor for energy/rest? Or maybe BatteryCharging if available
-        color: "bg-orange-500",
-        gradient: "from-orange-400/20 to-orange-600/20",
+        icon: Sun,
+        color: "text-orange-500",
+        gradient: "from-orange-500/10 via-orange-500/5 to-transparent",
+        glow: "shadow-orange-500/20",
         content: [
             {
                 type: "ayah",

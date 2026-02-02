@@ -346,74 +346,78 @@ export function GlobalRadioPlayer() {
 
       {/* Mini Player UI - only shown when visible and station selected */}
       {globalRadio?.currentStation && isVisible && (
-        <Card className="fixed bottom-20 left-0 right-0 z-40 shadow-lg bg-card/95 backdrop-blur-lg border-border border-t">
-          <div className="p-3">
-            {/* Compact Header with Station Info and Timer */}
-            <div className="flex items-center gap-3">
-              {/* Radio Icon & Station Info */}
-              <div className="flex items-center gap-2 flex-1 min-w-0">
-                <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0">
-                  <Radio className="w-5 h-5 text-primary" />
-                </div>
-                <div className="min-w-0 flex-1">
-                  <p className="text-sm font-medium truncate">{globalRadio?.currentTrackInfo || 'Unknown Station'}</p>
-                  <div className="flex items-center gap-2 text-xs text-muted-foreground">
-                    <Clock className="w-3 h-3" />
-                    <span className="font-mono">{formatDuration(displayDuration)}</span>
-                    <span className="text-primary">•</span>
-                    <span>{globalRadio.isPlaying ? 'Playing' : 'Paused'}</span>
+        <div className="fixed bottom-24 left-0 right-0 z-[100] px-4">
+          <Card className="max-w-lg mx-auto shadow-2xl bg-card/95 backdrop-blur-xl border-border border shadow-primary/10 overflow-hidden animate-in slide-in-from-bottom duration-300">
+            <div className="p-3">
+              {/* Compact Header with Station Info and Timer */}
+              <div className="flex items-center gap-3">
+                {/* Radio Icon & Station Info */}
+                <div className="flex items-center gap-2 flex-1 min-w-0">
+                  <div className="w-10 h-10 rounded-full bg-primary/10 flex items-center justify-center flex-shrink-0 animate-pulse-slow">
+                    <Radio className="w-5 h-5 text-primary" />
+                  </div>
+                  <div className="min-w-0 flex-1">
+                    <p className="text-sm font-bold truncate text-foreground">{globalRadio?.currentTrackInfo || 'Unknown Station'}</p>
+                    <div className="flex items-center gap-2 text-[10px] text-muted-foreground font-medium uppercase tracking-wider">
+                      <Clock className="w-3 h-3" />
+                      <span className="font-mono">{formatDuration(displayDuration)}</span>
+                      <span className="text-primary/50">•</span>
+                      <span>{globalRadio.isPlaying ? 'Live' : 'Paused'}</span>
+                    </div>
                   </div>
                 </div>
+
+                {/* Controls */}
+                <div className="flex items-center gap-1">
+                  {/* Play/Pause Button */}
+                  <Button
+                    size="icon"
+                    variant="default"
+                    onClick={handlePlayPause}
+                    disabled={isLoading}
+                    className="rounded-full w-10 h-10 shadow-md transform active:scale-95 transition-transform"
+                  >
+                    {isLoading ? (
+                      <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"></div>
+                    ) : globalRadio?.isPlaying ? (
+                      <Pause className="w-4 h-4 fill-current" />
+                    ) : (
+                      <Play className="w-4 h-4 ml-0.5 fill-current" />
+                    )}
+                  </Button>
+
+                  {/* Mute Toggle */}
+                  <Button variant="ghost" size="icon" onClick={toggleMute} className="w-8 h-8 rounded-full">
+                    {globalRadio?.isMuted ? (
+                      <VolumeX className="w-4 h-4" />
+                    ) : (
+                      <Volume2 className="w-4 h-4" />
+                    )}
+                  </Button>
+
+                  {/* Close */}
+                  <Button variant="ghost" size="icon" onClick={handleClose} className="w-8 h-8 rounded-full opacity-50 hover:opacity-100">
+                    <X className="w-4 h-4" />
+                  </Button>
+                </div>
               </div>
 
-              {/* Controls */}
-              <div className="flex items-center gap-1">
-                {/* Play/Pause Button */}
-                <Button
-                  size="icon"
-                  onClick={handlePlayPause}
-                  disabled={isLoading}
-                  className="rounded-full w-10 h-10"
-                >
-                  {isLoading ? (
-                    <div className="w-4 h-4 animate-spin rounded-full border-2 border-primary-foreground border-t-transparent"></div>
-                  ) : globalRadio?.isPlaying ? (
-                    <Pause className="w-4 h-4" />
-                  ) : (
-                    <Play className="w-4 h-4 ml-0.5" />
-                  )}
-                </Button>
-
-                {/* Mute Toggle */}
-                <Button variant="ghost" size="icon" onClick={toggleMute} className="w-8 h-8">
-                  {globalRadio?.isMuted ? (
-                    <VolumeX className="w-4 h-4" />
-                  ) : (
-                    <Volume2 className="w-4 h-4" />
-                  )}
-                </Button>
-
-                {/* Close */}
-                <Button variant="ghost" size="icon" onClick={handleClose} className="w-8 h-8">
-                  <X className="w-4 h-4" />
-                </Button>
+              {/* Volume Slider & Progress Visual */}
+              <div className="mt-3 flex items-center gap-2">
+                <Slider
+                  value={[globalRadio?.volume || 0]}
+                  onValueChange={handleVolumeChange}
+                  max={100}
+                  step={1}
+                  className="flex-1 cursor-pointer"
+                />
+                <span className="text-[10px] font-bold text-muted-foreground w-8 text-right font-mono">{globalRadio?.volume || 0}%</span>
               </div>
             </div>
-
-            {/* Volume Slider */}
-            <div className="mt-2 flex items-center gap-2">
-              <Slider
-                value={[globalRadio?.volume || 0]}
-                onValueChange={handleVolumeChange}
-                max={100}
-                step={1}
-                className="flex-1"
-              />
-              <span className="text-xs text-muted-foreground w-8 text-right">{globalRadio?.volume || 0}%</span>
-            </div>
-          </div>
-        </Card>
+          </Card>
+        </div>
       )}
+
     </>
   );
 }

@@ -157,7 +157,7 @@ const App = () => {
       <Toaster />
       <Sonner />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <div className="flex flex-col min-h-screen overflow-hidden" role="application" aria-label="Noor Connect - Islamic Companion App" style={{
+        <div className="flex flex-col min-h-screen overflow-hidden" style={{
           willChange: 'transform, opacity',
           transform: 'translateZ(0)'
         }}>

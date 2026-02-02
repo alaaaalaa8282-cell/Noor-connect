@@ -1,4 +1,5 @@
 import { useEffect, useRef, useState, useMemo } from "react";
+import { useReciters } from "@/hooks/useReciters";
 import { AlertCircle, Pause, Play, User, Volume2, X, ChevronUp, ChevronDown, Repeat } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Button } from "./ui/button";
@@ -9,29 +10,6 @@ import { androidAudioHelper } from "@/lib/android-audio-helper";
 import { useGlobalRadio } from "@/lib/global-radio"; // To pause radio
 import { useGlobalQuran, setGlobalQuranAudioRef, Reciter } from "@/lib/global-quran";
 import { downloadManager } from "@/lib/download-manager";
-
-// MP3Quran Types (for fetching)
-interface Moshaf {
-    id: number;
-    name: string;
-    server: string;
-    surah_total: number;
-    surah_list: string;
-}
-interface APIReciter {
-    id: number;
-    name: string;
-    moshaf: Moshaf[];
-}
-interface MP3QuranResponse {
-    reciters: APIReciter[];
-}
-
-// Parse surah_list string "1,2,3,..." to number array
-function parseSurahList(surahListStr: string): number[] {
-    if (!surahListStr) return [];
-    return surahListStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-}
 
 const formatTime = (time: number): string => {
     if (!time || isNaN(time)) return "0:00";
@@ -52,56 +30,30 @@ export function GlobalQuranPlayer() {
     const { isPlaying: isRadioPlaying, updateRadioState: updateRadioState } = useGlobalRadio();
 
     const [isExpanded, setIsExpanded] = useState(false);
-    const [isLoading, setIsLoading] = useState(false);
-    const [reciters, setReciters] = useState<Reciter[]>([]);
-    const [fetchError, setFetchError] = useState<string | null>(null);
+
+    // Use shared reciter hook
+    const { reciters, isLoading: isReciterLoading, error: fetchError } = useReciters();
+    const [isAudioLoading, setIsAudioLoading] = useState(false);
+    const isLoading = isReciterLoading || isAudioLoading;
 
     // Initialize Global Ref
     useEffect(() => {
         setGlobalQuranAudioRef(audioRef.current);
     }, []);
 
-    // Fetch Reciters (Run once)
+    // Set default reciter when loaded
     useEffect(() => {
-        const fetchReciters = async () => {
-            try {
-                const res = await fetch("https://mp3quran.net/api/v3/reciters?language=en");
-                if (!res.ok) throw new Error("Failed to fetch");
-                const json: MP3QuranResponse = await res.json();
+        if (!reciters.length || reciter) return;
 
-                const flattened: Reciter[] = [];
-                json.reciters.forEach(r => {
-                    r.moshaf.forEach(m => {
-                        flattened.push({
-                            id: `${r.id}-${m.id}`,
-                            name: `${r.name} (${m.name})`,
-                            server: m.server,
-                            surahList: parseSurahList(m.surah_list)
-                        });
-                    });
-                });
-
-                flattened.sort((a, b) => a.name.localeCompare(b.name));
-                setReciters(flattened);
-
-                // Restore saved reciter if none selected in state
-                if (!reciter) {
-                    const savedId = localStorage.getItem(RECITER_STORAGE_KEY);
-                    if (savedId) {
-                        const saved = flattened.find(r => r.id === savedId);
-                        if (saved) updateState({ reciter: saved });
-                    } else {
-                        // Default fallbacks
-                        const defaultReciter = flattened.find(r => r.name.includes('Mishary')) || flattened[0];
-                        if (defaultReciter) updateState({ reciter: defaultReciter });
-                    }
-                }
-            } catch (e) {
-                setFetchError("Failed to load reciters");
-            }
-        };
-        fetchReciters();
-    }, []); // Run once on mount
+        const savedId = localStorage.getItem(RECITER_STORAGE_KEY);
+        if (savedId) {
+            const saved = reciters.find(r => r.id === savedId);
+            if (saved) updateState({ reciter: saved });
+        } else {
+            const defaultReciter = reciters.find(r => r.name.includes('Mishary')) || reciters[0];
+            if (defaultReciter) updateState({ reciter: defaultReciter });
+        }
+    }, [reciters, reciter]);
 
     const { toast } = useToast();
 
@@ -143,7 +95,7 @@ export function GlobalQuranPlayer() {
             }
 
             if (audio.src !== sourceUrl) {
-                setIsLoading(true);
+                setIsAudioLoading(true);
                 audio.src = sourceUrl;
                 audio.load();
                 if (isPlaying) {
@@ -199,9 +151,9 @@ export function GlobalQuranPlayer() {
         const handleEnded = () => {
             updateState({ isPlaying: false, progress: 0 });
         };
-        const handleCanPlay = () => setIsLoading(false);
+        const handleCanPlay = () => setIsAudioLoading(false);
         const handleError = () => {
-            setIsLoading(false);
+            setIsAudioLoading(false);
             updateState({ isPlaying: false });
             console.error("Audio error", audio.error);
         };
@@ -260,8 +212,8 @@ export function GlobalQuranPlayer() {
         return (
             <>
                 <audio ref={audioRef} />
-                <div className="fixed bottom-24 left-4 right-4 z-50 flex justify-center">
-                    <Card className="w-full max-w-lg bg-zinc-900/95 backdrop-blur-md text-white border-white/10 shadow-2xl rounded-full p-2 pr-4 flex items-center justify-between transition-all duration-300 hover:scale-[1.02]">
+                <div className="fixed bottom-24 left-0 right-0 z-[100] px-4">
+                    <Card className="w-full max-w-lg mx-auto bg-zinc-900/95 backdrop-blur-xl text-white border-white/10 shadow-2xl rounded-full p-2 pr-4 flex items-center justify-between transition-all duration-300 hover:scale-[1.02] border animate-in slide-in-from-bottom">
                         {/* Clickable Area to Expand */}
                         <div className="flex items-center gap-3 overflow-hidden flex-1 cursor-pointer" onClick={() => setIsExpanded(true)}>
                             {/* Rotating Vinyl Icon */}
@@ -270,14 +222,14 @@ export function GlobalQuranPlayer() {
                             </div>
 
                             <div className="min-w-0 pr-2">
-                                <p className="font-semibold text-sm truncate leading-none mb-1">{surahName}</p>
-                                <p className="text-xs text-zinc-400 truncate leading-none">{reciter?.name}</p>
+                                <p className="font-bold text-sm truncate leading-none mb-1 text-white">{surahName}</p>
+                                <p className="text-[10px] text-zinc-400 truncate leading-none uppercase tracking-wider font-medium">{reciter?.name}</p>
                             </div>
                         </div>
 
                         {/* Controls */}
                         <div className="flex items-center gap-2">
-                            <Button size="icon" variant="ghost" onClick={togglePlayback} disabled={isLoading} className="text-white hover:text-primary hover:bg-white/10 rounded-full w-8 h-8">
+                            <Button size="icon" variant="ghost" onClick={togglePlayback} disabled={isLoading} className="text-white hover:text-primary hover:bg-white/10 rounded-full w-9 h-9">
                                 {isLoading ? (
                                     <div className="w-4 h-4 border-2 border-primary border-t-transparent animate-spin rounded-full" />
                                 ) : isPlaying ? (
