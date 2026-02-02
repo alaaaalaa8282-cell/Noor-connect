@@ -1,0 +1,146 @@
+import { Heart, CloudRain, Sun, Zap, Frown, Smile } from "lucide-react";
+
+export interface MoodContent {
+    type: 'surah' | 'ayah' | 'dua';
+    reference: string; // e.g., "Surah Ad-Duha" or "2:286"
+    text: string;
+    surahNumber?: number; // Only for 'surah' type, used for direct playback
+    translation?: string;
+    arabic?: string;
+}
+
+export interface Mood {
+    id: string;
+    label: string;
+    icon: any;
+    color: string;
+    gradient: string;
+    content: MoodContent[];
+}
+
+export const moods: Mood[] = [
+    {
+        id: "anxious",
+        label: "Anxious",
+        icon: CloudRain,
+        color: "bg-blue-500",
+        gradient: "from-blue-400/20 to-blue-600/20",
+        content: [
+            {
+                type: "surah",
+                reference: "Surah Ad-Duha",
+                text: "Your Lord has not taken leave of you, [O Muhammad], nor has He detested [you].",
+                surahNumber: 93,
+                arabic: "مَا وَدَّعَكَ رَبُّكَ وَمَا قَلَىٰ"
+            },
+            {
+                type: "ayah",
+                reference: "Quran 13:28",
+                text: "Unquestionably, by the remembrance of Allah hearts are assured.",
+                arabic: "أَلَا بِذِكْرِ اللَّهِ تَطْمَئِنُّ الْقُلُوبُ"
+            },
+            {
+                type: "dua",
+                reference: "Prophetic Dua",
+                text: "O Allah, I seek refuge in You from anxiety and sorrow, weakness and laziness.",
+                arabic: "اللَّهُمَّ إِنِّي أَعُوذُ بِكَ مِنَ الْهَمِّ وَالْحَزَنِ"
+            }
+        ]
+    },
+    {
+        id: "sad",
+        label: "Sad",
+        icon: Frown,
+        color: "bg-indigo-500",
+        gradient: "from-indigo-400/20 to-indigo-600/20",
+        content: [
+            {
+                type: "surah",
+                reference: "Surah Ash-Sharh",
+                text: "For indeed, with hardship [will be] ease.",
+                surahNumber: 94,
+                arabic: "فَإِنَّ مَعَ الْعُسْرِ يُسْرًا"
+            },
+            {
+                type: "surah",
+                reference: "Surah Yusuf",
+                text: "Listening to the story of Prophet Yusuf (AS) brings comfort to the grieving heart.",
+                surahNumber: 12
+            }
+        ]
+    },
+    {
+        id: "happy",
+        label: "Happy",
+        icon: Smile,
+        color: "bg-yellow-500",
+        gradient: "from-yellow-400/20 to-yellow-600/20",
+        content: [
+            {
+                type: "surah",
+                reference: "Surah Ar-Rahman",
+                text: "So which of the favors of your Lord would you deny?",
+                surahNumber: 55,
+                arabic: "فَبِأَيِّ آلَاءِ رَبِّكُمَا تُكَذِّبَانِ"
+            },
+            {
+                type: "dua",
+                reference: "Dua for Gratitude",
+                text: "My Lord, enable me to be grateful for Your favor which You have bestowed upon me.",
+                arabic: "رَبِّ أَوْزِعْنِي أَنْ أَشْكُرَ نِعْمَتَكَ الَّتِي أَنْعَمْتَ عَلَيَّ"
+            }
+        ]
+    },
+    {
+        id: "lost",
+        label: "Lost",
+        icon: Zap,
+        color: "bg-purple-500",
+        gradient: "from-purple-400/20 to-purple-600/20",
+        content: [
+            {
+                type: "ayah",
+                reference: "Quran 2:186",
+                text: "And when My servants ask you concerning Me - indeed I am near. I respond to the invocation of the supplicant when he calls upon Me.",
+                arabic: "وَإِذَا سَأَلَكَ عِبَادِي عَنِّي فَإِنِّي قَرِيبٌ"
+            },
+            {
+                type: "surah",
+                reference: "Surah Al-Fatiha",
+                text: "Guide us to the straight path.",
+                surahNumber: 1,
+                arabic: "اهْدِنَا الصِّرَاطَ الْمُسْتَقِيمَ"
+            }
+        ]
+    },
+    {
+        id: "grateful",
+        label: "Grateful",
+        icon: Heart,
+        color: "bg-pink-500",
+        gradient: "from-pink-400/20 to-pink-600/20",
+        content: [
+            {
+                type: "ayah",
+                reference: "Quran 14:7",
+                text: "If you are grateful, I will surely increase you [in favor].",
+                arabic: "لَئِن شَكَرْتُمْ لَأَزِيدَنَّكُمْ"
+            }
+        ]
+    },
+    {
+        id: "tired",
+        label: "Tired",
+        icon: Sun, // Using Sun as a metaphor for energy/rest? Or maybe BatteryCharging if available
+        color: "bg-orange-500",
+        gradient: "from-orange-400/20 to-orange-600/20",
+        content: [
+            {
+                type: "ayah",
+                reference: "Quran 2:286",
+                text: "Allah does not charge a soul except [with that within] its capacity.",
+                arabic: "لَا يُكَلِّفُ اللَّهُ نَفْسًا إِلَّا وُسْعَهَا"
+            }
+        ]
+    }
+];

@@ -13,6 +13,7 @@ import { IslamicGreeting } from "@/components/IslamicGreeting";
 import { LocationSearch } from "@/components/LocationSearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
+import { MoodSelector } from "@/components/MoodSelector";
 
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { LayoutManager } from "@/components/LayoutManager";
@@ -370,6 +371,9 @@ export default function Dashboard() {
             {/* Bottom Glass Bar */}
             <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#e0c097]/50 to-transparent"></div>
           </div>
+
+          {/* Mood Based Remedies */}
+          <MoodSelector />
 
           {/* Hijri Date */}
           {hijriDate && (

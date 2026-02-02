@@ -1,6 +1,6 @@
 import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Bookmark, Share2, BookmarkCheck, Play, Settings, BookOpen, Loader2, Pause } from "lucide-react";
+import { ArrowLeft, Bookmark, Share2, BookmarkCheck, Play, Settings, BookOpen, Loader2, Pause, Download, Check } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
@@ -64,6 +64,47 @@ const SurahDetail = () => {
     pause,
     resume
   } = useGlobalQuran();
+
+  // Download State
+  const [downloadState, setDownloadState] = useState<'idle' | 'loading' | 'downloaded'>('idle');
+  const [downloadProgress, setDownloadProgress] = useState(0);
+
+  const checkDownloadStatus = useCallback(async () => {
+    if (reciter && currentPlayingSurah) {
+      const isDown = await import("@/lib/download-manager").then(m => m.downloadManager.isSurahDownloaded(reciter.id, currentPlayingSurah));
+      setDownloadState(isDown ? 'downloaded' : 'idle');
+    }
+  }, [reciter, currentPlayingSurah]);
+
+  useEffect(() => {
+    checkDownloadStatus();
+  }, [checkDownloadStatus]);
+
+  const handleDownload = async () => {
+    if (!reciter || !surahNumber) return;
+    const surahId = parseInt(surahNumber);
+
+    setDownloadState('loading');
+    try {
+      const paddedSurah = surahId.toString().padStart(3, '0');
+      const server = reciter.server.endsWith('/') ? reciter.server : `${reciter.server}/`;
+      const url = `${server}${paddedSurah}.mp3`;
+
+      const response = await fetch(url);
+      if (!response.ok) throw new Error("Download failed");
+
+      const blob = await response.blob();
+      const { downloadManager } = await import("@/lib/download-manager");
+      await downloadManager.saveSurah(reciter.id, surahId, blob);
+
+      setDownloadState('downloaded');
+      toast({ title: "Surah Downloaded", description: "Available for offline listening." });
+    } catch (e) {
+      console.error(e);
+      setDownloadState('idle');
+      toast({ title: "Download Failed", description: "Could not save surah.", variant: "destructive" });
+    }
+  };
 
   const [surahData, setSurahData] = useState<SurahData | null>(null);
   const [loading, setLoading] = useState(true);
@@ -352,6 +393,24 @@ const SurahDetail = () => {
             </p>
           </div>
           <div className="flex gap-1">
+            <Button
+              variant="ghost"
+              size="icon"
+              className="rounded-full"
+              onClick={handleDownload}
+              disabled={downloadState === 'loading' || downloadState === 'downloaded'}
+            >
+              {downloadState === 'loading' ? (
+                <Loader2 className="w-5 h-5 animate-spin text-primary" />
+              ) : downloadState === 'downloaded' ? (
+                <div className="relative">
+                  <Check className="w-5 h-5 text-green-500" />
+                  <span className="absolute -top-1 -right-1 block w-2 h-2 rounded-full bg-green-500" />
+                </div>
+              ) : (
+                <Download className="w-5 h-5" />
+              )}
+            </Button>
             <Button
               variant="ghost"
               size="icon"

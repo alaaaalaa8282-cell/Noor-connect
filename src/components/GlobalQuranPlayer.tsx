@@ -8,6 +8,7 @@ import { Slider } from "./ui/slider";
 import { androidAudioHelper } from "@/lib/android-audio-helper";
 import { useGlobalRadio } from "@/lib/global-radio"; // To pause radio
 import { useGlobalQuran, setGlobalQuranAudioRef, Reciter } from "@/lib/global-quran";
+import { downloadManager } from "@/lib/download-manager";
 
 // MP3Quran Types (for fetching)
 interface Moshaf {
@@ -120,23 +121,40 @@ export function GlobalQuranPlayer() {
             return;
         }
 
-        const paddedSurah = surahNumber.toString().padStart(3, '0');
-        const server = reciter.server.endsWith('/') ? reciter.server : `${reciter.server}/`;
-        const newSrc = `${server}${paddedSurah}.mp3`;
-
-        if (audio.src !== newSrc) {
-            console.log(`Loading Quran Audio: ${newSrc}`);
-            // New Track
-            setIsLoading(true);
-            audio.src = newSrc;
-            audio.load();
-            if (isPlaying) {
-                audio.play().catch(e => {
-                    console.error("Play failed", e);
-                    // Don't update state here, let error handler do it
-                });
+        const loadAudio = async () => {
+            // Check if downloaded
+            let sourceUrl = "";
+            try {
+                const blob = await downloadManager.getSurah(reciter.id, surahNumber);
+                if (blob) {
+                    sourceUrl = URL.createObjectURL(blob);
+                    console.log(`Playing from Offline Cache: ${surahNumber}`);
+                } else {
+                    const paddedSurah = surahNumber.toString().padStart(3, '0');
+                    const server = reciter.server.endsWith('/') ? reciter.server : `${reciter.server}/`;
+                    sourceUrl = `${server}${paddedSurah}.mp3`;
+                    console.log(`Streaming from Network: ${sourceUrl}`);
+                }
+            } catch (e) {
+                console.error("Offline check failed, falling back to network", e);
+                const paddedSurah = surahNumber.toString().padStart(3, '0');
+                const server = reciter.server.endsWith('/') ? reciter.server : `${reciter.server}/`;
+                sourceUrl = `${server}${paddedSurah}.mp3`;
             }
-        }
+
+            if (audio.src !== sourceUrl) {
+                setIsLoading(true);
+                audio.src = sourceUrl;
+                audio.load();
+                if (isPlaying) {
+                    audio.play().catch(e => {
+                        console.error("Play failed", e);
+                    });
+                }
+            }
+        };
+
+        loadAudio();
     }, [surahNumber, reciter?.id]); // Depend on ID to trigger change
 
     // Handle Play/Pause State
