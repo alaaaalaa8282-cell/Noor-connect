@@ -1,54 +1,43 @@
-// version 1.0.2
+// version 2.0.0 - MP3Quran.net V3 API Integration
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { Pause, Play, SkipBack, SkipForward, User, Volume2, X } from "lucide-react";
+import { AlertCircle, Pause, Play, User, Volume2, X } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Slider } from "./ui/slider";
+import { androidAudioHelper } from "@/lib/android-audio-helper";
+import { useGlobalRadio } from "@/lib/global-radio";
 
-interface QuranComRecitation {
+// MP3Quran.net V3 API Types
+interface Moshaf {
   id: number;
-  reciter_name: string;
-  style: string | null;
-  translated_name?: {
-    name: string;
-    language_name: string;
-  };
+  name: string;
+  server: string;
+  surah_total: number;
+  surah_list: string;
 }
 
-const SURAH_AYAH_COUNTS: number[] = [
-  7, 286, 200, 176, 120, 165, 206, 75, 129, 109, 123, 111, 43, 52, 99, 128, 111, 110, 98,
-  135, 112, 78, 118, 64, 77, 227, 93, 88, 69, 60, 34, 30, 73, 54, 45, 83, 182, 88, 75, 85,
-  54, 53, 89, 59, 37, 35, 38, 29, 18, 45, 60, 49, 62, 55, 78, 96, 29, 22, 24, 13, 14, 11,
-  11, 18, 12, 12, 30, 52, 52, 44, 28, 28, 20, 56, 40, 31, 50, 40, 46, 42, 29, 19, 36, 25,
-  22, 17, 19, 26, 30, 20, 15, 21, 11, 8, 8, 19, 5, 8, 8, 11, 11, 8, 3, 9, 5, 4, 7, 3,
-  6, 3, 5, 4, 5, 6,
-];
+interface Reciter {
+  id: number;
+  name: string;
+  moshaf: Moshaf[];
+}
 
-const SURAH_STARTS: number[] = (() => {
-  const starts: number[] = [];
-  let acc = 0;
-  for (const c of SURAH_AYAH_COUNTS) {
-    starts.push(acc);
-    acc += c;
-  }
-  return starts;
-})();
+interface MP3QuranResponse {
+  reciters: Reciter[];
+}
 
-const RECITER_MAP: Record<number, string> = {
-  7: "mishari_rashid_al_afasy",
-  3: "sa3d_alghamidi",
-  10: "saud_al-shuraim",
-  11: "abdur_rahman_as_sudais",
-  2: "abdul_basit_muhammad_abdus_samad_u",
-  1: "abdul_basit_muhammad_abdus_samad_u",
-  6: "mahmoud_khalil_al_husary",
-  12: "mahmoud_khalil_al_husary",
-  8: "mohammad_siddiq_al_minshawi",
-  9: "mohammad_siddiq_al_minshawi",
-  4: "abu_bakr_ash_shatri",
-  5: "hani_ar_rifai",
-};
+// Flattened structure for dropdown display
+interface FlattenedReciter {
+  id: string; // "{reciterId}-{moshafId}" for unique key
+  reciterId: number;
+  moshafId: number;
+  name: string;
+  moshafName: string;
+  server: string;
+  surahList: number[];
+  surahTotal: number;
+}
 
 interface QuranAudioPlayerProps {
   surahNumber: number;
@@ -59,13 +48,22 @@ interface QuranAudioPlayerProps {
   onClose: () => void;
 }
 
-export function QuranAudioPlayer({ 
-  surahNumber, 
-  surahName, 
+// Parse surah_list string "1,2,3,..." to number array
+function parseSurahList(surahListStr: string): number[] {
+  if (!surahListStr) return [];
+  return surahListStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
+}
+
+// Local storage key for persisting selected reciter
+const RECITER_STORAGE_KEY = 'mp3quran-selected-reciter';
+
+export function QuranAudioPlayer({
+  surahNumber,
+  surahName,
   totalAyahs,
   currentAyah = 1,
   onAyahChange,
-  onClose 
+  onClose
 }: QuranAudioPlayerProps) {
   const audioRef = useRef<HTMLAudioElement>(null);
   const [isPlaying, setIsPlaying] = useState(false);
@@ -73,9 +71,80 @@ export function QuranAudioPlayer({
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [recitations, setRecitations] = useState<QuranComRecitation[]>([]);
-  const [recitationId, setRecitationId] = useState<number>(7);
+  const [reciters, setReciters] = useState<FlattenedReciter[]>([]);
+  const [selectedReciterId, setSelectedReciterId] = useState<string>('');
   const [isBackgroundMode, setIsBackgroundMode] = useState(false);
+  const [surahAvailable, setSurahAvailable] = useState(true);
+  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
+  const [fetchError, setFetchError] = useState<string | null>(null);
+  const { updateRadioState, isPlaying: isRadioPlaying } = useGlobalRadio();
+
+
+  const togglePlayback = useCallback(async () => {
+    if (!audioRef.current || !surahAvailable) return;
+
+    if (isPlaying) {
+      audioRef.current.pause();
+      setIsPlaying(false);
+    } else {
+      // Pause global radio if playing
+      if (isRadioPlaying) {
+        updateRadioState({ isPlaying: false });
+      }
+
+      try {
+        await audioRef.current.play();
+        setIsPlaying(true);
+      } catch (e) {
+        console.error("Play error:", e);
+        setIsPlaying(false);
+      }
+    }
+  }, [isPlaying, surahAvailable, isRadioPlaying, updateRadioState]);
+
+  // Get currently selected reciter object
+  const selectedReciter = useMemo(() => {
+    return reciters.find(r => r.id === selectedReciterId) || null;
+  }, [reciters, selectedReciterId]);
+
+  // Check if current surah is available for selected reciter
+  useEffect(() => {
+    if (!selectedReciter) {
+      setSurahAvailable(false);
+      setAvailabilityError(null);
+      return;
+    }
+
+    const isAvailable = selectedReciter.surahList.includes(surahNumber);
+    setSurahAvailable(isAvailable);
+
+    if (!isAvailable) {
+      setAvailabilityError(`Surah ${surahNumber} is not available for ${selectedReciter.name}. This reciter has ${selectedReciter.surahTotal} surahs recorded.`);
+      // Stop playback if currently playing
+      if (audioRef.current && isPlaying) {
+        audioRef.current.pause();
+        setIsPlaying(false);
+      }
+    } else {
+      setAvailabilityError(null);
+    }
+  }, [selectedReciter, surahNumber, isPlaying]);
+
+  // Handle Android background audio optimizations
+  useEffect(() => {
+    if (isBackgroundMode && audioRef.current) {
+      if (androidAudioHelper.isAndroid()) {
+        androidAudioHelper.setupAndroidOptimizations(audioRef.current);
+      } else {
+        androidAudioHelper.requestWakeLock();
+      }
+    } else {
+      androidAudioHelper.cleanup();
+    }
+    return () => {
+      androidAudioHelper.cleanup();
+    };
+  }, [isBackgroundMode]);
 
   // Setup Media Session API for background playback
   useEffect(() => {
@@ -84,7 +153,7 @@ export function QuranAudioPlayer({
     const updateMediaSession = () => {
       navigator.mediaSession.metadata = new MediaMetadata({
         title: `Surah ${surahName}`,
-        artist: recitations.find(r => r.id === recitationId)?.reciter_name || 'Quran Recitation',
+        artist: selectedReciter?.name || 'Quran Recitation',
         album: 'Holy Quran',
         artwork: [
           { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
@@ -93,15 +162,14 @@ export function QuranAudioPlayer({
       });
 
       navigator.mediaSession.setActionHandler('play', () => {
-        handlePlayPause();
+        togglePlayback();
       });
 
       navigator.mediaSession.setActionHandler('pause', () => {
-        handlePlayPause();
+        togglePlayback();
       });
 
       navigator.mediaSession.setActionHandler('previoustrack', () => {
-        // Reset to beginning of current surah
         if (audioRef.current) {
           audioRef.current.currentTime = 0;
           setProgress(0);
@@ -109,12 +177,10 @@ export function QuranAudioPlayer({
       });
 
       navigator.mediaSession.setActionHandler('nexttrack', () => {
-        // Go to next surah if available, or stop playback
         if (surahNumber < 114) {
-          // This would need to be handled by parent component
           console.log('Next surah requested - parent component should handle this');
         } else {
-          handlePlayPause(); // Stop playback if at last surah
+          togglePlayback();
         }
       });
 
@@ -129,7 +195,6 @@ export function QuranAudioPlayer({
     updateMediaSession();
 
     return () => {
-      // Cleanup media session handlers
       if ('mediaSession' in navigator) {
         navigator.mediaSession.setActionHandler('play', null);
         navigator.mediaSession.setActionHandler('pause', null);
@@ -138,37 +203,91 @@ export function QuranAudioPlayer({
         navigator.mediaSession.setActionHandler('seekto', null);
       }
     };
-  }, [surahName, recitationId, recitations]);
+  }, [surahName, selectedReciter, togglePlayback]);
 
+  // Generate audio URL from selected reciter
   const audioSrc = useMemo(() => {
-    const reciterPath = RECITER_MAP[recitationId];
-    if (!reciterPath) {
-      console.warn(`Reciter ID ${recitationId} not in RECITER_MAP; falling back to mishari_rashid_al_afasy`);
-      return "https://download.quranicaudio.com/quran/mishari_rashid_al_afasy/001.mp3";
+    if (!selectedReciter || !surahAvailable) {
+      return '';
     }
+
     const paddedSurahNumber = surahNumber.toString().padStart(3, '0');
-    const url = `https://download.quranicaudio.com/quran/${reciterPath}/${paddedSurahNumber}.mp3`;
+    const url = `${selectedReciter.server}${paddedSurahNumber}.mp3`;
     console.log(`Loading Surah ${surahNumber} from: ${url}`);
     return url;
-  }, [surahNumber, recitationId]);
+  }, [surahNumber, selectedReciter, surahAvailable]);
 
-
-
+  // Fetch reciters from MP3Quran.net V3 API
   useEffect(() => {
     const fetchReciters = async () => {
       try {
-        const res = await fetch("https://api.quran.com/api/v4/resources/recitations");
-        const json = await res.json();
-        const list: QuranComRecitation[] = json?.recitations || [];
-        console.log("Quran.com recitations:", list);
-        setRecitations(list);
+        setFetchError(null);
+        const res = await fetch("https://mp3quran.net/api/v3/reciters?language=en");
+
+        if (!res.ok) {
+          throw new Error(`HTTP error! status: ${res.status}`);
+        }
+
+        const json: MP3QuranResponse = await res.json();
+        const rawReciters = json?.reciters || [];
+
+        // Flatten reciters with their moshaf options
+        const flattened: FlattenedReciter[] = [];
+
+        for (const reciter of rawReciters) {
+          for (const moshaf of reciter.moshaf) {
+            flattened.push({
+              id: `${reciter.id}-${moshaf.id}`,
+              reciterId: reciter.id,
+              moshafId: moshaf.id,
+              name: reciter.name,
+              moshafName: moshaf.name,
+              server: moshaf.server,
+              surahList: parseSurahList(moshaf.surah_list),
+              surahTotal: moshaf.surah_total,
+            });
+          }
+        }
+
+        // Sort by name for easier navigation
+        flattened.sort((a, b) => a.name.localeCompare(b.name));
+
+        console.log(`Loaded ${flattened.length} reciter options from MP3Quran.net`);
+        setReciters(flattened);
+
+        // Try to restore previously selected reciter from localStorage
+        const savedReciterId = localStorage.getItem(RECITER_STORAGE_KEY);
+        if (savedReciterId && flattened.find(r => r.id === savedReciterId)) {
+          setSelectedReciterId(savedReciterId);
+        } else {
+          // Default to Mishary Alafasi (Hafs) if available, or first reciter with 114 surahs
+          const mishary = flattened.find(r =>
+            r.name.toLowerCase().includes('mishary') &&
+            r.moshafName.toLowerCase().includes('hafs') &&
+            r.surahTotal === 114
+          );
+
+          const defaultReciter = mishary || flattened.find(r => r.surahTotal === 114) || flattened[0];
+
+          if (defaultReciter) {
+            setSelectedReciterId(defaultReciter.id);
+          }
+        }
       } catch (e) {
-        console.error("Failed to fetch reciters:", e);
+        console.error("Failed to fetch reciters from MP3Quran.net:", e);
+        setFetchError("Failed to load reciters. Please check your internet connection.");
       }
     };
 
     fetchReciters();
   }, []);
+
+  // Persist selected reciter to localStorage
+  useEffect(() => {
+    if (selectedReciterId) {
+      localStorage.setItem(RECITER_STORAGE_KEY, selectedReciterId);
+    }
+  }, [selectedReciterId]);
 
   useEffect(() => {
     if (audioRef.current) {
@@ -178,13 +297,12 @@ export function QuranAudioPlayer({
 
   useEffect(() => {
     const audio = audioRef.current;
-    if (!audio) return;
+    if (!audio || !audioSrc) return;
 
     if (audio.src === audioSrc) return;
 
     setIsLoading(true);
 
-    // Pause -> set src -> load -> (try) play
     audio.pause();
     audio.src = audioSrc;
     audio.load();
@@ -210,21 +328,18 @@ export function QuranAudioPlayer({
     const audio = audioRef.current;
     if (!audio) return;
 
-    // Prevent audio from stopping when app loses focus or page becomes hidden
     const handleVisibilityChange = () => {
-      if (document.hidden && isPlaying && isBackgroundMode) {
-        // Keep playing in background
+      if (document.hidden && isPlaying && isBackgroundMode && audio.paused) {
         audio.play().catch(console.error);
       }
     };
 
     const handlePageUnload = () => {
-      // Save current playback state to localStorage
       if (isPlaying) {
         localStorage.setItem('quran-audio-state', JSON.stringify({
           surahNumber,
           surahName,
-          recitationId,
+          selectedReciterId,
           isPlaying: true,
           isBackgroundMode,
           timestamp: Date.now()
@@ -232,22 +347,21 @@ export function QuranAudioPlayer({
       }
     };
 
-    // Restore playback state if available
     const savedState = localStorage.getItem('quran-audio-state');
     if (savedState && !isPlaying) {
       try {
         const state = JSON.parse(savedState);
         const timeDiff = Date.now() - state.timestamp;
-        
-        // Only restore if within last 30 minutes
+
         if (timeDiff < 30 * 60 * 1000 && state.surahNumber === surahNumber) {
-          setRecitationId(state.recitationId);
+          if (state.selectedReciterId) {
+            setSelectedReciterId(state.selectedReciterId);
+          }
           setIsBackgroundMode(state.isBackgroundMode);
-          
-          // Auto-resume if background mode was enabled
+
           if (state.isBackgroundMode && state.isPlaying) {
             setTimeout(() => {
-              handlePlayPause();
+              togglePlayback();
             }, 1000);
           }
         }
@@ -263,7 +377,7 @@ export function QuranAudioPlayer({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handlePageUnload);
     };
-  }, [isPlaying, isBackgroundMode, surahNumber, surahName, recitationId]);
+  }, [isPlaying, isBackgroundMode, surahNumber, surahName, selectedReciterId]);
 
   useEffect(() => {
     const audio = audioRef.current;
@@ -282,29 +396,10 @@ export function QuranAudioPlayer({
   }, [audioSrc]);
 
 
-  const handlePlayPause = async () => {
-    if (!audioRef.current) return;
-
-    if (isPlaying) {
-      audioRef.current.pause();
-      setIsPlaying(false);
-    } else {
-      try {
-        await audioRef.current.play();
-        setIsPlaying(true);
-      } catch (e) {
-        console.error("Play error:", e);
-        setIsPlaying(false);
-      }
-    }
-  };
-
 
   const handleAudioEnded = () => {
-    // Full surah playback completed
     console.log(`Surah ${surahName} playback completed`);
     setIsPlaying(false);
-    // Could trigger next surah playback here if needed
   };
 
   const handleTimeUpdate = () => {
@@ -313,7 +408,6 @@ export function QuranAudioPlayer({
     setProgress(audio.currentTime);
     setDuration(audio.duration || 0);
 
-    // Update media session position
     if ('mediaSession' in navigator && navigator.mediaSession.setPositionState) {
       navigator.mediaSession.setPositionState({
         duration: audio.duration,
@@ -322,7 +416,6 @@ export function QuranAudioPlayer({
       });
     }
   };
-
 
   const handleSeek = (value: number[]) => {
     if (audioRef.current) {
@@ -335,6 +428,13 @@ export function QuranAudioPlayer({
     const mins = Math.floor(time / 60);
     const secs = Math.floor(time % 60);
     return `${mins}:${secs.toString().padStart(2, '0')}`;
+  };
+
+  const handleReciterChange = (id: string) => {
+    setSelectedReciterId(id);
+    // Reset playback state when switching reciters
+    setProgress(0);
+    setDuration(0);
   };
 
   return (
@@ -351,24 +451,45 @@ export function QuranAudioPlayer({
           </Button>
         </div>
 
+        {/* Fetch Error */}
+        {fetchError && (
+          <div className="flex items-center gap-2 p-2 bg-destructive/10 text-destructive rounded-lg text-sm">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{fetchError}</span>
+          </div>
+        )}
+
         {/* Reciter Selector */}
         <Select
-          value={String(recitationId)}
-          onValueChange={(id) => setRecitationId(parseInt(id, 10))}
+          value={selectedReciterId}
+          onValueChange={handleReciterChange}
+          disabled={reciters.length === 0}
         >
           <SelectTrigger className="w-full">
             <User className="w-4 h-4 mr-2" />
-            <SelectValue placeholder="Select reciter" />
+            <SelectValue placeholder={reciters.length === 0 ? "Loading reciters..." : "Select reciter"} />
           </SelectTrigger>
-          <SelectContent>
-            {recitations.map((r) => (
-              <SelectItem key={r.id} value={String(r.id)}>
-                {r.reciter_name}{r.style ? ` (${r.style})` : ""}
+          <SelectContent className="max-h-[300px]">
+            {reciters.map((r) => (
+              <SelectItem key={r.id} value={r.id}>
+                <div className="flex flex-col">
+                  <span>{r.name}</span>
+                  <span className="text-xs text-muted-foreground">
+                    {r.moshafName} ({r.surahTotal} surahs)
+                  </span>
+                </div>
               </SelectItem>
             ))}
           </SelectContent>
         </Select>
 
+        {/* Surah Not Available Error */}
+        {availabilityError && (
+          <div className="flex items-center gap-2 p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg text-sm">
+            <AlertCircle className="w-4 h-4 shrink-0" />
+            <span>{availabilityError}</span>
+          </div>
+        )}
 
         {/* Background Mode Toggle */}
         <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
@@ -393,6 +514,7 @@ export function QuranAudioPlayer({
             max={duration || 100}
             step={0.1}
             className="w-full"
+            disabled={!surahAvailable}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{formatTime(progress)}</span>
@@ -402,12 +524,12 @@ export function QuranAudioPlayer({
 
         {/* Controls */}
         <div className="flex items-center justify-center gap-2">
-          
-          <Button 
-            size="icon" 
+
+          <Button
+            size="icon"
             className="h-12 w-12 rounded-full"
-            onClick={handlePlayPause}
-            disabled={isLoading}
+            onClick={togglePlayback}
+            disabled={isLoading || !surahAvailable || !selectedReciter}
           >
             {isLoading ? (
               <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
@@ -417,8 +539,8 @@ export function QuranAudioPlayer({
               <Play className="w-5 h-5 ml-0.5" />
             )}
           </Button>
-          
-          
+
+
           <div className="flex items-center gap-2 ml-2">
             <Volume2 className="w-4 h-4 text-muted-foreground" />
             <Slider

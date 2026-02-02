@@ -45,6 +45,7 @@ const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const QuranRadio = lazy(() => import("./pages/QuranRadio"));
 const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const GlobalRadioPlayer = lazy(() => import("./components/GlobalRadioPlayer").then(module => ({ default: module.GlobalRadioPlayer })));
+const GlobalQuranPlayer = lazy(() => import("./components/GlobalQuranPlayer").then(module => ({ default: module.GlobalQuranPlayer })));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 function AppRoutes() {
@@ -94,10 +95,11 @@ const App = () => {
     const logPerformance = () => {
       setTimeout(() => {
         const score = monitor.getPerformanceScore();
+        // Only log if we have a valid score or sufficient time has passed
         if (process.env.NODE_ENV === 'development') {
           console.log(`🚀 Performance Score: ${score}/100`);
         }
-      }, 3000);
+      }, 5000);
     };
 
     if (document.readyState === 'complete') {
@@ -182,6 +184,7 @@ const App = () => {
 
         {/* Global Radio Player - Fixed at bottom with proper z-index */}
         <GlobalRadioPlayer />
+        <GlobalQuranPlayer />
       </BrowserRouter>
     </TooltipProvider>
   );

@@ -15,7 +15,7 @@ export default function LiveStreams() {
     const MADINAH_EMBED = "https://www.youtube-nocookie.com/embed/CXJ0C03Nr_U";
 
     const handleVideoPlay = () => {
-        // Auto-pause global radio if it's playing
+        // Auto-pause global radio if active
         if (isPlaying) {
             updateRadioState({ isPlaying: false });
         }

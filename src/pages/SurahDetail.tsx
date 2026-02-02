@@ -1,14 +1,16 @@
-import React, { useState, useEffect, useRef, useCallback, useMemo } from 'react';
+import React, { useState, useEffect, useCallback, useMemo } from 'react';
 import { useNavigate, useParams } from "react-router-dom";
-import { ArrowLeft, Bookmark, Share2, BookmarkCheck, Play, Settings } from "lucide-react";
+import { ArrowLeft, Bookmark, Share2, BookmarkCheck, Play, Settings, BookOpen, Loader2, Pause } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { ScrollArea } from "@/components/ui/scroll-area";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "@/components/ui/drawer";
 import { useToast } from "@/hooks/use-toast";
 import { getBookmarksForSurah, toggleBookmark } from "@/lib/storage";
-import { QuranAudioPlayer } from "@/components/QuranAudioPlayer";
 import { quranFontManager, type QuranFont } from "@/lib/quran-font-manager";
+import { fetchTafsir, TAFSIR_EDITIONS, type TafsirEdition } from "@/lib/tafsir";
+import { useGlobalQuran } from "@/lib/global-quran";
 
 // Translation editions
 const TRANSLATIONS = [
@@ -53,25 +55,38 @@ const SurahDetail = () => {
   const { surahNumber } = useParams();
   const navigate = useNavigate();
   const { toast } = useToast();
-  const audioRef = useRef<HTMLAudioElement>(null);
-  
+  // Using global quran state
+  const {
+    isPlaying,
+    surahNumber: currentPlayingSurah,
+    reciter,
+    playSurah,
+    pause,
+    resume
+  } = useGlobalQuran();
+
   const [surahData, setSurahData] = useState<SurahData | null>(null);
-  const [ayahs, setAyahs] = useState<Ayah[]>([]);
   const [loading, setLoading] = useState(true);
   const [bookmarkedAyahs, setBookmarkedAyahs] = useState<Set<number>>(new Set());
   const [showSettings, setShowSettings] = useState(false);
-  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
   const [selectedTranslation, setSelectedTranslation] = useState(TRANSLATIONS[0]);
   const [fontSize, setFontSize] = useState(24);
   const [currentQuranFont, setCurrentQuranFont] = useState<QuranFont>('uthmani');
-  const [currentAyah, setCurrentAyah] = useState<number | null>(null);
+
+  // Tafsir state
+  const [tafsirDrawerOpen, setTafsirDrawerOpen] = useState(false);
+  const [tafsirLoading, setTafsirLoading] = useState(false);
+  const [tafsirText, setTafsirText] = useState<string | null>(null);
+  const [tafsirError, setTafsirError] = useState<string | null>(null);
+  const [selectedTafsirEdition, setSelectedTafsirEdition] = useState<TafsirEdition>(TAFSIR_EDITIONS[0]);
+  const [selectedAyahForTafsir, setSelectedAyahForTafsir] = useState<number | null>(null);
 
   // Initialize Quran font manager and load preferences
   useEffect(() => {
     // Set initial font from global manager
     setCurrentQuranFont(quranFontManager.getCurrentFont());
     setFontSize(24); // Default font size
-    
+
     // Load saved translation preference
     const savedTrans = localStorage.getItem('quran-translation');
     if (savedTrans) {
@@ -125,20 +140,20 @@ const SurahDetail = () => {
     } catch (error) {
       console.error("Error loading Surah:", error);
       setLoading(false);
-      
+
       // Check if it's a 404 error
       if (error instanceof Error && error.message.includes('404')) {
-        toast({ 
-          title: "Surah Not Found", 
+        toast({
+          title: "Surah Not Found",
           description: `Surah ${surahNumber} was not found. Redirecting to Quran index...`,
-          variant: "destructive" 
+          variant: "destructive"
         });
         setTimeout(() => navigate('/quran'), 2000);
       } else {
-        toast({ 
-          title: "Error loading Surah", 
+        toast({
+          title: "Error loading Surah",
           description: "Failed to load surah data. Please check your internet connection.",
-          variant: "destructive" 
+          variant: "destructive"
         });
       }
     }
@@ -153,14 +168,6 @@ const SurahDetail = () => {
     setBookmarkedAyahs(getBookmarksForSurah(parseInt(surahNumber || "1")));
   }, [surahNumber]);
 
-  const verseKeyByAyahNumber = useMemo(() => {
-    const map = new Map<number, { verseKey: string; id: number }>();
-    for (const ayah of surahData?.ayahs || []) {
-      map.set(ayah.numberInSurah, { verseKey: ayah.verseKey, id: ayah.id });
-    }
-    return map;
-  }, [surahData]);
-
   const handleToggleBookmark = (ayahNumber: number) => {
     const isNowBookmarked = toggleBookmark(
       parseInt(surahNumber || "1"),
@@ -173,7 +180,7 @@ const SurahDetail = () => {
 
   const shareAyah = async (ayahNumber: number, arabicText: string, translation?: string) => {
     const shareText = `Quran ${surahData?.englishName} (${ayahNumber})\n\n${arabicText}\n\n${translation || ""}`;
-    
+
     if (navigator.share) {
       await navigator.share({ text: shareText });
     } else {
@@ -185,11 +192,11 @@ const SurahDetail = () => {
   const handleFontChange = async (font: QuranFont) => {
     setCurrentQuranFont(font);
     await quranFontManager.setFont(font);
-    
+
     const fontOption = quranFontManager.getFontOption(font);
-    toast({ 
-      title: "Quran font changed", 
-      description: `Now using ${fontOption.name}` 
+    toast({
+      title: "Quran font changed",
+      description: `Now using ${fontOption.name}`
     });
   };
 
@@ -209,6 +216,73 @@ const SurahDetail = () => {
     localStorage.setItem('quran-font-size', size.toString());
   };
 
+  // Tafsir handlers
+  const handleOpenTafsir = async (ayahNumber: number) => {
+    setSelectedAyahForTafsir(ayahNumber);
+    setTafsirDrawerOpen(true);
+    setTafsirLoading(true);
+    setTafsirError(null);
+    setTafsirText(null);
+
+    try {
+      const response = await fetchTafsir(
+        parseInt(surahNumber || "1"),
+        ayahNumber,
+        selectedTafsirEdition.id
+      );
+      setTafsirText(response.text);
+    } catch (error) {
+      console.error("Failed to fetch tafsir:", error);
+      setTafsirError(error instanceof Error ? error.message : "Failed to load tafsir");
+    } finally {
+      setTafsirLoading(false);
+    }
+  };
+
+  const handleTafsirEditionChange = async (editionId: string) => {
+    const edition = TAFSIR_EDITIONS.find(e => e.id === editionId);
+    if (edition && selectedAyahForTafsir) {
+      setSelectedTafsirEdition(edition);
+      setTafsirLoading(true);
+      setTafsirError(null);
+
+      try {
+        const response = await fetchTafsir(
+          parseInt(surahNumber || "1"),
+          selectedAyahForTafsir,
+          edition.id
+        );
+        setTafsirText(response.text);
+      } catch (error) {
+        console.error("Failed to fetch tafsir:", error);
+        setTafsirError(error instanceof Error ? error.message : "Failed to load tafsir");
+      } finally {
+        setTafsirLoading(false);
+      }
+    }
+  };
+
+  // Handle Play Click
+  const handlePlayClick = () => {
+    if (!surahData || !surahNumber) return;
+
+    const targetSurah = parseInt(surahNumber);
+
+    if (currentPlayingSurah === targetSurah) {
+      if (isPlaying) pause();
+      else resume();
+    } else {
+      if (reciter) {
+        playSurah(targetSurah, surahData.name, reciter);
+      } else {
+        toast({
+          title: "Loading Resources",
+          description: "Please wait while reciter data loads...",
+        });
+      }
+    }
+  };
+
   if (loading) {
     return (
       <div className="flex flex-col h-screen overflow-hidden">
@@ -223,7 +297,7 @@ const SurahDetail = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Content */}
         <main className="flex-1 flex items-center justify-center">
           <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
@@ -246,7 +320,7 @@ const SurahDetail = () => {
             </div>
           </div>
         </div>
-        
+
         {/* Content */}
         <main className="flex-1 flex items-center justify-center">
           <div className="text-center space-y-4">
@@ -257,6 +331,8 @@ const SurahDetail = () => {
       </div>
     );
   }
+
+  const isCurrentSurahPlaying = currentPlayingSurah === parseInt(surahNumber || "0") && isPlaying;
 
   return (
     <div className="flex flex-col h-screen overflow-hidden">
@@ -276,26 +352,30 @@ const SurahDetail = () => {
             </p>
           </div>
           <div className="flex gap-1">
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant="ghost"
+              size="icon"
               className="rounded-full"
               onClick={() => setShowSettings(!showSettings)}
             >
               <Settings className="w-5 h-5" />
             </Button>
-            <Button 
-              variant="ghost" 
-              size="icon" 
+            <Button
+              variant={isCurrentSurahPlaying ? "default" : "ghost"}
+              size="icon"
               className="rounded-full"
-              onClick={() => setShowAudioPlayer(!showAudioPlayer)}
+              onClick={handlePlayClick}
             >
-              <Play className="w-5 h-5" />
+              {isCurrentSurahPlaying ? (
+                <Pause className="w-5 h-5" />
+              ) : (
+                <Play className="w-5 h-5" />
+              )}
             </Button>
           </div>
         </div>
       </div>
-      
+
       {/* Settings Panel */}
       {showSettings && (
         <Card className="p-4 space-y-4">
@@ -320,7 +400,7 @@ const SurahDetail = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Translation</label>
             <Select value={selectedTranslation.id} onValueChange={handleTranslationChange}>
@@ -336,20 +416,20 @@ const SurahDetail = () => {
               </SelectContent>
             </Select>
           </div>
-          
+
           <div className="space-y-2">
             <label className="text-sm font-medium">Font Size: {fontSize}px</label>
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => handleFontSizeChange(Math.max(16, fontSize - 2))}
               >
                 -
               </Button>
               <span className="text-sm font-mono w-12 text-center">{fontSize}px</span>
-              <Button 
-                variant="outline" 
+              <Button
+                variant="outline"
                 size="sm"
                 onClick={() => handleFontSizeChange(Math.min(42, fontSize + 2))}
               >
@@ -359,11 +439,11 @@ const SurahDetail = () => {
           </div>
         </Card>
       )}
-      
+
       {/* Main Content - Verse List */}
-      <main className="flex-1 overflow-y-auto pb-32">
+      <main className="flex-1 overflow-y-auto pb-40">
         <ScrollArea className="h-full">
-          <div className="p-4 space-y-4">
+          <div className="p-4 space-y-2">
             {surahData.ayahs.map((ayah) => (
               <Card key={ayah.numberInSurah} className="p-4 group">
                 <div className="flex items-start gap-3">
@@ -371,9 +451,9 @@ const SurahDetail = () => {
                     <span className="font-bold text-primary text-sm">{ayah.numberInSurah}</span>
                   </div>
                   <div className="flex-1 min-w-0 space-y-3">
-                    <p 
+                    <p
                       className="quran-text leading-[2.5] text-right"
-                      style={{ 
+                      style={{
                         fontSize: `${fontSize}px`,
                         fontFamily: 'var(--quran-font)'
                       }}
@@ -383,7 +463,7 @@ const SurahDetail = () => {
                         .map((word) => word.text_qpc_hafs || word.text)
                         .join(' ')}
                     </p>
-                    
+
                     {selectedTranslation && ayah.translation && (
                       <p className="text-sm text-muted-foreground leading-relaxed">
                         {ayah.translation}
@@ -403,13 +483,22 @@ const SurahDetail = () => {
                         <Bookmark className="w-4 h-4" />
                       )}
                     </Button>
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
-                      className="h-8 w-8" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
                       onClick={() => shareAyah(ayah.numberInSurah, ayah.textUthmani, ayah.translation)}
                     >
                       <Share2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="icon"
+                      className="h-8 w-8"
+                      onClick={() => handleOpenTafsir(ayah.numberInSurah)}
+                      title="View Tafsir"
+                    >
+                      <BookOpen className="w-4 h-4" />
                     </Button>
                   </div>
                 </div>
@@ -418,23 +507,56 @@ const SurahDetail = () => {
           </div>
         </ScrollArea>
       </main>
-      
-      {/* Bottom Navigation */}
-      <div className="flex-shrink-0">
-        {/* Audio Player */}
-        {showAudioPlayer && (
-          <Card className="m-4 p-4">
-            <QuranAudioPlayer
-              surahNumber={parseInt(surahNumber || "1")}
-              surahName={surahData.name}
-              ayahs={surahData.ayahs}
-              currentAyah={currentAyah}
-              onAyahChange={setCurrentAyah}
-              onClose={() => setShowAudioPlayer(false)}
-            />
-          </Card>
-        )}
-      </div>
+
+      {/* Tafsir Drawer */}
+      <Drawer open={tafsirDrawerOpen} onOpenChange={setTafsirDrawerOpen}>
+        <DrawerContent className="max-h-[85vh]">
+          <DrawerHeader className="border-b">
+            <DrawerTitle className="flex items-center gap-2">
+              <BookOpen className="w-5 h-5 text-primary" />
+              Tafsir - {surahData?.englishName} {selectedAyahForTafsir}
+            </DrawerTitle>
+            <DrawerDescription>
+              <Select value={selectedTafsirEdition.id} onValueChange={handleTafsirEditionChange}>
+                <SelectTrigger className="w-full mt-2">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  {TAFSIR_EDITIONS.map((edition) => (
+                    <SelectItem key={edition.id} value={edition.id}>
+                      {edition.name} ({edition.language})
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </DrawerDescription>
+          </DrawerHeader>
+          <ScrollArea className="p-4 max-h-[60vh] overflow-y-auto">
+            {tafsirLoading ? (
+              <div className="flex items-center justify-center py-12">
+                <Loader2 className="w-8 h-8 animate-spin text-primary" />
+              </div>
+            ) : tafsirError ? (
+              <div className="text-center py-8 text-destructive">
+                <p>{tafsirError}</p>
+                <Button
+                  variant="outline"
+                  className="mt-4"
+                  onClick={() => selectedAyahForTafsir && handleOpenTafsir(selectedAyahForTafsir)}
+                >
+                  Retry
+                </Button>
+              </div>
+            ) : tafsirText ? (
+              <div
+                className={`leading-relaxed text-base ${selectedTafsirEdition.language === 'Arabic' ? 'text-right font-arabic text-xl' : ''
+                  }`}
+                dangerouslySetInnerHTML={{ __html: tafsirText }}
+              />
+            ) : null}
+          </ScrollArea>
+        </DrawerContent>
+      </Drawer>
     </div>
   );
 };
