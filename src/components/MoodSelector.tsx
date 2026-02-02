@@ -56,66 +56,41 @@ export function MoodSelector() {
                 </span>
             </div>
 
-            <div className="relative group/scroll -mx-4 overflow-hidden pt-1">
-                <ScrollArea className="w-full whitespace-nowrap pb-4 outline-none border-none">
-                    <div className="flex w-max space-x-2 sm:space-x-4 px-4 py-2">
-                        {moods.map((mood, idx) => {
-                            const Icon = mood.icon;
-                            return (
-                                <motion.button
-                                    key={mood.id}
-                                    initial={{ opacity: 0, y: 20 }}
-                                    animate={{ opacity: 1, y: 0 }}
-                                    transition={{ delay: idx * 0.05 }}
-                                    whileHover={{ y: -5, scale: 1.02 }}
-                                    whileTap={{ scale: 0.95 }}
-                                    onClick={() => handleMoodClick(mood)}
-                                    className={`group relative flex flex-col items-center justify-center gap-2 p-2 w-[4.4rem] h-[4.4rem] sm:w-28 sm:h-28 rounded-[1.25rem] sm:rounded-[2rem] border transition-all duration-300
-                        bg-card/60 border-border/60 backdrop-blur-md shadow-sm
-                        hover:border-primary/40 hover:bg-card/80
-                        ${mood.glow} hover:shadow-xl
-                    `}
-                                >
-                                    {/* Inner Soft Glow Background */}
-                                    <div className={`absolute inset-0 rounded-[1.25rem] sm:rounded-[2rem] bg-gradient-to-br ${mood.gradient} opacity-30 group-hover:opacity-50 transition-opacity`} />
+            <div className="pt-2">
+                <div className="grid grid-cols-3 sm:flex sm:flex-nowrap sm:overflow-x-auto sm:pb-4 gap-2 sm:gap-4">
+                    {moods.map((mood, idx) => {
+                        const Icon = mood.icon;
+                        return (
+                            <motion.button
+                                key={mood.id}
+                                initial={{ opacity: 0, scale: 0.9 }}
+                                animate={{ opacity: 1, scale: 1 }}
+                                transition={{ delay: idx * 0.05 }}
+                                whileHover={{ y: -4, scale: 1.05 }}
+                                whileTap={{ scale: 0.95 }}
+                                onClick={() => handleMoodClick(mood)}
+                                className={`group relative flex flex-col items-center justify-center gap-2 p-2 aspect-square sm:aspect-auto sm:w-28 sm:h-28 rounded-[1.25rem] sm:rounded-[2rem] border transition-all duration-300
+                    bg-card/60 border-border/60 backdrop-blur-md shadow-sm
+                    hover:border-primary/40 hover:bg-card/80
+                    ${mood.glow} hover:shadow-xl
+                `}
+                            >
+                                {/* Inner Soft Glow Background */}
+                                <div className={`absolute inset-0 rounded-[1.25rem] sm:rounded-[2rem] bg-gradient-to-br ${mood.gradient} opacity-20 group-hover:opacity-40 transition-opacity`} />
 
-                                    <div className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-background border border-border/50 shadow-sm group-hover:scale-110 transition-transform duration-500`}>
-                                        <Icon className={`w-3.5 h-3.5 sm:w-6 sm:h-6 ${mood.color} drop-shadow-sm`} />
-                                    </div>
+                                <div className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-background border border-border/50 shadow-sm group-hover:scale-110 transition-transform duration-500`}>
+                                    <Icon className={`w-4 h-4 sm:w-6 sm:h-6 ${mood.color} drop-shadow-sm`} />
+                                </div>
 
-                                    <span className="relative text-[9px] sm:text-[11px] font-black tracking-tight text-foreground group-hover:text-primary transition-colors truncate w-full px-1">
-                                        {mood.label}
-                                    </span>
+                                <span className="relative text-[10px] sm:text-[11px] font-black tracking-tight text-foreground group-hover:text-primary transition-colors truncate w-full px-1">
+                                    {mood.label}
+                                </span>
 
-                                    {/* Active Indicator Dot */}
-                                    <div className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_8px_rgba(var(--primary),0.5)]`} />
-                                </motion.button>
-                            );
-                        })}
-                        {/* Peeking spacer to ensure last item is scrollable past the fade */}
-                        <div className="w-20 sm:w-24" />
-                    </div>
-                </ScrollArea>
-
-                {/* Visual affordance for scrolling - more subtle fade */}
-                <div className="absolute right-0 top-0 bottom-4 w-16 bg-gradient-to-l from-background/90 via-background/20 to-transparent pointer-events-none z-10 sm:hidden" />
-
-                <div className="flex items-center justify-center gap-2 mt-[-10px] opacity-60">
-                    <div className="h-0.5 w-8 rounded-full bg-primary/20 overflow-hidden">
-                        <motion.div
-                            animate={{ x: [-32, 32] }}
-                            transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
-                            className="h-full w-full bg-primary/50"
-                        />
-                    </div>
-                    <span className="text-[7px] font-black uppercase tracking-[0.3em] text-muted-foreground/80">Swipe for more</span>
-                    <div className="h-0.5 w-8 rounded-full bg-primary/20 overflow-hidden">
-                        <motion.div
-                            animate={{ x: [-32, 32] }}
-                            transition={{ repeat: Infinity, duration: 2.5, ease: "linear" }}
-                            className="h-full w-full bg-primary/50"
-                        />
-                    </div>
+                                {/* Active Indicator Dot */}
+                                <div className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_8px_rgba(var(--primary),0.5)]`} />
+                            </motion.button>
+                        );
+                    })}
                 </div>
             </div>
 
