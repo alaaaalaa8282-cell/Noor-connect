@@ -6,6 +6,7 @@ import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { useGlobalRadio, getGlobalAudioRef, setGlobalAudioRef } from "@/lib/global-radio";
 import { radioStations } from "@/data/radio-stations";
+import Hls from 'hls.js';
 
 // Helper to format seconds to MM:SS or HH:MM:SS
 const formatDuration = (totalSeconds: number): string => {
@@ -22,6 +23,7 @@ const formatDuration = (totalSeconds: number): string => {
 export function GlobalRadioPlayer() {
   const { toast } = useToast();
   const audioRef = useRef<HTMLAudioElement>(null);
+  const hlsRef = useRef<Hls | null>(null);
   const globalRadio = useGlobalRadio();
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
@@ -32,9 +34,20 @@ export function GlobalRadioPlayer() {
   const isTransitioning = useRef(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Helper to destroy Hls
+  const destroyHls = () => {
+    if (hlsRef.current) {
+      hlsRef.current.destroy();
+      hlsRef.current = null;
+    }
+  };
+
   // Initialize global audio reference
   useEffect(() => {
     setGlobalAudioRef(audioRef.current);
+    return () => {
+      destroyHls();
+    };
   }, []);
 
   // Listening timer - uses Date.now() delta for accuracy even when backgrounded
@@ -217,15 +230,27 @@ export function GlobalRadioPlayer() {
     const audio = audioRef.current;
     if (!audio || !globalRadio.currentStation) return;
 
+    const stationUrl = globalRadio.currentStation.url;
+    if (!stationUrl || typeof stationUrl !== 'string') return;
+
+    // Force HTTPS
+    const secureUrl = stationUrl.replace("http://", "https://");
+
     if (debounceTimerRef.current) clearTimeout(debounceTimerRef.current);
 
     debounceTimerRef.current = setTimeout(async () => {
-      // 1. Handle Station Change
-      if (audio.src !== globalRadio.currentStation!.url) {
+      // Check if we need to change the source
+      // We check if the current station URL matches what we expect
+      const currentStationUrl = globalRadio.currentStation?.url;
+      const isDifferentStation = !audio.src.includes(secureUrl) && !hlsRef.current;
+      const isSwitchingToHls = secureUrl.toLowerCase().includes(".m3u8") && !hlsRef.current;
+      const isSwitchingFromHls = !secureUrl.toLowerCase().includes(".m3u8") && hlsRef.current;
+
+      if (isDifferentStation || isSwitchingToHls || isSwitchingFromHls) {
         if (isTransitioning.current) {
           // Retry later if transitioning
           debounceTimerRef.current = setTimeout(() => {
-            if (globalRadio.currentStation && audio.src !== globalRadio.currentStation.url) {
+            if (globalRadio.currentStation && audio.src !== secureUrl) {
               globalRadio.updateRadioState({ isPlaying: false });
             }
           }, 200);
@@ -235,13 +260,38 @@ export function GlobalRadioPlayer() {
         try {
           isTransitioning.current = true;
           audio.pause();
-          audio.src = globalRadio.currentStation!.url;
-          audio.load(); // Explicit load as requested
+          destroyHls();
+          audio.src = "";
+          audio.load(); // Explicit load as requested to clear
 
-          if (globalRadio.isPlaying) {
-            const promise = audio.play();
-            playPromiseRef.current = promise;
-            await promise;
+          const isM3U8 = secureUrl.toLowerCase().includes(".m3u8");
+          const supportsNativeHls = audio.canPlayType('application/vnd.apple.mpegurl') ||
+            audio.canPlayType('application/x-mpegURL');
+
+          if (isM3U8 && !supportsNativeHls && Hls.isSupported()) {
+            const hls = new Hls();
+            hlsRef.current = hls;
+            hls.loadSource(secureUrl);
+            hls.attachMedia(audio);
+            hls.on(Hls.Events.MANIFEST_PARSED, async () => {
+              if (globalRadio.isPlaying) {
+                try {
+                  const promise = audio.play();
+                  playPromiseRef.current = promise;
+                  await promise;
+                } catch (e: any) {
+                  if (e.name !== 'AbortError') console.error('HLS play error:', e);
+                }
+              }
+            });
+          } else {
+            audio.src = secureUrl;
+            audio.load();
+            if (globalRadio.isPlaying) {
+              const promise = audio.play();
+              playPromiseRef.current = promise;
+              await promise;
+            }
           }
         } catch (e: any) {
           if (e.name !== 'AbortError') console.error('Station change play error:', e);
@@ -329,6 +379,7 @@ export function GlobalRadioPlayer() {
     if (audioRef.current) {
       audioRef.current.pause();
     }
+    destroyHls();
     globalRadio?.stopRadio();
     setIsVisible(false);
   };
