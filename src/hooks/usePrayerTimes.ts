@@ -10,6 +10,7 @@ import { GeocodingService } from '@/lib/geocoding';
 import { AladhanAPI } from '@/lib/aladhan-api';
 import { calculatePrayerEndTimes } from '@/lib/prayer-end-times';
 import { formatPrayerTime } from '@/lib/time-formatter';
+import { WidgetService } from '@/lib/widget-service';
 
 export interface PrayerTimes {
   fajr: Date;
@@ -357,6 +358,13 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
       // Update our "cache" key
       previousPrayerTimesRef.current = locationKey;
+
+      // Update widget
+      WidgetService.updateWidget(
+        locationData.latitude,
+        locationData.longitude,
+        locationData.city || locationData.country
+      );
 
     } catch (error) {
       console.error('Failed to calculate prayer times:', error);

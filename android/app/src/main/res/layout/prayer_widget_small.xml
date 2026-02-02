@@ -1,0 +1,43 @@
+<?xml version="1.0" encoding="utf-8"?>
+<RelativeLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:padding="12dp"
+    android:background="@drawable/widget_background">
+
+    <LinearLayout
+        android:id="@+id/widget_text_container"
+        android:layout_width="wrap_content"
+        android:layout_height="wrap_content"
+        android:layout_centerInParent="true"
+        android:orientation="vertical"
+        android:gravity="center">
+
+        <TextView
+            android:id="@+id/widget_prayer_name"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Fajr"
+            android:textColor="#FFFFFF"
+            android:textSize="18sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_prayer_time"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="05:30 AM"
+            android:textColor="#F59E0B"
+            android:textSize="24sp"
+            android:textStyle="bold" />
+
+        <TextView
+            android:id="@+id/widget_time_remaining"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="in 2 hours"
+            android:textColor="#D1FAE5"
+            android:textSize="12sp" />
+    </LinearLayout>
+
+</RelativeLayout>

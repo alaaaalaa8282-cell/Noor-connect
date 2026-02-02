@@ -4,4 +4,15 @@
     <string name="title_activity_main">Noor Connect</string>
     <string name="package_name">com.noorconnect.app</string>
     <string name="custom_url_scheme">com.noorconnect.app</string>
+    
+    <string name="widget_tap_to_setup">Tap to open App</string>
+    <string name="widget_no_data">No prayer times available</string>
+    <string name="widget_loading">Loading...</string>
+    <string name="widget_next_prayer">Next Prayer</string>
+    <string name="prayer_fajr">Fajr</string>
+    <string name="prayer_sunrise">Sunrise</string>
+    <string name="prayer_dhuhr">Dhuhr</string>
+    <string name="prayer_asr">Asr</string>
+    <string name="prayer_maghrib">Maghrib</string>
+    <string name="prayer_isha">Isha</string>
 </resources>
