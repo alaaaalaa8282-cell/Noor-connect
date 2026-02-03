@@ -29,9 +29,9 @@ class UnifiedNotificationService {
   isNotificationSupported(): boolean {
     // Web notifications require HTTPS (except localhost)
     if (!this.isCapacitor && this.isSupported) {
-      const isSecure = location.protocol === 'https:' || 
-                       location.hostname === 'localhost' || 
-                       location.hostname === '127.0.0.1';
+      const isSecure = location.protocol === 'https:' ||
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1';
       return isSecure;
     }
     return this.isCapacitor;
@@ -42,13 +42,23 @@ class UnifiedNotificationService {
     if (this.isCapacitor) {
       try {
         const result = await LocalNotifications.checkPermissions();
+        // If display is granted and we are on Android, we also check if notifications are actually enabled
+        // for the app in system settings, but 'granted' here is usually sufficient.
         return result.display === 'granted' ? 'granted' : 'denied';
-      } catch {
+      } catch (error) {
+        console.warn('Failed to check Capacitor notification permissions:', error);
         return 'denied';
       }
     }
-    
-    return this.isSupported ? Notification.permission : 'denied';
+
+    // Web fallback
+    if (!this.isSupported) return 'denied';
+    return Notification.permission;
+  }
+
+  // Check if we are running in an app wrapper
+  isRunningAsNativeApp(): boolean {
+    return this.isCapacitor;
   }
 
   // Request notification permission
@@ -123,10 +133,11 @@ class UnifiedNotificationService {
         notification.onclick = () => {
           notification.close();
           window.focus();
-          
+
           // Navigate if URL provided
-          if (options.data?.url) {
-            window.location.href = options.data.url;
+          const url = options.data?.url;
+          if (typeof url === 'string') {
+            window.location.href = url;
           }
         };
       }
@@ -142,19 +153,19 @@ class UnifiedNotificationService {
   // Test notification with detailed debugging
   async testNotification(): Promise<{ success: boolean; details: string }> {
     const details: string[] = [];
-    
+
     details.push(`Platform: ${this.isCapacitor ? 'Capacitor (Mobile)' : 'Web'}`);
     details.push(`Protocol: ${location.protocol}`);
     details.push(`Hostname: ${location.hostname}`);
     details.push(`Supported: ${this.isNotificationSupported()}`);
-    
+
     // Check HTTPS requirement for web
     if (!this.isCapacitor && this.isSupported) {
-      const isSecure = location.protocol === 'https:' || 
-                       location.hostname === 'localhost' || 
-                       location.hostname === '127.0.0.1';
+      const isSecure = location.protocol === 'https:' ||
+        location.hostname === 'localhost' ||
+        location.hostname === '127.0.0.1';
       details.push(`Secure context: ${isSecure}`);
-      
+
       if (!isSecure) {
         details.push('ERROR: Web notifications require HTTPS (except localhost)');
         return {
@@ -163,10 +174,10 @@ class UnifiedNotificationService {
         };
       }
     }
-    
+
     const permission = await this.getPermissionStatus();
     details.push(`Permission: ${permission}`);
-    
+
     if (!this.isNotificationSupported()) {
       return {
         success: false,
@@ -177,7 +188,7 @@ class UnifiedNotificationService {
     if (permission !== 'granted') {
       const granted = await this.requestPermission();
       details.push(`Permission requested: ${granted ? 'granted' : 'denied'}`);
-      
+
       if (!granted) {
         return {
           success: false,
@@ -218,7 +229,7 @@ class UnifiedNotificationService {
 
     const overallSuccess = directSuccess || swSuccess;
     details.push(`Overall test: ${overallSuccess ? 'success' : 'failed'}`);
-    
+
     return {
       success: overallSuccess,
       details: details.join('\n')
@@ -233,7 +244,7 @@ class UnifiedNotificationService {
   ): Promise<boolean> {
     const now = new Date();
     const delay = prayerTime.getTime() - now.getTime();
-    
+
     if (delay <= 0) {
       console.warn(`Prayer time ${prayerName} is in the past`);
       return false;
@@ -276,7 +287,7 @@ class UnifiedNotificationService {
       setTimeout(async () => {
         await this.showNotification(notificationOptions);
       }, delay);
-      
+
       console.log(`Scheduled ${prayerName} notification for ${prayerTime}`);
       return true;
     }
@@ -308,7 +319,7 @@ class UnifiedNotificationService {
         console.error('Failed to clear Capacitor notifications:', error);
       }
     }
-    
+
     // Close any active web notifications
     if (this.isSupported) {
       // Web notifications don't have a clear all method, but they auto-close
@@ -319,7 +330,7 @@ class UnifiedNotificationService {
   // Get scheduled notifications (Capacitor only)
   async getScheduledNotifications(): Promise<Array<{ id: number; title: string; body: string }>> {
     if (!this.isCapacitor) return [];
-    
+
     try {
       const pending = await LocalNotifications.getPending();
       return pending.notifications.map(n => ({

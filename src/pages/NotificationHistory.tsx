@@ -15,21 +15,23 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@
 import { AppBar } from '@/components/AppBar';
 import { serviceWorkerManager, type NotificationHistoryItem } from '@/lib/service-worker-registration';
 import { useToast } from '@/hooks/use-toast';
+import { unifiedNotifications } from '@/lib/unified-notifications';
 
 const NotificationHistory = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  
+
   const [notifications, setNotifications] = useState<NotificationHistoryItem[]>([]);
   const [filteredNotifications, setFilteredNotifications] = useState<NotificationHistoryItem[]>([]);
   const [searchTerm, setSearchTerm] = useState('');
   const [filterType, setFilterType] = useState<string>('all');
   const [isLoading, setIsLoading] = useState(true);
+  const [notificationsSupported, setNotificationsSupported] = useState(false);
 
   // Load notification history
   useEffect(() => {
     loadNotificationHistory();
-    
+
     // Listen for updates from Service Worker
     const handleHistoryUpdate = (event: CustomEvent<NotificationHistoryItem[]>) => {
       setNotifications(event.detail);
@@ -37,7 +39,12 @@ const NotificationHistory = () => {
     };
 
     window.addEventListener('notificationHistoryUpdate', handleHistoryUpdate as EventListener);
-    
+
+    // Check permission status
+    unifiedNotifications.getPermissionStatus().then(status => {
+      setNotificationsSupported(status === 'granted');
+    });
+
     return () => {
       window.removeEventListener('notificationHistoryUpdate', handleHistoryUpdate as EventListener);
     };
@@ -76,7 +83,7 @@ const NotificationHistory = () => {
 
     // Apply search filter
     if (search) {
-      filtered = filtered.filter(item => 
+      filtered = filtered.filter(item =>
         item.title.toLowerCase().includes(search.toLowerCase()) ||
         item.body.toLowerCase().includes(search.toLowerCase())
       );
@@ -165,8 +172,8 @@ const NotificationHistory = () => {
 
   return (
     <div className="min-h-screen bg-background">
-      <AppBar 
-        title="Notification History" 
+      <AppBar
+        title="Notification History"
         showBack={true}
       />
 
@@ -258,8 +265,8 @@ const NotificationHistory = () => {
             <div className="text-center py-8">
               <Bell className="w-12 h-12 text-muted-foreground mx-auto mb-4" />
               <p className="text-muted-foreground">
-                {notifications.length === 0 
-                  ? 'No notifications yet' 
+                {notifications.length === 0
+                  ? 'No notifications yet'
                   : 'No notifications match your filters'
                 }
               </p>
@@ -276,8 +283,8 @@ const NotificationHistory = () => {
                       <div className="flex-1 min-w-0">
                         <div className="flex items-center gap-2 mb-1">
                           <h4 className="font-medium text-sm truncate">{notification.title}</h4>
-                          <Badge 
-                            variant="secondary" 
+                          <Badge
+                            variant="secondary"
                             className={`text-xs ${getNotificationBadgeColor(notification.type)}`}
                           >
                             {notification.type.replace('-', ' ')}
@@ -300,19 +307,26 @@ const NotificationHistory = () => {
           )}
         </Card>
 
-        {/* Service Worker Status */}
+        {/* Notification Engine Status */}
         <Card className="p-4 bg-muted/30">
-          <h3 className="font-semibold mb-3">Service Worker Status</h3>
+          <h3 className="font-semibold mb-3">
+            {unifiedNotifications.isRunningAsNativeApp() ? 'App Notification Status' : 'Browser Notification Status'}
+          </h3>
           <div className="grid grid-cols-2 gap-4 text-sm">
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${serviceWorkerManager.getRegistrationStatus().isRegistered ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span>Service Worker</span>
+              <div className={`w-2 h-2 rounded-full ${unifiedNotifications.isRunningAsNativeApp() || serviceWorkerManager.getRegistrationStatus().isRegistered ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span>{unifiedNotifications.isRunningAsNativeApp() ? 'Native Bridge' : 'Service Worker'}</span>
             </div>
             <div className="flex items-center gap-2">
-              <div className={`w-2 h-2 rounded-full ${serviceWorkerManager.getRegistrationStatus().hasNotifications ? 'bg-green-500' : 'bg-red-500'}`}></div>
-              <span>Notifications</span>
+              <div className={`w-2 h-2 rounded-full ${notificationsSupported ? 'bg-green-500' : 'bg-red-500'}`}></div>
+              <span>Permissions</span>
             </div>
           </div>
+          {unifiedNotifications.isRunningAsNativeApp() && (
+            <p className="text-[10px] text-muted-foreground mt-3 italic">
+              Running as Native Android App. Service Worker is replaced by Capacitor Native Bridge for better reliability.
+            </p>
+          )}
         </Card>
       </div>
     </div>

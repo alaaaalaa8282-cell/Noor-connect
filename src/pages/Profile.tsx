@@ -20,6 +20,7 @@ import { notificationManager, type NotificationPreferences } from "@/lib/notific
 import { localNotifications } from "@/lib/local-notifications";
 import { PrayerMethodSelector } from "@/components/PrayerMethodSelector";
 import { quranFontManager, type QuranFont } from "@/lib/quran-font-manager";
+import { unifiedNotifications } from "@/lib/unified-notifications";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -64,7 +65,11 @@ const Profile = () => {
 
     // Load notification preferences
     setNotificationPrefs(notificationManager.getPreferences());
-    setNotificationsSupported(notificationManager.areNotificationsEnabled());
+
+    // Improved notification support check for mobile
+    unifiedNotifications.getPermissionStatus().then(status => {
+      setNotificationsSupported(status === 'granted');
+    });
 
     // Load prayer notification status
     checkPrayerNotificationStatus();
@@ -118,48 +123,30 @@ const Profile = () => {
   };
 
   const requestNotificationPermission = async () => {
-    const granted = await notificationManager.requestPermission();
+    const granted = await unifiedNotifications.requestPermission();
     setNotificationsSupported(granted);
     if (granted) {
       toast({ title: "Notifications enabled! You'll receive Islamic event reminders." });
     } else {
       toast({
         title: "Permission denied",
-        description: "Please enable notifications in your browser settings",
+        description: "Please enable notifications in your device settings",
         variant: "destructive"
       });
     }
   };
 
-  const handleTestNotification = () => {
-    if (!("Notification" in window)) {
+  const handleTestNotification = async () => {
+    const result = await unifiedNotifications.testNotification();
+    if (result.success) {
+      toast({ title: "Test notification sent" });
+    } else {
       toast({
-        title: "Notifications not supported",
-        description: "Your browser does not support notifications.",
+        title: "Failed to send notification",
+        description: "Please check your device notification settings.",
         variant: "destructive",
       });
-      return;
     }
-
-    if (Notification.permission === "granted") {
-      try {
-        new Notification("Noor Connect", { body: "Test Successful!" });
-        toast({ title: "Test notification sent" });
-      } catch {
-        toast({
-          title: "Failed to send notification",
-          description: "Your browser blocked the notification.",
-          variant: "destructive",
-        });
-      }
-      return;
-    }
-
-    toast({
-      title: "Enable notifications",
-      description: "Please allow notifications in your browser settings to use this feature.",
-      variant: "destructive",
-    });
   };
 
   const checkPrayerNotificationStatus = async () => {
@@ -494,14 +481,19 @@ const Profile = () => {
           </h3>
 
           {!notificationsSupported ? (
-            <div className="space-y-4">
-              <p className="text-xs text-muted-foreground">
-                Enable browser notifications to receive Islamic event reminders and daily spiritual content.
+            <div className="space-y-4 text-center py-4">
+              <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-2 text-muted-foreground">
+                <BellOff className="w-6 h-6" />
+              </div>
+              <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">
+                {unifiedNotifications.isRunningAsNativeApp()
+                  ? "Enable device notifications to receive prayer reminders and Islamic event updates."
+                  : "Enable browser notifications to receive Islamic event reminders and spiritual content."}
               </p>
               <Button
                 onClick={requestNotificationPermission}
-                className="w-full"
-                variant="outline"
+                className="w-full mt-2"
+                variant="default"
               >
                 <Bell className="w-4 h-4 mr-2" />
                 {t('enableNotifications')}

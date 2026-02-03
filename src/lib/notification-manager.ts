@@ -110,7 +110,11 @@ export class NotificationManager {
 
   // Check if notifications are enabled
   areNotificationsEnabled(): boolean {
-    return this.isSupported && Notification.permission === 'granted';
+    // We already have Notification.permission check, but let's make it smarter
+    if (this.isSupported) {
+      return Notification.permission === 'granted';
+    }
+    return false;
   }
 
   // Get current preferences
