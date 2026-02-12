@@ -2,7 +2,7 @@
  * Weekly Salah History Chart
  * Shows prayer completion over the past 7 days
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Calendar } from "lucide-react";
 import { getPrayerHistory, type DailyPrayers } from "@/lib/salah-tracker";
@@ -21,10 +21,10 @@ export function WeeklySalahChart() {
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [weeklyStats, setWeeklyStats] = useState({ completed: 0, total: 0, percentage: 0 });
 
-  useEffect(() => {
+  const refreshData = useCallback(() => {
     const history = getPrayerHistory(7);
-    console.log('Prayer history data:', history); // Debug log
-    
+    console.log('Prayer history data refreshed:', history);
+
     // Reverse to show oldest first (left to right)
     const data = history.reverse().map((day: DailyPrayers) => {
       const completed = [day.fajr, day.dhuhr, day.asr, day.maghrib, day.isha].filter(Boolean).length;
@@ -36,15 +36,14 @@ export function WeeklySalahChart() {
         total: 5
       };
     });
-    
+
     // Only show real data - no fake/sample data
     if (data.length === 0) {
       setChartData([]);
       setWeeklyStats({ completed: 0, total: 0, percentage: 0 });
     } else {
-      console.log('Chart data:', data); // Debug log
       setChartData(data);
-      
+
       // Calculate weekly stats
       const totalCompleted = data.reduce((sum, d) => sum + d.completed, 0);
       const totalPossible = 7 * 5;
@@ -55,6 +54,14 @@ export function WeeklySalahChart() {
       });
     }
   }, []);
+
+  useEffect(() => {
+    refreshData();
+
+    // Listen for real-time updates
+    window.addEventListener('salah-updated', refreshData);
+    return () => window.removeEventListener('salah-updated', refreshData);
+  }, [refreshData]);
 
   const getBarColor = (completed: number): string => {
     if (completed === 5) return "hsl(var(--primary))";
@@ -84,21 +91,21 @@ export function WeeklySalahChart() {
             {weeklyStats.completed} / {weeklyStats.total} prayers this week
           </span>
         </div>
-        
+
         {/* Chart with fixed height to prevent CLS */}
         <div className="h-24 w-full min-h-[96px]">
           {chartData.length > 0 ? (
             <ResponsiveContainer width="100%" height="100%">
               <BarChart data={chartData} barCategoryGap="20%">
-                <XAxis 
-                  dataKey="day" 
-                  axisLine={false} 
+                <XAxis
+                  dataKey="day"
+                  axisLine={false}
                   tickLine={false}
                   tick={{ fontSize: 10, fill: 'hsl(var(--muted-foreground))' }}
                 />
                 <YAxis hide domain={[0, 5]} />
-                <Bar 
-                  dataKey="completed" 
+                <Bar
+                  dataKey="completed"
                   radius={[4, 4, 0, 0]}
                   maxBarSize={28}
                 >

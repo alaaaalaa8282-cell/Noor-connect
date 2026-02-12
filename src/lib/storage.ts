@@ -17,7 +17,19 @@ const STORAGE_KEYS = {
   SELECTED_ADHAN: 'selected-adhan-id',
   CACHED_PRAYER_TIMES: 'cached-prayer-times',
   LAST_HADITH: 'last-hadith',
+  SHOW_EXTRA_PRAYERS: 'show-extra-prayers',
 } as const;
+
+// ... (skipping some exports for brevity)
+
+export const getShowExtraPrayers = (): boolean => {
+  return localStorage.getItem(STORAGE_KEYS.SHOW_EXTRA_PRAYERS) === 'true';
+};
+
+export const setShowExtraPrayers = (show: boolean): void => {
+  localStorage.setItem(STORAGE_KEYS.SHOW_EXTRA_PRAYERS, show ? 'true' : 'false');
+  window.dispatchEvent(new Event('storage'));
+};
 
 // Generic storage helpers
 export const storage = {
@@ -94,13 +106,13 @@ export const addTasbeehEntry = (label: string): void => {
   const history = getTasbeehHistory();
   const today = new Date().toLocaleDateString();
   const existingIndex = history.findIndex(h => h.date === today && h.label === label);
-  
+
   if (existingIndex >= 0) {
     history[existingIndex].count += 1;
   } else {
     history.unshift({ date: today, count: 1, label });
   }
-  
+
   // Keep only last 30 days
   storage.set(STORAGE_KEYS.TASBEEH_HISTORY, history.slice(0, 100));
   setTasbeehTotal(getTasbeehTotal() + 1);
@@ -114,7 +126,7 @@ export const getFavorites = (): string[] => {
 export const toggleFavorite = (id: string): boolean => {
   const favorites = getFavorites();
   const index = favorites.indexOf(id);
-  
+
   if (index >= 0) {
     favorites.splice(index, 1);
     storage.set(STORAGE_KEYS.FAVORITES, favorites);
@@ -140,7 +152,7 @@ export const getBookmarks = (): Bookmark[] => {
 export const toggleBookmark = (surahNumber: number, ayahNumber: number, surahName: string): boolean => {
   const bookmarks = getBookmarks();
   const index = bookmarks.findIndex(b => b.surahNumber === surahNumber && b.ayahNumber === ayahNumber);
-  
+
   if (index >= 0) {
     bookmarks.splice(index, 1);
     storage.set(STORAGE_KEYS.BOOKMARKS, bookmarks);

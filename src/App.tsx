@@ -24,7 +24,8 @@ if (!localStorage.getItem("theme")) {
 }
 
 // Lazy load route components for code splitting
-const Dashboard = lazy(() => import("./pages/Dashboard"));
+import Dashboard from "./pages/Dashboard";
+// const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Quran = lazy(() => import("./pages/Quran"));
 const SurahDetail = lazy(() => import("./pages/SurahDetail"));
 const Tasbeeh = lazy(() => import("./pages/Tasbeeh"));
@@ -48,6 +49,10 @@ const GlobalRadioPlayer = lazy(() => import("./components/GlobalRadioPlayer").th
 const GlobalQuranPlayer = lazy(() => import("./components/GlobalQuranPlayer").then(module => ({ default: module.GlobalQuranPlayer })));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
+import { AnimatePresence } from "framer-motion";
+
+// ... (existing imports)
+
 function AppRoutes() {
   const location = useLocation();
 
@@ -57,31 +62,33 @@ function AppRoutes() {
         <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
       </div>
     }>
-      <Routes location={location}>
-        {/* Home/Dashboard */}
-        <Route path="/" element={<Dashboard />} />
-        <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/quran" element={<Quran />} />
-        <Route path="/quran/:surahNumber" element={<SurahDetail />} />
-        <Route path="/tasbeeh" element={<Tasbeeh />} />
-        <Route path="/qibla" element={<Qibla />} />
-        <Route path="/duas" element={<Duas />} />
-        <Route path="/hadith" element={<Hadith />} />
-        <Route path="/profile" element={<Profile />} />
-        <Route path="/calendar" element={<IslamicCalendar />} />
-        <Route path="/ebooks" element={<Ebooks />} />
-        <Route path="/qaza" element={<QazaPage />} />
-        <Route path="/ramadan" element={<RamadanMode />} />
-        <Route path="/notification-history" element={<NotificationHistory />} />
-        <Route path="/zakat" element={<ZakatCalculator />} />
-        <Route path="/names-of-allah" element={<NamesOfAllah />} />
-        <Route path="/quiz" element={<IslamicQuiz />} />
-        <Route path="/prayer-stats" element={<PrayerStats />} />
-        <Route path="/habit-tracker" element={<HabitTracker />} />
-        <Route path="/quran-radio" element={<QuranRadio />} />
-        <Route path="/live" element={<LiveStreams />} />
-        <Route path="*" element={<NotFound />} />
-      </Routes>
+      <AnimatePresence mode="wait">
+        <Routes location={location} key={location.pathname}>
+          {/* Home/Dashboard */}
+          <Route path="/" element={<Dashboard />} />
+          <Route path="/dashboard" element={<Dashboard />} />
+          <Route path="/quran" element={<Quran />} />
+          <Route path="/quran/:surahNumber" element={<SurahDetail />} />
+          <Route path="/tasbeeh" element={<Tasbeeh />} />
+          <Route path="/qibla" element={<Qibla />} />
+          <Route path="/duas" element={<Duas />} />
+          <Route path="/hadith" element={<Hadith />} />
+          <Route path="/profile" element={<Profile />} />
+          <Route path="/calendar" element={<IslamicCalendar />} />
+          <Route path="/ebooks" element={<Ebooks />} />
+          <Route path="/qaza" element={<QazaPage />} />
+          <Route path="/ramadan" element={<RamadanMode />} />
+          <Route path="/notification-history" element={<NotificationHistory />} />
+          <Route path="/zakat" element={<ZakatCalculator />} />
+          <Route path="/names-of-allah" element={<NamesOfAllah />} />
+          <Route path="/quiz" element={<IslamicQuiz />} />
+          <Route path="/prayer-stats" element={<PrayerStats />} />
+          <Route path="/habit-tracker" element={<HabitTracker />} />
+          <Route path="/quran-radio" element={<QuranRadio />} />
+          <Route path="/live" element={<LiveStreams />} />
+          <Route path="*" element={<NotFound />} />
+        </Routes>
+      </AnimatePresence>
     </Suspense>
   );
 }
@@ -148,14 +155,13 @@ const App = () => {
     };
   }, []); // Remove dependencies to prevent re-runs
 
-  if (showSplash) {
-    return <SplashScreen onComplete={() => setShowSplash(false)} />;
-  }
-
   return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
+      <AnimatePresence>
+        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+      </AnimatePresence>
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="flex flex-col min-h-screen overflow-hidden" style={{
           willChange: 'transform, opacity',

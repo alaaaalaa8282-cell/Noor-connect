@@ -5,16 +5,9 @@
  */
 
 const QAZA_STORAGE_KEY = 'qaza-prayers';
+const PROCESSED_QAZA_KEY = 'processed-salah-qaza';
 
 export type PrayerName = 'fajr' | 'dhuhr' | 'asr' | 'maghrib' | 'isha';
-
-export interface QazaPrayer {
-  id: string;
-  prayer: PrayerName;
-  count: number;
-  dateAdded: string;
-  dateUpdated: string;
-}
 
 export interface QazaStats {
   total: number;
@@ -79,6 +72,74 @@ export const getQazaStats = (): QazaStats => {
   };
 };
 
+// Get processed Qaza cache
+const getProcessedQaza = (): Set<string> => {
+  try {
+    const data = localStorage.getItem(PROCESSED_QAZA_KEY);
+    return data ? new Set(JSON.parse(data)) : new Set();
+  } catch {
+    return new Set();
+  }
+};
+
+// Save processed Qaza cache
+const saveProcessedQaza = (processed: Set<string>): void => {
+  localStorage.setItem(PROCESSED_QAZA_KEY, JSON.stringify(Array.from(processed)));
+};
+
+/**
+ * Automatically sync missed prayers from Salah Tracker
+ * Runs when app state updates or prayer times change
+ */
+export const syncMissedPrayersToQaza = (
+  todayPrayers: Record<string, boolean>,
+  prayerTimes: Record<string, { start: Date; end: Date }>
+): void => {
+  const now = new Date();
+  const todayKey = now.toISOString().split('T')[0];
+  const processed = getProcessedQaza();
+  let changed = false;
+
+  const prayers: PrayerName[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+
+  prayers.forEach(prayer => {
+    const key = `${todayKey}-${prayer}`;
+
+    // If already processed, skip
+    if (processed.has(key)) return;
+
+    const timeInfo = prayerTimes[prayer];
+    if (!timeInfo) return;
+
+    // If prayer end time has passed and status is false
+    // We use end time to determine it's truly missed
+    if (now > timeInfo.end && todayPrayers[prayer] === false) {
+      addQazaPrayer(prayer, 1);
+      processed.add(key);
+      changed = true;
+      console.log(`Auto-added Qaza: ${prayer} for ${todayKey}`);
+    }
+  });
+
+  if (changed) {
+    saveProcessedQaza(processed);
+    // Cleanup old keys (keep last 30 days) to prevent storage bloat
+    const thirtyDaysAgo = new Date();
+    thirtyDaysAgo.setDate(thirtyDaysAgo.getDate() - 30);
+    const thirtyDaysAgoKey = thirtyDaysAgo.toISOString().split('T')[0];
+
+    Array.from(processed).forEach(k => {
+      if (k.split('-')[0] < thirtyDaysAgoKey) {
+        processed.delete(k);
+      }
+    });
+    saveProcessedQaza(processed);
+
+    // Notify UI
+    window.dispatchEvent(new CustomEvent('qaza-updated'));
+  }
+};
+
 // Clear all Qaza
 export const clearAllQaza = (): void => {
   saveQazaPrayers({
@@ -88,4 +149,6 @@ export const clearAllQaza = (): void => {
     maghrib: 0,
     isha: 0
   });
+  localStorage.removeItem(PROCESSED_QAZA_KEY);
+  window.dispatchEvent(new CustomEvent('qaza-updated'));
 };

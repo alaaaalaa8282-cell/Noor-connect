@@ -188,7 +188,8 @@ export class LocalNotificationManager {
       ];
 
       for (const prayer of prayers) {
-        const [hours, minutes] = prayer.time.split(':').map(Number);
+        const cleaned = prayer.time.replace(/\s*\(.*?\)\s*/g, '').trim();
+        const [hours, minutes] = cleaned.split(':').map(Number);
         const prayerDate = new Date();
         prayerDate.setHours(hours, minutes, 0, 0);
 

@@ -5,6 +5,8 @@ import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Naviga
 import { AppBar } from "@/components/AppBar";
 const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
 const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
+import { PrayerCountdown } from "@/components/PrayerCountdown";
+import { PrayerTimesList } from "@/components/PrayerTimesList";
 import { QazaTracker } from "@/components/QazaTracker";
 import { DailyAyah } from "@/components/DailyAyah";
 import { DailyHadith } from "@/components/DailyHadith";
@@ -20,8 +22,8 @@ import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext";
 
 // Dynamic imports for code splitting
-const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
-const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
+// const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
+// const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
 import { getTimeFormat, formatTime, setTimeFormat } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
@@ -30,6 +32,8 @@ import { useToast } from "@/hooks/use-toast";
 import { LocationCardSkeleton, PrayerTimeSkeleton, CountdownCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GeocodingService } from "@/lib/geocoding";
+import { PageTransition } from "@/components/PageTransition";
+import { motion } from "framer-motion";
 
 const prayerIcons: Record<string, React.ReactNode> = {
   Fajr: <Moon className="w-5 h-5" />,
@@ -95,10 +99,14 @@ export default function Dashboard() {
     return formatTime(timeStr, timeFormat);
   }, [timeFormat]);
 
-  // Helper function to parse time string to Date
+  // Helper function to parse time string to Date (handles "HH:MM (TZ)" from Aladhan API)
   const parseTimeToDate = useCallback((timeStr: string): Date => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
+    const cleaned = timeStr.replace(/\s*\(.*?\)\s*/g, '').trim();
+    const parts = cleaned.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
     const date = new Date();
+    if (isNaN(hours) || isNaN(minutes)) return date;
     date.setHours(hours, minutes, 0, 0);
     return date;
   }, []);
@@ -235,71 +243,75 @@ export default function Dashboard() {
     }
   }, [location.latitude, location.longitude, timeFormat, loadPrayerTimes]); // Add loadPrayerTimes to dependencies
 
-  // Memoize prayer cards to prevent re-renders during countdown updates
-  const prayerCards = useMemo(() => {
-    if (loadingAPI) {
-      return Array.from({ length: 5 }).map((_, i) => (
-        <PrayerTimeSkeleton key={`skeleton-${i}`} />
-      ));
-    }
 
-    return prayers.map((prayer, index) => {
-      const isNext = prayer.name === nextPrayerName;
-      const icon = prayerIcons[prayer.name as keyof typeof prayerIcons];
-      return (
-        <div
-          key={prayer.name}
-          className="animate-slide-in"
-          style={{ animationDelay: `${index * 50}ms` }}
-        >
-          <Card className={`p-3 border-0 transition-colors ${isNext ? "bg-primary text-primary-foreground" : "bg-card"
-            }`}>
-            <div className="flex items-center gap-3">
-              <div className={`w-10 h-10 rounded-lg flex items-center justify-center ${isNext ? "bg-primary-foreground/20" : "bg-primary/10"
-                }`}>
-                <span className={isNext ? "" : "text-primary"}>{icon}</span>
-              </div>
-              <div className="flex-1">
-                <h3 className="font-medium text-sm">{prayer.name}</h3>
-                {isNext && <p className="text-xs opacity-80">{t('nextPrayer')}</p>}
-              </div>
-              <div className="text-xl font-bold font-mono">
-                {prayer.time}
-              </div>
-            </div>
-          </Card>
-        </div>
-      );
-    });
-  }, [prayers, nextPrayerName, loadingAPI]);
 
   // Update countdown every second
+  // Optimize countdown: Fetch target time ONCE, then countdown locally
+  const [targetTime, setTargetTime] = useState<Date | null>(null);
+
+  // Fetch the next event target time whenever location changes
   useEffect(() => {
-    const updateCountdown = async () => {
-      try {
-        if (location.latitude && location.longitude) {
+    const fetchNextEvent = async () => {
+      if (location.latitude && location.longitude) {
+        try {
+          // Get the next event data (name + time string)
           const nextEvent = await AladhanAPI.getNextEventCountdown(
             location.latitude,
             location.longitude,
             1,
             false
           );
+
           if (nextEvent) {
             setNextPrayerName(nextEvent.name);
-            setNextEventCountdown(nextEvent);
+
+            // Use the authoritative targetDate from the API helper if available
+            if (nextEvent.targetDate) {
+              setTargetTime(nextEvent.targetDate);
+            }
           }
+        } catch (error) {
+          console.error('Failed to fetch next event:', error);
         }
-      } catch (error) {
-        console.error('Failed to update countdown:', error);
       }
     };
 
-    const interval = setInterval(updateCountdown, 1000); // Update every second
-    return () => clearInterval(interval);
+    fetchNextEvent();
   }, [location.latitude, location.longitude]);
 
+
+  // Lightweight interval: just updates the string based on targetTime
+  useEffect(() => {
+    if (!targetTime) return;
+
+    const updateDisplay = () => {
+      const now = new Date();
+      const diff = targetTime.getTime() - now.getTime();
+
+      if (diff <= 0) {
+        // Timer finished, trigger a re-fetch
+        setTargetTime(null);
+        return;
+      }
+
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      const seconds = Math.floor((diff % (1000 * 60)) / 1000);
+
+      const countdownStr = hours > 0
+        ? `${hours}h ${minutes}m ${seconds}s`
+        : `${minutes}m ${seconds}s`; // Added seconds for liveness
+
+      setNextEventCountdown(prev => prev ? { ...prev, countdown: countdownStr } : null);
+    };
+
+    updateDisplay(); // update immediately
+    const interval = setInterval(updateDisplay, 1000);
+    return () => clearInterval(interval);
+  }, [targetTime]);
+
   return (
-    <LayoutManager>
+    <PageTransition>
       <div className="min-h-screen bg-background">
         <AppBar title={t('appTitle')} />
 
@@ -609,6 +621,6 @@ export default function Dashboard() {
           </Card>
         </div>
       </div>
-    </LayoutManager>
+    </PageTransition>
   );
 }

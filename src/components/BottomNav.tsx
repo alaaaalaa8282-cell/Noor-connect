@@ -41,7 +41,7 @@ export const BottomNav = memo(function BottomNav() {
 
   return (
     <nav
-      className="w-full bg-[#FFFBF2]/95 border-t border-border/50 shadow-lg"
+      className="w-full bg-card/95 backdrop-blur-lg border-t border-border/50 shadow-lg dark:shadow-black/30"
       style={{
         willChange: 'transform, opacity',
         transform: 'translateZ(0)'
@@ -65,8 +65,8 @@ export const BottomNav = memo(function BottomNav() {
             onClick={triggerHapticFeedback}
             className={({ isActive }) =>
               `shrink-0 snap-center flex flex-col items-center justify-center gap-1 px-3 py-2 w-[76px] md:w-[88px] lg:w-[100px] rounded-lg relative transition-colors duration-200 border-t-2 ${isActive
-                ? "text-primary bg-primary/10 border-primary shadow-sm shadow-primary/20"
-                : "text-muted-foreground border-transparent active:text-primary/70 active:bg-muted/50"
+                ? "text-primary bg-primary/10 border-primary shadow-sm shadow-primary/20 dark:bg-primary/15"
+                : "text-muted-foreground border-transparent active:text-primary/70 active:bg-muted/50 hover:text-foreground/80"
               }`
             }
             style={{

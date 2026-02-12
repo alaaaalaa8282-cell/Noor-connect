@@ -2,18 +2,19 @@
  * Qaza (Missed Prayer) Tracker Component
  * Track and complete missed prayers
  */
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
+import { useLanguage } from "@/contexts/LanguageContext";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Plus, Minus, AlertCircle, Check } from "lucide-react";
-import { 
-  getQazaPrayers, 
-  addQazaPrayer, 
+import {
+  getQazaPrayers,
+  addQazaPrayer,
   completeQazaPrayer,
   setQazaCount,
   getQazaStats,
-  type PrayerName 
+  type PrayerName
 } from "@/lib/qaza-tracker";
 import { useToast } from "@/hooks/use-toast";
 
@@ -30,6 +31,7 @@ interface QazaTrackerProps {
 }
 
 export function QazaTracker({ compact = false }: QazaTrackerProps) {
+  const { t } = useLanguage();
   const [prayers, setPrayers] = useState<Record<PrayerName, number>>({
     fajr: 0, dhuhr: 0, asr: 0, maghrib: 0, isha: 0
   });
@@ -38,18 +40,19 @@ export function QazaTracker({ compact = false }: QazaTrackerProps) {
   const [editValue, setEditValue] = useState("");
   const { toast } = useToast();
 
-  useEffect(() => {
+  const refresh = useCallback(() => {
     setPrayers(getQazaPrayers());
     setStats(getQazaStats());
   }, []);
 
-  const refresh = () => {
-    setPrayers(getQazaPrayers());
-    setStats(getQazaStats());
-  };
+  useEffect(() => {
+    refresh();
+    window.addEventListener('qaza-updated', refresh);
+    return () => window.removeEventListener('qaza-updated', refresh);
+  }, [refresh]);
 
-  const handleAdd = (prayer: PrayerName) => {
-    addQazaPrayer(prayer, 1);
+  const handleAdd = (prayer: PrayerName, count: number = 1) => {
+    addQazaPrayer(prayer, count);
     refresh();
   };
 
@@ -57,8 +60,8 @@ export function QazaTracker({ compact = false }: QazaTrackerProps) {
     if (prayers[prayer] > 0) {
       completeQazaPrayer(prayer, 1);
       refresh();
-      toast({ 
-        title: "Prayer completed", 
+      toast({
+        title: "Prayer completed",
         description: `MashaAllah! ${prayerLabels.find(p => p.id === prayer)?.label} Qaza marked as prayed.`
       });
     }
@@ -106,11 +109,10 @@ export function QazaTracker({ compact = false }: QazaTrackerProps) {
                   <button
                     onClick={() => handleComplete(prayer.id)}
                     disabled={prayers[prayer.id] === 0}
-                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all mx-auto ${
-                      prayers[prayer.id] > 0
-                        ? "bg-destructive/20 text-destructive hover:bg-destructive/30"
-                        : "bg-muted text-muted-foreground"
-                    }`}
+                    className={`w-10 h-10 rounded-full flex items-center justify-center text-sm font-bold transition-all mx-auto ${prayers[prayer.id] > 0
+                      ? "bg-destructive/20 text-destructive hover:bg-destructive/30"
+                      : "bg-muted text-muted-foreground"
+                      }`}
                   >
                     {prayers[prayer.id]}
                   </button>
@@ -146,21 +148,23 @@ export function QazaTracker({ compact = false }: QazaTrackerProps) {
       </CardHeader>
       <CardContent className="space-y-3">
         {prayerLabels.map((prayer) => (
-          <div 
-            key={prayer.id} 
-            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg"
+          <div
+            key={prayer.id}
+            className="flex items-center justify-between p-3 bg-muted/50 rounded-lg group"
           >
             <div className="flex items-center gap-3">
               <div className="text-center min-w-[40px]">
-                <span className="text-lg font-bold">{prayers[prayer.id]}</span>
+                <span className={`text-xl font-bold ${prayers[prayer.id] > 0 ? 'text-destructive' : 'text-muted-foreground'}`}>
+                  {prayers[prayer.id]}
+                </span>
               </div>
               <div>
-                <p className="font-medium text-sm">{prayer.label}</p>
+                <p className="font-semibold text-sm">{t(prayer.id)}</p>
                 <p className="text-[10px] text-muted-foreground font-arabic">{prayer.arabicLabel}</p>
               </div>
             </div>
-            
-            <div className="flex items-center gap-1">
+
+            <div className="flex items-center gap-1.5">
               {editMode === prayer.id ? (
                 <div className="flex items-center gap-1">
                   <Input
@@ -168,39 +172,41 @@ export function QazaTracker({ compact = false }: QazaTrackerProps) {
                     min="0"
                     value={editValue}
                     onChange={(e) => setEditValue(e.target.value)}
-                    className="w-16 h-8 text-center text-sm"
+                    className="w-16 h-8 text-center text-sm font-bold"
                     autoFocus
                   />
-                  <Button size="icon" variant="ghost" className="h-8 w-8" onClick={handleEditSave}>
+                  <Button size="icon" variant="ghost" className="h-8 w-8 text-primary" onClick={handleEditSave}>
                     <Check className="w-4 h-4" />
                   </Button>
                 </div>
               ) : (
                 <>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-8 w-8 text-primary hover:bg-primary/10"
-                    onClick={() => handleComplete(prayer.id)}
-                    disabled={prayers[prayer.id] === 0}
-                  >
-                    <Minus className="w-4 h-4" />
-                  </Button>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-8 w-8"
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-8 w-8 text-muted-foreground hover:bg-muted-foreground/10"
                     onClick={() => handleEditStart(prayer.id)}
                   >
-                    <span className="text-xs font-medium">#</span>
+                    <span className="text-xs font-bold">#</span>
                   </Button>
-                  <Button 
-                    size="icon" 
-                    variant="ghost" 
-                    className="h-8 w-8 text-destructive hover:bg-destructive/10"
+                  <Button
+                    size="icon"
+                    variant="ghost"
+                    className="h-9 w-9 text-destructive hover:bg-destructive/10 rounded-full"
                     onClick={() => handleAdd(prayer.id)}
+                    title="Add 1"
                   >
-                    <Plus className="w-4 h-4" />
+                    <Plus className="w-5 h-5" />
+                  </Button>
+                  <Button
+                    size="icon"
+                    variant="default"
+                    className="h-9 w-9 rounded-full shadow-sm bg-emerald-600 hover:bg-emerald-700 disabled:opacity-30"
+                    onClick={() => handleComplete(prayer.id)}
+                    disabled={prayers[prayer.id] === 0}
+                    title="Mark 1 as complete"
+                  >
+                    <Check className="w-5 h-5" />
                   </Button>
                 </>
               )}
@@ -208,10 +214,48 @@ export function QazaTracker({ compact = false }: QazaTrackerProps) {
           </div>
         ))}
 
+        <div className="pt-2 border-t border-border mt-4">
+          <div className="flex flex-col gap-2">
+            <p className="text-[10px] font-bold text-muted-foreground uppercase tracking-wider">Quick Actions</p>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-[10px] h-8 hover:bg-primary/5"
+                onClick={() => {
+                  prayerLabels.forEach(p => addQazaPrayer(p.id, 30));
+                  refresh();
+                  toast({ title: "Updated", description: "Added 30 days worth of Qaza for all prayers." });
+                }}
+              >
+                +30 Days (All)
+              </Button>
+              <Button
+                variant="outline"
+                size="sm"
+                className="flex-1 text-[10px] h-8 hover:bg-primary/5"
+                onClick={() => {
+                  prayerLabels.forEach(p => addQazaPrayer(p.id, 365));
+                  refresh();
+                  toast({ title: "Updated", description: "Added 1 year worth of Qaza for all prayers." });
+                }}
+              >
+                +1 Year (All)
+              </Button>
+            </div>
+          </div>
+        </div>
+
         {stats.total === 0 && (
-          <div className="text-center py-4">
-            <p className="text-sm text-muted-foreground">
-              ✨ No Qaza prayers pending. Alhamdulillah!
+          <div className="text-center py-6">
+            <div className="w-12 h-12 bg-primary/10 text-primary rounded-full flex items-center justify-center mx-auto mb-3">
+              <Check className="w-6 h-6" />
+            </div>
+            <p className="text-sm font-semibold text-foreground">
+              Alhamdulillah!
+            </p>
+            <p className="text-xs text-muted-foreground">
+              All your prayers are up to date.
             </p>
           </div>
         )}

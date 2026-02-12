@@ -5,9 +5,9 @@
  */
 
 import { useState, useEffect, useCallback, useRef } from 'react';
-import { calculatePrayerTimes } from '@/lib/prayer-calculator';
+import { calculatePrayerTimes, getCalculationMethod } from '@/lib/prayer-calculator';
 import { GeocodingService } from '@/lib/geocoding';
-import { AladhanAPI } from '@/lib/aladhan-api';
+import { AladhanAPI, ALADHAN_METHODS } from '@/lib/aladhan-api';
 import { calculatePrayerEndTimes } from '@/lib/prayer-end-times';
 import { formatPrayerTime } from '@/lib/time-formatter';
 import { WidgetService } from '@/lib/widget-service';
@@ -20,6 +20,10 @@ export interface PrayerTimes {
   maghrib: Date;
   isha: Date;
   midnight: Date;
+  imsak?: Date;
+  ishraq?: Date;
+  duha?: Date;
+  tahajjud?: Date;
 }
 
 export interface PrayerTimesWithEnd {
@@ -29,6 +33,11 @@ export interface PrayerTimesWithEnd {
   asr: { start: Date; end: Date };
   maghrib: { start: Date; end: Date };
   isha: { start: Date; end: Date };
+  imsak?: { start: Date; end: Date };
+  ishraq?: { start: Date; end: Date };
+  duha?: { start: Date; end: Date };
+  tahajjud?: { start: Date; end: Date };
+  midnight?: { start: Date; end: Date };
 }
 
 export interface LocationData {
@@ -79,10 +88,17 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Track previous prayer times to prevent unnecessary notification scheduling
   const previousPrayerTimesRef = useRef<string | null>(null);
 
-  // Parse time string to Date object
+  // Parse time string to Date object (handles "HH:MM (TZ)" format from Aladhan API)
   const parseTimeToDate = useCallback((timeStr: string): Date => {
-    const [hours, minutes] = timeStr.split(':').map(Number);
+    const cleaned = timeStr.replace(/\s*\(.*?\)\s*/g, '').trim();
+    const parts = cleaned.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
     const date = new Date();
+    if (isNaN(hours) || isNaN(minutes)) {
+      console.warn('parseTimeToDate: failed to parse:', timeStr);
+      return date;
+    }
     date.setHours(hours, minutes, 0, 0);
     return date;
   }, []);
@@ -320,40 +336,97 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       }
 
       isCalculatingRef.current = true;
-      console.log('Calculating prayer times for location:', locationData);
+      console.log('Fetching/Calculating prayer times for location:', locationData);
 
-      const todayTimes = calculatePrayerTimes(locationData.latitude, locationData.longitude, now);
+      // Try to get times from API (handles caching and online refresh)
+      // Get calculation method preference
+      const methodName = getCalculationMethod();
+      const methodId = ALADHAN_METHODS[methodName] || 3; // Default to MWL (3)
 
+      let timings: any;
+      let timeZone = locationData.timeZone;
+
+      try {
+        const result = await AladhanAPI.getTodaysPrayerTimes(
+          locationData.latitude,
+          locationData.longitude,
+          methodId
+        );
+        timings = result.timings;
+        timeZone = result.timezone;
+      } catch (error) {
+        console.warn('API fetch failed, using offline calculation');
+        const offlineResult = calculatePrayerTimes(locationData.latitude, locationData.longitude, now);
+        timings = {
+          Fajr: formatPrayerTime(offlineResult.fajr, '24'),
+          Sunrise: formatPrayerTime(offlineResult.sunrise, '24'),
+          Dhuhr: formatPrayerTime(offlineResult.dhuhr, '24'),
+          Asr: formatPrayerTime(offlineResult.asr, '24'),
+          Maghrib: formatPrayerTime(offlineResult.maghrib, '24'),
+          Isha: formatPrayerTime(offlineResult.isha, '24'),
+        };
+      }
+
+      // Parse the timings back to Date objects
+      // Aladhan API returns times like "05:30 (PKT)" — strip the timezone suffix
+      const parseTime = (timeStr: string) => {
+        const cleaned = timeStr.replace(/\s*\(.*?\)\s*/g, '').trim();
+        const parts = cleaned.split(':');
+        const h = parseInt(parts[0], 10);
+        const m = parseInt(parts[1], 10);
+        if (isNaN(h) || isNaN(m)) {
+          console.warn('Failed to parse time string:', timeStr);
+          return new Date(now); // fallback to current time
+        }
+        const d = new Date(now);
+        d.setHours(h, m, 0, 0);
+        return d;
+      };
+
+      const prayerDates = {
+        fajr: parseTime(timings.Fajr),
+        sunrise: parseTime(timings.Sunrise),
+        dhuhr: parseTime(timings.Dhuhr),
+        asr: parseTime(timings.Asr),
+        maghrib: parseTime(timings.Maghrib),
+        isha: parseTime(timings.Isha),
+      };
+
+      // Tomorrow's Fajr for Isha end time
       const tomorrow = new Date(now);
       tomorrow.setDate(tomorrow.getDate() + 1);
-      const tomorrowTimes = calculatePrayerTimes(locationData.latitude, locationData.longitude, tomorrow);
+      const tomorrowResult = calculatePrayerTimes(locationData.latitude, locationData.longitude, tomorrow);
 
       const midnight = new Date(now);
       midnight.setDate(midnight.getDate() + 1);
       midnight.setHours(0, 0, 0, 0);
 
       const times: PrayerTimes = {
-        fajr: todayTimes.fajr,
-        sunrise: todayTimes.sunrise,
-        dhuhr: todayTimes.dhuhr,
-        asr: todayTimes.asr,
-        maghrib: todayTimes.maghrib,
-        isha: todayTimes.isha,
-        midnight
+        ...prayerDates,
+        midnight,
+        imsak: new Date(prayerDates.fajr.getTime() - 10 * 60000),
+        ishraq: new Date(prayerDates.sunrise.getTime() + 15 * 60000),
+        duha: new Date(prayerDates.sunrise.getTime() + (prayerDates.dhuhr.getTime() - prayerDates.sunrise.getTime()) / 2),
+        tahajjud: new Date(midnight.getTime() + (tomorrowResult.fajr.getTime() - midnight.getTime()) / 2),
       };
 
       const withEnd: PrayerTimesWithEnd = {
         fajr: { start: times.fajr, end: times.sunrise },
-        sunrise: { start: times.sunrise, end: times.dhuhr },
+        sunrise: { start: times.sunrise, end: times.sunrise }, // Sunrise is an event, not a prayer period
         dhuhr: { start: times.dhuhr, end: times.asr },
         asr: { start: times.asr, end: times.maghrib },
         maghrib: { start: times.maghrib, end: times.isha },
-        isha: { start: times.isha, end: tomorrowTimes.fajr }
+        isha: { start: times.isha, end: tomorrowResult.fajr },
+        imsak: { start: times.imsak!, end: times.fajr },
+        ishraq: { start: times.ishraq!, end: new Date(times.ishraq!.getTime() + 20 * 60000) },
+        duha: { start: times.duha!, end: new Date(times.dhuhr.getTime() - 10 * 60000) },
+        tahajjud: { start: times.tahajjud!, end: tomorrowResult.fajr },
+        midnight: { start: times.midnight, end: tomorrowResult.fajr }
       };
 
       setPrayerTimes(times);
       setPrayerTimesWithEnd(withEnd);
-      setLocation(locationData);
+      setLocation({ ...locationData, timeZone });
       setError(null);
 
       // Update our "cache" key
@@ -529,6 +602,23 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     location?.latitude,
     location?.longitude
   ]); // Use timestamps for stable comparison
+
+  // Listen for prayer method changes
+  useEffect(() => {
+    const handleMethodChange = () => {
+      console.log('Prayer method changed, refreshing times...');
+      // Reset cache key to force update
+      previousPrayerTimesRef.current = null;
+      if (location) {
+        fetchPrayerTimesWithCoordinates(location);
+      }
+    };
+
+    window.addEventListener('prayer-method-changed', handleMethodChange);
+    return () => {
+      window.removeEventListener('prayer-method-changed', handleMethodChange);
+    };
+  }, [location, fetchPrayerTimesWithCoordinates]);
 
   return {
     prayerTimes,

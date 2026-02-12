@@ -1,5 +1,5 @@
 import { useState, useEffect, useCallback, useMemo, memo } from 'react';
-import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
+import { Clock, Moon, Sun, Cloud, Sunset, Sunrise, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
 import { Card } from "@/components/ui/card";
 import { Skeleton } from "@/components/ui/skeleton";
 import { LocationSearch } from "@/components/LocationSearch";
@@ -18,6 +18,7 @@ import {
 
 const prayerIcons: Record<string, React.ReactNode> = {
   Fajr: <Moon className="w-6 h-6" />,
+  Sunrise: <Sunrise className="w-6 h-6" />,
   Dhuhr: <Sun className="w-6 h-6" />,
   Asr: <Cloud className="w-6 h-6" />,
   Maghrib: <Sunset className="w-6 h-6" />,
@@ -96,7 +97,7 @@ const PrayerCountdownComponent = function PrayerCountdown(props: PrayerCountdown
 
   const currentPrayer = getCurrentPrayer(prayersWithEndTimes);
   const nextPrayer = prayersWithEndTimes.find(p =>
-    p.datetime > new Date() && p !== currentPrayer
+    p.datetime > new Date() && p !== currentPrayer && p.name !== 'Sunrise'
   );
 
   // ALWAYS call useCountdown hooks with default values - NEVER conditional

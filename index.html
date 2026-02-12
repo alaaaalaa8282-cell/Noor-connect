@@ -37,14 +37,16 @@
   <!-- Preconnect to critical origins -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link rel="preconnect" href="https://api.aladhan.com">
 
-  <!-- Preload critical fonts with font-display: swap -->
+  <!-- Preload critical assets for faster LCP -->
+  <link rel="preload" as="image" href="/icon-512x512.png" fetchpriority="high">
   <link rel="preload" as="style"
-    href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap"
+    href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Source+Serif+Pro:wght@400;600;700&family=Source+Code+Pro:wght@400;700&family=Amiri&display=swap"
     onload="this.onload=null;this.rel='stylesheet'">
   <noscript>
     <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Work+Sans:wght@400;500;600;700&family=Lora:wght@400;500;600;700&family=Inconsolata:wght@400;700&display=swap">
+      href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Source+Serif+Pro:wght@400;600;700&family=Source+Code+Pro:wght@400;700&family=Amiri&display=swap">
   </noscript>
 
   <!-- Open Graph / Twitter meta tags -->
@@ -69,10 +71,9 @@
   <style>
     /* Critical CSS for initial render */
     body {
-      font-family: system-ui, -apple-system, sans-serif;
+      font-family: "Source Sans Pro", system-ui, -apple-system, sans-serif;
       margin: 0;
-      background: #f7f7f7;
-      background: #171717;
+      background: #E5EBE6;
     }
 
     #root {

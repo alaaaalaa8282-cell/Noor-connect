@@ -70,7 +70,14 @@ export function LocationSearch({ onLocationSelect, isLoading = false }: Location
 
   const handleSuggestionSelect = async (place: GeocodingResult) => {
     try {
-      const city = place.address.city || place.address.town || place.address.village || place.address.county || place.address.state || "";
+      // Improve city extraction logic
+      const city = place.address.city ||
+        place.address.town ||
+        place.address.village ||
+        place.address.county ||
+        place.address.state ||
+        place.display_name.split(',')[0];
+
       const country = place.address.country || "";
 
       setSearchQuery(place.display_name);
@@ -78,26 +85,29 @@ export function LocationSearch({ onLocationSelect, isLoading = false }: Location
 
       await onLocationSelect(city, country);
     } catch (error) {
+      console.error("Selection error:", error);
       toast({
         title: "Selection Failed",
-        description: "Could not select this location.",
+        description: "Could not sync prayer times for this location.",
         variant: "destructive"
       });
     }
   };
 
   const handleManualSearch = async () => {
-    if (!searchQuery.trim()) return;
+    const trimmedQuery = searchQuery.trim();
+    if (!trimmedQuery) return;
 
     // Split by comma if present to try and parse city/country
-    const parts = searchQuery.split(',');
+    const parts = trimmedQuery.split(',');
     const city = parts[0].trim();
-    const country = parts.length > 1 ? parts[1].trim() : "";
+    const country = parts.length > 1 ? parts.slice(1).join(',').trim() : "";
 
     try {
       await onLocationSelect(city, country);
       setShowSuggestions(false);
     } catch (error) {
+      console.error("Manual search error:", error);
       toast({
         title: "Location Not Found",
         description: "Could not find prayer times for this location.",

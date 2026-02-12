@@ -183,7 +183,8 @@ export const GlobalPrayerAlarm = () => {
 
       // Check for pre-prayer reminder
       if (reminderMinutes > 0 && lastReminder !== reminderKey) {
-        const [prayerHour, prayerMinute] = prayer.time.split(':').map(Number);
+        const cleaned = prayer.time.replace(/\s*\(.*?\)\s*/g, '').trim();
+        const [prayerHour, prayerMinute] = cleaned.split(':').map(Number);
         const prayerDate = new Date();
         prayerDate.setHours(prayerHour, prayerMinute, 0, 0);
 

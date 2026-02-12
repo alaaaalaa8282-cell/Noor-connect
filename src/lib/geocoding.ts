@@ -54,19 +54,25 @@ export class GeocodingService {
     longitude: number;
     displayName: string;
   }> {
-    const query = `${city}, ${country}`;
+    const query = city ? `${city}, ${country}` : country;
     const results = await this.searchLocation(query);
 
     if (results.length === 0) {
       throw new Error(`Location not found: ${query}`);
     }
 
-    // Find the best match (prefer exact city matches)
-    const bestMatch = results.find(result =>
-      result.address.city?.toLowerCase() === city.toLowerCase() ||
-      result.address.town?.toLowerCase() === city.toLowerCase() ||
-      result.address.village?.toLowerCase() === city.toLowerCase()
-    ) || results[0];
+    // Find the best match (prefer exact city matches if city was provided)
+    let bestMatch = results[0];
+    if (city) {
+      const cityLower = city.toLowerCase();
+      const match = results.find(result =>
+        result.address.city?.toLowerCase() === cityLower ||
+        result.address.town?.toLowerCase() === cityLower ||
+        result.address.village?.toLowerCase() === cityLower ||
+        result.display_name.toLowerCase().startsWith(cityLower)
+      );
+      if (match) bestMatch = match;
+    }
 
     return {
       latitude: parseFloat(bestMatch.lat),
@@ -85,9 +91,9 @@ export class GeocodingService {
     source: 'manual' | 'geolocation' | 'ip' | 'default' = 'manual'
   ) {
     // Extract city and country from display name
-    const parts = displayName.split(',');
-    const city = parts[0]?.trim() || 'Unknown';
-    const country = parts[parts.length - 1]?.trim() || 'Unknown';
+    const parts = displayName.split(',').map(p => p.trim());
+    const city = parts[0] || 'Unknown';
+    const country = parts[parts.length - 1] || 'Unknown';
 
     return {
       latitude,

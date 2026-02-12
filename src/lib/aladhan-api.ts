@@ -90,6 +90,21 @@ export interface AladhanMonthlyData {
 const STORAGE_KEY = 'aladhan-monthly-data';
 const API_BASE = 'https://api.aladhan.com/v1';
 
+export const ALADHAN_METHODS: Record<string, number> = {
+  MuslimWorldLeague: 3,
+  Egyptian: 5,
+  Karachi: 1,
+  UmmAlQura: 4,
+  Dubai: 16,
+  MoonsightingCommittee: 15,
+  NorthAmerica: 2,
+  Kuwait: 9,
+  Qatar: 10,
+  Singapore: 11,
+  Turkey: 13,
+  Tehran: 7
+};
+
 export class AladhanAPI {
   /**
    * Fetch monthly prayer calendar from Aladhan API
@@ -202,29 +217,34 @@ export class AladhanAPI {
     longitude: number,
     method: number = 1
   ): Promise<{ timings: AladhanPrayerTime, timezone: string }> {
-    // Try to get from cached data first (must be for same location)
+    // Check if online to refresh cache
+    const isOnline = typeof navigator !== 'undefined' && navigator.onLine;
+
+    if (isOnline) {
+      try {
+        // If online, always try to fetch fresh data for the month to keep cache updated
+        const monthlyData = await this.fetchMonthlyCalendar(latitude, longitude, undefined, undefined, method);
+        const today = monthlyData.data.find(day => {
+          const dayDate = new Date(parseInt(day.date.timestamp) * 1000);
+          return dayDate.toDateString() === new Date().toDateString();
+        }) || monthlyData.data[0];
+
+        return {
+          timings: today.timings,
+          timezone: today.meta.timezone
+        };
+      } catch (error) {
+        console.warn('API fetch failed while online, falling back to cache');
+      }
+    }
+
+    // Fallback to cache (for offline or failed API fetch)
     const cachedDay = this.getPrayerTimesForDate(new Date(), latitude, longitude);
     if (cachedDay) {
       return {
         timings: cachedDay.timings,
         timezone: cachedDay.meta.timezone
       };
-    }
-
-    // If no cached data, try to fetch current month
-    try {
-      const monthlyData = await this.fetchMonthlyCalendar(latitude, longitude, undefined, undefined, method);
-      const today = monthlyData.data.find(day => {
-        const dayDate = new Date(parseInt(day.date.timestamp) * 1000);
-        return dayDate.toDateString() === new Date().toDateString();
-      }) || monthlyData.data[0];
-
-      return {
-        timings: today.timings,
-        timezone: today.meta.timezone
-      };
-    } catch (error) {
-      console.warn('Failed to fetch API data, will use offline calculation');
     }
 
     // Fallback to offline calculation
@@ -331,7 +351,7 @@ export class AladhanAPI {
     longitude: number,
     method: number = 1,
     isRamadan: boolean = false
-  ): Promise<{ name: string; time: string; countdown: string } | null> {
+  ): Promise<{ name: string; time: string; countdown: string; targetDate?: Date } | null> {
     try {
       const { timings } = await this.getTodaysPrayerTimes(latitude, longitude, method);
       const now = new Date();
@@ -368,7 +388,8 @@ export class AladhanAPI {
               minute: '2-digit',
               hour12: true
             }),
-            countdown: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+            countdown: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`,
+            targetDate: prayer.time // Return the Date object directly
           };
         }
       }
@@ -378,6 +399,10 @@ export class AladhanAPI {
       tomorrow.setDate(tomorrow.getDate() + 1);
       const { timings: tomorrowTimings } = await this.getTodaysPrayerTimes(latitude, longitude, method);
       const firstPrayerTime = this.parseTime(tomorrowTimings.Fajr);
+      // Adjust date to tomorrow
+      firstPrayerTime.setDate(tomorrow.getDate());
+      firstPrayerTime.setMonth(tomorrow.getMonth());
+      firstPrayerTime.setFullYear(tomorrow.getFullYear());
 
       const diff = firstPrayerTime.getTime() - now.getTime();
       const hours = Math.floor(diff / (1000 * 60 * 60));
@@ -390,7 +415,8 @@ export class AladhanAPI {
           minute: '2-digit',
           hour12: true
         }),
-        countdown: `${hours}h ${minutes}m`
+        countdown: `${hours}h ${minutes}m`,
+        targetDate: firstPrayerTime
       };
     } catch {
       return null;
@@ -398,11 +424,18 @@ export class AladhanAPI {
   }
 
   /**
-   * Parse time string (HH:MM) to Date object for today
+   * Parse time string (HH:MM or "HH:MM (TZ)") to Date object for today
    */
   private static parseTime(timeStr: string): Date {
-    const [hours, minutes] = timeStr.split(':').map(Number);
+    const cleaned = timeStr.replace(/\s*\(.*?\)\s*/g, '').trim();
+    const parts = cleaned.split(':');
+    const hours = parseInt(parts[0], 10);
+    const minutes = parseInt(parts[1], 10);
     const date = new Date();
+    if (isNaN(hours) || isNaN(minutes)) {
+      console.warn('AladhanAPI.parseTime: failed to parse:', timeStr);
+      return date;
+    }
     date.setHours(hours, minutes, 0, 0);
     return date;
   }

@@ -48,13 +48,15 @@ const getAllDays = (): Record<string, DailyPrayers> => {
 // Save all days
 const saveAllDays = (days: Record<string, DailyPrayers>): void => {
   localStorage.setItem(STORAGE_KEY, JSON.stringify(days));
+  // Dispatch custom event for real-time UI updates
+  window.dispatchEvent(new CustomEvent('salah-updated'));
 };
 
 // Get today's prayers
 export const getTodayPrayers = (): DailyPrayers => {
   const days = getAllDays();
   const today = getTodayKey();
-  
+
   if (!days[today]) {
     days[today] = {
       date: today,
@@ -66,7 +68,7 @@ export const getTodayPrayers = (): DailyPrayers => {
     };
     saveAllDays(days);
   }
-  
+
   return days[today];
 };
 
@@ -74,7 +76,7 @@ export const getTodayPrayers = (): DailyPrayers => {
 export const togglePrayer = (prayer: PrayerName, prayerTimes?: Record<string, { start: Date; end: Date }>): { success: boolean; message: string; completed: boolean } => {
   const days = getAllDays();
   const today = getTodayKey();
-  
+
   if (!days[today]) {
     days[today] = {
       date: today,
@@ -90,7 +92,7 @@ export const togglePrayer = (prayer: PrayerName, prayerTimes?: Record<string, { 
   if (prayerTimes && prayerTimes[prayer]) {
     const now = new Date();
     const prayerTime = prayerTimes[prayer];
-    
+
     if (now < prayerTime.start) {
       return {
         success: false,
@@ -103,7 +105,7 @@ export const togglePrayer = (prayer: PrayerName, prayerTimes?: Record<string, { 
   days[today][prayer] = !days[today][prayer];
   saveAllDays(days);
   updateStreak();
-  
+
   return {
     success: true,
     message: days[today][prayer] ? `${prayer} marked as completed!` : `${prayer} unchecked`,
@@ -128,10 +130,10 @@ const updateStreak = (): void => {
   const streakData = getStreakData();
   const today = getTodayKey();
   const yesterday = getYesterdayKey();
-  
+
   const todayComplete = days[today] && isDayComplete(days[today]);
   const yesterdayComplete = days[yesterday] && isDayComplete(days[yesterday]);
-  
+
   if (todayComplete) {
     if (yesterdayComplete || streakData.currentStreak === 0) {
       // Continue or start streak
@@ -140,12 +142,12 @@ const updateStreak = (): void => {
         streakData.lastCompleteDay = today;
       }
     }
-    
+
     if (streakData.currentStreak > streakData.longestStreak) {
       streakData.longestStreak = streakData.currentStreak;
     }
   }
-  
+
   saveStreakData(streakData);
 };
 
@@ -173,7 +175,7 @@ export const checkStreakReset = (): void => {
   const streakData = getStreakData();
   const yesterday = getYesterdayKey();
   const days = getAllDays();
-  
+
   if (streakData.lastCompleteDay && streakData.lastCompleteDay < yesterday) {
     const yesterdayComplete = days[yesterday] && isDayComplete(days[yesterday]);
     if (!yesterdayComplete) {
@@ -186,11 +188,11 @@ export const checkStreakReset = (): void => {
 // Get statistics
 export const getSalahStats = (): SalahStats => {
   checkStreakReset();
-  
+
   const days = getAllDays();
   const streakData = getStreakData();
   const todayPrayers = getTodayPrayers();
-  
+
   let totalPrayers = 0;
   Object.values(days).forEach(day => {
     if (day.fajr) totalPrayers++;
@@ -199,7 +201,7 @@ export const getSalahStats = (): SalahStats => {
     if (day.maghrib) totalPrayers++;
     if (day.isha) totalPrayers++;
   });
-  
+
   const todayCompleted = [
     todayPrayers.fajr,
     todayPrayers.dhuhr,
@@ -207,7 +209,7 @@ export const getSalahStats = (): SalahStats => {
     todayPrayers.maghrib,
     todayPrayers.isha,
   ].filter(Boolean).length;
-  
+
   return {
     currentStreak: streakData.currentStreak,
     longestStreak: streakData.longestStreak,
@@ -220,12 +222,12 @@ export const getSalahStats = (): SalahStats => {
 export const getPrayerHistory = (days: number = 7): DailyPrayers[] => {
   const allDays = getAllDays();
   const result: DailyPrayers[] = [];
-  
+
   for (let i = 0; i < days; i++) {
     const date = new Date();
     date.setDate(date.getDate() - i);
     const key = `${date.getFullYear()}-${String(date.getMonth() + 1).padStart(2, '0')}-${String(date.getDate()).padStart(2, '0')}`;
-    
+
     result.push(allDays[key] || {
       date: key,
       fajr: false,
@@ -235,6 +237,6 @@ export const getPrayerHistory = (days: number = 7): DailyPrayers[] => {
       isha: false,
     });
   }
-  
+
   return result;
 };

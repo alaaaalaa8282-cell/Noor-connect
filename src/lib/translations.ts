@@ -40,6 +40,12 @@ export const translations = {
         asr: "Asr",
         maghrib: "Maghrib",
         isha: "Isha",
+        imsak: "Imsak",
+        ishraq: "Ishraq",
+        duha: "Duha",
+        tahajjud: "Tahajjud",
+        midnight: "Midnight",
+        showExtraPrayers: "Show Optional Times",
 
         // Settings
         appearance: "Appearance",
@@ -118,6 +124,12 @@ export const translations = {
         asr: "العصر",
         maghrib: "المغرب",
         isha: "العشاء",
+        imsak: "إمساك",
+        ishraq: "إشراق",
+        duha: "ضحى",
+        tahajjud: "تهجد",
+        midnight: "منتصف الليل",
+        showExtraPrayers: "عرض الأوقات الإضافية",
 
         // Settings
         appearance: "المظهر",
@@ -196,6 +208,12 @@ export const translations = {
         asr: "عصر",
         maghrib: "مغرب",
         isha: "عشاء",
+        imsak: "امساک",
+        ishraq: "اشراق",
+        duha: "ضحی",
+        tahajjud: "تہجد",
+        midnight: "آدھی رات",
+        showExtraPrayers: "اضافی اوقات دکھائیں",
 
         // Settings
         appearance: "ظاہری شکل",

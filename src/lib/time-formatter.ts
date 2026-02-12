@@ -27,10 +27,17 @@ export function formatTime(
   let date: Date;
 
   if (typeof time === 'string') {
+    // Strip timezone abbreviation like "(PKT)" from Aladhan API strings
+    const cleaned = time.replace(/\s*\(.*?\)\s*/g, '').trim();
     // Parse time string (HH:MM or HH:MM:SS)
-    const [hours, minutes, seconds] = time.split(':').map(Number);
+    const [hours, minutes, seconds] = cleaned.split(':').map(Number);
     date = new Date();
-    date.setHours(hours, minutes, seconds || 0, 0);
+    if (isNaN(hours) || isNaN(minutes)) {
+      console.warn('formatTime: failed to parse time string:', time);
+      date = new Date(); // fallback
+    } else {
+      date.setHours(hours, minutes, seconds || 0, 0);
+    }
   } else {
     date = time;
   }
