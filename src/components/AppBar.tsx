@@ -1,4 +1,4 @@
-import { ArrowLeft, Settings } from "lucide-react";
+import { ArrowLeft, Settings, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
 import { useLanguage } from "@/contexts/LanguageContext";
@@ -13,32 +13,54 @@ export function AppBar({ title, showBack = false, actions }: AppBarProps) {
   const navigate = useNavigate();
 
   return (
-    <header className="sticky top-0 z-40 bg-[#E5EBE6]/90 backdrop-blur-md shadow-sm border-b border-[#4A5D4F]/10 transition-colors">
-      <div className="flex items-center h-14 px-4 max-w-lg mx-auto">
-        {showBack && (
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate(-1)}
-            className="mr-2 -ml-2 text-[#4A5D4F] hover:bg-[#4A5D4F]/10 hover:text-[#4A5D4F]"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-        )}
-        <h1 className="text-lg font-bold font-serif tracking-wide flex-1 text-[#4A5D4F]">
-          {title}
-        </h1>
-        <div className="flex items-center gap-2">
-          {actions}
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/profile")}
-            className="rounded-full text-[#4A5D4F] hover:bg-[#4A5D4F]/10 hover:text-[#4A5D4F]"
-          >
-            <Settings className="w-5 h-5" />
-          </Button>
+    <header className="sticky top-0 z-40 transition-all duration-300">
+      {/* Gradient Background with Glassmorphism */}
+      <div className="relative overflow-hidden">
+        {/* Premium Gradient Background */}
+        <div className="absolute inset-0 bg-gradient-to-r from-[#1a4a4a] via-[#2c6e6e] to-[#3a5a5a] opacity-95" />
+        
+        {/* Subtle Pattern Overlay */}
+        <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] bg-repeat" />
+        
+        {/* Animated Glow */}
+        <div className="absolute top-0 left-1/4 w-32 h-32 bg-[#e0c097] rounded-full blur-[60px] opacity-20 animate-pulse" />
+        
+        {/* Content */}
+        <div className="relative z-10 flex items-center h-16 px-4 max-w-lg mx-auto backdrop-blur-sm">
+          {showBack && (
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate(-1)}
+              className="mr-2 -ml-2 text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105"
+            >
+              <ArrowLeft className="w-5 h-5" />
+            </Button>
+          )}
+          
+          {/* Premium Title with Icon */}
+          <div className="flex-1 flex items-center gap-2">
+            <Sparkles className="w-5 h-5 text-[#e0c097]" />
+            <h1 className="text-xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white via-[#e0c097] to-white drop-shadow-sm">
+              {title}
+            </h1>
+          </div>
+          
+          <div className="flex items-center gap-2">
+            {actions}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={() => navigate("/profile")}
+              className="rounded-full text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105 hover:rotate-90"
+            >
+              <Settings className="w-5 h-5" />
+            </Button>
+          </div>
         </div>
+        
+        {/* Bottom Accent Line */}
+        <div className="absolute bottom-0 inset-x-0 h-[2px] bg-gradient-to-r from-transparent via-[#e0c097]/60 to-transparent" />
       </div>
     </header>
   );

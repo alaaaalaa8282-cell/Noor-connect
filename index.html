@@ -37,16 +37,15 @@
   <!-- Preconnect to critical origins -->
   <link rel="preconnect" href="https://fonts.googleapis.com">
   <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-  <link rel="preconnect" href="https://api.aladhan.com">
+  <link rel="dns-prefetch" href="https://api.aladhan.com">
 
-  <!-- Preload critical assets for faster LCP -->
-  <link rel="preload" as="image" href="/icon-512x512.png" fetchpriority="high">
-  <link rel="preload" as="style"
-    href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Source+Serif+Pro:wght@400;600;700&family=Source+Code+Pro:wght@400;700&family=Amiri&display=swap"
-    onload="this.onload=null;this.rel='stylesheet'">
+  <!-- Optimized font loading for better LCP -->
+  <link rel="stylesheet"
+    href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Source+Serif+Pro:wght@400;600;700&display=swap"
+    media="print" onload="this.media='all'">
   <noscript>
     <link rel="stylesheet"
-      href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Source+Serif+Pro:wght@400;600;700&family=Source+Code+Pro:wght@400;700&family=Amiri&display=swap">
+      href="https://fonts.googleapis.com/css2?family=Source+Sans+Pro:wght@400;600;700&family=Source+Serif+Pro:wght@400;600;700&display=swap">
   </noscript>
 
   <!-- Open Graph / Twitter meta tags -->

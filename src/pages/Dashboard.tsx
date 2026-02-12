@@ -198,31 +198,10 @@ export default function Dashboard() {
     return () => clearInterval(timer);
   }, []);
 
-  // Update greeting based on target timezone
+  // Update greeting (simplified to As-salamu alaykum)
   useEffect(() => {
-    const getTargetHour = () => {
-      try {
-        const options: Intl.DateTimeFormatOptions = {
-          hour: 'numeric',
-          hour12: false,
-          timeZone: location.timeZone || undefined,
-        };
-        const formatter = new Intl.DateTimeFormat('en-US', options);
-        const parts = formatter.formatToParts(currentTime);
-        const hourPart = parts.find(p => p.type === 'hour');
-        return hourPart ? parseInt(hourPart.value, 10) : currentTime.getHours();
-      } catch (e) {
-        return currentTime.getHours();
-      }
-    };
-
-    const hour = getTargetHour();
-    if (hour < 5) setGreeting("Good Night");
-    else if (hour < 12) setGreeting("Good Morning");
-    else if (hour < 17) setGreeting("Good Afternoon");
-    else if (hour < 21) setGreeting("Good Evening");
-    else setGreeting("Good Night");
-  }, [currentTime, location.timeZone]);
+    setGreeting("As-salamu alaykum");
+  }, []);
 
   // Handle location detection
   const handleDetectLocation = async () => {

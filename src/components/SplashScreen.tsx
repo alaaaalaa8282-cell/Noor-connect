@@ -78,11 +78,11 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
     const [isVisible, setIsVisible] = useState(true);
 
     useEffect(() => {
-        // Extended duration for premium feel
+        // Optimized duration for better LCP performance
         const timer = setTimeout(() => {
             setIsVisible(false);
-            setTimeout(onComplete, 600); // Wait for exit animation
-        }, 2500);
+            setTimeout(onComplete, 400); // Wait for exit animation
+        }, 1200); // Reduced from 2500ms to 1200ms for better LCP
 
         return () => clearTimeout(timer);
     }, [onComplete]);
@@ -93,7 +93,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                 <motion.div
                     initial={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.6, ease: "easeInOut" }}
+                    transition={{ duration: 0.4, ease: "easeInOut" }}
                     className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0a1128] overflow-hidden"
                     style={{
                         background: "linear-gradient(135deg, #0a1128 0%, #1a237e 50%, #0d1b2a 100%)",

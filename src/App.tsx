@@ -23,9 +23,8 @@ if (!localStorage.getItem("theme")) {
   document.documentElement.classList.add("dark");
 }
 
-// Lazy load route components for code splitting
-import Dashboard from "./pages/Dashboard";
-// const Dashboard = lazy(() => import("./pages/Dashboard"));
+// Lazy load route components for code splitting - INCLUDING Dashboard for better LCP
+const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Quran = lazy(() => import("./pages/Quran"));
 const SurahDetail = lazy(() => import("./pages/SurahDetail"));
 const Tasbeeh = lazy(() => import("./pages/Tasbeeh"));
@@ -58,8 +57,14 @@ function AppRoutes() {
 
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen">
-        <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent"></div>
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#0a1128] via-[#1a237e] to-[#0d1b2a]">
+        <div className="flex flex-col items-center gap-4">
+          <div className="relative">
+            <div className="animate-spin rounded-full h-12 w-12 border-3 border-[#e0c097] border-t-transparent"></div>
+            <div className="absolute inset-0 rounded-full bg-[#e0c097] blur-xl opacity-20 animate-pulse"></div>
+          </div>
+          <p className="text-[#e0c097] text-sm font-medium tracking-wide">Loading...</p>
+        </div>
       </div>
     }>
       <AnimatePresence mode="wait">

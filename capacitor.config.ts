@@ -5,17 +5,30 @@ const config: CapacitorConfig = {
   appName: 'Noor Connect',
   webDir: 'dist',
   server: {
-    androidScheme: 'https'
+    androidScheme: 'https',
+    cleartext: true
+  },
+  android: {
+    allowMixedContent: true,
+    captureInput: true,
+    webContentsDebuggingEnabled: false
   },
   plugins: {
     SplashScreen: {
-      launchShowDuration: 2000,
+      launchShowDuration: 1200, // Reduced for better LCP
       launchAutoHide: true,
-      backgroundColor: "#000000",
+      backgroundColor: "#0a1128",
       androidSplashResourceName: "splash",
       androidScaleType: "CENTER_CROP",
-      showSpinner: true,
-      spinnerStyle: "large"
+      showSpinner: false
+    },
+    LocalNotifications: {
+      smallIcon: "ic_notification",
+      iconColor: "#D4AF37",
+      sound: "beep.wav"
+    },
+    PushNotifications: {
+      presentationOptions: ["badge", "sound", "alert"]
     }
   }
 };
