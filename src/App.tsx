@@ -14,7 +14,7 @@ import { serviceWorkerManager } from "@/lib/service-worker-registration";
 import { getPerformanceMonitor } from "@/lib/performance-monitor";
 import { useGlobalRadio } from "@/lib/global-radio";
 import { LayoutManager } from "@/components/LayoutManager";
-import { SplashScreen } from "@/components/SplashScreen";
+import { SplashScreen, PersistentPermissionReminder } from "@/components/SplashScreen";
 
 // Set default theme to light if no preference saved
 if (!localStorage.getItem("theme")) {
@@ -36,6 +36,7 @@ const IslamicCalendar = lazy(() => import("./pages/IslamicCalendar"));
 const Ebooks = lazy(() => import("./pages/Ebooks"));
 const QazaPage = lazy(() => import("./pages/QazaPage"));
 const RamadanMode = lazy(() => import("./pages/RamadanMode"));
+const MenstrualMode = lazy(() => import("./pages/MenstrualMode"));
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
 const ZakatCalculator = lazy(() => import("./pages/ZakatCalculator"));
 const NamesOfAllah = lazy(() => import("./pages/NamesOfAllah"));
@@ -57,13 +58,28 @@ function AppRoutes() {
 
   return (
     <Suspense fallback={
-      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#0a1128] via-[#1a237e] to-[#0d1b2a]">
-        <div className="flex flex-col items-center gap-4">
+      <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#0a1128] via-[#1a237e] to-[#0d1b2a] relative overflow-hidden">
+        {/* Animated background orbs */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#e0c097] rounded-full blur-[100px] opacity-20 animate-pulse" />
+        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#4fd1c5] rounded-full blur-[80px] opacity-15 animate-pulse" />
+        
+        <div className="relative z-10 flex flex-col items-center gap-6">
+          {/* Premium Spinner Container */}
           <div className="relative">
-            <div className="animate-spin rounded-full h-12 w-12 border-3 border-[#e0c097] border-t-transparent"></div>
-            <div className="absolute inset-0 rounded-full bg-[#e0c097] blur-xl opacity-20 animate-pulse"></div>
+            {/* Outer ring */}
+            <div className="absolute inset-0 rounded-full border-2 border-[#e0c097]/20 scale-150" />
+            
+            {/* Spinner */}
+            <div className="animate-spin rounded-full h-16 w-16 border-[3px] border-[#e0c097]/30 border-t-[#e0c097]" />
+            
+            {/* Inner glow */}
+            <div className="absolute inset-2 rounded-full bg-[#e0c097] blur-xl opacity-30 animate-pulse" />
           </div>
-          <p className="text-[#e0c097] text-sm font-medium tracking-wide">Loading...</p>
+          
+          {/* Text with glass effect */}
+          <div className="glass-card px-6 py-3 rounded-2xl">
+            <p className="text-[#e0c097] text-sm font-semibold tracking-widest uppercase">Loading</p>
+          </div>
         </div>
       </div>
     }>
@@ -83,6 +99,7 @@ function AppRoutes() {
           <Route path="/ebooks" element={<Ebooks />} />
           <Route path="/qaza" element={<QazaPage />} />
           <Route path="/ramadan" element={<RamadanMode />} />
+          <Route path="/menstrual-mode" element={<MenstrualMode />} />
           <Route path="/notification-history" element={<NotificationHistory />} />
           <Route path="/zakat" element={<ZakatCalculator />} />
           <Route path="/names-of-allah" element={<NamesOfAllah />} />
@@ -131,8 +148,22 @@ const App = () => {
 
   // Initialize notification system and Service Worker
   useEffect(() => {
+    // Check if we're in APK/PWA mode and handle permissions
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                       ('standalone' in window.navigator && window.navigator.standalone) || 
+                       document.referrer.includes('android-app://');
+
     // Start the notification manager (only runs once per app load)
     notificationManager.start();
+
+    // For APK/PWA, ensure notifications are properly initialized
+    if (isStandalone) {
+      // Request notification permission if not already set
+      if ('Notification' in window && Notification.permission === 'default') {
+        // Don't request immediately - let splash screen handle it
+        console.log('App running in standalone mode, will request notifications via splash screen');
+      }
+    }
 
     // Register Service Worker (only in production and if not already registered)
     if (import.meta.env.PROD && !navigator.serviceWorker.controller) {
@@ -167,6 +198,7 @@ const App = () => {
       <AnimatePresence>
         {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       </AnimatePresence>
+      <PersistentPermissionReminder />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="flex flex-col min-h-screen overflow-hidden" style={{
           willChange: 'transform, opacity',

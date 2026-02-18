@@ -1,3 +1,5 @@
+import { getMenstrualModeData } from './menstrual-mode';
+
 /**
  * Qaza (Missed Prayer) Tracker
  * Track prayers that need to be made up
@@ -98,9 +100,33 @@ export const syncMissedPrayersToQaza = (
   const now = new Date();
   const todayKey = now.toISOString().split('T')[0];
   const processed = getProcessedQaza();
-  let changed = false;
-
   const prayers: PrayerName[] = ['fajr', 'dhuhr', 'asr', 'maghrib', 'isha'];
+  const menstrualMode = getMenstrualModeData();
+
+  // If Menstrual Mode is active, skip auto-Qaza and mark already-ended prayers as processed
+  // so they are not added later when mode is turned off.
+  if (menstrualMode.isActive && menstrualMode.pauseQazaAutoSync) {
+    let processedChanged = false;
+
+    prayers.forEach(prayer => {
+      const key = `${todayKey}-${prayer}`;
+      const timeInfo = prayerTimes[prayer];
+      if (!timeInfo || processed.has(key)) return;
+
+      if (now > timeInfo.end) {
+        processed.add(key);
+        processedChanged = true;
+      }
+    });
+
+    if (processedChanged) {
+      saveProcessedQaza(processed);
+    }
+
+    return;
+  }
+
+  let changed = false;
 
   prayers.forEach(prayer => {
     const key = `${todayKey}-${prayer}`;

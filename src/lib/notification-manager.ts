@@ -33,19 +33,23 @@ const DEFAULT_PREFERENCES: NotificationPreferences = {
 };
 
 const STORAGE_KEY = 'notification-preferences';
-const LAST_NOTIFICATION_KEY = 'last-notification-date';
+const SENT_NOTIFICATIONS_KEY = 'sent-notifications-today';
+const LAST_NOTIFICATION_DATE_KEY = 'last-notification-date';
 
 export class NotificationManager {
   private preferences: NotificationPreferences;
   private lastNotificationDate: string | null = null;
+  private sentNotificationIds: Set<string> = new Set();
   private isSupported: boolean;
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private static instance: NotificationManager | null = null;
+  private permissionCheckInterval: ReturnType<typeof setInterval> | null = null;
 
   constructor() {
     this.isSupported = 'Notification' in window;
     this.preferences = this.loadPreferences();
     this.lastNotificationDate = this.getLastNotificationDate();
+    this.sentNotificationIds = this.loadSentNotifications();
   }
 
   // Load preferences from localStorage
@@ -73,7 +77,7 @@ export class NotificationManager {
   // Load last notification date
   private getLastNotificationDate(): string | null {
     try {
-      return localStorage.getItem(LAST_NOTIFICATION_KEY);
+      return localStorage.getItem(LAST_NOTIFICATION_DATE_KEY);
     } catch {
       return null;
     }
@@ -82,11 +86,54 @@ export class NotificationManager {
   // Save last notification date
   private saveLastNotificationDate(date: string): void {
     try {
-      localStorage.setItem(LAST_NOTIFICATION_KEY, date);
+      localStorage.setItem(LAST_NOTIFICATION_DATE_KEY, date);
       this.lastNotificationDate = date;
     } catch (error) {
       console.error('Failed to save last notification date:', error);
     }
+  }
+
+  // Load sent notification IDs for today
+  private loadSentNotifications(): Set<string> {
+    try {
+      const today = new Date().toDateString();
+      const stored = localStorage.getItem(SENT_NOTIFICATIONS_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        // Only return if it's from today
+        if (data.date === today) {
+          return new Set(data.ids);
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load sent notifications:', error);
+    }
+    return new Set();
+  }
+
+  // Save sent notification ID
+  private saveSentNotification(id: string): void {
+    try {
+      const today = new Date().toDateString();
+      this.sentNotificationIds.add(id);
+      localStorage.setItem(SENT_NOTIFICATIONS_KEY, JSON.stringify({
+        date: today,
+        ids: Array.from(this.sentNotificationIds)
+      }));
+    } catch (error) {
+      console.error('Failed to save sent notification:', error);
+    }
+  }
+
+  // Check if notification was already sent today
+  private wasNotificationSentToday(id: string): boolean {
+    const today = new Date().toDateString();
+    // Reset if it's a new day
+    if (this.lastNotificationDate !== today) {
+      this.sentNotificationIds.clear();
+      this.saveLastNotificationDate(today);
+    }
+    return this.sentNotificationIds.has(id);
   }
 
   // Request notification permission
@@ -134,6 +181,11 @@ export class NotificationManager {
       return;
     }
 
+    // Check if already sent today
+    if (this.wasNotificationSentToday(event.id)) {
+      return;
+    }
+
     try {
       const notification = new Notification(event.title, {
         body: event.body,
@@ -153,10 +205,11 @@ export class NotificationManager {
       // Handle click events
       notification.onclick = () => {
         notification.close();
-        // You could navigate to a specific page here
         window.focus();
       };
 
+      // Mark as sent
+      this.saveSentNotification(event.id);
       this.saveLastNotificationDate(new Date().toDateString());
     } catch (error) {
       console.error('Failed to send notification:', error);
@@ -195,12 +248,6 @@ export class NotificationManager {
     }
 
     const today = new Date();
-    const todayStr = today.toDateString();
-
-    // Don't send if already sent today
-    if (this.lastNotificationDate === todayStr) {
-      return;
-    }
 
     // Check for Eid-ul-Fitr (10th of Shawwal, Hijri month 10)
     // Check for Eid-ul-Adha (10th of Dhul Hijjah, Hijri month 12)
@@ -275,12 +322,6 @@ export class NotificationManager {
     }
 
     const today = new Date();
-    const todayStr = today.toDateString();
-
-    // Don't send if already sent today
-    if (this.lastNotificationDate === todayStr) {
-      return;
-    }
 
     // Check if today is Friday (day 5 in JavaScript, where 0 = Sunday)
     if (today.getDay() === 5) {
@@ -304,11 +345,6 @@ export class NotificationManager {
 
     const today = new Date();
     const todayStr = today.toDateString();
-
-    // Don't send if already sent today
-    if (this.lastNotificationDate === todayStr) {
-      return;
-    }
 
     // Send at a specific time (e.g., 9 AM)
     if (today.getHours() === 9 && today.getMinutes() === 0) {
@@ -380,16 +416,41 @@ export class NotificationManager {
       this.checkAllNotifications();
     }, 60000);
 
+    // For APK users, add persistent permission checking
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                       ('standalone' in window.navigator && (window.navigator as any).standalone) || 
+                       document.referrer.includes('android-app://');
+
+    if (isStandalone) {
+      // Check permissions every 5 minutes for APK users
+      this.permissionCheckInterval = setInterval(() => {
+        if (Notification.permission === 'default') {
+          console.log('APK user still has default notification permission - should request again');
+          // Trigger a permission request event that UI can listen to
+          const permissionEvent = new CustomEvent('requestNotificationPermission', {
+            detail: { source: 'apk-persistent-check' }
+          });
+          window.dispatchEvent(permissionEvent);
+        }
+      }, 5 * 60 * 1000); // 5 minutes
+    }
+
     // Check immediately on start
     this.checkAllNotifications();
   }
 
-  // Stop the notification service and clean up interval
+  // Stop the notification service and clean up intervals
   stop(): void {
     if (this.intervalId !== null) {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
+    
+    if (this.permissionCheckInterval !== null) {
+      clearInterval(this.permissionCheckInterval);
+      this.permissionCheckInterval = null;
+    }
+    
     console.log('Notification service stopped');
   }
 }

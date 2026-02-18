@@ -19,28 +19,45 @@ export function AppBar({ title, showBack = false, actions }: AppBarProps) {
         {/* Premium Gradient Background */}
         <div className="absolute inset-0 bg-gradient-to-r from-[#1a4a4a] via-[#2c6e6e] to-[#3a5a5a] opacity-95" />
         
-        {/* Subtle Pattern Overlay */}
-        <div className="absolute inset-0 opacity-5 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] bg-repeat" />
-        
-        {/* Animated Glow */}
+        {/* Animated Glow Effect */}
         <div className="absolute top-0 left-1/4 w-32 h-32 bg-[#e0c097] rounded-full blur-[60px] opacity-20 animate-pulse" />
         
+        {/* Glassmorphism Overlay */}
+        <div className="absolute inset-0 bg-white/5 backdrop-blur-sm" />
+        
         {/* Content */}
-        <div className="relative z-10 flex items-center h-16 px-4 max-w-lg mx-auto backdrop-blur-sm">
+        <div className="relative z-10 flex items-center h-16 px-4 max-w-lg mx-auto">
           {showBack && (
             <Button
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
-              className="mr-2 -ml-2 text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105"
+              className="mr-2 -ml-2 text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105 rounded-xl"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>
           )}
           
-          {/* Premium Title with Icon */}
+          {/* Premium Title with App Icon */}
           <div className="flex-1 flex items-center gap-2">
-            <Sparkles className="w-5 h-5 text-[#e0c097]" />
+            <div className="p-1.5 rounded-lg bg-gradient-to-br from-primary/40 to-primary/20 backdrop-blur-sm border border-white/10">
+              <img
+                src="/icon-192x192.png"
+                alt="Noor Connect"
+                className="w-5 h-5 rounded-lg"
+                onError={(e) => {
+                  // Fallback to Sparkles icon if image fails to load
+                  const target = e.target as HTMLImageElement;
+                  target.style.display = 'none';
+                  const fallback = target.nextElementSibling as HTMLElement;
+                  if (fallback) fallback.style.display = 'block';
+                }}
+              />
+              <Sparkles 
+                className="w-4 h-4 text-[#e0c097]" 
+                style={{ display: 'none' }}
+              />
+            </div>
             <h1 className="text-xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white via-[#e0c097] to-white drop-shadow-sm">
               {title}
             </h1>
@@ -52,7 +69,7 @@ export function AppBar({ title, showBack = false, actions }: AppBarProps) {
               variant="ghost"
               size="icon"
               onClick={() => navigate("/profile")}
-              className="rounded-full text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105 hover:rotate-90"
+              className="rounded-xl text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105 hover:rotate-90"
             >
               <Settings className="w-5 h-5" />
             </Button>

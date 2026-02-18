@@ -20,12 +20,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      strategies: 'injectManifest',
-      srcDir: 'src',
-      filename: 'sw.js',
-      manifestFilename: 'manifest.json',
+      strategies: 'generateSW', // Use generateSW instead of injectManifest
       registerType: "autoUpdate",
-      injectRegister: 'auto', // Let Vite register the SW so PWABuilder sees it
+      injectRegister: 'auto',
       includeAssets: [
         "favicon.png",
         "icon-192x192.png",
@@ -150,10 +147,6 @@ export default defineConfig(({ mode }) => ({
             purpose: "any maskable"
           }
         ]
-      },
-      injectManifest: {
-        globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
-        maximumFileSizeToCacheInBytes: 5000000, // Increased for larger assets
       },
       devOptions: {
         enabled: false // Disable SW in dev to prevent caching of Vite internal files

@@ -2,13 +2,13 @@ import { NavLink } from "react-router-dom";
 import { Home, BookOpen, MessageCircle, Heart, Calculator, Calendar, Library, Settings, Trophy, Star, Coins, Target, Radio, Compass, Tv } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { memo } from "react";
+import { motion } from "framer-motion";
 
 // Haptic feedback function - moved to async to avoid blocking UI
 const triggerHapticFeedback = () => {
-  // Use setTimeout to avoid blocking the UI thread
   setTimeout(() => {
     if ('vibrate' in navigator) {
-      navigator.vibrate(10); // 10ms vibration for tactile feedback
+      navigator.vibrate(8); // 8ms subtle vibration for tactile feedback
     }
   }, 0);
 };
@@ -33,64 +33,108 @@ export const BottomNav = memo(function BottomNav() {
     { title: "E-Books", path: "/ebooks", icon: Library, priority: "secondary" },
     { title: t('settings'), path: "/profile", icon: Settings, priority: "secondary" },
   ];
-  // Primary items that should always be visible on mobile
+
   const primaryItems = navItems.filter(item => item.priority === "primary");
   const secondaryItems = navItems.filter(item => item.priority === "secondary");
-
   const orderedItems = [...primaryItems, ...secondaryItems];
 
   return (
     <nav
-      className="w-full bg-card/95 backdrop-blur-lg border-t border-border/50 shadow-lg dark:shadow-black/30"
+      className="w-full"
       style={{
         willChange: 'transform, opacity',
         transform: 'translateZ(0)'
       }}
     >
-      {/* Single-row Navigation (prevents split rows + keeps consistent icon alignment) */}
-      <div
-        className="flex items-center gap-1 overflow-x-auto snap-x snap-mandatory scrollbar-hide"
-        style={{
-          paddingBottom: 'max(10px, env(safe-area-inset-bottom))',
-          paddingTop: '10px',
-          willChange: 'transform, opacity',
-          transform: 'translateZ(0)'
-        }}
-      >
-        {orderedItems.map((item) => (
-          <NavLink
-            key={item.path}
-            to={item.path}
-            end={item.path === "/"}
-            onClick={triggerHapticFeedback}
-            className={({ isActive }) =>
-              `shrink-0 snap-center flex flex-col items-center justify-center gap-1 px-3 py-2 w-[76px] md:w-[88px] lg:w-[100px] rounded-lg relative transition-colors duration-200 border-t-2 ${isActive
-                ? "text-primary bg-primary/10 border-primary shadow-sm shadow-primary/20 dark:bg-primary/15"
-                : "text-muted-foreground border-transparent active:text-primary/70 active:bg-muted/50 hover:text-foreground/80"
-              }`
-            }
+      {/* Premium Floating Navigation Container */}
+      <div className="mx-4 mb-4">
+        <div
+          className="relative overflow-hidden rounded-[24px] bg-card/80 backdrop-blur-xl border border-white/20 dark:border-white/10 shadow-[0_8px_32px_rgba(0,0,0,0.12),0_2px_8px_rgba(0,0,0,0.08)] dark:shadow-[0_8px_32px_rgba(0,0,0,0.4),0_2px_8px_rgba(0,0,0,0.3)]"
+          style={{
+            paddingBottom: 'max(12px, env(safe-area-inset-bottom))',
+            paddingTop: '12px',
+          }}
+        >
+          {/* Premium Gradient Border Effect */}
+          <div className="absolute inset-0 rounded-[24px] bg-gradient-to-b from-white/30 to-transparent dark:from-white/10 pointer-events-none" />
+          
+          {/* Navigation Items */}
+          <div
+            className="flex items-center gap-1 overflow-x-auto snap-x snap-mandatory scrollbar-hide px-2"
             style={{
               willChange: 'transform, opacity',
               transform: 'translateZ(0)'
             }}
           >
-            {({ isActive }) => (
-              <>
-                {/* Active state glow effect */}
-                {isActive && (
-                  <div className="absolute inset-0 bg-gradient-to-t from-primary/10 to-transparent rounded-lg -z-10" />
+            {orderedItems.map((item, index) => (
+              <NavLink
+                key={item.path}
+                to={item.path}
+                end={item.path === "/"}
+                onClick={triggerHapticFeedback}
+                className={({ isActive }) =>
+                  `shrink-0 snap-center flex flex-col items-center justify-center gap-1.5 px-3 py-2.5 min-w-[68px] rounded-[16px] relative transition-all duration-300 ${
+                    isActive
+                      ? "text-primary"
+                      : "text-muted-foreground hover:text-foreground"
+                  }`
+                }
+                style={{
+                  willChange: 'transform, opacity',
+                  transform: 'translateZ(0)'
+                }}
+              >
+                {({ isActive }) => (
+                  <>
+                    {/* Active Background Pill */}
+                    {isActive && (
+                      <motion.div
+                        layoutId="activeNavBg"
+                        className="absolute inset-0 bg-gradient-to-b from-primary/20 to-primary/5 rounded-[16px] border border-primary/20"
+                        initial={false}
+                        transition={{
+                          type: "spring",
+                          stiffness: 500,
+                          damping: 35
+                        }}
+                      />
+                    )}
+                    
+                    {/* Icon Container */}
+                    <div className={`relative p-2 rounded-xl transition-all duration-300 ${
+                      isActive 
+                        ? "bg-gradient-to-b from-primary/30 to-primary/10 shadow-[0_2px_8px_rgba(var(--primary),0.3)]" 
+                        : "bg-transparent"
+                    }`}>
+                      <item.icon 
+                        className={`w-5 h-5 transition-all duration-300 ${
+                          isActive 
+                            ? "scale-110 text-primary drop-shadow-[0_2px_4px_rgba(var(--primary),0.4)]" 
+                            : "scale-100"
+                        }`} 
+                        strokeWidth={isActive ? 2.5 : 2}
+                      />
+                    </div>
+                    
+                    {/* Label */}
+                    <span className={`text-[10px] leading-none transition-all duration-300 whitespace-nowrap ${
+                      isActive 
+                        ? "font-semibold text-primary" 
+                        : "font-medium"
+                    }`}>
+                      {item.title}
+                    </span>
+                  </>
                 )}
-
-                <item.icon className={`w-5 h-5 md:w-6 md:h-6 lg:w-6 lg:h-6 transition-transform duration-200 ${isActive ? "scale-110 text-primary" : "scale-100"
-                  }`} />
-                <span className={`text-[10px] md:text-xs lg:text-sm leading-none transition-colors duration-200 ${isActive ? "font-semibold text-primary" : "font-medium"
-                  }`}>
-                  {item.title}
-                </span>
-              </>
-            )}
-          </NavLink>
-        ))}
+              </NavLink>
+            ))}
+          </div>
+          
+          {/* iOS-style Home Indicator */}
+          <div className="flex justify-center mt-2">
+            <div className="w-32 h-1 bg-foreground/20 rounded-full" />
+          </div>
+        </div>
       </div>
     </nav>
   );

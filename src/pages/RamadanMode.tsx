@@ -3,13 +3,14 @@ import { useNavigate } from "react-router-dom";
 import { AppBar } from "@/components/AppBar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Moon, Sun, CheckCircle, TrendingUp, AlertCircle, ArrowLeft, MapPin, Clock, RefreshCw, Flame, Check, BookOpen, Minus, Plus } from "lucide-react";
+import { Calendar, Moon, Sun, CheckCircle, TrendingUp, AlertCircle, ArrowLeft, MapPin, Clock, RefreshCw, Flame, Check, BookOpen, Minus, Plus, Star, Heart, Gift, Trophy } from "lucide-react";
 import { LayoutManager } from "@/components/LayoutManager";
 import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
+import { RamadanNotifications } from "@/lib/ramadan-notifications";
 
 const RAMADAN_STORAGE = 'ramadan-data';
 
@@ -18,6 +19,10 @@ interface RamadanData {
   quranProgress: number; // Pages read (out of 604)
   dailyQuranGoal: number;
   startDate: string; // Ramadan start date
+  tarawihPrayers: string[]; // Tarawih nights completed
+  charityAmount: number; // Total charity given
+  goodDeeds: number; // Daily good deeds counter
+  eidCountdown: number; // Days until Eid
 }
 
 export default function RamadanMode() {
@@ -35,7 +40,11 @@ export default function RamadanMode() {
     fastingDays: [],
     quranProgress: 0,
     dailyQuranGoal: 20,
-    startDate: new Date().toISOString()
+    startDate: new Date().toISOString(),
+    tarawihPrayers: [],
+    charityAmount: 0,
+    goodDeeds: 0,
+    eidCountdown: 30
   });
   const [currentDay, setCurrentDay] = useState(1);
   const [todayFasted, setTodayFasted] = useState(false);
@@ -96,6 +105,18 @@ export default function RamadanMode() {
         true // Ramadan mode
       );
       setNextEvent(countdown);
+
+      // Schedule Ramadan notifications if it's Ramadan
+      if (isRamadan && ramadanDay > 0) {
+        const ramadanNotifications = RamadanNotifications.getInstance();
+        await ramadanNotifications.scheduleDailyRamadanNotifications(
+          timings.Fajr,
+          timings.Maghrib,
+          timings.Isha,
+          location.locationName,
+          ramadanDay
+        );
+      }
     } catch (error) {
       console.error('Failed to load Ramadan times:', error);
       // Fallback to offline calculation
@@ -190,6 +211,41 @@ export default function RamadanMode() {
     saveData({ ...data, quranProgress: newProgress });
   };
 
+  const toggleTarawih = () => {
+    const tonight = new Date().toDateString();
+    let newTarawihPrayers = [...data.tarawihPrayers];
+
+    if (newTarawihPrayers.includes(tonight)) {
+      newTarawihPrayers = newTarawihPrayers.filter(d => d !== tonight);
+      toast({ title: "Tarawih prayer unmarked" });
+    } else {
+      newTarawihPrayers.push(tonight);
+      toast({ title: "Tarawih prayer recorded! May Allah accept it!" });
+    }
+
+    saveData({ ...data, tarawihPrayers: newTarawihPrayers });
+  };
+
+  const addCharity = (amount: number) => {
+    const newAmount = Math.max(0, data.charityAmount + amount);
+    saveData({ ...data, charityAmount: newAmount });
+    if (amount > 0) {
+      toast({ title: `Charity added: $${amount}`, description: "May Allah multiply your reward!" });
+    }
+  };
+
+  const addGoodDeed = () => {
+    const newCount = data.goodDeeds + 1;
+    saveData({ ...data, goodDeeds: newCount });
+    toast({ title: "Good deed recorded!", description: "Every good deed is multiplied in Ramadan!" });
+  };
+
+  const calculateEidCountdown = () => {
+    if (!isRamadan) return data.eidCountdown;
+    const remainingDays = 30 - ramadanDay;
+    return Math.max(0, remainingDays);
+  };
+
   const quranPercentage = (data.quranProgress / 604) * 100;
   const juzCompleted = Math.floor(data.quranProgress / 20);
   const fastingPercentage = (data.fastingDays.length / 30) * 100;
@@ -199,7 +255,11 @@ export default function RamadanMode() {
       fastingDays: [],
       quranProgress: 0,
       dailyQuranGoal: 20,
-      startDate: new Date().toISOString()
+      startDate: new Date().toISOString(),
+      tarawihPrayers: [],
+      charityAmount: 0,
+      goodDeeds: 0,
+      eidCountdown: 30
     };
     saveData(newData);
     setCurrentDay(1);
@@ -230,54 +290,79 @@ export default function RamadanMode() {
 
           {/* Ramadan Status */}
           {!islamicLoading && (
-            <Card className={`p-4 ${isRamadan ? 'bg-gradient-to-br from-green-500/20 to-green-600/5 border-green-500/20' : 'bg-muted/30'}`}>
-              <div className="text-center space-y-2">
-                {/* Debug Info */}
-                {process.env.NODE_ENV === 'development' && islamicInfo && (
-                  <div className="text-xs text-left bg-black/10 p-2 rounded">
-                    <p className="font-mono">Debug Info:</p>
-                    <p className="font-mono">Hijri: {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.en} {islamicInfo.currentDate.hijri.year}</p>
-                    <p className="font-mono">Month: {islamicInfo.hijriMonth} (Ramadan: {islamicInfo.hijriMonth === 9 ? 'YES' : 'NO'})</p>
-                    <p className="font-mono">API Ramadan: {isRamadan ? 'YES' : 'NO'}</p>
-                  </div>
-                )}
-                
-                {isRamadan ? (
-                  <>
-                    <div className="flex items-center justify-center gap-2">
-                      <Moon className="w-5 h-5 text-green-500" />
-                      <p className="font-semibold text-green-600 dark:text-green-400">Ramadan Active</p>
+            <>
+              <Card className={`p-4 ${isRamadan ? 'bg-gradient-to-br from-green-500/20 to-green-600/5 border-green-500/20' : 'bg-muted/30'}`}>
+                <div className="text-center space-y-2">
+                  {/* Debug Info */}
+                  {process.env.NODE_ENV === 'development' && islamicInfo && (
+                    <div className="text-xs text-left bg-black/10 p-2 rounded">
+                      <p className="font-mono">Debug Info:</p>
+                      <p className="font-mono">Hijri: {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.en} {islamicInfo.currentDate.hijri.year}</p>
+                      <p className="font-mono">Month: {islamicInfo.hijriMonth} (Ramadan: {islamicInfo.hijriMonth === 9 ? 'YES' : 'NO'})</p>
+                      <p className="font-mono">API Ramadan: {isRamadan ? 'YES' : 'NO'}</p>
                     </div>
-                    <p className="text-sm text-muted-foreground">
-                      Day {ramadanDay} of 30
-                    </p>
-                    <p className="text-xs text-muted-foreground">
-                      {islamicInfo?.currentDate.hijri.day} {islamicInfo?.currentDate.hijri.month.en} {islamicInfo?.currentDate.hijri.year}
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <div className="flex items-center justify-center gap-2">
-                      <Calendar className="w-5 h-5 text-muted-foreground" />
-                      <p className="font-semibold text-muted-foreground">Ramadan Not Started</p>
-                    </div>
-                    <p className="text-sm text-muted-foreground">
-                      {daysUntilRamadan > 0 ? `${daysUntilRamadan} days until Ramadan` : 'Check calendar for Ramadan dates'}
-                    </p>
-                    {islamicInfo && (
-                      <p className="text-xs text-muted-foreground">
-                        Current: {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.en}
+                  )}
+                  
+                  {isRamadan ? (
+                    <>
+                      <div className="flex items-center justify-center gap-2">
+                        <Moon className="w-5 h-5 text-green-500" />
+                        <p className="font-semibold text-green-600 dark:text-green-400">Ramadan Active</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        Day {ramadanDay} of 30
                       </p>
-                    )}
-                  </>
-                )}
-                {islamicError && (
-                  <p className="text-xs text-red-500">
-                    Calendar data unavailable
-                  </p>
-                )}
-              </div>
-            </Card>
+                      <p className="text-xs text-muted-foreground">
+                        {islamicInfo?.currentDate.hijri.day} {islamicInfo?.currentDate.hijri.month.en} {islamicInfo?.currentDate.hijri.year}
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <div className="flex items-center justify-center gap-2">
+                        <Calendar className="w-5 h-5 text-muted-foreground" />
+                        <p className="font-semibold text-muted-foreground">Ramadan Not Started</p>
+                      </div>
+                      <p className="text-sm text-muted-foreground">
+                        {daysUntilRamadan > 0 ? `${daysUntilRamadan} days until Ramadan` : 'Check calendar for Ramadan dates'}
+                      </p>
+                      {islamicInfo && (
+                        <p className="text-xs text-muted-foreground">
+                          Current: {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.en}
+                        </p>
+                      )}
+                    </>
+                  )}
+                  {islamicError && (
+                    <p className="text-xs text-red-500">
+                      Calendar data unavailable
+                    </p>
+                  )}
+                </div>
+              </Card>
+
+              {/* Eid Countdown */}
+              {isRamadan && (
+                <Card className="p-4 bg-gradient-to-br from-yellow-500/20 to-orange-600/5 border-yellow-500/20">
+                  <div className="text-center space-y-2">
+                    <div className="flex items-center justify-center gap-2">
+                      <Gift className="w-5 h-5 text-yellow-500" />
+                      <p className="font-semibold text-yellow-600 dark:text-yellow-400">Eid Countdown</p>
+                    </div>
+                    <p className="text-3xl font-bold text-yellow-600 dark:text-yellow-400">
+                      {calculateEidCountdown()}
+                    </p>
+                    <p className="text-sm text-muted-foreground">
+                      days until Eid al-Fitr
+                    </p>
+                    <div className="flex items-center justify-center gap-1 text-xs text-muted-foreground">
+                      <Star className="w-3 h-3" />
+                      <span>Prepare for celebration!</span>
+                      <Star className="w-3 h-3" />
+                    </div>
+                  </div>
+                </Card>
+              )}
+            </>
           )}
 
           {/* Location Info */}
@@ -410,7 +495,95 @@ export default function RamadanMode() {
             </Button>
           </Card>
 
-          {/* Quran Reading Tracker */}
+          {/* Tarawih Prayer Tracker */}
+          <Card className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Star className="w-5 h-5 text-primary" />
+                <span className="font-medium">Tarawih Prayers</span>
+              </div>
+              <span className="text-sm text-muted-foreground">{data.tarawihPrayers.length}/30 nights</span>
+            </div>
+
+            <Progress value={(data.tarawihPrayers.length / 30) * 100} className="h-3" />
+
+            <div className="grid grid-cols-10 gap-1">
+              {Array.from({ length: 30 }).map((_, i) => {
+                const nightDate = new Date(data.startDate);
+                nightDate.setDate(nightDate.getDate() + i);
+                const isCompleted = data.tarawihPrayers.includes(nightDate.toDateString());
+                const isTonight = i + 1 === currentDay;
+
+                return (
+                  <div
+                    key={i}
+                    className={`aspect-square rounded flex items-center justify-center text-xs font-medium ${isCompleted
+                      ? 'bg-purple-500 text-white'
+                      : isTonight
+                        ? 'bg-primary/20 text-primary border-2 border-primary'
+                        : 'bg-muted'
+                      }`}
+                  >
+                    {i + 1}
+                  </div>
+                );
+              })}
+            </div>
+
+            <Button
+              className="w-full"
+              variant={data.tarawihPrayers.includes(new Date().toDateString()) ? "outline" : "default"}
+              onClick={toggleTarawih}
+            >
+              {data.tarawihPrayers.includes(new Date().toDateString()) ? (
+                <>
+                  <Check className="w-4 h-4 mr-2" />
+                  Tonight Tarawih ✓
+                </>
+              ) : (
+                <>
+                  <Star className="w-4 h-4 mr-2" />
+                  Mark Tonight Tarawih
+                </>
+              )}
+            </Button>
+          </Card>
+
+          {/* Charity & Good Deeds */}
+          <div className="grid grid-cols-2 gap-3">
+            <Card className="p-4 bg-gradient-to-br from-green-500/20 to-green-600/5 border-green-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <Heart className="w-5 h-5 text-green-500" />
+                <span className="font-medium text-green-600 dark:text-green-400">Charity</span>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-green-600 dark:text-green-400">${data.charityAmount}</p>
+                <p className="text-xs text-muted-foreground mb-3">total given</p>
+                <div className="flex gap-1">
+                  <Button variant="outline" size="sm" onClick={() => addCharity(-10)} disabled={data.charityAmount < 10}>
+                    -$10
+                  </Button>
+                  <Button variant="outline" size="sm" onClick={() => addCharity(10)}>
+                    +$10
+                  </Button>
+                </div>
+              </div>
+            </Card>
+
+            <Card className="p-4 bg-gradient-to-br from-blue-500/20 to-blue-600/5 border-blue-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <Trophy className="w-5 h-5 text-blue-500" />
+                <span className="font-medium text-blue-600 dark:text-blue-400">Good Deeds</span>
+              </div>
+              <div className="text-center">
+                <p className="text-2xl font-bold text-blue-600 dark:text-blue-400">{data.goodDeeds}</p>
+                <p className="text-xs text-muted-foreground mb-3">this Ramadan</p>
+                <Button variant="outline" size="sm" onClick={addGoodDeed} className="w-full">
+                  + Add Deed
+                </Button>
+              </div>
+            </Card>
+          </div>
           <Card className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">
@@ -457,7 +630,49 @@ export default function RamadanMode() {
             </p>
           </Card>
 
-          {/* Calendar View */}
+          {/* Ramadan Progress Summary */}
+          <Card className="p-4 bg-gradient-to-br from-primary/10 to-primary/5 border-primary/20">
+            <div className="flex items-center gap-2 mb-4">
+              <Trophy className="w-5 h-5 text-primary" />
+              <span className="font-medium text-primary">Ramadan Progress</span>
+            </div>
+            
+            <div className="grid grid-cols-2 gap-4">
+              <div className="text-center">
+                <div className="text-2xl font-bold text-green-500">
+                  {Math.round((data.fastingDays.length / 30) * 100)}%
+                </div>
+                <p className="text-xs text-muted-foreground">Fasting</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-purple-500">
+                  {Math.round((data.tarawihPrayers.length / 30) * 100)}%
+                </div>
+                <p className="text-xs text-muted-foreground">Tarawih</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-blue-500">
+                  {Math.round(quranPercentage)}%
+                </div>
+                <p className="text-xs text-muted-foreground">Quran</p>
+              </div>
+              <div className="text-center">
+                <div className="text-2xl font-bold text-yellow-500">
+                  {data.goodDeeds}
+                </div>
+                <p className="text-xs text-muted-foreground">Good Deeds</p>
+              </div>
+            </div>
+
+            <div className="mt-4 pt-4 border-t border-primary/20">
+              <p className="text-center text-sm text-muted-foreground">
+                "Whoever fasts Ramadan out of faith and hope for reward, their past sins will be forgiven."
+              </p>
+              <p className="text-center text-xs text-muted-foreground mt-1">
+                - Prophet Muhammad ﷺ
+              </p>
+            </div>
+          </Card>
           <Card className="p-4 space-y-3">
             <div className="flex items-center gap-2">
               <Calendar className="w-5 h-5 text-primary" />

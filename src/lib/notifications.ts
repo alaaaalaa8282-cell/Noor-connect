@@ -24,6 +24,48 @@ export const getNotificationPermission = (): NotificationPermission | null => {
   return Notification.permission;
 };
 
+// Check if permission should be requested (APK users - persistent asking)
+export const shouldRequestPermission = (): boolean => {
+  if (!isNotificationSupported()) return false;
+  
+  const permission = getNotificationPermission();
+  if (permission !== 'default') return false;
+  
+  // Check if we're in APK/PWA mode - always ask for APK users
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                     ('standalone' in window.navigator && (window.navigator as any).standalone) || 
+                     document.referrer.includes('android-app://');
+  
+  if (!isStandalone) return false;
+  
+  // For APK users, check if we should ask again (more frequent)
+  const lastAskedTimestamp = localStorage.getItem('notification-last-asked');
+  if (lastAskedTimestamp) {
+    const lastAskedTime = parseInt(lastAskedTimestamp);
+    const oneHour = 60 * 60 * 1000; // Reduced from 24 hours to 1 hour
+    if (Date.now() - lastAskedTime < oneHour) {
+      return false;
+    }
+  }
+  
+  return true;
+};
+
+// Force request permission (for APK users - bypass cooldown)
+export const forceRequestPermission = (): boolean => {
+  if (!isNotificationSupported()) return false;
+  
+  const permission = getNotificationPermission();
+  if (permission !== 'default') return false;
+  
+  // Check if we're in APK/PWA mode
+  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                     ('standalone' in window.navigator && (window.navigator as any).standalone) || 
+                     document.referrer.includes('android-app://');
+  
+  return Boolean(isStandalone);
+};
+
 // Check if user has enabled notifications in our app
 export const isNotificationsEnabled = (): boolean => {
   return localStorage.getItem(NOTIFICATION_PERMISSION_KEY) === 'true';
@@ -37,12 +79,36 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   }
 
   try {
+    // Check if we're in APK/PWA mode for enhanced permission handling
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
+                       ('standalone' in window.navigator && (window.navigator as any).standalone) || 
+                       document.referrer.includes('android-app://');
+
+    // Store when we last asked (for APK users)
+    if (isStandalone) {
+      localStorage.setItem('notification-last-asked', Date.now().toString());
+    }
+
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       localStorage.setItem(NOTIFICATION_PERMISSION_KEY, 'true');
+      
+      // For APK/PWA, also store the permission timestamp
+      if (isStandalone) {
+        localStorage.setItem('notification-permission-timestamp', Date.now().toString());
+        localStorage.setItem('app-install-source', 'apk');
+        // Clear any denial records
+        localStorage.removeItem('notification-permission-denied');
+      }
+      
       return true;
+    } else {
+      // Store the denial for APK users (with shorter cooldown)
+      if (isStandalone) {
+        localStorage.setItem('notification-permission-denied', Date.now().toString());
+      }
+      return false;
     }
-    return false;
   } catch (error) {
     console.error('Error requesting notification permission:', error);
     return false;

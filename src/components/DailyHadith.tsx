@@ -57,34 +57,46 @@ export function DailyHadith() {
   if (!hadith) return null;
 
   return (
-    <Card className="overflow-hidden border-accent/20 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent">
+    <Card className="relative overflow-hidden border-accent/20 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent">
+      {/* Decorative top accent */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-accent-foreground/50 to-transparent" />
+      
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-accent-foreground">
-            <MessageCircle className="w-4 h-4" />
-            <span className="text-sm font-medium">Daily Hadith</span>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-accent/30">
+              <MessageCircle className="w-4 h-4 text-accent-foreground" />
+            </div>
+            <span className="text-sm font-semibold text-accent-foreground">Daily Hadith</span>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={refreshHadith}>
-              <RefreshCw className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-accent/20" onClick={refreshHadith}>
+              <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={shareHadith}>
-              <Share2 className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-accent/20" onClick={shareHadith}>
+              <Share2 className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
         </div>
         
-        <p className="text-lg font-arabic text-right leading-loose text-foreground" dir="rtl">
-          {hadith.text}
-        </p>
+        {/* Glass card for Arabic text */}
+        <div className="glass-card p-4 rounded-xl">
+          <p className="text-lg font-arabic text-right leading-loose text-foreground" dir="rtl">
+            {hadith.text}
+          </p>
+        </div>
         
-        <p className="text-sm text-muted-foreground italic">
+        <p className="text-sm text-muted-foreground italic leading-relaxed">
           "{hadith.translation}"
         </p>
         
-        <p className="text-xs text-primary font-medium">
-          — {hadith.source} #{hadith.number}
-        </p>
+        <div className="flex items-center gap-2">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-accent-foreground/30 to-transparent" />
+          <p className="text-xs text-accent-foreground font-semibold px-2">
+            — {hadith.source} #{hadith.number}
+          </p>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-accent-foreground/30 to-transparent" />
+        </div>
       </CardContent>
     </Card>
   );

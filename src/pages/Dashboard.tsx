@@ -1,7 +1,7 @@
 import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart } from "lucide-react";
 import { AppBar } from "@/components/AppBar";
 const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
 const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
@@ -21,6 +21,7 @@ import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { shouldShowMenstrualFeatures } from "@/lib/gender-settings";
 
 // Dynamic imports for code splitting
 // const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
@@ -288,24 +289,29 @@ export default function Dashboard() {
         <div className="max-w-lg mx-auto p-4 space-y-4">
           {/* Header */}
           {/* Premium Hero Card */}
-          <div className="relative overflow-hidden rounded-3xl shadow-xl transition-all duration-300 hover:shadow-2xl group">
-            {/* Background with Gradient and Pattern */}
+          <div className="relative overflow-hidden rounded-[28px] shadow-[var(--elevation-4)] transition-all duration-500 hover:shadow-[var(--elevation-6)] group">
+            {/* Animated Mesh Gradient Background */}
             <div className="absolute inset-0 bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-[#b38b5d] opacity-100"></div>
+            <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-transparent opacity-60 animate-pulse"></div>
 
             {/* Islamic Pattern Overlay (Abstract) */}
-            <div className="absolute inset-0 opacity-10 bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] bg-repeat"></div>
+            <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] bg-repeat"></div>
 
-            {/* Animated Glow Orbs */}
-            <div className="absolute top-[-50px] right-[-50px] w-40 h-40 bg-[#e0c097] rounded-full blur-[60px] opacity-20 animate-pulse"></div>
-            <div className="absolute bottom-[-30px] left-[-30px] w-32 h-32 bg-[#4fd1c5] rounded-full blur-[50px] opacity-20 animate-pulse"></div>
+            {/* Animated Glow Orbs with enhanced effects */}
+            <div className="absolute top-[-60px] right-[-60px] w-48 h-48 bg-[#e0c097] rounded-full blur-[80px] opacity-30 animate-pulse"></div>
+            <div className="absolute bottom-[-40px] left-[-40px] w-40 h-40 bg-[#4fd1c5] rounded-full blur-[70px] opacity-25 animate-pulse"></div>
+            <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-primary/30 rounded-full blur-[60px] opacity-20 animate-pulse"></div>
+
+            {/* Glassmorphism Overlay */}
+            <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent"></div>
 
             {/* Content Container */}
-            <div className="relative z-10 p-6 sm:p-8 flex flex-col items-center text-white space-y-4">
+            <div className="relative z-10 p-6 sm:p-8 flex flex-col items-center text-white space-y-5">
 
-              {/* Top Row: Date & Hijri */}
-              <div className="w-full flex justify-between items-center text-xs sm:text-sm font-medium text-white/80">
-                <div className="flex items-center gap-1.5 bg-white/10 px-3 py-1 rounded-full backdrop-blur-md border border-white/10">
-                  <Calendar className="w-3.5 h-3.5" />
+              {/* Top Row: Date & Hijri with premium badges */}
+              <div className="w-full flex justify-between items-center text-xs sm:text-sm font-medium">
+                <div className="flex items-center gap-2 glass-card px-3 py-1.5 text-white/90">
+                  <Calendar className="w-3.5 h-3.5 text-[#e0c097]" />
                   <span>
                     {currentTime.toLocaleDateString("en-US", {
                       weekday: "short",
@@ -315,21 +321,21 @@ export default function Dashboard() {
                   </span>
                 </div>
                 {hijriDate && (
-                  <div className="font-arabic tracking-wide text-[#e0c097]">
+                  <div className="glass-card px-3 py-1.5 font-arabic tracking-wide text-[#e0c097]">
                     {hijriDate}
                   </div>
                 )}
               </div>
 
-              {/* Center: Greeting & Time */}
-              <div className="flex flex-col items-center space-y-1 py-2">
+              {/* Center: Greeting & Time with premium typography */}
+              <div className="flex flex-col items-center space-y-2 py-3">
                 <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium tracking-widest uppercase text-[#e0c097]/90">
+                  <span className="text-sm font-medium tracking-[0.2em] uppercase text-[#e0c097]/90">
                     {greeting}
                   </span>
                 </div>
 
-                <h1 className="text-6xl sm:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white to-white/70 drop-shadow-sm font-mono">
+                <h1 className="text-6xl sm:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/70 drop-shadow-sm font-mono">
                   {currentTime.toLocaleTimeString("en-US", {
                     hour: timeFormat === '12' ? 'numeric' : '2-digit',
                     minute: "2-digit",
@@ -341,17 +347,23 @@ export default function Dashboard() {
                   </span>
                 </h1>
 
-                <p className="text-xs text-white/50 font-medium tracking-wide uppercase flex items-center gap-1.5 mt-1">
+                <p className="text-xs text-white/60 font-medium tracking-wide uppercase flex items-center gap-1.5 mt-1 glass-card px-3 py-1">
                   <MapPin className="w-3 h-3" />
                   {locationLabel}
-                  {location.timeZone && <span className="text-white/30">• {location.timeZone.split('/')[1]?.replace('_', ' ')}</span>}
+                  {location.timeZone && <span className="text-white/40">• {location.timeZone.split('/')[1]?.replace('_', ' ')}</span>}
                 </p>
               </div>
 
             </div>
 
-            {/* Bottom Glass Bar */}
-            <div className="absolute bottom-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-[#e0c097]/50 to-transparent"></div>
+            {/* Premium Bottom Gradient Line */}
+            <div className="absolute bottom-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-[#e0c097]/70 to-transparent"></div>
+
+            {/* Corner Accents */}
+            <div className="absolute top-4 left-4 w-8 h-8 border-l-2 border-t-2 border-white/20 rounded-tl-lg"></div>
+            <div className="absolute top-4 right-4 w-8 h-8 border-r-2 border-t-2 border-white/20 rounded-tr-lg"></div>
+            <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-white/20 rounded-bl-lg"></div>
+            <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/20 rounded-br-lg"></div>
           </div>
 
           {/* Mood Based Remedies */}
@@ -413,43 +425,67 @@ export default function Dashboard() {
           {/* Dhikr Reminder */}
           <DhikrReminder />
 
-          {/* Quick Access */}
           {/* Quick Access Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
-              { icon: Compass, label: t('qibla'), sub: t('direction'), link: '/qibla', color: 'text-emerald-500' },
-              { icon: Calendar, label: t('qazaTracker'), sub: t('tracker'), link: '/qaza', color: 'text-orange-500' },
-              { icon: BookOpen, label: t('ramadanMode'), sub: t('mode'), link: '/ramadan', color: 'text-blue-500' },
-              { icon: Calculator, label: t('zakatCalculator'), sub: t('calc'), link: '/zakat', color: 'text-purple-500' },
-              { icon: Trophy, label: t('islamicQuiz'), sub: t('islamic'), link: '/quiz', color: 'text-yellow-500' },
-              { icon: Star, label: t('namesOfAllah'), sub: t('ofAllah'), link: '/names-of-allah', color: 'text-teal-500' },
+              { icon: Compass, label: t('qibla'), sub: t('direction'), link: '/qibla', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
+              { icon: Calendar, label: t('qazaTracker'), sub: t('tracker'), link: '/qaza', color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
+              { icon: BookOpen, label: t('ramadanMode'), sub: t('mode'), link: '/ramadan', color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
+              ...(true || shouldShowMenstrualFeatures() ? [
+                { icon: Heart, label: t('menstrualMode'), sub: t('mode'), link: '/menstrual-mode', color: 'text-rose-500', bgColor: 'bg-rose-500/10' }
+              ] : []),
+              { icon: Calculator, label: t('zakatCalculator'), sub: t('calc'), link: '/zakat', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
+              { icon: Trophy, label: t('islamicQuiz'), sub: t('islamic'), link: '/quiz', color: 'text-yellow-500', bgColor: 'bg-yellow-500/10' },
+              { icon: Star, label: t('namesOfAllah'), sub: t('ofAllah'), link: '/names-of-allah', color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
             ].map((item, idx) => (
-              <div
+              <motion.div
                 key={idx}
-                className="group relative overflow-hidden rounded-2xl bg-card border border-border/50 p-4 transition-all duration-300 hover:shadow-lg hover:-translate-y-1 cursor-pointer"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ delay: idx * 0.05, duration: 0.3 }}
+                whileHover={{ scale: 1.02, y: -2 }}
+                whileTap={{ scale: 0.98 }}
+                className="group relative overflow-hidden rounded-[20px] bg-card border border-border/50 p-4 cursor-pointer touch-feedback"
                 onClick={() => handleCardClick(item.label, item.link)}
               >
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity"></div>
+                {/* Hover Gradient Background */}
+                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                
+                {/* Shine Effect */}
+                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
+                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
+                </div>
+                
                 <div className="relative z-10 flex flex-col items-center text-center gap-2">
-                  <div className={`p-2.5 rounded-full bg-background shadow-sm group-hover:scale-110 transition-transform ${item.color}`}>
-                    <item.icon className="w-6 h-6" />
+                  {/* Icon Container with Premium Styling */}
+                  <div className={`p-3 rounded-2xl ${item.bgColor} shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-110`}>
+                    <item.icon className={`w-6 h-6 ${item.color}`} strokeWidth={2} />
                   </div>
+                  
+                  {/* Text Content */}
                   <div className="space-y-0.5">
-                    <h3 className="font-semibold text-sm">{item.label}</h3>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wide">{item.sub}</p>
+                    <h3 className="font-semibold text-sm group-hover:text-primary transition-colors duration-300">{item.label}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.sub}</p>
                   </div>
                 </div>
-              </div>
+                
+                {/* Corner Accent */}
+                <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary/20 group-hover:bg-primary/40 transition-colors duration-300" />
+              </motion.div>
             ))}
           </div>
 
           {/* Salah Tracker */}
-          <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
+          <Suspense fallback={
+            <div className="h-40 card-premium skeleton-premium" />
+          }>
             <SalahTracker />
           </Suspense>
 
           {/* Weekly Progress Chart */}
-          <Suspense fallback={<div className="h-60 bg-muted/20 animate-pulse rounded-lg" />}>
+          <Suspense fallback={
+            <div className="h-60 card-premium skeleton-premium" />
+          }>
             <WeeklySalahChart />
           </Suspense>
 
@@ -460,18 +496,23 @@ export default function Dashboard() {
           {initialLoad ? (
             <LocationCardSkeleton />
           ) : (
-            <Card className="p-4 border-border">
+            <Card className="p-4 border-border/50 hover:shadow-[var(--card-premium-shadow-hover)] transition-shadow duration-300">
               <div className="flex items-center justify-between">
-                <div>
-                  <h3 className="font-medium text-sm">{t('location')}</h3>
-                  <p className="text-xs text-muted-foreground">{location.locationName}</p>
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10">
+                    <MapPin className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">{t('location')}</h3>
+                    <p className="text-xs text-muted-foreground">{location.locationName}</p>
+                  </div>
                 </div>
                 <div className="flex gap-2">
                   <Button
                     variant="ghost"
                     size="sm"
                     onClick={() => setShowManualLocationDialog(true)}
-                    className="gap-2"
+                    className="gap-2 rounded-xl hover:bg-primary/10"
                   >
                     <MapPin className="w-4 h-4" />
                     {t('manual')}
@@ -481,7 +522,7 @@ export default function Dashboard() {
                     size="sm"
                     onClick={handleDetectLocation}
                     disabled={location.isDetecting}
-                    className="gap-2"
+                    className="gap-2 rounded-xl border-primary/30 hover:bg-primary/10 hover:border-primary/50"
                   >
                     {location.isDetecting ? (
                       <>
@@ -574,19 +615,29 @@ export default function Dashboard() {
           )}
 
           {/* Footer */}
-          <Card className="bg-card border-border">
+          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-muted/20">
+            {/* Decorative gradient accent */}
+            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+            
             <CardHeader className="pb-2 pt-4">
-              <CardTitle className="text-center text-base text-primary">
-                100% Private • Offline-first
-              </CardTitle>
-              <CardDescription className="text-center text-xs">
+              <div className="flex items-center justify-center gap-2 mb-1">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
+                <CardTitle className="text-center text-base font-semibold">
+                  <span className="text-gradient-gold">100% Private</span>
+                  <span className="text-muted-foreground mx-2">•</span>
+                  <span className="text-gradient-gold">Offline-first</span>
+                </CardTitle>
+              </div>
+              <CardDescription className="text-center text-xs font-medium uppercase tracking-wider">
                 No tracking • FOSS Architecture
               </CardDescription>
             </CardHeader>
             <CardContent className="pb-4">
-              <p className="text-center text-xs text-muted-foreground italic">
-                "In the remembrance of Allah do hearts find rest." — 13:28
-              </p>
+              <div className="glass-card px-4 py-3 rounded-xl">
+                <p className="text-center text-xs text-muted-foreground italic font-arabic">
+                  "In the remembrance of Allah do hearts find rest." — 13:28
+                </p>
+              </div>
             </CardContent>
           </Card>
         </div>

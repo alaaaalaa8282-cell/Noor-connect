@@ -79,34 +79,46 @@ export function DailyAyah() {
   if (!ayah) return null;
 
   return (
-    <Card className="overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+    <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+      {/* Decorative top accent */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
-          <div className="flex items-center gap-2 text-primary">
-            <BookOpen className="w-4 h-4" />
-            <span className="text-sm font-medium">Daily Ayah</span>
+          <div className="flex items-center gap-2">
+            <div className="p-1.5 rounded-lg bg-primary/20">
+              <BookOpen className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm font-semibold text-primary">Daily Ayah</span>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={refreshAyah}>
-              <RefreshCw className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10" onClick={refreshAyah}>
+              <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8" onClick={shareAyah}>
-              <Share2 className="w-4 h-4" />
+            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10" onClick={shareAyah}>
+              <Share2 className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
         </div>
         
-        <p className="text-xl font-arabic text-right leading-loose text-foreground" dir="rtl">
-          {ayah.arabic}
-        </p>
+        {/* Glass card for Arabic text */}
+        <div className="glass-card p-4 rounded-xl">
+          <p className="text-xl font-arabic text-right leading-loose text-foreground" dir="rtl">
+            {ayah.arabic}
+          </p>
+        </div>
         
-        <p className="text-sm text-muted-foreground italic">
+        <p className="text-sm text-muted-foreground italic leading-relaxed">
           "{ayah.translation}"
         </p>
         
-        <p className="text-xs text-primary font-medium">
-          — Surah {ayah.surah}, Ayah {ayah.ayahNumber}
-        </p>
+        <div className="flex items-center gap-2">
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+          <p className="text-xs text-primary font-semibold px-2">
+            — Surah {ayah.surah}, Ayah {ayah.ayahNumber}
+          </p>
+          <div className="h-px flex-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
+        </div>
       </CardContent>
     </Card>
   );

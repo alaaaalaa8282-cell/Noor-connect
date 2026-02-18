@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Settings, Type, MessageCircle, Globe } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Settings, Type, MessageCircle, Globe, User, UserCircle, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -21,6 +21,7 @@ import { localNotifications } from "@/lib/local-notifications";
 import { PrayerMethodSelector } from "@/components/PrayerMethodSelector";
 import { quranFontManager, type QuranFont } from "@/lib/quran-font-manager";
 import { unifiedNotifications } from "@/lib/unified-notifications";
+import { getGenderSettings, setGender, type Gender } from "@/lib/gender-settings";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -45,6 +46,7 @@ const Profile = () => {
     eveningReminders: false,
   });
   const [notificationsSupported, setNotificationsSupported] = useState(false);
+  const [genderSettings, setGenderSettingsState] = useState(getGenderSettings());
 
   // Prayer notification states
   const [prayerNotificationsEnabled, setPrayerNotificationsEnabled] = useState(false);
@@ -59,6 +61,7 @@ const Profile = () => {
     setQuranFontSizeState(getQuranFontSize());
     setQuranFontState(quranFontManager.getCurrentFont());
     setSalamGreetingEnabledState(isSalamGreetingEnabled());
+    setGenderSettingsState(getGenderSettings());
 
     // Initialize Quran font manager
     quranFontManager.initialize();
@@ -76,6 +79,17 @@ const Profile = () => {
 
     // Load storage stats
     getStorageStats().then(setStorageStats);
+
+    // Listen for gender settings changes
+    const handleGenderSettingsUpdate = () => {
+      setGenderSettingsState(getGenderSettings());
+    };
+
+    window.addEventListener('gender-settings-updated', handleGenderSettingsUpdate);
+    
+    return () => {
+      window.removeEventListener('gender-settings-updated', handleGenderSettingsUpdate);
+    };
   }, []);
 
   // Listen for prayer method changes to reload prayer times
@@ -289,6 +303,18 @@ const Profile = () => {
     }
   };
 
+  const handleGenderChange = (newGender: Gender) => {
+    const updated = setGender(newGender);
+    setGenderSettingsState(updated);
+    
+    toast({
+      title: "Gender updated",
+      description: newGender === "female" 
+        ? "Menstrual mode features are now available."
+        : "Your preferences have been updated.",
+    });
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -367,6 +393,47 @@ const Profile = () => {
                 ))}
               </SelectContent>
             </Select>
+          </div>
+        </Card>
+
+        {/* Gender Settings */}
+        <Card className="p-4 space-y-4">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <User className="w-4 h-4" /> Personal Information
+          </h3>
+
+          <div className="space-y-2">
+            <Label className="text-xs text-muted-foreground">Gender</Label>
+            <Select value={genderSettings.gender} onValueChange={(v: Gender) => handleGenderChange(v)}>
+              <SelectTrigger className="w-full">
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="male">
+                  <div className="flex items-center gap-2">
+                    <User className="w-4 h-4" />
+                    <span>Man</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="female">
+                  <div className="flex items-center gap-2">
+                    <UserCircle className="w-4 h-4" />
+                    <span>Woman</span>
+                  </div>
+                </SelectItem>
+                <SelectItem value="prefer-not-to-say">
+                  <div className="flex items-center gap-2">
+                    <UserX className="w-4 h-4" />
+                    <span>Prefer not to say</span>
+                  </div>
+                </SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-xs text-muted-foreground">
+              {genderSettings.gender === "female" 
+                ? "Menstrual mode features are available for you."
+                : "This helps us personalize your experience."}
+            </p>
           </div>
         </Card>
 

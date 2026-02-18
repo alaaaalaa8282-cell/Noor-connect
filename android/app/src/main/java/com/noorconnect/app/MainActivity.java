@@ -1,9 +1,14 @@
 package com.noorconnect.app;
 
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Bundle;
 import com.getcapacitor.BridgeActivity;
+import com.getcapacitor.PluginCall;
+import com.getcapacitor.annotation.CapacitorPlugin;
+import com.getcapacitor.annotation.Permission;
+import com.getcapacitor.annotation.PermissionCallback;
 
 public class MainActivity extends BridgeActivity {
     @Override

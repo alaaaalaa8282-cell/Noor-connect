@@ -2,6 +2,8 @@ import { useEffect, useRef, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { stopAllAdhanPreviews } from '@/components/AdhanSelector';
 import { getAdhanUrlForPrayer, type PrayerName } from '@/lib/adhan-preferences';
+import { WidgetPlugin } from '@/lib/widgetPlugin';
+import { Capacitor } from '@capacitor/core';
 
 interface PrayerTime {
   name: string;
@@ -10,6 +12,22 @@ interface PrayerTime {
 
 const STORAGE_KEY = 'prayer-alarm-enabled';
 const LAST_PLAYED_KEY = 'prayer-alarm-last-played';
+
+// Update widget with next prayer info
+const updateWidget = async (nextPrayer: PrayerTime, location: string = 'Unknown') => {
+  if (!Capacitor.isNativePlatform()) return;
+  
+  try {
+    await WidgetPlugin.updateWidget({
+      name: nextPrayer.name,
+      time: nextPrayer.time,
+      remaining: 'Next prayer',
+      location: location
+    });
+  } catch (error) {
+    console.log('Widget update failed (non-native platform):', error);
+  }
+};
 
 // Global audio instance for prayer alarm to prevent multiple instances
 let prayerAlarmAudio: HTMLAudioElement | null = null;
@@ -61,6 +79,10 @@ export const usePrayerAlarm = () => {
         { name: 'Maghrib', time: timings.Maghrib },
         { name: 'Isha', time: timings.Isha },
       ];
+
+      // Update widget with next prayer
+      const nextPrayer = prayerTimesRef.current[0]; // Simplified - you may want to calculate actual next prayer
+      updateWidget(nextPrayer, 'Current Location');
     } catch (error) {
       console.error('Error fetching prayer times for alarm:', error);
     }

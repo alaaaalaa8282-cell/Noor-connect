@@ -2,8 +2,8 @@
     "name": "Noor Connect - Islamic Companion",
     "short_name": "Noor Connect",
     "description": "Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.",
-    "theme_color": "#000000",
-    "background_color": "#000000",
+    "theme_color": "#1a4a4a",
+    "background_color": "#0a1128",
     "display": "standalone",
     "orientation": "portrait",
     "start_url": "/",
@@ -51,5 +51,9 @@
             "type": "image/png",
             "purpose": "maskable"
         }
-    ]
+    ],
+    "categories": ["lifestyle", "education", "utilities"],
+    "lang": "en",
+    "dir": "ltr",
+    "prefer_related_applications": false
 }

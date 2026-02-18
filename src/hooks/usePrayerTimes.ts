@@ -12,6 +12,9 @@ import { calculatePrayerEndTimes } from '@/lib/prayer-end-times';
 import { formatPrayerTime } from '@/lib/time-formatter';
 import { WidgetService } from '@/lib/widget-service';
 import { GeolocationService } from '@/lib/geolocation-service';
+import { WidgetPlugin } from '@/lib/widgetPlugin';
+import { Capacitor } from '@capacitor/core';
+import { getMenstrualModeData } from '@/lib/menstrual-mode';
 
 export interface PrayerTimes {
   fajr: Date;
@@ -436,12 +439,37 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       // Update our "cache" key
       previousPrayerTimesRef.current = locationKey;
 
-      // Update widget
-      WidgetService.updateWidget(
-        locationData.latitude,
-        locationData.longitude,
-        locationData.city || locationData.country
-      );
+      // Update widget with next prayer
+      if (Capacitor.isNativePlatform()) {
+        // Find next prayer from current time
+        const now = new Date();
+        const prayers = [
+          { name: 'Fajr', time: times.fajr },
+          { name: 'Dhuhr', time: times.dhuhr },
+          { name: 'Asr', time: times.asr },
+          { name: 'Maghrib', time: times.maghrib },
+          { name: 'Isha', time: times.isha }
+        ];
+        
+        let nextPrayer = prayers[0]; // Default to first prayer
+        for (const prayer of prayers) {
+          if (prayer.time > now) {
+            nextPrayer = prayer;
+            break;
+          }
+        }
+        
+        const location = locationData.city || locationData.country || 'Unknown';
+        
+        WidgetPlugin.updateWidget({
+          name: nextPrayer.name,
+          time: formatPrayerTime(nextPrayer.time, '24'),
+          remaining: 'Next prayer',
+          location: location
+        }).catch(error => {
+          console.log('Widget update failed:', error);
+        });
+      }
 
     } catch (error) {
       console.error('Failed to calculate prayer times:', error);
@@ -565,6 +593,16 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Schedule notifications only when prayer times actually change (deep comparison)
   useEffect(() => {
     if (!prayerTimes || !location) return;
+
+    const menstrualMode = getMenstrualModeData();
+    if (menstrualMode.isActive && menstrualMode.pausePrayerNotifications) {
+      import('@/lib/local-notifications').then(({ localNotifications }) => {
+        localNotifications.clearPrayerNotifications().catch((error) => {
+          console.error('Failed to clear prayer notifications in Menstrual Mode:', error);
+        });
+      });
+      return;
+    }
 
     // Create comparison string using only time strings to prevent Date object changes
     const prayerTimesString = JSON.stringify({

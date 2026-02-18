@@ -85,27 +85,32 @@ export function DhikrReminder() {
   };
 
   return (
-    <Card className="overflow-hidden border-primary/20">
+    <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
+      {/* Decorative top accent */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+      
       <CardContent className="p-4 space-y-3">
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-2">
-            <Bell className="w-4 h-4 text-primary" />
-            <span className="text-sm font-medium">Dhikr Reminder</span>
+            <div className="p-1.5 rounded-lg bg-primary/20">
+              <Bell className="w-4 h-4 text-primary" />
+            </div>
+            <span className="text-sm font-semibold text-primary">Dhikr Reminder</span>
           </div>
           <div className="flex items-center gap-2">
             <Button
               variant="ghost"
               size="icon"
-              className="h-8 w-8"
+              className="h-8 w-8 rounded-xl hover:bg-primary/10"
               onClick={refreshDhikr}
             >
-              <RefreshCw className="w-4 h-4" />
+              <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </Button>
             <Button
               variant={enabled ? "default" : "outline"}
               size="sm"
               onClick={toggleReminder}
-              className="gap-1"
+              className="gap-1 rounded-xl border-primary/30 hover:bg-primary/10 hover:border-primary/50"
             >
               {enabled ? <Bell className="w-3 h-3" /> : <BellOff className="w-3 h-3" />}
               {enabled ? 'On' : 'Off'}
@@ -118,7 +123,7 @@ export function DhikrReminder() {
             <Clock className="w-4 h-4 text-muted-foreground" />
             <span className="text-xs text-muted-foreground">Remind every</span>
             <Select value={interval} onValueChange={setInterval}>
-              <SelectTrigger className="w-24 h-8">
+              <SelectTrigger className="w-24 h-8 rounded-lg">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
@@ -131,14 +136,19 @@ export function DhikrReminder() {
           </div>
         )}
 
-        <div className="bg-primary/5 rounded-lg p-4 text-center">
+        {/* Glass card for dhikr content */}
+        <div className="glass-card p-4 rounded-xl text-center">
           <p className="text-2xl font-arabic text-primary mb-2" dir="rtl">
             {currentDhikr.arabic}
           </p>
-          <p className="text-sm font-medium">{currentDhikr.transliteration}</p>
-          <p className="text-xs text-muted-foreground italic">"{currentDhikr.translation}"</p>
+          <p className="text-sm font-medium text-foreground">{currentDhikr.transliteration}</p>
+          <p className="text-xs text-muted-foreground italic leading-relaxed">"{currentDhikr.translation}"</p>
           {currentDhikr.virtue && (
-            <p className="text-xs text-primary mt-2">✨ {currentDhikr.virtue}</p>
+            <div className="mt-3 pt-2 border-t border-primary/20">
+              <p className="text-xs text-primary font-medium flex items-center justify-center gap-1">
+                <span className="text-lg">✨</span> {currentDhikr.virtue}
+              </p>
+            </div>
           )}
         </div>
       </CardContent>

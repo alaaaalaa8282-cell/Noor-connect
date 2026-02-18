@@ -22,6 +22,7 @@ export const translations = {
         // Features
         qazaTracker: "Qaza Tracker",
         ramadanMode: "Ramadan Mode",
+        menstrualMode: "Menstrual Mode",
         zakatCalculator: "Zakat Calculator",
         islamicQuiz: "Islamic Quiz",
         namesOfAllah: "99 Names",
@@ -106,6 +107,7 @@ export const translations = {
         // Features
         qazaTracker: "تتبع القضاء",
         ramadanMode: "وضع رمضان",
+        menstrualMode: "وضع الدورة",
         zakatCalculator: "حاسبة الزكاة",
         islamicQuiz: "مسابقة إسلامية",
         namesOfAllah: "أسماء الله الحسنى",
@@ -190,6 +192,7 @@ export const translations = {
         // Features
         qazaTracker: "قضا ٹریکر",
         ramadanMode: "رمضان موڈ",
+        menstrualMode: "حیض موڈ",
         zakatCalculator: "زکوٰۃ کیلکولیٹر",
         islamicQuiz: "اسلامی کوئز",
         namesOfAllah: "اللہ کے 99 نام",
