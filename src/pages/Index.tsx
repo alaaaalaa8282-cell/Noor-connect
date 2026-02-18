@@ -4,6 +4,7 @@ import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { useState, useEffect } from "react";
 import { getTheme, setTheme } from "@/lib/storage";
+import { GeolocationService } from "@/lib/geolocation-service";
 
 const Index = () => {
   const navigate = useNavigate();
@@ -14,9 +15,28 @@ const Index = () => {
     setIsDarkMode(getTheme() === "dark");
     
     // Fetch prayer times
-    navigator.geolocation?.getCurrentPosition(async (pos) => {
+    const fetchPrayerTimes = async () => {
       try {
-        const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${pos.coords.latitude}&longitude=${pos.coords.longitude}&method=2`);
+        if (!GeolocationService.isSupported()) {
+          console.log('Geolocation not supported, skipping prayer times fetch');
+          return;
+        }
+
+        // Try to get location without prompting for permissions
+        // This will only work if permissions are already granted
+        const permissions = await GeolocationService.checkPermissions();
+        if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
+          console.log('Location permissions not granted, skipping prayer times fetch');
+          return;
+        }
+
+        const pos = await GeolocationService.getCurrentPosition({
+          enableHighAccuracy: false, // Use less accuracy for quick fetch
+          timeout: 5000,
+          maximumAge: 300000 // 5 minutes cache
+        });
+
+        const res = await fetch(`https://api.aladhan.com/v1/timings?latitude=${pos.latitude}&longitude=${pos.longitude}&method=2`);
         const data = await res.json();
         const timings = data.data.timings;
         const prayers = [
@@ -35,7 +55,9 @@ const Index = () => {
       } catch (error) {
         console.error('Failed to load prayer times:', error);
       }
-    });
+    };
+
+    fetchPrayerTimes();
   }, []);
 
   const toggleTheme = () => {

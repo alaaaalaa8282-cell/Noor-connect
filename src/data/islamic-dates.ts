@@ -146,8 +146,8 @@ export const importantIslamicDates: IslamicDate[] = [
 
 // Helper function to get Ramadan start date for a given year
 export const getRamadanStartDate = (year: number): Date => {
-  // This is approximate - in a real app, you'd use a proper Islamic calendar API
-  // For now, using approximate dates for demonstration
+  // This function is deprecated - use islamicCalendarService instead
+  // Keeping for backward compatibility
   const ramadanDates: Record<number, { month: number; day: number }> = {
     2025: { month: 2, day: 28 }, // Feb 28, 2025
     2026: { month: 2, day: 17 }, // Feb 17, 2026
@@ -163,6 +163,7 @@ export const getRamadanStartDate = (year: number): Date => {
 
 // Helper function to check if a date is within Ramadan countdown period
 export const isRamadanCountdownPeriod = (date: Date): boolean => {
+  // This function is deprecated - use islamicCalendarService instead
   const currentYear = date.getFullYear();
   const ramadanStart = getRamadanStartDate(currentYear);
   const thirtyDaysBefore = new Date(ramadanStart);
@@ -173,6 +174,7 @@ export const isRamadanCountdownPeriod = (date: Date): boolean => {
 
 // Helper function to get days until Ramadan
 export const getDaysUntilRamadan = (date: Date): number => {
+  // This function is deprecated - use islamicCalendarService instead
   const currentYear = date.getFullYear();
   const ramadanStart = getRamadanStartDate(currentYear);
   

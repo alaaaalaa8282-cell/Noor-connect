@@ -9,6 +9,7 @@ import { Progress } from "@/components/ui/progress";
 import { useToast } from "@/hooks/use-toast";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
+import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 
 const RAMADAN_STORAGE = 'ramadan-data';
 
@@ -26,7 +27,10 @@ export default function RamadanMode() {
   const [iftarTime, setIftarTime] = useState<string>("");
   const [nextEvent, setNextEvent] = useState<{ name: string; time: string; countdown: string } | null>(null);
   const [loadingTimes, setLoadingTimes] = useState(true);
-  const [isRamadanMode, setIsRamadanMode] = useState(false);
+  
+  // Use Islamic calendar hook for accurate Ramadan detection
+  const { isRamadan, ramadanDay, daysUntilRamadan, isLoading: islamicLoading, error: islamicError, islamicInfo } = useIslamicCalendar();
+  
   const [data, setData] = useState<RamadanData>({
     fastingDays: [],
     quranProgress: 0,
@@ -46,14 +50,13 @@ export default function RamadanMode() {
       const parsed = JSON.parse(saved) as RamadanData;
       setData(parsed);
 
-      // Calculate current day
-      const start = new Date(parsed.startDate);
-      const now = new Date();
-      const diff = Math.floor((now.getTime() - start.getTime()) / (1000 * 60 * 60 * 24)) + 1;
-      setCurrentDay(Math.max(1, Math.min(30, diff)));
+      // Update current Ramadan day from hook
+      if (isRamadan && ramadanDay > 0) {
+        setCurrentDay(ramadanDay);
+      }
 
       // Check if today is fasted
-      setTodayFasted(parsed.fastingDays.includes(now.toDateString()));
+      setTodayFasted(parsed.fastingDays.includes(new Date().toDateString()));
     }
 
     // Load dynamic prayer times
@@ -84,7 +87,6 @@ export default function RamadanMode() {
       // Force display Suhoor and Iftar even if not Ramadan
       setSuhoorTime(formatTime(timings.Imsak || timings.Fajr));
       setIftarTime(formatTime(timings.Maghrib));
-      setIsRamadanMode(true); // Force enable for testing
 
       // Get countdown to next event
       const countdown = await AladhanAPI.getNextEventCountdown(
@@ -102,7 +104,6 @@ export default function RamadanMode() {
 
       setSuhoorTime(formatTimeFromDate(times.fajr));
       setIftarTime(formatTimeFromDate(times.maghrib));
-      setIsRamadanMode(true); // Still enable for testing
     } finally {
       setLoadingTimes(false);
     }
@@ -141,7 +142,7 @@ export default function RamadanMode() {
 
   // Update countdown every second
   useEffect(() => {
-    if (!isRamadanMode) return;
+    if (!isRamadan) return;
 
     const updateCountdown = async () => {
       try {
@@ -161,7 +162,7 @@ export default function RamadanMode() {
 
     const interval = setInterval(updateCountdown, 1000); // Update every second
     return () => clearInterval(interval);
-  }, [isRamadanMode, location.latitude, location.longitude]);
+  }, [isRamadan, location.latitude, location.longitude]);
 
   const saveData = (newData: RamadanData) => {
     setData(newData);
@@ -226,6 +227,58 @@ export default function RamadanMode() {
               <p className="text-xs text-muted-foreground">of 30</p>
             </div>
           </div>
+
+          {/* Ramadan Status */}
+          {!islamicLoading && (
+            <Card className={`p-4 ${isRamadan ? 'bg-gradient-to-br from-green-500/20 to-green-600/5 border-green-500/20' : 'bg-muted/30'}`}>
+              <div className="text-center space-y-2">
+                {/* Debug Info */}
+                {process.env.NODE_ENV === 'development' && islamicInfo && (
+                  <div className="text-xs text-left bg-black/10 p-2 rounded">
+                    <p className="font-mono">Debug Info:</p>
+                    <p className="font-mono">Hijri: {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.en} {islamicInfo.currentDate.hijri.year}</p>
+                    <p className="font-mono">Month: {islamicInfo.hijriMonth} (Ramadan: {islamicInfo.hijriMonth === 9 ? 'YES' : 'NO'})</p>
+                    <p className="font-mono">API Ramadan: {isRamadan ? 'YES' : 'NO'}</p>
+                  </div>
+                )}
+                
+                {isRamadan ? (
+                  <>
+                    <div className="flex items-center justify-center gap-2">
+                      <Moon className="w-5 h-5 text-green-500" />
+                      <p className="font-semibold text-green-600 dark:text-green-400">Ramadan Active</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      Day {ramadanDay} of 30
+                    </p>
+                    <p className="text-xs text-muted-foreground">
+                      {islamicInfo?.currentDate.hijri.day} {islamicInfo?.currentDate.hijri.month.en} {islamicInfo?.currentDate.hijri.year}
+                    </p>
+                  </>
+                ) : (
+                  <>
+                    <div className="flex items-center justify-center gap-2">
+                      <Calendar className="w-5 h-5 text-muted-foreground" />
+                      <p className="font-semibold text-muted-foreground">Ramadan Not Started</p>
+                    </div>
+                    <p className="text-sm text-muted-foreground">
+                      {daysUntilRamadan > 0 ? `${daysUntilRamadan} days until Ramadan` : 'Check calendar for Ramadan dates'}
+                    </p>
+                    {islamicInfo && (
+                      <p className="text-xs text-muted-foreground">
+                        Current: {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.en}
+                      </p>
+                    )}
+                  </>
+                )}
+                {islamicError && (
+                  <p className="text-xs text-red-500">
+                    Calendar data unavailable
+                  </p>
+                )}
+              </div>
+            </Card>
+          )}
 
           {/* Location Info */}
           <Card className="p-3 bg-muted/30">

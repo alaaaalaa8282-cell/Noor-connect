@@ -11,6 +11,7 @@ import { AladhanAPI, ALADHAN_METHODS } from '@/lib/aladhan-api';
 import { calculatePrayerEndTimes } from '@/lib/prayer-end-times';
 import { formatPrayerTime } from '@/lib/time-formatter';
 import { WidgetService } from '@/lib/widget-service';
+import { GeolocationService } from '@/lib/geolocation-service';
 
 export interface PrayerTimes {
   fajr: Date;
@@ -219,37 +220,40 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   }, []);
 
   // Get location from geolocation API
-  const getLocationFromGeolocation = useCallback((): Promise<LocationData> => {
-    return new Promise((resolve, reject) => {
-      if (!navigator.geolocation) {
-        reject(new Error('Geolocation is not supported by your browser'));
-        return;
+  const getLocationFromGeolocation = useCallback(async (): Promise<LocationData> => {
+    try {
+      console.log('Getting location from geolocation...');
+      
+      // Check permissions first
+      const permissions = await GeolocationService.checkPermissions();
+      console.log('Geolocation permissions:', permissions);
+      
+      if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
+        // Request permissions
+        const granted = await GeolocationService.requestPermissions();
+        if (!granted) {
+          throw new Error('Location permission denied. Please enable location access in your device settings.');
+        }
       }
 
-      console.log('Getting location from geolocation...');
+      const position = await GeolocationService.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 3600000 // 1 hour
+      });
 
-      navigator.geolocation.getCurrentPosition(
-        (position) => {
-          const locationData: LocationData = {
-            latitude: position.coords.latitude,
-            longitude: position.coords.longitude,
-            source: 'geolocation'
-          };
+      const locationData: LocationData = {
+        latitude: position.latitude,
+        longitude: position.longitude,
+        source: 'geolocation'
+      };
 
-          console.log('Location from geolocation:', locationData);
-          resolve(locationData);
-        },
-        (error) => {
-          console.warn('Geolocation failed:', error);
-          reject(new Error('Location access denied.'));
-        },
-        {
-          enableHighAccuracy: true,
-          timeout: 10000,
-          maximumAge: 3600000 // 1 hour
-        }
-      );
-    });
+      console.log('Location from geolocation:', locationData);
+      return locationData;
+    } catch (error) {
+      console.warn('Geolocation failed:', error);
+      throw new Error(error instanceof Error ? error.message : 'Location access denied.');
+    }
   }, []);
 
   // Get default location

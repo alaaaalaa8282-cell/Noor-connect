@@ -8,6 +8,7 @@ import { Label } from "@/components/ui/label";
 import { Textarea } from "@/components/ui/textarea";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { Switch } from "@/components/ui/switch";
+import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from "@/components/ui/dialog";
 import { useToast } from "@/hooks/use-toast";
 import { habitTracker, type Habit, type HabitEntry, type HabitStats, DEFAULT_HABITS } from "@/lib/habit-tracker";
 
@@ -111,15 +112,61 @@ const HabitTracker = () => {
   };
 
   const deleteCustomHabit = (habitId: string) => {
-    if (confirm("Are you sure you want to delete this habit and all its entries?")) {
-      habitTracker.deleteCustomHabit(habitId);
-      loadData();
-      
-      toast({
-        title: "Habit deleted",
-        description: "Habit and all its entries have been removed",
-      });
+    const habit = habits.find(h => h.id === habitId);
+    
+    if (!habit) {
+      console.error('Habit not found!');
+      return;
     }
+    
+    if (confirm(`Are you sure you want to delete "${habit.name}"? This will remove the habit and all its tracking history.`)) {
+      try {
+        habitTracker.deleteHabit(habitId);
+        loadData();
+        
+        toast({
+          title: "Habit deleted",
+          description: `"${habit.name}" and all its entries have been removed`,
+          variant: "destructive"
+        });
+      } catch (error) {
+        console.error('Error during deletion:', error);
+        toast({
+          title: "Error",
+          description: "Failed to delete habit. Please try again.",
+          variant: "destructive"
+        });
+      }
+    }
+  };
+
+  const updateCustomHabit = () => {
+    if (!editingHabit || !editingHabit.name.trim()) {
+      toast({
+        title: "Error",
+        description: "Habit name is required",
+        variant: "destructive"
+      });
+      return;
+    }
+
+    // Delete old habit and create new one with same ID
+    const oldHabitId = editingHabit.id;
+    habitTracker.deleteCustomHabit(oldHabitId);
+    
+    habitTracker.addCustomHabit({
+      ...editingHabit,
+      icon: categoryIcons[editingHabit.category],
+      color: categoryColors[editingHabit.category]
+    });
+
+    setEditingHabit(null);
+    loadData();
+    
+    toast({
+      title: "Habit updated",
+      description: `"${editingHabit.name}" has been updated successfully`,
+    });
   };
 
   const getHabitEntry = (habitId: string) => {
@@ -150,10 +197,6 @@ const HabitTracker = () => {
     });
   };
 
-  const isCustomHabit = (habitId: string) => {
-    return !DEFAULT_HABITS.some(h => h.id === habitId);
-  };
-
   return (
     <div className="min-h-screen bg-background">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
@@ -166,14 +209,83 @@ const HabitTracker = () => {
             <h1 className="text-xl font-bold text-foreground">Habit Tracker</h1>
             <p className="text-xs text-muted-foreground">Track your daily Islamic practices</p>
           </div>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={() => setShowStats(!showStats)}
-          >
-            <BarChart3 className="w-4 h-4 mr-2" />
-            Stats
-          </Button>
+          <div className="flex items-center gap-2">
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => setShowStats(!showStats)}
+            >
+              <BarChart3 className="w-4 h-4 mr-2" />
+              Stats
+            </Button>
+            <Dialog open={showAddHabit} onOpenChange={setShowAddHabit}>
+              <DialogTrigger asChild>
+                <Button
+                  variant="default"
+                  size="sm"
+                  className="bg-primary"
+                >
+                  <Plus className="w-4 h-4 mr-2" />
+                  Add Habit
+                </Button>
+              </DialogTrigger>
+              <DialogContent className="sm:max-w-[425px]">
+                <DialogHeader>
+                  <DialogTitle>Add Custom Habit</DialogTitle>
+                </DialogHeader>
+                <div className="space-y-4 py-4">
+                  <div>
+                    <Label htmlFor="habit-name">Habit Name</Label>
+                    <Input
+                      id="habit-name"
+                      value={newHabit.name}
+                      onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
+                      placeholder="e.g., Read Islamic Books"
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="habit-description">Description</Label>
+                    <Textarea
+                      id="habit-description"
+                      value={newHabit.description}
+                      onChange={(e) => setNewHabit({ ...newHabit, description: e.target.value })}
+                      placeholder="Describe your habit..."
+                      rows={2}
+                    />
+                  </div>
+
+                  <div>
+                    <Label htmlFor="habit-category">Category</Label>
+                    <Select value={newHabit.category} onValueChange={(value: any) => setNewHabit({ ...newHabit, category: value })}>
+                      <SelectTrigger>
+                        <SelectValue />
+                      </SelectTrigger>
+                      <SelectContent>
+                        <SelectItem value="quran">📖 Quran</SelectItem>
+                        <SelectItem value="prayer">🙏 Prayer</SelectItem>
+                        <SelectItem value="dhikr">🕌 Dhikr</SelectItem>
+                        <SelectItem value="charity">💝 Charity</SelectItem>
+                        <SelectItem value="fasting">🌅 Fasting</SelectItem>
+                        <SelectItem value="general">🌟 General</SelectItem>
+                      </SelectContent>
+                    </Select>
+                  </div>
+
+                  <div className="flex gap-2">
+                    <Button onClick={addCustomHabit} className="flex-1">
+                      <Save className="w-4 h-4 mr-2" />
+                      Add Habit
+                    </Button>
+                    <Button variant="outline" onClick={() => setShowAddHabit(false)}>
+                      <X className="w-4 h-4 mr-2" />
+                      Cancel
+                    </Button>
+                  </div>
+                </div>
+              </DialogContent>
+            </Dialog>
+          </div>
         </div>
 
         {/* Stats Overview */}
@@ -256,11 +368,6 @@ const HabitTracker = () => {
                         <h3 className={`font-medium ${isCompleted ? 'line-through text-muted-foreground' : ''}`}>
                           {habit.name}
                         </h3>
-                        {isCustomHabit(habit.id) && (
-                          <span className="text-xs bg-blue-100 dark:bg-blue-900 text-blue-800 dark:text-blue-200 px-2 py-1 rounded">
-                            Custom
-                          </span>
-                        )}
                       </div>
                       <p className="text-xs text-muted-foreground mt-1">{habit.description}</p>
                       
@@ -286,16 +393,24 @@ const HabitTracker = () => {
                   
                   {/* Actions */}
                   <div className="flex items-center gap-1">
-                    {isCustomHabit(habit.id) && (
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => deleteCustomHabit(habit.id)}
-                        className="text-destructive hover:text-destructive"
-                      >
-                        <Trash2 className="w-4 h-4" />
-                      </Button>
-                    )}
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => setEditingHabit(habit)}
+                      className="text-blue-600 hover:text-blue-700 hover:bg-blue-50 dark:hover:bg-blue-950"
+                      title="Edit habit"
+                    >
+                      <Edit2 className="w-4 h-4" />
+                    </Button>
+                    <Button
+                      variant="ghost"
+                      size="sm"
+                      onClick={() => deleteCustomHabit(habit.id)}
+                      className="text-red-600 hover:text-red-700 hover:bg-red-50 dark:hover:bg-red-950"
+                      title="Delete habit"
+                    >
+                      <Trash2 className="w-4 h-4" />
+                    </Button>
                   </div>
                 </div>
               </Card>
@@ -303,71 +418,69 @@ const HabitTracker = () => {
           })}
         </div>
 
-        {/* Add Custom Habit Button */}
-        <Button
-          onClick={() => setShowAddHabit(!showAddHabit)}
-          className="w-full"
-          variant="outline"
-        >
-          <Plus className="w-4 h-4 mr-2" />
-          Add Custom Habit
-        </Button>
+        {/* Edit Habit Dialog */}
+        <Dialog open={!!editingHabit} onOpenChange={(open) => !open && setEditingHabit(null)}>
+          <DialogContent className="sm:max-w-[425px]">
+            <DialogHeader>
+              <DialogTitle className="flex items-center gap-2">
+                <Edit2 className="w-4 h-4" />
+                Edit Habit: {editingHabit?.name}
+              </DialogTitle>
+            </DialogHeader>
+            {editingHabit && (
+              <div className="space-y-4 py-4">
+                <div>
+                  <Label htmlFor="edit-habit-name">Habit Name</Label>
+                  <Input
+                    id="edit-habit-name"
+                    value={editingHabit.name}
+                    onChange={(e) => setEditingHabit({ ...editingHabit, name: e.target.value })}
+                    placeholder="e.g., Read Islamic Books"
+                  />
+                </div>
 
-        {/* Add Habit Form */}
-        {showAddHabit && (
-          <Card className="p-4 space-y-4">
-            <h3 className="font-semibold text-sm">Add Custom Habit</h3>
-            
-            <div>
-              <Label htmlFor="habit-name">Habit Name</Label>
-              <Input
-                id="habit-name"
-                value={newHabit.name}
-                onChange={(e) => setNewHabit({ ...newHabit, name: e.target.value })}
-                placeholder="e.g., Read Islamic Books"
-              />
-            </div>
+                <div>
+                  <Label htmlFor="edit-habit-description">Description</Label>
+                  <Textarea
+                    id="edit-habit-description"
+                    value={editingHabit.description}
+                    onChange={(e) => setEditingHabit({ ...editingHabit, description: e.target.value })}
+                    placeholder="Describe your habit..."
+                    rows={2}
+                  />
+                </div>
 
-            <div>
-              <Label htmlFor="habit-description">Description</Label>
-              <Textarea
-                id="habit-description"
-                value={newHabit.description}
-                onChange={(e) => setNewHabit({ ...newHabit, description: e.target.value })}
-                placeholder="Describe your habit..."
-                rows={2}
-              />
-            </div>
+                <div>
+                  <Label htmlFor="edit-habit-category">Category</Label>
+                  <Select value={editingHabit.category} onValueChange={(value: any) => setEditingHabit({ ...editingHabit, category: value })}>
+                    <SelectTrigger>
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent>
+                      <SelectItem value="quran">📖 Quran</SelectItem>
+                      <SelectItem value="prayer">🙏 Prayer</SelectItem>
+                      <SelectItem value="dhikr">🕌 Dhikr</SelectItem>
+                      <SelectItem value="charity">💝 Charity</SelectItem>
+                      <SelectItem value="fasting">🌅 Fasting</SelectItem>
+                      <SelectItem value="general">🌟 General</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-            <div>
-              <Label htmlFor="habit-category">Category</Label>
-              <Select value={newHabit.category} onValueChange={(value: any) => setNewHabit({ ...newHabit, category: value })}>
-                <SelectTrigger>
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="quran">📖 Quran</SelectItem>
-                  <SelectItem value="prayer">🙏 Prayer</SelectItem>
-                  <SelectItem value="dhikr">🕌 Dhikr</SelectItem>
-                  <SelectItem value="charity">💝 Charity</SelectItem>
-                  <SelectItem value="fasting">🌅 Fasting</SelectItem>
-                  <SelectItem value="general">🌟 General</SelectItem>
-                </SelectContent>
-              </Select>
-            </div>
-
-            <div className="flex gap-2">
-              <Button onClick={addCustomHabit} className="flex-1">
-                <Save className="w-4 h-4 mr-2" />
-                Add Habit
-              </Button>
-              <Button variant="outline" onClick={() => setShowAddHabit(false)}>
-                <X className="w-4 h-4 mr-2" />
-                Cancel
-              </Button>
-            </div>
-          </Card>
-        )}
+                <div className="flex gap-2">
+                  <Button onClick={updateCustomHabit} className="flex-1">
+                    <Save className="w-4 h-4 mr-2" />
+                    Update Habit
+                  </Button>
+                  <Button variant="outline" onClick={() => setEditingHabit(null)}>
+                    <X className="w-4 h-4 mr-2" />
+                    Cancel
+                  </Button>
+                </div>
+              </div>
+            )}
+          </DialogContent>
+        </Dialog>
 
         {/* Export Data */}
         <Card className="p-4 bg-muted/30">

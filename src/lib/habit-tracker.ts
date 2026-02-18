@@ -105,14 +105,20 @@ class HabitTracker {
   private readonly ENTRIES_KEY = 'habit-entries';
   private readonly CUSTOM_HABITS_KEY = 'custom-habits';
 
-  // Get all habits (default + custom)
+  // Get all habits (default + custom, excluding hidden)
   getHabits(): Habit[] {
     try {
       const defaultHabits = DEFAULT_HABITS;
       const customHabitsJson = localStorage.getItem(this.CUSTOM_HABITS_KEY);
       const customHabits: Habit[] = customHabitsJson ? JSON.parse(customHabitsJson) : [];
       
-      return [...defaultHabits, ...customHabits];
+      // Get hidden default habits
+      const hiddenHabits = this.getHiddenHabits();
+      
+      // Filter out hidden default habits
+      const visibleDefaultHabits = defaultHabits.filter(habit => !hiddenHabits.includes(habit.id));
+      
+      return [...visibleDefaultHabits, ...customHabits];
     } catch (error) {
       console.error('Failed to load habits:', error);
       return DEFAULT_HABITS;
@@ -146,17 +152,54 @@ class HabitTracker {
     }
   }
 
-  // Delete custom habit
-  deleteCustomHabit(habitId: string): void {
+  // Delete any habit (default or custom)
+  deleteHabit(habitId: string): void {
     try {
+      // Check if it's a custom habit
       const customHabits = this.getCustomHabits();
-      const filtered = customHabits.filter(h => h.id !== habitId);
-      localStorage.setItem(this.CUSTOM_HABITS_KEY, JSON.stringify(filtered));
+      const customIndex = customHabits.findIndex(h => h.id === habitId);
+      
+      if (customIndex !== -1) {
+        // Remove from custom habits
+        customHabits.splice(customIndex, 1);
+        localStorage.setItem(this.CUSTOM_HABITS_KEY, JSON.stringify(customHabits));
+      } else {
+        // For default habits, we need to hide them by storing in a "hidden habits" list
+        const hiddenHabitsJson = localStorage.getItem('hidden-habits');
+        const hiddenHabits: string[] = hiddenHabitsJson ? JSON.parse(hiddenHabitsJson) : [];
+        
+        if (!hiddenHabits.includes(habitId)) {
+          hiddenHabits.push(habitId);
+          localStorage.setItem('hidden-habits', JSON.stringify(hiddenHabits));
+        }
+      }
       
       // Also delete all entries for this habit
       this.deleteHabitEntries(habitId);
     } catch (error) {
-      console.error('Failed to delete custom habit:', error);
+      console.error('Failed to delete habit:', error);
+    }
+  }
+
+  // Get hidden default habits
+  getHiddenHabits(): string[] {
+    try {
+      const hiddenHabitsJson = localStorage.getItem('hidden-habits');
+      return hiddenHabitsJson ? JSON.parse(hiddenHabitsJson) : [];
+    } catch (error) {
+      console.error('Failed to load hidden habits:', error);
+      return [];
+    }
+  }
+
+  // Restore a hidden default habit
+  restoreHabit(habitId: string): void {
+    try {
+      const hiddenHabits = this.getHiddenHabits();
+      const filtered = hiddenHabits.filter(id => id !== habitId);
+      localStorage.setItem('hidden-habits', JSON.stringify(filtered));
+    } catch (error) {
+      console.error('Failed to restore habit:', error);
     }
   }
 

@@ -4,6 +4,7 @@
  */
 
 import { useState, useEffect, useCallback } from 'react';
+import { GeolocationService } from '@/lib/geolocation-service';
 
 export interface LocationState {
   latitude: number;
@@ -83,23 +84,30 @@ export const useLocationState = () => {
     setLocationState(prev => ({ ...prev, isDetecting: true }));
 
     try {
-      if (!navigator.geolocation) {
+      // Check if geolocation is supported
+      if (!GeolocationService.isSupported()) {
         throw new Error('Geolocation not supported');
       }
 
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(
-          resolve,
-          reject,
-          {
-            enableHighAccuracy: true,
-            timeout: 10000,
-            maximumAge: 300000 // 5 minutes
-          }
-        );
+      // Check permissions first
+      const permissions = await GeolocationService.checkPermissions();
+      console.log('Location permissions:', permissions);
+      
+      if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
+        // Request permissions
+        const granted = await GeolocationService.requestPermissions();
+        if (!granted) {
+          throw new Error('Location permission denied. Please enable location access in your device settings.');
+        }
+      }
+
+      const position = await GeolocationService.getCurrentPosition({
+        enableHighAccuracy: true,
+        timeout: 10000,
+        maximumAge: 300000 // 5 minutes
       });
 
-      const { latitude, longitude } = position.coords;
+      const { latitude, longitude } = position;
 
       // Get location name using reverse geocoding (optional)
       let locationName = 'Current Location';

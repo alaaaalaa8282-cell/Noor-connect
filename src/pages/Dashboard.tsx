@@ -18,6 +18,7 @@ import { Input } from "@/components/ui/input";
 import { MoodSelector } from "@/components/MoodSelector";
 
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
+import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext";
 
@@ -50,7 +51,8 @@ export default function Dashboard() {
   const [greeting, setGreeting] = useState("");
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
-  const [hijriDate, setHijriDate] = useState<string>("");
+  // Use Islamic calendar hook for accurate Hijri dates
+  const { hijriDate, isRamadan } = useIslamicCalendar();
   const [timeFormat, setTimeFormat] = useState<'12' | '24'>('24');
   const [nextPrayerName, setNextPrayerName] = useState<string>("");
   const [nextEventCountdown, setNextEventCountdown] = useState<{ name: string; time: string; countdown: string } | null>(null);
@@ -139,18 +141,7 @@ export default function Dashboard() {
         location.setLocation(location.latitude, location.longitude, location.locationName, fetchedTimezone);
       }
 
-      // Get Hijri date from stored data
-      const storedData = AladhanAPI.getStoredMonthlyData();
-      if (storedData?.data?.length) {
-        const today = storedData.data.find(day => {
-          const dayDate = new Date(parseInt(day.date.timestamp) * 1000);
-          return dayDate.toDateString() === new Date().toDateString();
-        }) || storedData.data[0];
-
-        if (today?.date?.hijri) {
-          setHijriDate(`${today.date.hijri.day} ${today.date.hijri.month.en} ${today.date.hijri.year}`);
-        }
-      }
+      // Prayer times are loaded, Hijri date comes from useIslamicCalendar hook
 
       const prayerList: PrayerTime[] = [
         { name: "Fajr", time: formatTimeFromAPI(timings.Fajr), date: parseTimeToDate(timings.Fajr) },
