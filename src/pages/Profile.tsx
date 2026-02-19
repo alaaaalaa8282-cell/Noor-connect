@@ -22,6 +22,7 @@ import { PrayerMethodSelector } from "@/components/PrayerMethodSelector";
 import { quranFontManager, type QuranFont } from "@/lib/quran-font-manager";
 import { unifiedNotifications } from "@/lib/unified-notifications";
 import { getGenderSettings, setGender, type Gender } from "@/lib/gender-settings";
+import { usePrayerAlarm } from "@/hooks/usePrayerAlarm";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -48,6 +49,19 @@ const Profile = () => {
   const [notificationsSupported, setNotificationsSupported] = useState(false);
   const [genderSettings, setGenderSettingsState] = useState(getGenderSettings());
 
+  // Prayer alarm state
+  const {
+    isEnabled: isAlarmEnabled,
+    isPlaying: isAlarmPlaying,
+    currentPrayer,
+    enableAlarm,
+    disableAlarm,
+    stopAdhan,
+    testAdhan,
+  } = usePrayerAlarm();
+
+  const [reminderMinutes, setReminderMinutes] = useState('0');
+
   // Prayer notification states
   const [prayerNotificationsEnabled, setPrayerNotificationsEnabled] = useState(false);
   const [prayerNotificationsLoading, setPrayerNotificationsLoading] = useState(true);
@@ -68,6 +82,10 @@ const Profile = () => {
 
     // Load notification preferences
     setNotificationPrefs(notificationManager.getPreferences());
+
+    // Load reminder minutes
+    const saved = localStorage.getItem('prayer-reminder-minutes');
+    if (saved) setReminderMinutes(saved);
 
     // Improved notification support check for mobile
     unifiedNotifications.getPermissionStatus().then(status => {
@@ -315,6 +333,11 @@ const Profile = () => {
     });
   };
 
+  const handleReminderChange = (value: string) => {
+    setReminderMinutes(value);
+    localStorage.setItem('prayer-reminder-minutes', value);
+  };
+
 
   return (
     <div className="min-h-screen bg-background">
@@ -499,14 +522,68 @@ const Profile = () => {
                 <Label className="text-sm font-medium">Prayer Alarm (Adhan)</Label>
                 <p className="text-xs text-muted-foreground">Play Adhan automatically at prayer times</p>
               </div>
+              <Switch
+                checked={isAlarmEnabled}
+                onCheckedChange={(checked) => {
+                  if (checked) {
+                    enableAlarm();
+                    toast({ title: "Prayer alarm enabled" });
+                  } else {
+                    disableAlarm();
+                    toast({ title: "Prayer alarm disabled" });
+                  }
+                }}
+              />
             </div>
-            <div className="grid grid-cols-2 gap-2">
+            
+            {isAlarmPlaying && (
+              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 animate-pulse mb-3">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Bell className="h-4 w-4 text-primary animate-bounce" />
+                    <div>
+                      <p className="text-sm font-medium text-primary">{currentPrayer} Time!</p>
+                      <p className="text-xs text-muted-foreground">Adhan is playing...</p>
+                    </div>
+                  </div>
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={stopAdhan}
+                  >
+                    Stop
+                  </Button>
+                </div>
+              </div>
+            )}
+
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <Label className="text-xs text-muted-foreground">Pre-Prayer Reminder</Label>
+                <p className="text-xs text-muted-foreground">Get notified before prayer time</p>
+              </div>
+              <Select value={reminderMinutes} onValueChange={handleReminderChange}>
+                <SelectTrigger className="w-20">
+                  <SelectValue />
+                </SelectTrigger>
+                <SelectContent>
+                  <SelectItem value="0">Off</SelectItem>
+                  <SelectItem value="5">5 min</SelectItem>
+                  <SelectItem value="10">10 min</SelectItem>
+                  <SelectItem value="15">15 min</SelectItem>
+                </SelectContent>
+              </Select>
+            </div>
+
+            <div className="flex gap-2">
               <Button
                 variant="outline"
                 size="sm"
-                onClick={() => window.open('/dashboard', '_blank')}
+                onClick={testAdhan}
+                disabled={isAlarmPlaying}
+                className="flex-1"
               >
-                Configure on Dashboard
+                Test Adhan
               </Button>
             </div>
           </div>
