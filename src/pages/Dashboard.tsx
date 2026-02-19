@@ -1,7 +1,7 @@
-import { useEffect, useState, useMemo, useCallback, Suspense, lazy } from "react";
+import { useState, useEffect, useMemo, useCallback, Suspense, lazy } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight } from "lucide-react";
 import { AppBar } from "@/components/AppBar";
 const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
 const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
@@ -22,6 +22,7 @@ import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { shouldShowMenstrualFeatures } from "@/lib/gender-settings";
+import { isMenstrualModeActive, getMenstrualModeData, activateMenstrualMode, deactivateMenstrualMode } from "@/lib/menstrual-mode";
 
 // Dynamic imports for code splitting
 // const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
@@ -66,6 +67,7 @@ export default function Dashboard() {
   const location = useLocationState();
 
   const [showManualLocationDialog, setShowManualLocationDialog] = useState(false);
+  const [menstrualModeData, setMenstrualModeData] = useState(getMenstrualModeData());
 
 
 
@@ -206,6 +208,50 @@ export default function Dashboard() {
       toast({ title: "Location detection failed", description: "Please enable location permissions", variant: "destructive" });
     }
   };
+
+  // Handle menstrual mode toggle
+  const handleMenstrualModeToggle = async () => {
+    if (menstrualModeData.isActive) {
+      const updated = deactivateMenstrualMode(new Date());
+      setMenstrualModeData(updated);
+      toast({
+        title: "Menstrual Mode ended",
+        description: "Prayer reminder scheduling has resumed.",
+      });
+    } else {
+      const updated = activateMenstrualMode(new Date());
+      setMenstrualModeData(updated);
+      
+      // Disable the web adhan alarm state immediately while mode is active.
+      localStorage.setItem("prayer-alarm-enabled", "false");
+
+      if (updated.pausePrayerNotifications) {
+        try {
+          const { localNotifications } = await import("@/lib/local-notifications");
+          await localNotifications.clearPrayerNotifications();
+        } catch (error) {
+          console.error("Failed to clear prayer notifications:", error);
+        }
+      }
+
+      toast({
+        title: "Menstrual Mode enabled",
+        description: "Prayer reminders and auto Qaza sync are paused while this mode is active.",
+      });
+    }
+  };
+
+  // Listen for menstrual mode updates
+  useEffect(() => {
+    const handleModeUpdate = () => {
+      setMenstrualModeData(getMenstrualModeData());
+    };
+
+    window.addEventListener("menstrual-mode-updated", handleModeUpdate);
+    return () => {
+      window.removeEventListener("menstrual-mode-updated", handleModeUpdate);
+    };
+  }, []);
 
   // Initialize prayer times when location changes
   useEffect(() => {
@@ -425,13 +471,73 @@ export default function Dashboard() {
           {/* Dhikr Reminder */}
           <DhikrReminder />
 
+          {/* Menstrual Mode Toggle - Only show for female users */}
+          {shouldShowMenstrualFeatures() && (
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.3, duration: 0.5 }}
+              className={`relative overflow-hidden rounded-[20px] border border-border/50 p-4 ${
+                menstrualModeData.isActive 
+                  ? 'bg-gradient-to-br from-rose-500/15 to-rose-600/5 border-rose-500/20' 
+                  : 'bg-card'
+              }`}
+            >
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className={`p-3 rounded-2xl ${
+                    menstrualModeData.isActive 
+                      ? 'bg-rose-500/20' 
+                      : 'bg-rose-500/10'
+                  } shadow-sm`}>
+                    <Heart className={`w-6 h-6 ${
+                      menstrualModeData.isActive 
+                        ? 'text-rose-600' 
+                        : 'text-rose-500'
+                    }`} strokeWidth={2} />
+                  </div>
+                  <div>
+                    <h3 className="font-semibold text-sm">{t('menstrualMode')}</h3>
+                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                      {menstrualModeData.isActive ? 'Active' : 'Inactive'}
+                    </p>
+                  </div>
+                </div>
+                <Button
+                  onClick={handleMenstrualModeToggle}
+                  variant={menstrualModeData.isActive ? "destructive" : "default"}
+                  size="sm"
+                  className="rounded-xl"
+                >
+                  {menstrualModeData.isActive ? (
+                    <>
+                      <ToggleLeft className="w-4 h-4 mr-2" />
+                      End
+                    </>
+                  ) : (
+                    <>
+                      <ToggleRight className="w-4 h-4 mr-2" />
+                      Start
+                    </>
+                  )}
+                </Button>
+              </div>
+              
+              {menstrualModeData.isActive && menstrualModeData.startedAt && (
+                <div className="mt-3 text-xs text-rose-600 dark:text-rose-400">
+                  Started: {new Date(menstrualModeData.startedAt).toLocaleDateString()}
+                </div>
+              )}
+            </motion.div>
+          )}
+
           {/* Quick Access Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
             {[
               { icon: Compass, label: t('qibla'), sub: t('direction'), link: '/qibla', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
               { icon: Calendar, label: t('qazaTracker'), sub: t('tracker'), link: '/qaza', color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
               { icon: BookOpen, label: t('ramadanMode'), sub: t('mode'), link: '/ramadan', color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
-              ...(true || shouldShowMenstrualFeatures() ? [
+              ...(shouldShowMenstrualFeatures() ? [
                 { icon: Heart, label: t('menstrualMode'), sub: t('mode'), link: '/menstrual-mode', color: 'text-rose-500', bgColor: 'bg-rose-500/10' }
               ] : []),
               { icon: Calculator, label: t('zakatCalculator'), sub: t('calc'), link: '/zakat', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
