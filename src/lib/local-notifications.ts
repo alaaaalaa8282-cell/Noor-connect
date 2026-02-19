@@ -4,9 +4,8 @@
  * FOSS-friendly - no proprietary wake lock libraries
  */
 
-import { LocalNotifications } from '@capacitor/local-notifications';
+import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
 import { AladhanAPI, type AladhanPrayerTime } from './aladhan-api';
-import { getPrayerSettings } from './storage';
 
 // Task 2: Use SW registration for more robust "Native" notifications
 let swRegistration: ServiceWorkerRegistration | null = null;
@@ -17,6 +16,18 @@ if ('serviceWorker' in navigator) {
 }
 
 const LOCATION_STORAGE_KEY = 'user-location-data';
+const PRAYER_NOTIFICATIONS_ENABLED_KEY = 'prayer-notifications-enabled';
+
+if (localStorage.getItem(PRAYER_NOTIFICATIONS_ENABLED_KEY) === null) {
+  localStorage.setItem(PRAYER_NOTIFICATIONS_ENABLED_KEY, 'true');
+}
+
+type NativeNotificationData = Record<string, unknown> & {
+  url?: string;
+  tag?: string;
+};
+
+type ServiceWorkerPrayerTimings = Record<string, { time: string }>;
 
 export interface PrayerTime {
   name: string;
@@ -118,6 +129,11 @@ export class LocalNotificationManager {
    * Only schedules when location is successfully resolved and times have actually changed
    */
   async schedulePrayerNotificationsFromAPI(): Promise<void> {
+    if (!this.arePrayerNotificationsEnabled()) {
+      console.log('Prayer notifications are disabled by user preference');
+      return;
+    }
+
     if (!this.isInitialized) {
       const initialized = await this.initialize();
       if (!initialized) return;
@@ -176,7 +192,7 @@ export class LocalNotificationManager {
         timings = result.timings;
       }
 
-      const notifications = [];
+      const notifications: LocalNotificationSchema[] = [];
 
       // Parse prayer times and create notifications
       const prayers = [
@@ -196,11 +212,12 @@ export class LocalNotificationManager {
         // Only schedule future prayers for today
         if (prayerDate > now) {
           const notificationId = this.getNotificationId(prayer.name);
+          const message = getPrayerNotificationMessage(prayer.name, prayer.time);
 
           const notification = {
             id: notificationId,
-            title: `🕌 ${prayer.name} Prayer Time`,
-            body: `It's time for ${prayer.name} prayer. ${prayer.time}`,
+            title: message.title,
+            body: message.body,
             schedule: {
               at: prayerDate,
               allowWhileIdle: true, // Wake up device
@@ -256,6 +273,11 @@ export class LocalNotificationManager {
     }
   }
   async schedulePrayerNotifications(prayerTimes: PrayerTime[]): Promise<void> {
+    if (!this.arePrayerNotificationsEnabled()) {
+      console.log('Prayer notifications are disabled by user preference');
+      return;
+    }
+
     if (!this.isInitialized) {
       const initialized = await this.initialize();
       if (!initialized) return;
@@ -266,7 +288,7 @@ export class LocalNotificationManager {
       await this.clearPrayerNotifications();
 
       const now = new Date();
-      const notifications = [];
+      const notifications: LocalNotificationSchema[] = [];
 
       for (const prayer of prayerTimes) {
         // Only schedule future prayers for today
@@ -275,7 +297,7 @@ export class LocalNotificationManager {
 
           const notification = {
             id: notificationId,
-            title: `🕌 ${prayer.name} Prayer Time`,
+            title: `${prayer.name} Prayer Time`,
             body: `It's time for ${prayer.name} prayer. ${prayer.time}`,
             schedule: {
               at: prayer.date,
@@ -333,6 +355,11 @@ export class LocalNotificationManager {
     prayerTime: string,
     prayerDate: Date
   ): Promise<void> {
+    if (!this.arePrayerNotificationsEnabled()) {
+      console.log('Prayer notifications are disabled by user preference');
+      return;
+    }
+
     if (!this.isInitialized) {
       const initialized = await this.initialize();
       if (!initialized) return;
@@ -344,7 +371,7 @@ export class LocalNotificationManager {
       await LocalNotifications.schedule({
         notifications: [{
           id: notificationId,
-          title: `🕌 ${prayerName} Prayer Time`,
+          title: `${prayerName} Prayer Time`,
           body: `It's time for ${prayerName} prayer. ${prayerTime}`,
           schedule: {
             at: prayerDate,
@@ -364,7 +391,7 @@ export class LocalNotificationManager {
 
       this.scheduledNotifications.set(notificationId, {
         id: notificationId,
-        title: `🕌 ${prayerName} Prayer Time`,
+        title: `${prayerName} Prayer Time`,
         body: `It's time for ${prayerName} prayer. ${prayerTime}`,
         scheduleTime: prayerDate,
         prayerName
@@ -451,6 +478,22 @@ export class LocalNotificationManager {
     }
   }
 
+  arePrayerNotificationsEnabled(): boolean {
+    return localStorage.getItem(PRAYER_NOTIFICATIONS_ENABLED_KEY) !== 'false';
+  }
+
+  async setPrayerNotificationsEnabled(enabled: boolean): Promise<void> {
+    localStorage.setItem(PRAYER_NOTIFICATIONS_ENABLED_KEY, enabled ? 'true' : 'false');
+
+    if (!enabled) {
+      await this.clearPrayerNotifications();
+      localStorage.removeItem('last-notification-schedule-date');
+      return;
+    }
+
+    await this.schedulePrayerNotificationsFromAPI();
+  }
+
   /**
    * Show an immediate notification using Service Worker Registration
    * Task 2: Native Push Notifications logic
@@ -476,7 +519,11 @@ export class LocalNotificationManager {
    * Show an immediate notification using Service Worker Registration
    * Task 2: Native Push Notifications logic
    */
-  async showNativeNotification(title: string, body: string, data: any = {}): Promise<void> {
+  async showNativeNotification(
+    title: string,
+    body: string,
+    data: NativeNotificationData = {}
+  ): Promise<void> {
     try {
       const reg = await this.getSWRegistration();
 
@@ -493,11 +540,10 @@ export class LocalNotificationManager {
         return;
       }
 
-      const options: any = {
+      const options: NotificationOptions = {
         body,
         icon: '/icon-192x192.png',
         badge: '/icon-192x192.png',
-        vibrate: [200, 100, 200],
         requireInteraction: true, // task 2 requirement
         data: {
           ...data,
@@ -554,7 +600,7 @@ export class LocalNotificationManager {
   /**
    * Sync prayer times to the Service Worker for persistent background checks
    */
-  private syncWithServiceWorker(timings: any): void {
+  private syncWithServiceWorker(timings: ServiceWorkerPrayerTimings): void {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {
       navigator.serviceWorker.controller.postMessage({
         type: 'UPDATE_PRAYER_TIMES',

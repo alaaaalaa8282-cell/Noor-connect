@@ -1,7 +1,7 @@
 import { useState, useEffect, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Settings, Type, MessageCircle, Globe, User, UserCircle, UserX } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -157,6 +157,7 @@ const Profile = () => {
   const requestNotificationPermission = async () => {
     const granted = await unifiedNotifications.requestPermission();
     setNotificationsSupported(granted);
+    await checkPrayerNotificationStatus();
     if (granted) {
       toast({ title: "Notifications enabled! You'll receive Islamic event reminders." });
     } else {
@@ -183,11 +184,16 @@ const Profile = () => {
 
   const checkPrayerNotificationStatus = async () => {
     try {
-      const enabled = await localNotifications.areNotificationsEnabled();
-      setPrayerNotificationsEnabled(enabled);
+      const hasPermission = await localNotifications.areNotificationsEnabled();
+      const enabledByPreference = localNotifications.arePrayerNotificationsEnabled();
+      setPrayerNotificationsEnabled(hasPermission && enabledByPreference);
 
-      const scheduled = await localNotifications.getScheduledPrayerNotifications();
-      setScheduledPrayerCount(scheduled.length);
+      if (hasPermission && enabledByPreference) {
+        const scheduled = await localNotifications.getScheduledPrayerNotifications();
+        setScheduledPrayerCount(scheduled.length);
+      } else {
+        setScheduledPrayerCount(0);
+      }
     } catch (error) {
       console.error('Failed to check prayer notification status:', error);
     } finally {
@@ -196,29 +202,40 @@ const Profile = () => {
   };
 
   const handlePrayerNotificationToggle = async (enabled: boolean) => {
-    if (enabled) {
-      const success = await localNotifications.initialize();
-      if (success) {
-        setPrayerNotificationsEnabled(true);
-        toast({
-          title: "Prayer Notifications Enabled",
-          description: "Prayer reminders will be scheduled automatically",
-        });
-      } else {
-        toast({
-          title: "Permission Denied",
-          description: "Please enable notifications in your device settings",
-          variant: "destructive",
-        });
+    setPrayerNotificationsLoading(true);
+    try {
+      if (enabled) {
+        const hasPermission = await localNotifications.initialize();
+        if (!hasPermission) {
+          await localNotifications.setPrayerNotificationsEnabled(false);
+          setPrayerNotificationsEnabled(false);
+          setScheduledPrayerCount(0);
+          toast({
+            title: "Permission Denied",
+            description: "Please enable notifications in your device settings",
+            variant: "destructive",
+          });
+          return;
+        }
       }
-    } else {
-      await localNotifications.clearPrayerNotifications();
-      setPrayerNotificationsEnabled(false);
-      setScheduledPrayerCount(0);
+
+      await localNotifications.setPrayerNotificationsEnabled(enabled);
+      await checkPrayerNotificationStatus();
+
       toast({
-        title: "Prayer Notifications Disabled",
-        description: "Prayer reminders have been cancelled",
+        title: enabled ? "Prayer Notifications Enabled" : "Prayer Notifications Disabled",
+        description: enabled
+          ? "Prayer reminders will be scheduled automatically"
+          : "Prayer reminders have been cancelled",
       });
+    } catch (error) {
+      console.error("Failed to update prayer notification settings:", error);
+      toast({
+        title: "Update Failed",
+        description: "Could not update prayer notification settings.",
+        variant: "destructive",
+      });
+      await checkPrayerNotificationStatus();
     }
   };
 
@@ -364,14 +381,14 @@ const Profile = () => {
               <Globe className="w-3 h-3" />
               {t('language')}
             </Label>
-            <Select value={language} onValueChange={(v: any) => setLanguage(v)}>
+            <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "ar" | "ur")}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent>
                 <SelectItem value="en">English</SelectItem>
-                <SelectItem value="ar">العربية (Arabic)</SelectItem>
-                <SelectItem value="ur">اردو (Urdu)</SelectItem>
+                <SelectItem value="ar">Arabic</SelectItem>
+                <SelectItem value="ur">Urdu</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -527,10 +544,8 @@ const Profile = () => {
                 onCheckedChange={(checked) => {
                   if (checked) {
                     enableAlarm();
-                    toast({ title: "Prayer alarm enabled" });
                   } else {
                     disableAlarm();
-                    toast({ title: "Prayer alarm disabled" });
                   }
                 }}
               />
@@ -801,7 +816,7 @@ const Profile = () => {
             100% Free, Open Source & Privacy-focused. All data stored locally on your device. No accounts, no tracking, no ads.
           </p>
           <p className="text-xs text-center text-muted-foreground mt-3">
-            FOSS • Made with ❤️ for the Ummah
+            FOSS - Made with love for the Ummah
           </p>
         </Card>
 

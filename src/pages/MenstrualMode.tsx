@@ -17,6 +17,7 @@ import {
   updateMenstrualModeSettings,
   type MenstrualModeData,
 } from "@/lib/menstrual-mode";
+import { PRAYER_ALARM_CONTROL_EVENT, PRAYER_ALARM_TOGGLE_EVENT } from "@/lib/prayer-alarm-events";
 
 const formatDateTime = (iso: string): string => {
   return new Date(iso).toLocaleString("en-US", {
@@ -97,6 +98,12 @@ export default function MenstrualMode() {
 
     // Disable the web adhan alarm state immediately while mode is active.
     localStorage.setItem("prayer-alarm-enabled", "false");
+    window.dispatchEvent(
+      new CustomEvent(PRAYER_ALARM_TOGGLE_EVENT, { detail: { enabled: false } })
+    );
+    window.dispatchEvent(
+      new CustomEvent(PRAYER_ALARM_CONTROL_EVENT, { detail: { action: "stop" } })
+    );
 
     if (updated.pausePrayerNotifications) {
       await clearPrayerNotifications();

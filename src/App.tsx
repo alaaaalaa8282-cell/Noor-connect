@@ -53,6 +53,19 @@ import { AnimatePresence } from "framer-motion";
 
 // ... (existing imports)
 
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+const isStandaloneMode = (): boolean => {
+  const navigatorWithStandalone = window.navigator as NavigatorWithStandalone;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    Boolean(navigatorWithStandalone.standalone) ||
+    document.referrer.includes('android-app://')
+  );
+};
+
 function AppRoutes() {
   const location = useLocation();
 
@@ -149,9 +162,7 @@ const App = () => {
   // Initialize notification system and Service Worker
   useEffect(() => {
     // Check if we're in APK/PWA mode and handle permissions
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                       ('standalone' in window.navigator && window.navigator.standalone) || 
-                       document.referrer.includes('android-app://');
+    const isStandalone = isStandaloneMode();
 
     // Start the notification manager (only runs once per app load)
     notificationManager.start();
@@ -178,7 +189,7 @@ const App = () => {
     const savedRadioState = localStorage.getItem('global-radio-state');
     if (savedRadioState) {
       try {
-        const parsed = JSON.parse(savedRadioState);
+        JSON.parse(savedRadioState);
         // If there was a playing station when app closed, the GlobalRadioPlayer will handle auto-showing
       } catch (error) {
         console.error('Failed to restore radio state:', error);

@@ -1,11 +1,24 @@
 import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, BellOff, Check, AlertTriangle, Smartphone } from "lucide-react";
+import { Bell, AlertTriangle, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { isNotificationSupported, requestNotificationPermission, getNotificationPermission, shouldRequestPermission, forceRequestPermission } from "@/lib/notifications";
 import { GenderSelection } from "@/components/GenderSelection";
 import { isFirstTimeUser } from "@/lib/gender-settings";
+
+interface NavigatorWithStandalone extends Navigator {
+    standalone?: boolean;
+}
+
+const isStandaloneMode = (): boolean => {
+    const navigatorWithStandalone = window.navigator as NavigatorWithStandalone;
+    return (
+        window.matchMedia('(display-mode: standalone)').matches ||
+        Boolean(navigatorWithStandalone.standalone) ||
+        document.referrer.includes('android-app://')
+    );
+};
 
 // Star component purely for visual flair
 function FloatingStars() {
@@ -320,9 +333,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
         checkFirstTimeUser();
 
         // For APK users, set up periodic permission reminders
-        const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                           ('standalone' in window.navigator && (window.navigator as any).standalone) || 
-                           document.referrer.includes('android-app://');
+        const isStandalone = isStandaloneMode();
 
         if (isStandalone) {
             const permissionReminder = setInterval(() => {
@@ -488,7 +499,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                     />
 
                     {/* APK Indicator */}
-                    {window.matchMedia('(display-mode: standalone)').matches && (
+                    {isStandaloneMode() && (
                         <div className="absolute top-4 right-4 flex items-center gap-1 px-2 py-1 rounded-full bg-white/10 backdrop-blur-sm border border-white/20">
                             <Smartphone className="w-3 h-3 text-white/60" />
                             <span className="text-xs text-white/60">App Mode</span>
@@ -501,3 +512,4 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
 }
 
 export { PersistentPermissionReminder };
+

@@ -4,7 +4,19 @@
  */
 
 const NOTIFICATION_PERMISSION_KEY = 'prayer-notifications-enabled';
-const SCHEDULED_NOTIFICATIONS_KEY = 'scheduled-prayer-notifications';
+
+interface NavigatorWithStandalone extends Navigator {
+  standalone?: boolean;
+}
+
+const isStandaloneMode = (): boolean => {
+  const navigatorWithStandalone = window.navigator as NavigatorWithStandalone;
+  return (
+    window.matchMedia('(display-mode: standalone)').matches ||
+    Boolean(navigatorWithStandalone.standalone) ||
+    document.referrer.includes('android-app://')
+  );
+};
 
 export interface ScheduledNotification {
   id: string;
@@ -32,9 +44,7 @@ export const shouldRequestPermission = (): boolean => {
   if (permission !== 'default') return false;
   
   // Check if we're in APK/PWA mode - always ask for APK users
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                     ('standalone' in window.navigator && (window.navigator as any).standalone) || 
-                     document.referrer.includes('android-app://');
+  const isStandalone = isStandaloneMode();
   
   if (!isStandalone) return false;
   
@@ -59,9 +69,7 @@ export const forceRequestPermission = (): boolean => {
   if (permission !== 'default') return false;
   
   // Check if we're in APK/PWA mode
-  const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                     ('standalone' in window.navigator && (window.navigator as any).standalone) || 
-                     document.referrer.includes('android-app://');
+  const isStandalone = isStandaloneMode();
   
   return Boolean(isStandalone);
 };
@@ -80,9 +88,7 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
 
   try {
     // Check if we're in APK/PWA mode for enhanced permission handling
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                       ('standalone' in window.navigator && (window.navigator as any).standalone) || 
-                       document.referrer.includes('android-app://');
+    const isStandalone = isStandaloneMode();
 
     // Store when we last asked (for APK users)
     if (isStandalone) {

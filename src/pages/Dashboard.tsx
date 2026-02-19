@@ -1,4 +1,4 @@
-import { useState, useEffect, useMemo, useCallback, Suspense, lazy } from "react";
+import { useState, useEffect, useCallback, Suspense, lazy, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight } from "lucide-react";
@@ -27,14 +27,15 @@ import { isMenstrualModeActive, getMenstrualModeData, activateMenstrualMode, dea
 // Dynamic imports for code splitting
 // const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
 // const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
-import { getTimeFormat, formatTime, setTimeFormat } from "@/lib/time-formatter";
+import { getTimeFormat, formatTime } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
-import { localNotifications, type PrayerTime } from "@/lib/local-notifications";
+import { type PrayerTime } from "@/lib/local-notifications";
 import { useToast } from "@/hooks/use-toast";
 import { LocationCardSkeleton, PrayerTimeSkeleton, CountdownCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GeocodingService } from "@/lib/geocoding";
+import { PRAYER_ALARM_CONTROL_EVENT, PRAYER_ALARM_TOGGLE_EVENT } from "@/lib/prayer-alarm-events";
 import { PageTransition } from "@/components/PageTransition";
 import { motion } from "framer-motion";
 
@@ -72,9 +73,7 @@ export default function Dashboard() {
 
 
   // Visual feedback for clicks
-  const handleCardClick = (cardName: string, route: string) => {
-
-
+  const handleCardClick = (event: MouseEvent<HTMLDivElement>, route: string) => {
     // Visual feedback
     const card = event?.currentTarget as HTMLElement;
     if (card) {
@@ -185,7 +184,7 @@ export default function Dashboard() {
       setLoadingAPI(false);
       setInitialLoad(false);
     }
-  }, [location.latitude, location.longitude, location.timeZone, location.locationName, formatTimeFromAPI, parseTimeToDate]); // Add dependencies
+  }, [location, formatTimeFromAPI, parseTimeToDate]); // Add dependencies
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -224,6 +223,12 @@ export default function Dashboard() {
       
       // Disable the web adhan alarm state immediately while mode is active.
       localStorage.setItem("prayer-alarm-enabled", "false");
+      window.dispatchEvent(
+        new CustomEvent(PRAYER_ALARM_TOGGLE_EVENT, { detail: { enabled: false } })
+      );
+      window.dispatchEvent(
+        new CustomEvent(PRAYER_ALARM_CONTROL_EVENT, { detail: { action: "stop" } })
+      );
 
       if (updated.pausePrayerNotifications) {
         try {
@@ -552,7 +557,7 @@ export default function Dashboard() {
                 whileHover={{ scale: 1.02, y: -2 }}
                 whileTap={{ scale: 0.98 }}
                 className="group relative overflow-hidden rounded-[20px] bg-card border border-border/50 p-4 cursor-pointer touch-feedback"
-                onClick={() => handleCardClick(item.label, item.link)}
+                onClick={(event) => handleCardClick(event, item.link)}
               >
                 {/* Hover Gradient Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
