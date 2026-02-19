@@ -16,6 +16,7 @@ import { LocationSearch } from "@/components/LocationSearch";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { MoodSelector } from "@/components/MoodSelector";
+import { PrayerAlarmControl } from "@/components/PrayerAlarmControl";
 
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
@@ -530,6 +531,9 @@ export default function Dashboard() {
               )}
             </motion.div>
           )}
+
+          {/* Prayer Alarm Control */}
+          <PrayerAlarmControl />
 
           {/* Quick Access Grid */}
           <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
