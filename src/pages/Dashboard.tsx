@@ -345,13 +345,13 @@ export default function Dashboard() {
             <div className="absolute inset-0 bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-[#b38b5d] opacity-100"></div>
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-transparent opacity-60 animate-pulse"></div>
 
-            {/* Islamic Pattern Overlay (Abstract) */}
-            <div className="absolute inset-0 opacity-[0.08] bg-[url('https://www.transparenttextures.com/patterns/arabesque.png')] bg-repeat"></div>
+            {/* Subtle Islamic Pattern (CSS-based) */}
+            <div className="absolute inset-0 opacity-[0.03] bg-gradient-to-br from-emerald-50/20 via-transparent to-blue-50/10"></div>
 
-            {/* Animated Glow Orbs with enhanced effects */}
-            <div className="absolute top-[-60px] right-[-60px] w-48 h-48 bg-[#e0c097] rounded-full blur-[80px] opacity-30 animate-pulse"></div>
-            <div className="absolute bottom-[-40px] left-[-40px] w-40 h-40 bg-[#4fd1c5] rounded-full blur-[70px] opacity-25 animate-pulse"></div>
-            <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-primary/30 rounded-full blur-[60px] opacity-20 animate-pulse"></div>
+            {/* Animated Glow Orbs with optimized effects */}
+            <div className="absolute top-[-60px] right-[-60px] w-48 h-48 bg-[#e0c097] rounded-full blur-[60px] opacity-20 animate-pulse"></div>
+            <div className="absolute bottom-[-40px] left-[-40px] w-40 h-40 bg-[#4fd1c5] rounded-full blur-[50px] opacity-15 animate-pulse"></div>
+            <div className="absolute top-1/2 left-1/2 w-32 h-32 bg-primary/20 rounded-full blur-[40px] opacity-15 animate-pulse"></div>
 
             {/* Glassmorphism Overlay */}
             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent"></div>

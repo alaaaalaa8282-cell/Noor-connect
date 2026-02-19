@@ -3,67 +3,6 @@ import { toast } from 'sonner';
 import { prayerTimesApiResponseSchema, safeParseApiResponse } from '@/lib/api-schemas';
 import { getAdhanUrlForPrayer, type PrayerName } from '@/lib/adhan-preferences';
 import { localNotifications } from '@/lib/local-notifications';
-
-// Enhanced notification messages
-const getPrayerNotificationMessage = (prayerName: string, prayerTime: string): { title: string; body: string } => {
-  const prayerMessages: Record<string, { title: string; body: string }> = {
-    'Fajr': {
-      title: '🌅 Fajr Prayer Time',
-      body: `Time for Fajr prayer at ${prayerTime}. Start your day with prayer.`
-    },
-    'Dhuhr': {
-      title: '☀️ Dhuhr Prayer Time', 
-      body: `Dhuhr prayer time at ${prayerTime}. Take a break for midday prayer.`
-    },
-    'Asr': {
-      title: '🌤️ Asr Prayer Time',
-      body: `Asr prayer time at ${prayerTime}. Afternoon prayer reminder.`
-    },
-    'Maghrib': {
-      title: '🌇 Maghrib Prayer Time',
-      body: `Maghrib prayer at ${prayerTime}. Time to break your fast.`
-    },
-    'Isha': {
-      title: '🌙 Isha Prayer Time',
-      body: `Isha prayer time at ${prayerTime}. End your day with prayer.`
-    }
-  };
-
-  return prayerMessages[prayerName] || {
-    title: `${prayerName} Prayer Time`,
-    body: `It's time for ${prayerName} prayer at ${prayerTime}.`
-  };
-};
-
-const getReminderMessage = (prayerName: string, minutesBefore: number): { title: string; body: string } => {
-  const reminderMessages: Record<string, { title: string; body: string }> = {
-    'Fajr': {
-      title: '🌅 Fajr Prayer Soon',
-      body: `Fajr prayer starts in ${minutesBefore} minutes. Prepare for morning prayer.`
-    },
-    'Dhuhr': {
-      title: '☀️ Dhuhr Prayer Soon',
-      body: `Dhuhr prayer in ${minutesBefore} minutes. Prepare for midday prayer.`
-    },
-    'Asr': {
-      title: '🌤️ Asr Prayer Soon',
-      body: `Asr prayer in ${minutesBefore} minutes. Prepare for afternoon prayer.`
-    },
-    'Maghrib': {
-      title: '🌇 Maghrib Prayer Soon',
-      body: `Maghrib prayer in ${minutesBefore} minutes. Prepare to break your fast.`
-    },
-    'Isha': {
-      title: '🌙 Isha Prayer Soon',
-      body: `Isha prayer in ${minutesBefore} minutes. Prepare for evening prayer.`
-    }
-  };
-
-  return reminderMessages[prayerName] || {
-    title: `${prayerName} Prayer Reminder`,
-    body: `${prayerName} prayer starts in ${minutesBefore} minutes.`
-  };
-};
 import {
   PRAYER_ALARM_CONTROL_EVENT,
   PRAYER_ALARM_STATE_EVENT,
@@ -246,10 +185,9 @@ export const GlobalPrayerAlarm = () => {
         duration: 30000,
       });
 
-      const message = getPrayerNotificationMessage(prayerName, 'current time');
       localNotifications.showNativeNotification(
-        message.title,
-        message.body,
+        `${prayerName} Prayer Time`,
+        `It is time for ${prayerName} prayer.`,
         { url: '/dashboard', tag: 'prayer-alarm' }
       );
 
@@ -272,16 +210,14 @@ export const GlobalPrayerAlarm = () => {
   );
 
   const playReminder = useCallback((prayerName: string, minutesBefore: number) => {
-    const message = getReminderMessage(prayerName, minutesBefore);
-    
     toast.info(`${prayerName} in ${minutesBefore} minutes`, {
       description: 'Prepare for prayer',
       duration: 10000,
     });
 
     localNotifications.showNativeNotification(
-      message.title,
-      message.body,
+      `${prayerName} Prayer Coming Up`,
+      `${prayerName} prayer will begin in ${minutesBefore} minutes`,
       { url: '/dashboard', tag: 'prayer-reminder' }
     );
   }, []);
