@@ -1,4 +1,4 @@
-import { useEffect, useState, useMemo } from "react";
+import { useEffect, useState, useMemo, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Bell, AlertTriangle, Smartphone } from "lucide-react";
 import { Button } from "@/components/ui/button";
@@ -6,6 +6,9 @@ import { Card, CardContent } from "@/components/ui/card";
 import { isNotificationSupported, requestNotificationPermission, getNotificationPermission, shouldRequestPermission, forceRequestPermission } from "@/lib/notifications";
 import { GenderSelection } from "@/components/GenderSelection";
 import { isFirstTimeUser } from "@/lib/gender-settings";
+import { unifiedNotifications } from "@/lib/unified-notifications";
+import { GeolocationService } from "@/lib/geolocation-service";
+import { Capacitor } from "@capacitor/core";
 
 interface NavigatorWithStandalone extends Navigator {
     standalone?: boolean;
@@ -133,7 +136,7 @@ function PermissionRequest({ onPermissionGranted, onSkip }: {
     const [error, setError] = useState<string | null>(null);
 
     const handleRequestPermission = async () => {
-        if (!isNotificationSupported()) {
+        if (!Capacitor.isNativePlatform() && !isNotificationSupported()) {
             setError("Notifications not supported on this device");
             return;
         }
@@ -142,11 +145,29 @@ function PermissionRequest({ onPermissionGranted, onSkip }: {
         setError(null);
 
         try {
-            const granted = await requestNotificationPermission();
-            if (granted) {
+            const notificationGranted = Capacitor.isNativePlatform()
+                ? await unifiedNotifications.requestPermission()
+                : await requestNotificationPermission();
+
+            let locationGranted = true;
+            if (GeolocationService.isSupported()) {
+                const permissions = await GeolocationService.checkPermissions();
+                const needsLocationPermission =
+                    permissions.location !== 'granted' &&
+                    permissions.coarseLocation !== 'granted';
+
+                if (needsLocationPermission) {
+                    locationGranted = await GeolocationService.requestPermissions();
+                }
+            }
+
+            if (notificationGranted && locationGranted) {
                 setTimeout(onPermissionGranted, 500);
             } else {
-                setError("Permission denied. You can enable notifications in settings.");
+                const missing: string[] = [];
+                if (!notificationGranted) missing.push("notification");
+                if (!locationGranted) missing.push("location");
+                setError(`Please allow ${missing.join(" and ")} permission in settings.`);
             }
         } catch (err) {
             setError("Failed to request permission. Please try again.");
@@ -169,9 +190,9 @@ function PermissionRequest({ onPermissionGranted, onSkip }: {
                             <Bell className="w-5 h-5 text-primary" />
                         </div>
                         <div>
-                            <h3 className="font-semibold text-sm">Enable Notifications</h3>
+                            <h3 className="font-semibold text-sm">Enable Permissions</h3>
                             <p className="text-xs text-muted-foreground">
-                                Get prayer reminders and Islamic content
+                                Required for prayer reminders and accurate city timing
                             </p>
                         </div>
                     </div>
@@ -213,7 +234,7 @@ function PermissionRequest({ onPermissionGranted, onSkip }: {
                     </div>
                     
                     <p className="text-xs text-muted-foreground text-center">
-                        🔔 Important for prayer reminders
+                        Required: notification + location. Sensor access on Android does not need a separate runtime permission.
                     </p>
                 </CardContent>
             </Card>
@@ -241,11 +262,15 @@ function PersistentPermissionReminder() {
     }, []);
 
     const handleRequestPermission = async () => {
-        if (!isNotificationSupported()) return;
+        if (!Capacitor.isNativePlatform() && !isNotificationSupported()) return;
 
         setIsRequesting(true);
         try {
-            await requestNotificationPermission();
+            if (Capacitor.isNativePlatform()) {
+                await unifiedNotifications.requestPermission();
+            } else {
+                await requestNotificationPermission();
+            }
             setIsVisible(false);
         } catch (error) {
             console.error('Failed to request permission:', error);
@@ -304,6 +329,29 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
     const [permissionHandled, setPermissionHandled] = useState(false);
     const [genderHandled, setGenderHandled] = useState(false);
 
+    const shouldShowPermissionPrompt = useCallback(async (): Promise<boolean> => {
+        try {
+            let needsNotificationPermission = shouldRequestPermission() || forceRequestPermission();
+            if (Capacitor.isNativePlatform()) {
+                const notificationStatus = await unifiedNotifications.getPermissionStatus();
+                needsNotificationPermission = notificationStatus !== 'granted';
+            }
+
+            let needsLocationPermission = false;
+            if (Capacitor.isNativePlatform() && GeolocationService.isSupported()) {
+                const locationPermissions = await GeolocationService.checkPermissions();
+                needsLocationPermission =
+                    locationPermissions.location !== 'granted' &&
+                    locationPermissions.coarseLocation !== 'granted';
+            }
+
+            return needsNotificationPermission || needsLocationPermission;
+        } catch (error) {
+            console.error("Failed to check startup permissions:", error);
+            return shouldRequestPermission() || forceRequestPermission();
+        }
+    }, []);
+
     useEffect(() => {
         const checkFirstTimeUser = () => {
             const isFirstTime = isFirstTimeUser();
@@ -317,9 +365,8 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
         };
 
         const checkAndRequestPermissions = async () => {
-            // Check if we should request permissions (APK/PWA mode only)
-            if (shouldRequestPermission() || forceRequestPermission()) {
-                // Show permission request for APK/PWA users
+            const shouldShowPrompt = await shouldShowPermissionPrompt();
+            if (shouldShowPrompt) {
                 setTimeout(() => setShowPermissionRequest(true), 1500);
             } else {
                 // Continue normally for web users or those with permission already set
@@ -359,7 +406,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                 window.removeEventListener('requestNotificationPermission', handlePermissionRequest as EventListener);
             };
         }
-    }, [onComplete, showPermissionRequest, permissionHandled, showGenderSelection, genderHandled]);
+    }, [onComplete, permissionHandled, showPermissionRequest, shouldShowPermissionPrompt]);
 
     const handleGenderSelectionComplete = () => {
         setShowGenderSelection(false);
@@ -367,7 +414,8 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
         
         // After gender selection, check if we need to request permissions
         const checkAndRequestPermissions = async () => {
-            if (shouldRequestPermission() || forceRequestPermission()) {
+            const shouldShowPrompt = await shouldShowPermissionPrompt();
+            if (shouldShowPrompt) {
                 setTimeout(() => setShowPermissionRequest(true), 500);
             } else {
                 setTimeout(() => {
@@ -419,12 +467,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                         <AppIcon />
 
                         {/* App Title with Premium Glass Card */}
-                        <motion.div
-                            initial={{ y: 20, opacity: 0 }}
-                            animate={{ y: 0, opacity: 1 }}
-                            transition={{ delay: 0.4, duration: 0.6 }}
-                            className="glass-card px-8 py-4"
-                        >
+                        <div className="glass-card px-8 py-4">
                             <h1
                                 className="text-4xl md:text-5xl font-bold text-center tracking-tight"
                                 style={{
@@ -432,62 +475,51 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                                     WebkitBackgroundClip: "text",
                                     WebkitTextFillColor: "transparent",
                                     backgroundClip: "text",
-                                    filter: "drop-shadow(0 0 20px rgba(212, 175, 55, 0.4))",
-                                    fontFamily: "'Source Serif Pro', serif"
+                                    fontFamily: "ui-serif, Georgia, Cambria, 'Times New Roman', Times, serif"
                                 }}
                             >
                                 Noor Connect
                             </h1>
-                        </motion.div>
+                        </div>
 
-                        <motion.p
-                            initial={{ opacity: 0 }}
-                            animate={{ opacity: 0.8 }}
-                            transition={{ delay: 0.8, duration: 0.6 }}
-                            className="text-sm text-[#D4AF37]/80 uppercase tracking-[0.3em] font-semibold"
-                        >
+                        <p className="text-sm text-[#D4AF37]/80 uppercase tracking-[0.3em] font-semibold">
                             Islamic Companion
-                        </motion.p>
+                        </p>
 
-                        {/* Loading Dots - Hide when showing permission request or gender selection */}
-                        {!showPermissionRequest && !showGenderSelection && !permissionHandled && !genderHandled && (
-                            <motion.div
-                                className="flex space-x-2"
-                                initial={{ opacity: 0 }}
-                                animate={{ opacity: 1 }}
-                                transition={{ delay: 1 }}
-                            >
-                                {[0, 1, 2].map((i) => (
-                                    <motion.div
-                                        key={i}
-                                        className="w-2 h-2 rounded-full bg-[#D4AF37]"
-                                        animate={{ y: [0, -6, 0] }}
-                                        transition={{
-                                            duration: 0.6,
-                                            repeat: Infinity,
-                                            delay: i * 0.15,
-                                            ease: "easeInOut"
-                                        }}
-                                        style={{
-                                            boxShadow: "0 0 8px rgba(212, 175, 55, 0.6)",
-                                        }}
-                                    />
-                                ))}
-                            </motion.div>
-                        )}
+                        {/* Reserve vertical space to prevent CLS when switching splash content */}
+                        <div className="w-full max-w-sm min-h-[220px] flex items-center justify-center">
+                            {!showPermissionRequest && !showGenderSelection && !permissionHandled && !genderHandled && (
+                                <motion.div className="flex space-x-2">
+                                    {[0, 1, 2].map((i) => (
+                                        <motion.div
+                                            key={i}
+                                            className="w-2 h-2 rounded-full bg-[#D4AF37]"
+                                            animate={{ y: [0, -6, 0] }}
+                                            transition={{
+                                                duration: 0.6,
+                                                repeat: Infinity,
+                                                delay: i * 0.15,
+                                                ease: "easeInOut"
+                                            }}
+                                            style={{
+                                                boxShadow: "0 0 8px rgba(212, 175, 55, 0.6)",
+                                            }}
+                                        />
+                                    ))}
+                                </motion.div>
+                            )}
 
-                        {/* Gender Selection */}
-                        {showGenderSelection && (
-                            <GenderSelection onComplete={handleGenderSelectionComplete} />
-                        )}
+                            {showGenderSelection && (
+                                <GenderSelection onComplete={handleGenderSelectionComplete} />
+                            )}
 
-                        {/* Permission Request */}
-                        {showPermissionRequest && (
-                            <PermissionRequest
-                                onPermissionGranted={handlePermissionGranted}
-                                onSkip={handleSkipPermission}
-                            />
-                        )}
+                            {showPermissionRequest && (
+                                <PermissionRequest
+                                    onPermissionGranted={handlePermissionGranted}
+                                    onSkip={handleSkipPermission}
+                                />
+                            )}
+                        </div>
                     </div>
 
                     {/* Bottom Golden Haze */}

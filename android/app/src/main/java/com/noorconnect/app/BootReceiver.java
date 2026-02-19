@@ -15,10 +15,13 @@ public class BootReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (Intent.ACTION_BOOT_COMPLETED.equals(intent.getAction()) ||
-                "android.intent.action.QUICKBOOT_POWERON".equals(intent.getAction())) {
+        String action = intent != null ? intent.getAction() : null;
+        if (Intent.ACTION_BOOT_COMPLETED.equals(action)
+                || "android.intent.action.QUICKBOOT_POWERON".equals(action)
+                || Intent.ACTION_TIME_CHANGED.equals(action)
+                || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
 
-            Log.d(TAG, "Boot completed, starting Noor Connect service");
+            Log.d(TAG, "System event received (" + action + "), restoring background tasks");
 
             // Start the foreground service
             Intent serviceIntent = new Intent(context, NoorConnectService.class);
@@ -31,7 +34,10 @@ public class BootReceiver extends BroadcastReceiver {
             // Update widgets
             PrayerWidget.updateAllWidgets(context);
 
-            Log.d(TAG, "Service started and widgets updated");
+            // Restore native adhan alarms after reboot/time changes.
+            NativeAdhanScheduler.rescheduleAlarms(context);
+
+            Log.d(TAG, "Service started, widgets updated, native adhan alarms restored");
         }
     }
 }

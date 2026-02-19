@@ -7,6 +7,8 @@
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
 import { AladhanAPI, type AladhanPrayerTime } from './aladhan-api';
 import { Capacitor } from '@capacitor/core';
+import { getAdhanUrlForPrayer, type PrayerName } from './adhan-preferences';
+import { nativeAdhan, type NativeAdhanAlarm } from './native-adhan';
 
 // Task 2: Use SW registration for more robust "Native" notifications
 let swRegistration: ServiceWorkerRegistration | null = null;
@@ -18,6 +20,7 @@ if ('serviceWorker' in navigator) {
 
 const LOCATION_STORAGE_KEY = 'user-location-data';
 const PRAYER_NOTIFICATIONS_ENABLED_KEY = 'prayer-notifications-enabled';
+const PRAYER_ALARM_ENABLED_KEY = 'prayer-alarm-enabled';
 const LAST_SCHEDULE_SIGNATURE_KEY = 'last-prayer-notification-signature';
 const SCHEDULE_WINDOW_DAYS = 30;
 
@@ -171,12 +174,16 @@ export class LocalNotificationManager {
 
       const now = new Date();
       const method = 1; // Muslim World League method
+      const adhanPreferenceSignature = localStorage.getItem('adhan-preferences') || 'default';
+      const adhanEnabledSignature = this.isPrayerAlarmEnabled() ? 'adhan-on' : 'adhan-off';
       const signature = [
         now.toDateString(),
         locationData.latitude.toFixed(3),
         locationData.longitude.toFixed(3),
         locationData.source || 'unknown',
         `window-${SCHEDULE_WINDOW_DAYS}`,
+        adhanPreferenceSignature,
+        adhanEnabledSignature,
       ].join('|');
 
       const previousSignature = localStorage.getItem(LAST_SCHEDULE_SIGNATURE_KEY);
@@ -188,6 +195,7 @@ export class LocalNotificationManager {
       await this.clearPrayerNotifications();
 
       const notifications: LocalNotificationSchema[] = [];
+      const nativeAlarms: NativeAdhanAlarm[] = [];
       const monthsFetched = new Set<string>();
       const syncTimings: ServiceWorkerPrayerTimings = {};
 
@@ -263,6 +271,13 @@ export class LocalNotificationManager {
             prayerName,
           });
 
+          nativeAlarms.push({
+            id: notificationId,
+            triggerAt: prayerDate.getTime(),
+            prayerName,
+            adhanUrl: getAdhanUrlForPrayer(prayerName as PrayerName),
+          });
+
           if (dayOffset === 0) {
             syncTimings[prayerName.toLowerCase()] = { time: cleaned };
           }
@@ -273,6 +288,14 @@ export class LocalNotificationManager {
         await LocalNotifications.schedule({
           notifications
         });
+
+        if (Capacitor.isNativePlatform()) {
+          if (this.isPrayerAlarmEnabled()) {
+            await nativeAdhan.schedule(nativeAlarms, true);
+          } else {
+            await nativeAdhan.clear();
+          }
+        }
 
         localStorage.setItem(LAST_SCHEDULE_SIGNATURE_KEY, signature);
 
@@ -285,6 +308,9 @@ export class LocalNotificationManager {
         );
       } else {
         localStorage.removeItem(LAST_SCHEDULE_SIGNATURE_KEY);
+        if (Capacitor.isNativePlatform()) {
+          await nativeAdhan.clear();
+        }
       }
 
     } catch (error) {
@@ -469,6 +495,10 @@ export class LocalNotificationManager {
       }
     } catch (error) {
       console.error('Failed to clear prayer notifications:', error);
+    } finally {
+      if (Capacitor.isNativePlatform()) {
+        await nativeAdhan.clear();
+      }
     }
   }
 
@@ -510,6 +540,10 @@ export class LocalNotificationManager {
 
   arePrayerNotificationsEnabled(): boolean {
     return localStorage.getItem(PRAYER_NOTIFICATIONS_ENABLED_KEY) !== 'false';
+  }
+
+  private isPrayerAlarmEnabled(): boolean {
+    return localStorage.getItem(PRAYER_ALARM_ENABLED_KEY) !== 'false';
   }
 
   async ensureExactAlarmPermission(): Promise<boolean> {

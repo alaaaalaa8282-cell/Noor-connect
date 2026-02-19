@@ -1,6 +1,7 @@
 import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
 import { getAdhanUrlForPrayer } from '@/lib/adhan-preferences';
+import { nativeAdhan } from '@/lib/native-adhan';
 import {
   PRAYER_ALARM_CONTROL_EVENT,
   PRAYER_ALARM_STATE_EVENT,
@@ -77,6 +78,14 @@ export const usePrayerAlarm = () => {
     localStorage.setItem(STORAGE_KEY, 'true');
     setIsEnabled(true);
     dispatchToggleEvent(true);
+    await nativeAdhan.setEnabled(true);
+
+    // Re-sync native alarms immediately when the user enables adhan.
+    import('@/lib/local-notifications')
+      .then(({ localNotifications }) => localNotifications.schedulePrayerNotificationsFromAPI())
+      .catch((error) => {
+        console.warn('Failed to refresh native adhan alarms after enabling:', error);
+      });
 
     toast.success('Prayer Alarm Enabled', {
       description: 'Adhan will play automatically at prayer time.',
@@ -93,6 +102,7 @@ export const usePrayerAlarm = () => {
     localStorage.setItem(STORAGE_KEY, 'false');
     setIsEnabled(false);
     dispatchToggleEvent(false);
+    void nativeAdhan.setEnabled(false);
     stopAdhan();
 
     toast.success('Prayer Alarm Disabled');
