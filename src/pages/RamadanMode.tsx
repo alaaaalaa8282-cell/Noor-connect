@@ -3,9 +3,10 @@ import { useNavigate } from "react-router-dom";
 import { AppBar } from "@/components/AppBar";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Calendar, Moon, Sun, CheckCircle, TrendingUp, AlertCircle, ArrowLeft, MapPin, Clock, RefreshCw, Flame, Check, BookOpen, Minus, Plus, Star, Heart, Gift, Trophy } from "lucide-react";
+import { Calendar, Moon, Sun, CheckCircle, TrendingUp, AlertCircle, ArrowLeft, MapPin, Clock, RefreshCw, Flame, Check, BookOpen, Minus, Plus, Star, Heart, Gift, Trophy, Droplet } from "lucide-react";
 import { LayoutManager } from "@/components/LayoutManager";
 import { Progress } from "@/components/ui/progress";
+import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
@@ -23,6 +24,7 @@ interface RamadanData {
   charityAmount: number; // Total charity given
   goodDeeds: number; // Daily good deeds counter
   eidCountdown: number; // Days until Eid
+  waterRemindersEnabled: boolean; // Water reminders after Iftar
 }
 
 export default function RamadanMode() {
@@ -44,7 +46,8 @@ export default function RamadanMode() {
     tarawihPrayers: [],
     charityAmount: 0,
     goodDeeds: 0,
-    eidCountdown: 30
+    eidCountdown: 30,
+    waterRemindersEnabled: true
   });
   const [currentDay, setCurrentDay] = useState(1);
   const [todayFasted, setTodayFasted] = useState(false);
@@ -114,7 +117,8 @@ export default function RamadanMode() {
           timings.Maghrib,
           timings.Isha,
           location.locationName,
-          ramadanDay
+          ramadanDay,
+          data.waterRemindersEnabled
         );
       }
     } catch (error) {
@@ -238,6 +242,17 @@ export default function RamadanMode() {
     const newCount = data.goodDeeds + 1;
     saveData({ ...data, goodDeeds: newCount });
     toast({ title: "Good deed recorded!", description: "Every good deed is multiplied in Ramadan!" });
+  };
+
+  const toggleWaterReminders = () => {
+    const newEnabled = !data.waterRemindersEnabled;
+    saveData({ ...data, waterRemindersEnabled: newEnabled });
+    toast({ 
+      title: newEnabled ? "Water reminders enabled!" : "Water reminders disabled",
+      description: newEnabled 
+        ? "You'll receive water reminders after Iftar to stay hydrated."
+        : "Water reminders have been turned off."
+    });
   };
 
   const calculateEidCountdown = () => {
@@ -547,6 +562,43 @@ export default function RamadanMode() {
                 </>
               )}
             </Button>
+          </Card>
+
+          {/* Water Reminders Settings */}
+          <Card className="p-4 space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-2">
+                <Droplet className="w-5 h-5 text-blue-500" />
+                <span className="font-medium">Water Reminders</span>
+              </div>
+              <Switch
+                checked={data.waterRemindersEnabled}
+                onCheckedChange={toggleWaterReminders}
+              />
+            </div>
+            
+            <div className="text-sm text-muted-foreground space-y-2">
+              <p>💧 <strong>After Iftar:</strong></p>
+              <ul className="ml-4 space-y-1 text-xs">
+                <li>• 15 min - First glass of water</li>
+                <li>• 30 min - Stay hydrated</li>
+                <li>• 45 min - Keep drinking water</li>
+                <li>• 60 min - One hour after Iftar</li>
+                <li>• 90 min - Hydration break</li>
+                <li>• 120 min - Important hydration time</li>
+                <li>• 150 min - Keep energy up</li>
+                <li>• 180 min - Final reminder before Suhoor</li>
+              </ul>
+              
+              <p className="mt-3">🌙 <strong>Before Suhoor:</strong></p>
+              <ul className="ml-4 space-y-1 text-xs">
+                <li>• 20 min after Suhoor starts - Final hydration before fasting</li>
+              </ul>
+              
+              <p className="mt-3 text-xs text-muted-foreground">
+                Helps maintain proper hydration during Ramadan fasting hours
+              </p>
+            </div>
           </Card>
 
           {/* Charity & Good Deeds */}

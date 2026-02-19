@@ -502,6 +502,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
       // Save to user_location (persistent manual location)
       localStorage.setItem(USER_LOCATION_KEY, JSON.stringify(locationData));
+      saveLocation(locationData);
 
       await fetchPrayerTimesWithCoordinates(locationData);
       setNeedsManualLocation(false);
@@ -511,7 +512,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     } finally {
       setIsLoading(false);
     }
-  }, [fetchPrayerTimesWithCoordinates]);
+  }, [fetchPrayerTimesWithCoordinates, saveLocation]);
 
   // Main fetch function
   const fetchPrayerTimes = useCallback(async () => {
@@ -530,6 +531,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       // Check for user location first (highest priority)
       const userLocation = getUserLocation();
       if (userLocation) {
+        saveLocation(userLocation);
         await fetchPrayerTimesWithCoordinates(userLocation);
         return;
       }
@@ -621,13 +623,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       // Throttle notification scheduling to prevent rapid calls
       const timeoutId = setTimeout(() => {
         import('@/lib/local-notifications').then(({ localNotifications }) => {
-          localNotifications.schedulePrayerNotifications([
-            { name: 'Fajr', time: formatPrayerTime(prayerTimes.fajr, '24'), date: prayerTimes.fajr },
-            { name: 'Dhuhr', time: formatPrayerTime(prayerTimes.dhuhr, '24'), date: prayerTimes.dhuhr },
-            { name: 'Asr', time: formatPrayerTime(prayerTimes.asr, '24'), date: prayerTimes.asr },
-            { name: 'Maghrib', time: formatPrayerTime(prayerTimes.maghrib, '24'), date: prayerTimes.maghrib },
-            { name: 'Isha', time: formatPrayerTime(prayerTimes.isha, '24'), date: prayerTimes.isha }
-          ]).catch((error) => {
+          localNotifications.schedulePrayerNotificationsFromAPI().catch((error) => {
             console.error('Failed to schedule prayer notifications:', error);
           });
         });

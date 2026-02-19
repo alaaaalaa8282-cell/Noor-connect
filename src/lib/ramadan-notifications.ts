@@ -23,11 +23,23 @@ export class RamadanNotifications {
         body: `Eat your Suhoor in ${location}. Fajr is at ${fajrTime}`,
         icon: 'moon'
       });
+
+      // Schedule water reminder before Suhoor ends
+      const waterBeforeSuhoorTime = new Date(suhoorTime);
+      waterBeforeSuhoorTime.setMinutes(waterBeforeSuhoorTime.getMinutes() + 20); // 20 minutes after Suhoor starts
+
+      if (waterBeforeSuhoorTime > new Date()) {
+        await unifiedNotifications.schedulePrayerNotification('Water-Before-Suhoor', waterBeforeSuhoorTime, {
+          title: '💧 Hydration Before Fasting',
+          body: 'Drink water now before Suhoor ends! Stay hydrated for your fast.',
+          icon: 'droplet'
+        });
+      }
     }
   }
 
   // Schedule Iftar reminder (at Maghrib time)
-  async scheduleIftarReminder(maghribTime: string, location: string) {
+  async scheduleIftarReminder(maghribTime: string, location: string, waterRemindersEnabled: boolean = true) {
     const [hours, minutes] = maghribTime.split(':').map(Number);
     const iftarTime = new Date();
     iftarTime.setHours(hours, minutes, 0, 0);
@@ -38,6 +50,38 @@ export class RamadanNotifications {
         body: `Break your fast in ${location}. Maghrib is at ${maghribTime}`,
         icon: 'sunset'
       });
+
+      // Schedule water reminders after Iftar
+      await this.scheduleWaterRemindersAfterIftar(iftarTime, location, waterRemindersEnabled);
+    }
+  }
+
+  // Schedule water reminders at intervals after Iftar
+  async scheduleWaterRemindersAfterIftar(iftarTime: Date, location: string, enabled: boolean = true) {
+    if (!enabled) return; // Skip if water reminders are disabled
+
+    const waterReminders = [
+      { minutes: 15, message: "First glass of water! Rehydrate gently." },
+      { minutes: 30, message: "Time for more water! Stay hydrated." },
+      { minutes: 45, message: "Keep drinking water! Your body needs it." },
+      { minutes: 60, message: "One hour after Iftar - great time for water!" },
+      { minutes: 90, message: "Hydration break! Don't forget to drink water." },
+      { minutes: 120, message: "2 hours post-Iftar - important hydration time!" },
+      { minutes: 150, message: "Water reminder! Keep your energy up." },
+      { minutes: 180, message: "3 hours after Iftar - final water reminder before Suhoor prep." }
+    ];
+
+    for (const reminder of waterReminders) {
+      const reminderTime = new Date(iftarTime);
+      reminderTime.setMinutes(reminderTime.getMinutes() + reminder.minutes);
+
+      if (reminderTime > new Date()) {
+        await unifiedNotifications.schedulePrayerNotification(`Water-${reminder.minutes}`, reminderTime, {
+          title: `💧 Water Reminder (${reminder.minutes}min after Iftar)`,
+          body: reminder.message,
+          icon: 'droplet'
+        });
+      }
     }
   }
 
@@ -119,7 +163,8 @@ export class RamadanNotifications {
     maghribTime: string,
     ishaTime: string,
     location: string,
-    ramadanDay: number
+    ramadanDay: number,
+    waterRemindersEnabled: boolean = true
   ) {
     // Clear previous notifications
     await this.clearRamadanNotifications();

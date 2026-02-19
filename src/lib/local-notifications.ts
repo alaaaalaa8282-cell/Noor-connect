@@ -6,6 +6,7 @@
 
 import { LocalNotifications, type LocalNotificationSchema } from '@capacitor/local-notifications';
 import { AladhanAPI, type AladhanPrayerTime } from './aladhan-api';
+import { Capacitor } from '@capacitor/core';
 
 // Task 2: Use SW registration for more robust "Native" notifications
 let swRegistration: ServiceWorkerRegistration | null = null;
@@ -17,6 +18,8 @@ if ('serviceWorker' in navigator) {
 
 const LOCATION_STORAGE_KEY = 'user-location-data';
 const PRAYER_NOTIFICATIONS_ENABLED_KEY = 'prayer-notifications-enabled';
+const LAST_SCHEDULE_SIGNATURE_KEY = 'last-prayer-notification-signature';
+const SCHEDULE_WINDOW_DAYS = 30;
 
 if (localStorage.getItem(PRAYER_NOTIFICATIONS_ENABLED_KEY) === null) {
   localStorage.setItem(PRAYER_NOTIFICATIONS_ENABLED_KEY, 'true');
@@ -28,6 +31,15 @@ type NativeNotificationData = Record<string, unknown> & {
 };
 
 type ServiceWorkerPrayerTimings = Record<string, { time: string }>;
+
+const PRAYER_NAMES = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
+
+const getPrayerNotificationMessage = (prayerName: string, prayerTime: string): { title: string; body: string } => {
+  return {
+    title: `${prayerName} Prayer Time`,
+    body: `It's time for ${prayerName} prayer (${prayerTime}).`,
+  };
+};
 
 export interface PrayerTime {
   name: string;
@@ -140,131 +152,139 @@ export class LocalNotificationManager {
     }
 
     try {
-      // Check if we have valid location data
       const storedLocation = localStorage.getItem(LOCATION_STORAGE_KEY);
       if (!storedLocation) {
         console.log('No location data available, skipping notification scheduling');
         return;
       }
 
-      const locationData = JSON.parse(storedLocation);
+      const locationData = JSON.parse(storedLocation) as {
+        latitude?: number;
+        longitude?: number;
+        source?: string;
+      };
+
+      if (typeof locationData.latitude !== 'number' || typeof locationData.longitude !== 'number') {
+        console.log('Location coordinates missing, skipping notification scheduling');
+        return;
+      }
+
       const now = new Date();
-      const storedTime = new Date(locationData.timestamp);
-      const hoursDiff = (now.getTime() - storedTime.getTime()) / (1000 * 60 * 60);
+      const method = 1; // Muslim World League method
+      const signature = [
+        now.toDateString(),
+        locationData.latitude.toFixed(3),
+        locationData.longitude.toFixed(3),
+        locationData.source || 'unknown',
+        `window-${SCHEDULE_WINDOW_DAYS}`,
+      ].join('|');
 
-      // Only schedule if location is recent (less than 24 hours) and not manual/default
-      if (hoursDiff >= 24 || locationData.source === 'manual' || locationData.source === 'default') {
-        console.log('Location data is stale or manual, skipping notification scheduling');
+      const previousSignature = localStorage.getItem(LAST_SCHEDULE_SIGNATURE_KEY);
+      if (previousSignature === signature) {
+        console.log('Prayer notifications already scheduled for current signature');
         return;
       }
 
-      // Check if we already have notifications scheduled for today
-      const today = now.toDateString();
-      const lastScheduledDate = localStorage.getItem('last-notification-schedule-date');
-
-      if (lastScheduledDate === today) {
-        console.log('Notifications already scheduled for today, skipping');
-        return;
-      }
-
-      // Only clear existing prayer notifications if we're going to schedule new ones
-      // and we haven't already scheduled them today
       await this.clearPrayerNotifications();
 
-      // Get today's prayer times from Aladhan API
-      let timings: AladhanPrayerTime;
-
-      if (locationData.city && locationData.country) {
-        // Use city-based API for IP locations
-        timings = await AladhanAPI.getTodaysPrayerTimesByCity(
-          locationData.city,
-          locationData.country,
-          1 // Muslim World League method
-        );
-      } else {
-        // Use coordinates-based API
-        // Use coordinates-based API
-        const result = await AladhanAPI.getTodaysPrayerTimes(
-          locationData.latitude,
-          locationData.longitude,
-          1 // Muslim World League method
-        );
-        timings = result.timings;
-      }
-
       const notifications: LocalNotificationSchema[] = [];
+      const monthsFetched = new Set<string>();
+      const syncTimings: ServiceWorkerPrayerTimings = {};
 
-      // Parse prayer times and create notifications
-      const prayers = [
-        { name: 'Fajr', time: timings.Fajr },
-        { name: 'Dhuhr', time: timings.Dhuhr },
-        { name: 'Asr', time: timings.Asr },
-        { name: 'Maghrib', time: timings.Maghrib },
-        { name: 'Isha', time: timings.Isha }
-      ];
+      for (let dayOffset = 0; dayOffset < SCHEDULE_WINDOW_DAYS; dayOffset += 1) {
+        const targetDate = new Date(now);
+        targetDate.setDate(now.getDate() + dayOffset);
+        targetDate.setHours(0, 0, 0, 0);
 
-      for (const prayer of prayers) {
-        const cleaned = prayer.time.replace(/\s*\(.*?\)\s*/g, '').trim();
-        const [hours, minutes] = cleaned.split(':').map(Number);
-        const prayerDate = new Date();
-        prayerDate.setHours(hours, minutes, 0, 0);
+        const year = targetDate.getFullYear();
+        const month = targetDate.getMonth() + 1;
+        const monthKey = `${year}-${month}`;
 
-        // Only schedule future prayers for today
-        if (prayerDate > now) {
-          const notificationId = this.getNotificationId(prayer.name);
-          const message = getPrayerNotificationMessage(prayer.name, prayer.time);
+        if (!monthsFetched.has(monthKey)) {
+          await AladhanAPI.fetchMonthlyCalendar(
+            locationData.latitude,
+            locationData.longitude,
+            year,
+            month,
+            method
+          );
+          monthsFetched.add(monthKey);
+        }
 
-          const notification = {
+        const dayData = AladhanAPI.getPrayerTimesForDate(
+          targetDate,
+          locationData.latitude,
+          locationData.longitude
+        );
+        if (!dayData) {
+          continue;
+        }
+
+        for (const prayerName of PRAYER_NAMES) {
+          const prayerTime = dayData.timings[prayerName];
+          const cleaned = prayerTime.replace(/\s*\(.*?\)\s*/g, '').trim();
+          const [hours, minutes] = cleaned.split(':').map(Number);
+          const prayerDate = new Date(targetDate);
+          prayerDate.setHours(hours, minutes, 0, 0);
+
+          if (prayerDate <= now) {
+            continue;
+          }
+
+          const notificationId = this.getNotificationId(prayerName, prayerDate);
+          const message = getPrayerNotificationMessage(prayerName, cleaned);
+          const notification: LocalNotificationSchema = {
             id: notificationId,
             title: message.title,
             body: message.body,
             schedule: {
               at: prayerDate,
-              allowWhileIdle: true, // Wake up device
+              allowWhileIdle: true,
               repeats: false,
             },
             sound: 'default',
             smallIcon: 'ic_stat_notification',
             iconColor: '#22c55e',
             extra: {
-              prayerName: prayer.name,
-              prayerTime: prayer.time,
+              prayerName,
+              prayerTime: cleaned,
               type: 'prayer_reminder',
               location: locationData,
-              scheduledDate: today
-            }
+              scheduledDate: targetDate.toISOString(),
+            },
           };
 
           notifications.push(notification);
-
-          // Store for tracking
           this.scheduledNotifications.set(notificationId, {
             id: notificationId,
-            title: notification.title,
-            body: notification.body,
+            title: message.title,
+            body: message.body,
             scheduleTime: prayerDate,
-            prayerName: prayer.name
+            prayerName,
           });
+
+          if (dayOffset === 0) {
+            syncTimings[prayerName.toLowerCase()] = { time: cleaned };
+          }
         }
       }
 
-      // Schedule all notifications
       if (notifications.length > 0) {
         await LocalNotifications.schedule({
           notifications
         });
 
-        // Mark that we've scheduled notifications for today
-        localStorage.setItem('last-notification-schedule-date', today);
+        localStorage.setItem(LAST_SCHEDULE_SIGNATURE_KEY, signature);
 
-        // Sync with Service Worker for background persistence (for PWA/APK)
-        const swTimings: Record<string, { time: string }> = {};
-        for (const p of prayers) {
-          swTimings[p.name.toLowerCase()] = { time: p.time };
+        if (Object.keys(syncTimings).length > 0) {
+          this.syncWithServiceWorker(syncTimings);
         }
-        this.syncWithServiceWorker(swTimings);
 
-        console.log(`Scheduled ${notifications.length} prayer notifications for location: ${locationData.city || `${locationData.latitude.toFixed(2)},${locationData.longitude.toFixed(2)}`}`);
+        console.log(
+          `Scheduled ${notifications.length} prayer notifications for ${SCHEDULE_WINDOW_DAYS} days`
+        );
+      } else {
+        localStorage.removeItem(LAST_SCHEDULE_SIGNATURE_KEY);
       }
 
     } catch (error) {
@@ -293,7 +313,7 @@ export class LocalNotificationManager {
       for (const prayer of prayerTimes) {
         // Only schedule future prayers for today
         if (prayer.date > now) {
-          const notificationId = this.getNotificationId(prayer.name);
+          const notificationId = this.getNotificationId(prayer.name, prayer.date);
 
           const notification = {
             id: notificationId,
@@ -366,7 +386,7 @@ export class LocalNotificationManager {
     }
 
     try {
-      const notificationId = this.getNotificationId(prayerName);
+      const notificationId = this.getNotificationId(prayerName, prayerDate);
 
       await LocalNotifications.schedule({
         notifications: [{
@@ -406,15 +426,25 @@ export class LocalNotificationManager {
   /**
    * Get notification ID for a prayer
    */
-  private getNotificationId(prayerName: string): number {
-    const ids: Record<string, number> = {
-      'Fajr': 1001,
-      'Dhuhr': 1002,
-      'Asr': 1003,
-      'Maghrib': 1004,
-      'Isha': 1005
+  private getNotificationId(prayerName: string, prayerDate?: Date): number {
+    const prayerIndex: Record<string, number> = {
+      Fajr: 1,
+      Dhuhr: 2,
+      Asr: 3,
+      Maghrib: 4,
+      Isha: 5,
     };
-    return ids[prayerName] || 1000 + Math.floor(Math.random() * 100);
+
+    if (prayerDate) {
+      const year = prayerDate.getFullYear();
+      const month = String(prayerDate.getMonth() + 1).padStart(2, '0');
+      const day = String(prayerDate.getDate()).padStart(2, '0');
+      const dateNumber = parseInt(`${year}${month}${day}`, 10);
+      const index = prayerIndex[prayerName] || 9;
+      return dateNumber * 10 + index;
+    }
+
+    return 1000 + (prayerIndex[prayerName] || 9);
   }
 
   /**
@@ -482,15 +512,33 @@ export class LocalNotificationManager {
     return localStorage.getItem(PRAYER_NOTIFICATIONS_ENABLED_KEY) !== 'false';
   }
 
+  async ensureExactAlarmPermission(): Promise<boolean> {
+    if (!Capacitor.isNativePlatform()) return true;
+
+    try {
+      const status = await LocalNotifications.checkExactNotificationSetting() as { exact_alarm?: string };
+      if (status.exact_alarm === 'granted') {
+        return true;
+      }
+
+      const changed = await LocalNotifications.changeExactNotificationSetting() as { exact_alarm?: string };
+      return changed.exact_alarm === 'granted';
+    } catch (error) {
+      console.warn('Unable to verify exact alarm permission, using fallback scheduling:', error);
+      return false;
+    }
+  }
+
   async setPrayerNotificationsEnabled(enabled: boolean): Promise<void> {
     localStorage.setItem(PRAYER_NOTIFICATIONS_ENABLED_KEY, enabled ? 'true' : 'false');
 
     if (!enabled) {
       await this.clearPrayerNotifications();
-      localStorage.removeItem('last-notification-schedule-date');
+      localStorage.removeItem(LAST_SCHEDULE_SIGNATURE_KEY);
       return;
     }
 
+    await this.ensureExactAlarmPermission();
     await this.schedulePrayerNotificationsFromAPI();
   }
 
