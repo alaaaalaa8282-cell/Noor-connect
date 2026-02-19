@@ -491,6 +491,25 @@ const Profile = () => {
             </div>
             <Switch checked={salamGreetingEnabled} onCheckedChange={handleSalamGreetingToggle} />
           </div>
+
+          {/* Prayer Alarm Control */}
+          <div className="mt-4 pt-4 border-t border-border/50">
+            <div className="flex items-center justify-between mb-3">
+              <div>
+                <Label className="text-sm font-medium">Prayer Alarm (Adhan)</Label>
+                <p className="text-xs text-muted-foreground">Play Adhan automatically at prayer times</p>
+              </div>
+            </div>
+            <div className="grid grid-cols-2 gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => window.open('/dashboard', '_blank')}
+              >
+                Configure on Dashboard
+              </Button>
+            </div>
+          </div>
         </Card>
 
         {/* Storage & Backup */}

@@ -11,6 +11,11 @@ const PRAYER_TIMES_KEY = 'cached-prayer-times';
 const REMINDER_MINUTES_KEY = 'prayer-reminder-minutes';
 const LAST_REMINDER_KEY = 'prayer-reminder-last-played';
 
+// Set prayer alarm enabled by default
+if (!localStorage.getItem(STORAGE_KEY)) {
+  localStorage.setItem(STORAGE_KEY, 'true');
+}
+
 interface PrayerTime {
   name: string;
   time: string;
@@ -84,6 +89,9 @@ export const GlobalPrayerAlarm = () => {
     audioRef.current = audio; // Keep reference to prevent GC
     audio.volume = 0.8;
     audio.preload = 'auto';
+    
+    // Set audio to play for full duration (don't auto-stop)
+    audio.loop = false; // Don't loop, but play full duration
 
     // 3. Media Session API - Crucial for background priority
     if ('mediaSession' in navigator) {
