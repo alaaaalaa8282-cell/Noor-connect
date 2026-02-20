@@ -60,31 +60,31 @@ const UNIT_CONVERSIONS = {
 };
 
 const FALLBACK_CURRENCIES = [
-  "AED","AFN","ALL","AMD","ANG","AOA","ARS","AUD","AWG","AZN",
-  "BAM","BBD","BDT","BGN","BHD","BIF","BMD","BND","BOB","BRL","BSD","BTN","BWP","BYN","BZD",
-  "CAD","CDF","CHF","CLP","CNY","COP","CRC","CUP","CVE","CZK",
-  "DJF","DKK","DOP","DZD",
-  "EGP","ERN","ETB","EUR",
-  "FJD","FKP",
-  "GBP","GEL","GHS","GIP","GMD","GNF","GTQ","GYD",
-  "HKD","HNL","HRK","HTG","HUF",
-  "IDR","ILS","INR","IQD","IRR","ISK","JMD","JOD","JPY",
-  "KES","KGS","KHR","KMF","KRW","KWD","KYD","KZT",
-  "LAK","LBP","LKR","LRD","LSL","LYD",
-  "MAD","MDL","MGA","MKD","MMK","MNT","MOP","MRU","MUR","MVR","MWK","MXN","MYR","MZN",
-  "NAD","NGN","NIO","NOK","NPR","NZD",
+  "AED", "AFN", "ALL", "AMD", "ANG", "AOA", "ARS", "AUD", "AWG", "AZN",
+  "BAM", "BBD", "BDT", "BGN", "BHD", "BIF", "BMD", "BND", "BOB", "BRL", "BSD", "BTN", "BWP", "BYN", "BZD",
+  "CAD", "CDF", "CHF", "CLP", "CNY", "COP", "CRC", "CUP", "CVE", "CZK",
+  "DJF", "DKK", "DOP", "DZD",
+  "EGP", "ERN", "ETB", "EUR",
+  "FJD", "FKP",
+  "GBP", "GEL", "GHS", "GIP", "GMD", "GNF", "GTQ", "GYD",
+  "HKD", "HNL", "HRK", "HTG", "HUF",
+  "IDR", "ILS", "INR", "IQD", "IRR", "ISK", "JMD", "JOD", "JPY",
+  "KES", "KGS", "KHR", "KMF", "KRW", "KWD", "KYD", "KZT",
+  "LAK", "LBP", "LKR", "LRD", "LSL", "LYD",
+  "MAD", "MDL", "MGA", "MKD", "MMK", "MNT", "MOP", "MRU", "MUR", "MVR", "MWK", "MXN", "MYR", "MZN",
+  "NAD", "NGN", "NIO", "NOK", "NPR", "NZD",
   "OMR",
-  "PAB","PEN","PGK","PHP","PKR","PLN","PYG",
+  "PAB", "PEN", "PGK", "PHP", "PKR", "PLN", "PYG",
   "QAR",
-  "RON","RSD","RUB","RWF",
-  "SAR","SBD","SCR","SDG","SEK","SGD","SHP","SLE","SLL","SOS","SRD","SSP","STN","SYP","SZL",
-  "THB","TJS","TMT","TND","TOP","TRY","TTD","TWD","TZS",
-  "UAH","UGX","USD","UYU","UZS",
-  "VES","VND","VUV",
+  "RON", "RSD", "RUB", "RWF",
+  "SAR", "SBD", "SCR", "SDG", "SEK", "SGD", "SHP", "SLE", "SLL", "SOS", "SRD", "SSP", "STN", "SYP", "SZL",
+  "THB", "TJS", "TMT", "TND", "TOP", "TRY", "TTD", "TWD", "TZS",
+  "UAH", "UGX", "USD", "UYU", "UZS",
+  "VES", "VND", "VUV",
   "WST",
-  "XAF","XCD","XOF","XPF",
+  "XAF", "XCD", "XOF", "XPF",
   "YER",
-  "ZAR","ZMW","ZWL"
+  "ZAR", "ZMW", "ZWL"
 ];
 
 export default function ZakatCalculator() {
@@ -220,13 +220,13 @@ export default function ZakatCalculator() {
   const totalAssets = Object.values(assets).reduce((a, b) => a + b, 0);
   const totalLiabilities = Object.values(liabilities).reduce((a, b) => a + b, 0);
   const netWorth = totalAssets - totalLiabilities;
-  
+
   // Use metal prices from API or fallback with proper currency conversion
-  const goldPrice = metalPrices?.goldPricePerGram || 
+  const goldPrice = metalPrices?.goldPricePerGram ||
     (METAL_PRICE_CONSTANTS.FALLBACK_GOLD_PRICE_PER_GRAM * (metalPrices?.exchangeRate || 1));
-  const silverPrice = metalPrices?.silverPricePerGram || 
+  const silverPrice = metalPrices?.silverPricePerGram ||
     (METAL_PRICE_CONSTANTS.FALLBACK_SILVER_PRICE_PER_GRAM * (metalPrices?.exchangeRate || 1));
-  
+
   const nisabGold = METAL_PRICE_CONSTANTS.NISAB_GOLD_GRAMS * goldPrice;
   const nisabSilver = METAL_PRICE_CONSTANTS.NISAB_SILVER_GRAMS * silverPrice;
   const nisab = Math.min(nisabGold, nisabSilver);
@@ -246,17 +246,17 @@ export default function ZakatCalculator() {
   // Calculate gold value based on amount, karat, and current prices
   const calculateGoldValue = useMemo(() => {
     if (!goldCalculator.amount || !goldPrice) return 0;
-    
+
     const karatOption = GOLD_KARAT_OPTIONS.find(k => k.value === goldCalculator.karat);
     const purity = karatOption?.purity || 1.0;
-    
+
     // Convert to grams
     const amountInGrams = goldCalculator.amount * UNIT_CONVERSIONS[goldCalculator.unit];
-    
+
     // Calculate value based on pure gold content
     const pureGoldGrams = amountInGrams * purity;
     const value = pureGoldGrams * goldPrice;
-    
+
     return value;
   }, [goldCalculator, goldPrice]);
 
@@ -293,412 +293,416 @@ export default function ZakatCalculator() {
     <LayoutManager>
       <div className="min-h-screen bg-background">
         <AppBar title="Zakat Calculator" showBack />
-        
+
         <div className="max-w-lg mx-auto p-4 space-y-4">
-        {/* Info Card */}
-        <Card className="bg-primary/10 border-primary/20">
-          <CardContent className="p-4">
-            <div className="flex items-start gap-3">
-              <Info className="w-5 h-5 text-primary mt-0.5" />
-              <div className="space-y-1">
-                <p className="text-sm font-medium">About Zakat</p>
-                <p className="text-xs text-muted-foreground">
-                  Zakat is 2.5% of your total wealth that exceeds the Nisab threshold for one lunar year. 
-                  Current Nisab (Gold): {formatMoney(nisabGold)} | (Silver): {formatMoney(nisabSilver)}
-                </p>
+          {/* Info Card */}
+          <Card className="bg-primary/10 border-primary/20">
+            <CardContent className="p-4">
+              <div className="flex items-start gap-3">
+                <Info className="w-5 h-5 text-primary mt-0.5" />
+                <div className="space-y-1">
+                  <p className="text-sm font-medium">About Zakat</p>
+                  <p className="text-xs text-muted-foreground">
+                    Zakat is 2.5% of your total wealth that exceeds the Nisab threshold for one lunar year.
+                    Current Nisab (Gold): {formatMoney(nisabGold)} | (Silver): {formatMoney(nisabSilver)}
+                  </p>
+                </div>
               </div>
-            </div>
-          </CardContent>
-        </Card>
+            </CardContent>
+          </Card>
 
-        {/* Currency */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <DollarSign className="w-4 h-4 text-primary" />
-              Currency
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-2">
-            <Label className="text-xs">Select currency</Label>
-            <Select value={currency} onValueChange={setCurrency}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select currency" />
-              </SelectTrigger>
-              <SelectContent>
-                {currencyOptions.map((code) => (
-                  <SelectItem key={code} value={code}>
-                    {code}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              Display: {currencySymbol} ({currency})
-            </p>
-          </CardContent>
-        </Card>
+          {/* Currency */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <DollarSign className="w-4 h-4 text-primary" />
+                Currency
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-2">
+              <Label className="text-xs">Select currency</Label>
+              <Select value={currency} onValueChange={setCurrency}>
+                <SelectTrigger>
+                  <SelectValue placeholder="Select currency" />
+                </SelectTrigger>
+                <SelectContent>
+                  {currencyOptions.map((code) => (
+                    <SelectItem key={code} value={code}>
+                      {code}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+              <p className="text-xs text-muted-foreground">
+                Display: {currencySymbol} ({currency})
+              </p>
+            </CardContent>
+          </Card>
 
-        {/* Metal Prices */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-base flex items-center gap-2">
-              <Coins className="w-4 h-4 text-primary" />
-              Metal Prices (per gram)
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={refreshPrices}
-                disabled={isLoadingPrices}
-                className="ml-auto h-6 w-6 p-0"
-              >
-                <RefreshCw className={`h-3 w-3 ${isLoadingPrices ? 'animate-spin' : ''}`} />
-              </Button>
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {priceError && (
-              <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded-md">
-                <AlertCircle className="h-4 w-4 text-destructive" />
-                <span className="text-xs text-destructive">{priceError}</span>
+          {/* Metal Prices */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-base flex items-center gap-2">
+                <Coins className="w-4 h-4 text-primary" />
+                Metal Prices (per gram)
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={refreshPrices}
+                  disabled={isLoadingPrices}
+                  className="ml-auto h-6 w-6 p-0"
+                >
+                  <RefreshCw className={`h-3 w-3 ${isLoadingPrices ? 'animate-spin' : ''}`} />
+                </Button>
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-3">
+              {priceError && (
+                <div className="flex items-center gap-2 p-2 bg-destructive/10 rounded-md">
+                  <AlertCircle className="h-4 w-4 text-destructive" />
+                  <span className="text-xs text-destructive">{priceError}</span>
+                </div>
+              )}
+
+              <div className="grid grid-cols-2 gap-3">
+                <div>
+                  <Label className="text-xs">Gold Price ({currency})</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={goldPrice ? goldPrice.toFixed(2) : ''}
+                      readOnly
+                      className="bg-muted"
+                    />
+                    {metalPrices?.source === 'api' && (
+                      <div className="w-2 h-2 bg-green-500 rounded-full" title="Live price" />
+                    )}
+                  </div>
+                </div>
+                <div>
+                  <Label className="text-xs">Silver Price ({currency})</Label>
+                  <div className="flex items-center gap-2">
+                    <Input
+                      type="number"
+                      value={silverPrice ? silverPrice.toFixed(2) : ''}
+                      readOnly
+                      className="bg-muted"
+                    />
+                    {metalPrices?.source === 'api' && (
+                      <div className="w-2 h-2 bg-green-500 rounded-full" title="Live price" />
+                    )}
+                  </div>
+                </div>
               </div>
-            )}
-            
-            <div className="grid grid-cols-2 gap-3">
-              <div>
-                <Label className="text-xs">Gold Price ({currency})</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={goldPrice ? goldPrice.toFixed(2) : ''}
-                    readOnly
-                    className="bg-muted"
-                  />
-                  {metalPrices?.source === 'api' && (
-                    <div className="w-2 h-2 bg-green-500 rounded-full" title="Live price" />
+
+              {metalPrices && (
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <div className="flex justify-between">
+                    <span>Price Source:</span>
+                    <span className={`capitalize ${metalPrices.source === 'fallback' ? 'text-orange-500 font-medium' : 'text-green-500'}`}>
+                      {metalPrices.source === 'api' ? 'Live Market' : 'Market Fallback'}
+                    </span>
+                  </div>
+                  <div className="flex justify-between">
+                    <span>Last Updated:</span>
+                    <span>{new Date(metalPrices.lastUpdated).toLocaleTimeString()}</span>
+                  </div>
+                  {metalPrices.goldToSilverRatio && (
+                    <div className="flex justify-between">
+                      <span>Gold/Silver Ratio:</span>
+                      <span>{metalPrices.goldToSilverRatio.toFixed(1)}:1</span>
+                    </div>
+                  )}
+                  {currency !== 'USD' && (
+                    <div className="flex justify-between">
+                      <span>Exchange Rate (USD/{currency}):</span>
+                      <span className={!metalPrices.exchangeRate || metalPrices.exchangeRate === 1 ? 'text-orange-500' : ''}>
+                        {metalPrices.exchangeRate?.toFixed(4) || '1.0000 (Local)'}
+                      </span>
+                    </div>
                   )}
                 </div>
-              </div>
-              <div>
-                <Label className="text-xs">Silver Price ({currency})</Label>
-                <div className="flex items-center gap-2">
-                  <Input
-                    type="number"
-                    value={silverPrice ? silverPrice.toFixed(2) : ''}
-                    readOnly
-                    className="bg-muted"
-                  />
-                  {metalPrices?.source === 'api' && (
-                    <div className="w-2 h-2 bg-green-500 rounded-full" title="Live price" />
-                  )}
-                </div>
-              </div>
-            </div>
-            
-            {metalPrices && (
-              <div className="text-xs text-muted-foreground space-y-1">
-                <div className="flex justify-between">
-                  <span>Source:</span>
-                  <span className="capitalize">{metalPrices.source}</span>
-                </div>
-                <div className="flex justify-between">
-                  <span>Last Updated:</span>
-                  <span>{new Date(metalPrices.lastUpdated).toLocaleTimeString()}</span>
-                </div>
-                {metalPrices.goldToSilverRatio && (
-                  <div className="flex justify-between">
-                    <span>Gold/Silver Ratio:</span>
-                    <span>{metalPrices.goldToSilverRatio.toFixed(1)}:1</span>
-                  </div>
-                )}
-                {metalPrices.currency && metalPrices.currency !== 'USD' && metalPrices.exchangeRate && (
-                  <div className="flex justify-between">
-                    <span>Exchange Rate (USD/{metalPrices.currency}):</span>
-                    <span>{metalPrices.exchangeRate.toFixed(4)}</span>
-                  </div>
-                )}
-              </div>
-            )}
-            
-            {/* Disclaimer */}
-            <div className="text-xs text-muted-foreground italic border-t pt-2">
-              Prices are based on global spot rates; local market premiums may apply.
-            </div>
-          </CardContent>
-        </Card>
+              )}
 
-        {/* Assets */}
-        <Accordion type="single" collapsible defaultValue="assets">
-          <AccordionItem value="assets">
-            <AccordionTrigger className="text-base font-semibold">
-              <div className="flex items-center gap-2">
-                <Banknote className="w-4 h-4 text-primary" />
-                Assets ({formatMoney(totalAssets)})
+              {/* Disclaimer */}
+              <div className="text-xs text-muted-foreground italic border-t pt-2">
+                Prices are based on global spot rates; local market premiums may apply.
               </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-3 pt-2">
-                <div>
-                  <Label className="text-xs">Cash on Hand</Label>
-                  <Input
-                    type="number"
-                    value={assets.cash || ''}
-                    onChange={(e) => updateAsset('cash', e.target.value)}
-                    placeholder="0"
-                  />
+            </CardContent>
+          </Card>
+
+          {/* Assets */}
+          <Accordion type="single" collapsible defaultValue="assets">
+            <AccordionItem value="assets">
+              <AccordionTrigger className="text-base font-semibold">
+                <div className="flex items-center gap-2">
+                  <Banknote className="w-4 h-4 text-primary" />
+                  Assets ({formatMoney(totalAssets)})
                 </div>
-                <div>
-                  <Label className="text-xs">Bank Balance</Label>
-                  <Input
-                    type="number"
-                    value={assets.bankBalance || ''}
-                    onChange={(e) => updateAsset('bankBalance', e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Gold Calculator</Label>
-                  <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
-                    {/* Amount and Unit Row */}
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs text-muted-foreground">Amount</Label>
-                        <Input
-                          type="number"
-                          value={goldCalculator.amount || ''}
-                          onChange={(e) => updateGoldCalculator('amount', parseFloat(e.target.value) || 0)}
-                          placeholder="0"
-                          step="0.01"
-                        />
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <Label className="text-xs">Cash on Hand</Label>
+                    <Input
+                      type="number"
+                      value={assets.cash || ''}
+                      onChange={(e) => updateAsset('cash', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Bank Balance</Label>
+                    <Input
+                      type="number"
+                      value={assets.bankBalance || ''}
+                      onChange={(e) => updateAsset('bankBalance', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Gold Calculator</Label>
+                    <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                      {/* Amount and Unit Row */}
+                      <div className="grid grid-cols-2 gap-2">
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Amount</Label>
+                          <Input
+                            type="number"
+                            value={goldCalculator.amount || ''}
+                            onChange={(e) => updateGoldCalculator('amount', parseFloat(e.target.value) || 0)}
+                            placeholder="0"
+                            step="0.01"
+                          />
+                        </div>
+                        <div>
+                          <Label className="text-xs text-muted-foreground">Unit</Label>
+                          <Select value={goldCalculator.unit} onValueChange={(value) => updateGoldCalculator('unit', value as 'grams' | 'tolas' | 'ounces')}>
+                            <SelectTrigger>
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent>
+                              <SelectItem value="grams">Grams</SelectItem>
+                              <SelectItem value="tolas">Tolas</SelectItem>
+                              <SelectItem value="ounces">Ounces</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
+
+                      {/* Karat Selection */}
                       <div>
-                        <Label className="text-xs text-muted-foreground">Unit</Label>
-                        <Select value={goldCalculator.unit} onValueChange={(value) => updateGoldCalculator('unit', value as 'grams' | 'tolas' | 'ounces')}>
+                        <Label className="text-xs text-muted-foreground">Gold Karat</Label>
+                        <Select value={goldCalculator.karat.toString()} onValueChange={(value) => updateGoldCalculator('karat', parseInt(value))}>
                           <SelectTrigger>
                             <SelectValue />
                           </SelectTrigger>
                           <SelectContent>
-                            <SelectItem value="grams">Grams</SelectItem>
-                            <SelectItem value="tolas">Tolas</SelectItem>
-                            <SelectItem value="ounces">Ounces</SelectItem>
+                            {GOLD_KARAT_OPTIONS.map((karat) => (
+                              <SelectItem key={karat.value} value={karat.value.toString()}>
+                                {karat.label} ({Math.round(karat.purity * 100)}% pure)
+                              </SelectItem>
+                            ))}
                           </SelectContent>
                         </Select>
                       </div>
-                    </div>
 
-                    {/* Karat Selection */}
-                    <div>
-                      <Label className="text-xs text-muted-foreground">Gold Karat</Label>
-                      <Select value={goldCalculator.karat.toString()} onValueChange={(value) => updateGoldCalculator('karat', parseInt(value))}>
-                        <SelectTrigger>
-                          <SelectValue />
-                        </SelectTrigger>
-                        <SelectContent>
-                          {GOLD_KARAT_OPTIONS.map((karat) => (
-                            <SelectItem key={karat.value} value={karat.value.toString()}>
-                              {karat.label} ({Math.round(karat.purity * 100)}% pure)
-                            </SelectItem>
-                          ))}
-                        </SelectContent>
-                      </Select>
-                    </div>
-
-                    {/* Calculation Details */}
-                    <div className="space-y-1 pt-2 border-t">
-                      <div className="text-xs text-muted-foreground">
-                        <div className="flex justify-between">
-                          <span>Pure Gold Content:</span>
-                          <span>
-                            {(goldCalculator.amount * UNIT_CONVERSIONS[goldCalculator.unit] * 
-                              GOLD_KARAT_OPTIONS.find(k => k.value === goldCalculator.karat)?.purity || 0).toFixed(2)} grams
-                          </span>
-                        </div>
-                        <div className="flex justify-between">
-                          <span>Current Gold Price:</span>
-                          <span>{goldPrice.toFixed(2)} {currency}/gram</span>
+                      {/* Calculation Details */}
+                      <div className="space-y-1 pt-2 border-t">
+                        <div className="text-xs text-muted-foreground">
+                          <div className="flex justify-between">
+                            <span>Pure Gold Content:</span>
+                            <span>
+                              {(goldCalculator.amount * UNIT_CONVERSIONS[goldCalculator.unit] *
+                                GOLD_KARAT_OPTIONS.find(k => k.value === goldCalculator.karat)?.purity || 0).toFixed(2)} grams
+                            </span>
+                          </div>
+                          <div className="flex justify-between">
+                            <span>Current Gold Price:</span>
+                            <span>{goldPrice.toFixed(2)} {currency}/gram</span>
+                          </div>
                         </div>
                       </div>
-                    </div>
 
-                    {/* Calculated Value */}
-                    <div className="bg-primary/10 p-3 rounded-lg">
-                      <div className="flex justify-between items-center">
-                        <span className="text-sm font-medium">Total Gold Value:</span>
-                        <span className="text-lg font-bold text-primary">
-                          {formatMoney(calculateGoldValue)}
-                        </span>
+                      {/* Calculated Value */}
+                      <div className="bg-primary/10 p-3 rounded-lg">
+                        <div className="flex justify-between items-center">
+                          <span className="text-sm font-medium">Total Gold Value:</span>
+                          <span className="text-lg font-bold text-primary">
+                            {formatMoney(calculateGoldValue)}
+                          </span>
+                        </div>
                       </div>
                     </div>
                   </div>
+                  <div>
+                    <Label className="text-xs">Silver Value</Label>
+                    <Input
+                      type="number"
+                      value={assets.silver || ''}
+                      onChange={(e) => updateAsset('silver', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Stocks & Investments</Label>
+                    <Input
+                      type="number"
+                      value={assets.stocks || ''}
+                      onChange={(e) => updateAsset('stocks', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Business Assets</Label>
+                    <Input
+                      type="number"
+                      value={assets.businessAssets || ''}
+                      onChange={(e) => updateAsset('businessAssets', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Money Owed to You</Label>
+                    <Input
+                      type="number"
+                      value={assets.receivables || ''}
+                      onChange={(e) => updateAsset('receivables', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Other Assets</Label>
+                    <Input
+                      type="number"
+                      value={assets.otherAssets || ''}
+                      onChange={(e) => updateAsset('otherAssets', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs">Silver Value</Label>
-                  <Input
-                    type="number"
-                    value={assets.silver || ''}
-                    onChange={(e) => updateAsset('silver', e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Stocks & Investments</Label>
-                  <Input
-                    type="number"
-                    value={assets.stocks || ''}
-                    onChange={(e) => updateAsset('stocks', e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Business Assets</Label>
-                  <Input
-                    type="number"
-                    value={assets.businessAssets || ''}
-                    onChange={(e) => updateAsset('businessAssets', e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Money Owed to You</Label>
-                  <Input
-                    type="number"
-                    value={assets.receivables || ''}
-                    onChange={(e) => updateAsset('receivables', e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-                <div>
-                  <Label className="text-xs">Other Assets</Label>
-                  <Input
-                    type="number"
-                    value={assets.otherAssets || ''}
-                    onChange={(e) => updateAsset('otherAssets', e.target.value)}
-                    placeholder="0"
-                  />
-                </div>
-              </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
 
-        {/* Liabilities */}
-        <Accordion type="single" collapsible>
-          <AccordionItem value="liabilities">
-            <AccordionTrigger className="text-base font-semibold">
-              <div className="flex items-center gap-2">
-                <Building className="w-4 h-4 text-destructive" />
-                Liabilities ({formatMoney(totalLiabilities)})
-              </div>
-            </AccordionTrigger>
-            <AccordionContent>
-              <div className="space-y-3 pt-2">
-                <div>
-                  <Label className="text-xs">Personal Debts</Label>
-                  <Input
-                    type="number"
-                    value={liabilities.debts || ''}
-                    onChange={(e) => updateLiability('debts', e.target.value)}
-                    placeholder="0"
-                  />
+          {/* Liabilities */}
+          <Accordion type="single" collapsible>
+            <AccordionItem value="liabilities">
+              <AccordionTrigger className="text-base font-semibold">
+                <div className="flex items-center gap-2">
+                  <Building className="w-4 h-4 text-destructive" />
+                  Liabilities ({formatMoney(totalLiabilities)})
                 </div>
-                <div>
-                  <Label className="text-xs">Loans</Label>
-                  <Input
-                    type="number"
-                    value={liabilities.loans || ''}
-                    onChange={(e) => updateLiability('loans', e.target.value)}
-                    placeholder="0"
-                  />
+              </AccordionTrigger>
+              <AccordionContent>
+                <div className="space-y-3 pt-2">
+                  <div>
+                    <Label className="text-xs">Personal Debts</Label>
+                    <Input
+                      type="number"
+                      value={liabilities.debts || ''}
+                      onChange={(e) => updateLiability('debts', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Loans</Label>
+                    <Input
+                      type="number"
+                      value={liabilities.loans || ''}
+                      onChange={(e) => updateLiability('loans', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
+                  <div>
+                    <Label className="text-xs">Due Bills & Payments</Label>
+                    <Input
+                      type="number"
+                      value={liabilities.bills || ''}
+                      onChange={(e) => updateLiability('bills', e.target.value)}
+                      placeholder="0"
+                    />
+                  </div>
                 </div>
-                <div>
-                  <Label className="text-xs">Due Bills & Payments</Label>
-                  <Input
-                    type="number"
-                    value={liabilities.bills || ''}
-                    onChange={(e) => updateLiability('bills', e.target.value)}
-                    placeholder="0"
-                  />
+              </AccordionContent>
+            </AccordionItem>
+          </Accordion>
+
+          {/* Results */}
+          <Card className={`border-2 ${isZakatDue ? 'border-primary bg-primary/5' : 'border-muted'}`}>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Calculator className="w-5 h-5" />
+                Zakat Calculation
+              </CardTitle>
+            </CardHeader>
+            <CardContent className="space-y-4">
+              <div className="space-y-2 text-sm">
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Assets:</span>
+                  <span className="font-medium">{formatMoney(totalAssets)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Total Liabilities:</span>
+                  <span className="font-medium text-destructive">- {formatMoney(totalLiabilities)}</span>
+                </div>
+                <div className="border-t pt-2 flex justify-between">
+                  <span className="font-medium">Net Worth:</span>
+                  <span className="font-bold">{formatMoney(netWorth)}</span>
+                </div>
+                <div className="flex justify-between">
+                  <span className="text-muted-foreground">Nisab Threshold:</span>
+                  <span className="font-medium">{formatMoney(nisab)}</span>
                 </div>
               </div>
-            </AccordionContent>
-          </AccordionItem>
-        </Accordion>
 
-        {/* Results */}
-        <Card className={`border-2 ${isZakatDue ? 'border-primary bg-primary/5' : 'border-muted'}`}>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-lg flex items-center gap-2">
-              <Calculator className="w-5 h-5" />
-              Zakat Calculation
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            <div className="space-y-2 text-sm">
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Assets:</span>
-                <span className="font-medium">{formatMoney(totalAssets)}</span>
+              <div className={`p-4 rounded-lg ${isZakatDue ? 'bg-primary/20' : 'bg-muted'}`}>
+                <div className="text-center">
+                  {isZakatDue ? (
+                    <>
+                      <p className="text-sm text-muted-foreground mb-1">Your Zakat Due (2.5%)</p>
+                      <p className="text-3xl font-bold text-primary">{formatMoney(zakatAmount)}</p>
+                      <p className="text-xs text-muted-foreground mt-2">
+                        May Allah accept your Zakat and bless your wealth
+                      </p>
+                    </>
+                  ) : (
+                    <>
+                      <p className="text-sm font-medium">Zakat Not Due</p>
+                      <p className="text-xs text-muted-foreground mt-1">
+                        Your net worth is below the Nisab threshold
+                      </p>
+                    </>
+                  )}
+                </div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Total Liabilities:</span>
-                <span className="font-medium text-destructive">- {formatMoney(totalLiabilities)}</span>
-              </div>
-              <div className="border-t pt-2 flex justify-between">
-                <span className="font-medium">Net Worth:</span>
-                <span className="font-bold">{formatMoney(netWorth)}</span>
-              </div>
-              <div className="flex justify-between">
-                <span className="text-muted-foreground">Nisab Threshold:</span>
-                <span className="font-medium">{formatMoney(nisab)}</span>
-              </div>
-            </div>
 
-            <div className={`p-4 rounded-lg ${isZakatDue ? 'bg-primary/20' : 'bg-muted'}`}>
-              <div className="text-center">
-                {isZakatDue ? (
-                  <>
-                    <p className="text-sm text-muted-foreground mb-1">Your Zakat Due (2.5%)</p>
-                    <p className="text-3xl font-bold text-primary">{formatMoney(zakatAmount)}</p>
-                    <p className="text-xs text-muted-foreground mt-2">
-                      May Allah accept your Zakat and bless your wealth
-                    </p>
-                  </>
-                ) : (
-                  <>
-                    <p className="text-sm font-medium">Zakat Not Due</p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      Your net worth is below the Nisab threshold
-                    </p>
-                  </>
-                )}
-              </div>
-            </div>
+              <Button variant="outline" onClick={resetCalculator} className="w-full">
+                Reset Calculator
+              </Button>
+            </CardContent>
+          </Card>
 
-            <Button variant="outline" onClick={resetCalculator} className="w-full">
-              Reset Calculator
-            </Button>
-          </CardContent>
-        </Card>
-
-        {/* Zakat Info */}
-        <Card>
-          <CardHeader className="pb-2">
-            <CardTitle className="text-sm">Who Can Receive Zakat?</CardTitle>
-          </CardHeader>
-          <CardContent>
-            <ul className="text-xs text-muted-foreground space-y-1">
-              <li>• The poor (Al-Fuqara)</li>
-              <li>• The needy (Al-Masakin)</li>
-              <li>• Zakat administrators (Al-Amilina Alayha)</li>
-              <li>• Those whose hearts are to be reconciled (Al-Mu'allafah Qulubuhum)</li>
-              <li>• Those in bondage (Fir-Riqab)</li>
-              <li>• Those in debt (Al-Gharimun)</li>
-              <li>• In the cause of Allah (Fi Sabilillah)</li>
-              <li>• The wayfarer (Ibn As-Sabil)</li>
-            </ul>
-          </CardContent>
-        </Card>
+          {/* Zakat Info */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-sm">Who Can Receive Zakat?</CardTitle>
+            </CardHeader>
+            <CardContent>
+              <ul className="text-xs text-muted-foreground space-y-1">
+                <li>• The poor (Al-Fuqara)</li>
+                <li>• The needy (Al-Masakin)</li>
+                <li>• Zakat administrators (Al-Amilina Alayha)</li>
+                <li>• Those whose hearts are to be reconciled (Al-Mu'allafah Qulubuhum)</li>
+                <li>• Those in bondage (Fir-Riqab)</li>
+                <li>• Those in debt (Al-Gharimun)</li>
+                <li>• In the cause of Allah (Fi Sabilillah)</li>
+                <li>• The wayfarer (Ibn As-Sabil)</li>
+              </ul>
+            </CardContent>
+          </Card>
+        </div>
       </div>
-    </div>
     </LayoutManager>
   );
 }

@@ -20,7 +20,9 @@ export default defineConfig(({ mode }) => ({
     react(),
     mode === "development" && componentTagger(),
     VitePWA({
-      strategies: 'generateSW', // Use generateSW instead of injectManifest
+      strategies: 'injectManifest',
+      srcDir: 'src',
+      filename: 'sw.js',
       registerType: "autoUpdate",
       injectRegister: 'auto',
       includeAssets: [
@@ -35,38 +37,6 @@ export default defineConfig(({ mode }) => ({
         "icon-152x152.png",
         "icon-384x384.png"
       ],
-      workbox: {
-        runtimeCaching: [
-          {
-            urlPattern: /^https:\/\/api\.aladhan\.com\/v1\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'prayer-times-cache',
-              expiration: {
-                maxEntries: 10,
-                maxAgeSeconds: 60 * 60 * 24 * 30 // 30 days
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          },
-          {
-            urlPattern: /^https:\/\/www\.googleapis\.com\/youtube\/v3\/.*/i,
-            handler: 'NetworkFirst',
-            options: {
-              cacheName: 'youtube-api-cache',
-              expiration: {
-                maxEntries: 50,
-                maxAgeSeconds: 60 * 60 * 24 // 1 day
-              },
-              cacheableResponse: {
-                statuses: [0, 200]
-              }
-            }
-          }
-        ]
-      },
       manifest: {
         id: "com.noorconnect.app.v1",
         name: "Noor Connect - Islamic Companion",

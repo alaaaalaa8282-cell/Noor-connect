@@ -53,6 +53,27 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 
 import { AnimatePresence } from "framer-motion";
 
+// Prefetch critical route chunks after initial load
+const prefetchRoutes = () => {
+  // Use requestIdleCallback to prefetch during browser idle time
+  const prefetch = typeof requestIdleCallback !== 'undefined' ? requestIdleCallback : (cb: () => void) => setTimeout(cb, 2000);
+  prefetch(() => {
+    import("./pages/Quran");
+    import("./pages/Tasbeeh");
+    import("./pages/Duas");
+    import("./pages/Profile");
+  });
+};
+
+// Start prefetching once the page is loaded
+if (typeof window !== 'undefined') {
+  if (document.readyState === 'complete') {
+    prefetchRoutes();
+  } else {
+    window.addEventListener('load', prefetchRoutes, { once: true });
+  }
+}
+
 // ... (existing imports)
 
 interface NavigatorWithStandalone extends Navigator {
@@ -77,20 +98,20 @@ function AppRoutes() {
         {/* Animated background orbs */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#e0c097] rounded-full blur-[100px] opacity-20 animate-pulse" />
         <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#4fd1c5] rounded-full blur-[80px] opacity-15 animate-pulse" />
-        
+
         <div className="relative z-10 flex flex-col items-center gap-6">
           {/* Premium Spinner Container */}
           <div className="relative">
             {/* Outer ring */}
             <div className="absolute inset-0 rounded-full border-2 border-[#e0c097]/20 scale-150" />
-            
+
             {/* Spinner */}
             <div className="animate-spin rounded-full h-16 w-16 border-[3px] border-[#e0c097]/30 border-t-[#e0c097]" />
-            
+
             {/* Inner glow */}
             <div className="absolute inset-2 rounded-full bg-[#e0c097] blur-xl opacity-30 animate-pulse" />
           </div>
-          
+
           {/* Text with glass effect */}
           <div className="glass-card px-6 py-3 rounded-2xl">
             <p className="text-[#e0c097] text-sm font-semibold tracking-widest uppercase">Loading</p>
@@ -98,35 +119,33 @@ function AppRoutes() {
         </div>
       </div>
     }>
-      <AnimatePresence mode="wait">
-        <Routes location={location} key={location.pathname}>
-          {/* Home/Dashboard */}
-          <Route path="/" element={<Dashboard />} />
-          <Route path="/dashboard" element={<Dashboard />} />
-          <Route path="/quran" element={<Quran />} />
-          <Route path="/quran-reader/:surahNumber" element={<QuranReader />} />
-          <Route path="/quran-progress" element={<QuranProgress />} />
-          <Route path="/tasbeeh" element={<Tasbeeh />} />
-          <Route path="/qibla" element={<Qibla />} />
-          <Route path="/duas" element={<Duas />} />
-          <Route path="/hadith" element={<Hadith />} />
-          <Route path="/profile" element={<Profile />} />
-          <Route path="/calendar" element={<IslamicCalendar />} />
-          <Route path="/ebooks" element={<Ebooks />} />
-          <Route path="/qaza" element={<QazaPage />} />
-          <Route path="/ramadan" element={<RamadanMode />} />
-          <Route path="/menstrual-mode" element={<MenstrualMode />} />
-          <Route path="/notification-history" element={<NotificationHistory />} />
-          <Route path="/zakat" element={<ZakatCalculator />} />
-          <Route path="/names-of-allah" element={<NamesOfAllah />} />
-          <Route path="/quiz" element={<IslamicQuiz />} />
-          <Route path="/prayer-stats" element={<PrayerStats />} />
-          <Route path="/habit-tracker" element={<HabitTracker />} />
-          <Route path="/quran-radio" element={<QuranRadio />} />
-          <Route path="/live" element={<LiveStreams />} />
-          <Route path="*" element={<NotFound />} />
-        </Routes>
-      </AnimatePresence>
+      <Routes location={location}>
+        {/* Home/Dashboard */}
+        <Route path="/" element={<Dashboard />} />
+        <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/quran" element={<Quran />} />
+        <Route path="/quran-reader/:surahNumber" element={<QuranReader />} />
+        <Route path="/quran-progress" element={<QuranProgress />} />
+        <Route path="/tasbeeh" element={<Tasbeeh />} />
+        <Route path="/qibla" element={<Qibla />} />
+        <Route path="/duas" element={<Duas />} />
+        <Route path="/hadith" element={<Hadith />} />
+        <Route path="/profile" element={<Profile />} />
+        <Route path="/calendar" element={<IslamicCalendar />} />
+        <Route path="/ebooks" element={<Ebooks />} />
+        <Route path="/qaza" element={<QazaPage />} />
+        <Route path="/ramadan" element={<RamadanMode />} />
+        <Route path="/menstrual-mode" element={<MenstrualMode />} />
+        <Route path="/notification-history" element={<NotificationHistory />} />
+        <Route path="/zakat" element={<ZakatCalculator />} />
+        <Route path="/names-of-allah" element={<NamesOfAllah />} />
+        <Route path="/quiz" element={<IslamicQuiz />} />
+        <Route path="/prayer-stats" element={<PrayerStats />} />
+        <Route path="/habit-tracker" element={<HabitTracker />} />
+        <Route path="/quran-radio" element={<QuranRadio />} />
+        <Route path="/live" element={<LiveStreams />} />
+        <Route path="*" element={<NotFound />} />
+      </Routes>
     </Suspense>
   );
 }

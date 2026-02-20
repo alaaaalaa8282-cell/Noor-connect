@@ -55,7 +55,7 @@ export default function QuranReader() {
   const { surahNumber } = useParams<{ surahNumber: string }>();
   const { toast } = useToast();
 
-  
+
   const [surah, setSurah] = useState<Surah | null>(null);
   const [loading, setLoading] = useState(true);
   const [currentAyah, setCurrentAyah] = useState(1);
@@ -66,7 +66,7 @@ export default function QuranReader() {
   const [showNoteDialog, setShowNoteDialog] = useState(false);
   const [noteText, setNoteText] = useState('');
   const [editingNote, setEditingNote] = useState<QuranNote | null>(null);
-  
+
   // Settings state
   const [showSettings, setShowSettings] = useState(false);
   const [selectedTranslation, setSelectedTranslation] = useState(TRANSLATIONS[0]);
@@ -100,29 +100,29 @@ export default function QuranReader() {
   const loadSurah = async (surahNum: number) => {
     try {
       setLoading(true);
-      
+
       // Fetch surah details
       const response = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}`);
       const data = await response.json();
-      
+
       if (data.code === 200) {
         const surahData = data.data;
-        
+
         // Fetch ayah details with translations
         const ayahsResponse = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/editions/quran-uthmani,${selectedTranslation.id}`);
         const ayahsData = await ayahsResponse.json();
-        
+
         if (ayahsData.code === 200) {
           const quranEdition = ayahsData.data[0];
           const translationEdition = ayahsData.data[1];
-          
+
           const ayahs: Ayah[] = quranEdition.ayahs.map((ayah: any, index: number) => ({
             number: ayah.numberInSurah,
             text: ayah.text,
             translation: translationEdition.ayahs[index]?.text,
             audio: ayah.audio
           }));
-          
+
           setSurah({
             number: surahData.number,
             name: surahData.name,
@@ -148,16 +148,16 @@ export default function QuranReader() {
 
   const loadFeatures = async () => {
     if (!surahNumber) return;
-    
+
     const surahNum = parseInt(surahNumber);
-    
+
     try {
       const [bookmarksList, notesList, progressList] = await Promise.all([
         quranFeaturesService.getBookmarks(),
         quranFeaturesService.getNotes(),
         quranFeaturesService.getRecitationProgress()
       ]);
-      
+
       setBookmarks(bookmarksList.filter(b => b.surahNumber === surahNum));
       setNotes(notesList.filter(n => n.surahNumber === surahNum));
       setProgress(progressList.find(p => p.surahNumber === surahNum) || null);
@@ -168,10 +168,10 @@ export default function QuranReader() {
 
   const toggleBookmark = async (ayahNumber: number) => {
     if (!surah) return;
-    
+
     try {
       const existingBookmark = bookmarks.find(b => b.ayahNumber === ayahNumber);
-      
+
       if (existingBookmark) {
         await quranFeaturesService.removeBookmark(existingBookmark.id);
         setBookmarks(prev => prev.filter(b => b.id !== existingBookmark.id));
@@ -207,12 +207,12 @@ export default function QuranReader() {
 
   const saveNote = async () => {
     if (!surah || !noteText.trim()) return;
-    
+
     try {
       if (editingNote) {
         await quranFeaturesService.updateNote(editingNote.id, noteText);
-        setNotes(prev => prev.map(n => 
-          n.id === editingNote.id 
+        setNotes(prev => prev.map(n =>
+          n.id === editingNote.id
             ? { ...n, note: noteText, updatedAt: new Date().toISOString() }
             : n
         ));
@@ -237,7 +237,7 @@ export default function QuranReader() {
           });
         }
       }
-      
+
       setNoteText('');
       setEditingNote(null);
       setShowNoteDialog(false);
@@ -253,7 +253,7 @@ export default function QuranReader() {
 
   const updateProgress = async (ayahNumber: number) => {
     if (!surah) return;
-    
+
     try {
       const completedAyahs = Math.max(progress?.completedAyahs || 0, ayahNumber);
       const updatedProgress = await quranFeaturesService.updateRecitationProgress(
@@ -263,9 +263,9 @@ export default function QuranReader() {
         completedAyahs,
         ayahNumber
       );
-      
+
       setProgress(updatedProgress);
-      
+
       if (updatedProgress.isCompleted) {
         toast({
           title: 'Surah Completed!',
@@ -365,7 +365,7 @@ export default function QuranReader() {
     <PageTransition>
       <div className="min-h-screen bg-background quran-reader-container">
         <AppBar title={`Surah ${surah.englishName}`} showBack />
-        
+
         <div className="max-w-2xl mx-auto p-4 space-y-4">
           {/* Surah Header */}
           <Card className="quran-card">
@@ -395,7 +395,7 @@ export default function QuranReader() {
                 </div>
               </div>
             </CardHeader>
-            
+
             {/* Progress Bar */}
             {progress && (
               <CardContent className="space-y-2">
@@ -467,11 +467,10 @@ export default function QuranReader() {
               <ScrollArea className="h-[calc(100vh-300px)]">
                 <div className="space-y-6">
                   {surah.ayahs.map((ayah, index) => (
-                    <div 
-                      key={ayah.number} 
-                      className={`relative p-4 rounded-lg border transition-colors ${
-                        isBookmarked(ayah.number) ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'
-                      }`}
+                    <div
+                      key={ayah.number}
+                      className={`relative p-4 rounded-lg border transition-colors ${isBookmarked(ayah.number) ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'
+                        }`}
                     >
                       {/* Ayah Header */}
                       <div className="flex items-center justify-between mb-3">
@@ -539,7 +538,7 @@ export default function QuranReader() {
 
                       {/* Ayah Text */}
                       <div className="space-y-3">
-                        <p 
+                        <p
                           className="text-2xl font-arabic leading-relaxed text-right"
                           style={{
                             fontSize: `${fontSize}px`,
@@ -578,6 +577,28 @@ export default function QuranReader() {
               </ScrollArea>
             </CardContent>
           </Card>
+
+          {/* Mark Surah as Complete Button */}
+          {surah && (
+            <Card className="quran-card">
+              <CardContent className="p-4">
+                {progress?.isCompleted ? (
+                  <div className="flex items-center justify-center gap-2 text-primary py-2">
+                    <BookmarkCheck className="w-5 h-5" />
+                    <span className="font-semibold">Surah Completed ✓</span>
+                  </div>
+                ) : (
+                  <Button
+                    className="w-full gap-2"
+                    onClick={() => updateProgress(surah.numberOfAyahs)}
+                  >
+                    <BookmarkCheck className="w-4 h-4" />
+                    Mark Surah as Complete
+                  </Button>
+                )}
+              </CardContent>
+            </Card>
+          )}
 
           {/* Bookmarks Summary */}
           {bookmarks.length > 0 && (

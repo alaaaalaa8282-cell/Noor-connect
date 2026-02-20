@@ -99,9 +99,9 @@ export function QuranProgressWidget({ className }: QuranProgressWidgetProps) {
         <CardContent>
           <div className="text-center py-8">
             <p className="text-muted-foreground">No progress data available</p>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="mt-4"
               onClick={() => window.location.href = '/quran'}
             >
@@ -148,15 +148,14 @@ export function QuranProgressWidget({ className }: QuranProgressWidgetProps) {
                 strokeDasharray={`${2 * Math.PI * 36}`}
                 strokeDashoffset={`${2 * Math.PI * 36 * (1 - progress.percentage / 100)}`}
                 className="text-primary transition-all duration-500"
-                transform="rotate(-90 48 48)"
-                transformOrigin="48 48"
+                style={{ transform: 'rotate(-90deg)', transformOrigin: '48px 48px' }}
               />
             </svg>
             <div className="absolute inset-0 flex items-center justify-center">
               <span className="text-2xl font-bold">{Math.round(progress.percentage)}%</span>
             </div>
           </div>
-          
+
           <div className="space-y-1">
             <p className="text-3xl font-bold text-primary">
               {progress.completedSurahs} / {progress.totalSurahs}
@@ -188,8 +187,8 @@ export function QuranProgressWidget({ className }: QuranProgressWidgetProps) {
 
         {/* Action Button */}
         <div className="text-center space-y-2">
-          <Button 
-            variant="default" 
+          <Button
+            variant="default"
             size="sm"
             onClick={() => window.location.href = '/quran'}
             className="gap-2"
@@ -197,8 +196,8 @@ export function QuranProgressWidget({ className }: QuranProgressWidgetProps) {
             <BookOpen className="w-4 h-4" />
             Continue Reading
           </Button>
-          <Button 
-            variant="outline" 
+          <Button
+            variant="outline"
             size="sm"
             onClick={() => window.location.href = '/quran-progress'}
             className="gap-2 w-full"

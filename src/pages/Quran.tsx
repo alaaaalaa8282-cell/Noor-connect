@@ -20,9 +20,18 @@ interface Surah {
 const Quran = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
-  const [surahs, setSurahs] = useState<Surah[]>([]);
-  const [filteredSurahs, setFilteredSurahs] = useState<Surah[]>([]);
-  const [loading, setLoading] = useState(true);
+  const [surahs, setSurahs] = useState<Surah[]>(() => {
+    // Load cached surahs instantly
+    try {
+      const cached = localStorage.getItem('quran-surahs-cache');
+      if (cached) return JSON.parse(cached);
+    } catch (error) {
+      console.warn("localStorage cache load failed:", error);
+    }
+    return [];
+  });
+  const [filteredSurahs, setFilteredSurahs] = useState<Surah[]>(surahs);
+  const [loading, setLoading] = useState(surahs.length === 0);
   const [searchQuery, setSearchQuery] = useState("");
 
   useEffect(() => {
@@ -31,7 +40,9 @@ const Quran = () => {
         const response = await fetch("https://api.alquran.cloud/v1/surah");
         const data = await response.json();
         setSurahs(data.data);
-        setFilteredSurahs(data.data);
+        setFilteredSurahs(prev => searchQuery ? prev : data.data);
+        // Cache for instant loads next time
+        try { localStorage.setItem('quran-surahs-cache', JSON.stringify(data.data)); } catch (error) { console.warn("localStorage cache save failed:", error); }
         setLoading(false);
       } catch (error) {
         console.error("Error:", error);

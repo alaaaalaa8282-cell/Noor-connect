@@ -21,17 +21,18 @@ const Qibla = () => {
   const [accuracy, setAccuracy] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>("compass");
   const [isLoading, setIsLoading] = useState<boolean>(false);
+  const [deviceHeading, setDeviceHeading] = useState<number>(0);
 
   // Calculate distance between two coordinates
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const R = 6371; // Earth's radius in km
     const dLat = (lat2 - lat1) * Math.PI / 180;
     const dLon = (lon2 - lon1) * Math.PI / 180;
-    const a = 
-      Math.sin(dLat/2) * Math.sin(dLat/2) +
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
       Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
-      Math.sin(dLon/2) * Math.sin(dLon/2);
-    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1-a));
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
     return R * c;
   };
 
@@ -39,8 +40,8 @@ const Qibla = () => {
   const calculateDirection = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
     const dLon = (lon2 - lon1) * Math.PI / 180;
     const y = Math.sin(dLon) * Math.cos(lat2 * Math.PI / 180);
-    const x = Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) * 
-              Math.sin(dLon);
+    const x = Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon);
     const brng = Math.atan2(y, x) * 180 / Math.PI;
     return (brng + 360) % 360;
   };
@@ -51,7 +52,7 @@ const Qibla = () => {
       setIsLoading(true);
       setError("");
       setIsRetrying(false);
-      
+
       // Check if geolocation is supported
       if (!GeolocationService.isSupported()) {
         throw new Error("Geolocation is not supported on this device");
@@ -60,7 +61,7 @@ const Qibla = () => {
       // Check current permission status
       const permissions = await GeolocationService.checkPermissions();
       setLocationPermission(permissions.location || permissions.coarseLocation || 'prompt');
-      
+
       // Request permissions if not granted
       if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
         const granted = await GeolocationService.requestPermissions();
@@ -78,7 +79,7 @@ const Qibla = () => {
       });
 
       const { latitude, longitude } = position;
-      
+
       // Kaaba coordinates
       const kaabaLat = 21.4225;
       const kaabaLng = 39.8262;
@@ -93,7 +94,7 @@ const Qibla = () => {
           Math.sin(lambdaK - lambda),
           Math.cos(phi) * Math.tan(phiK) - Math.sin(phi) * Math.cos(lambdaK - lambda)
         );
-      
+
       setQiblaDirection((psi + 360) % 360);
 
       // Calculate distance to Mecca
@@ -103,12 +104,12 @@ const Qibla = () => {
       const a =
         Math.sin(dLat / 2) * Math.sin(dLat / 2) +
         Math.cos((latitude * Math.PI) / 180) *
-          Math.cos((kaabaLat * Math.PI) / 180) *
-          Math.sin(dLon / 2) *
-          Math.sin(dLon / 2);
+        Math.cos((kaabaLat * Math.PI) / 180) *
+        Math.sin(dLon / 2) *
+        Math.sin(dLon / 2);
       const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
       const distanceKm = R * c;
-      
+
       setDistance(`${Math.round(distanceKm).toLocaleString()} km to Mecca`);
       setLocation(`${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`);
       setLocationPermission('granted');
@@ -117,7 +118,7 @@ const Qibla = () => {
       const errorMessage = error instanceof Error ? error.message : "Unable to detect location";
       setError(errorMessage);
       setLocation("Unable to detect location");
-      
+
       if (errorMessage.includes("permission denied")) {
         setLocationPermission('denied');
       }
@@ -214,7 +215,7 @@ const Qibla = () => {
                   <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-500/10 via-orange-500/5 to-amber-500/10 border border-amber-500/20 shadow-inner">
                     <div className="absolute inset-2 rounded-full bg-gradient-to-br from-slate-800/50 to-slate-900/50 border border-slate-600/30">
                       <div className="absolute inset-2 rounded-full bg-gradient-to-br from-slate-900/80 to-slate-800/80 border border-slate-700/40">
-                        
+
                         {/* Premium degree markers */}
                         {['N', 'E', 'S', 'W'].map((direction, index) => (
                           <div
@@ -231,7 +232,7 @@ const Qibla = () => {
                             {direction}
                           </div>
                         ))}
-                        
+
                         {/* Fine degree markers */}
                         {Array.from({ length: 72 }, (_, i) => i % 3 === 0 && (
                           <div
@@ -244,7 +245,7 @@ const Qibla = () => {
                             }}
                           />
                         ))}
-                        
+
                         {/* Rotating compass base */}
                         <div
                           className="absolute inset-4 transition-transform duration-1000 ease-out"
@@ -256,7 +257,7 @@ const Qibla = () => {
                           <div className="absolute right-2 top-1/2 -translate-y-1/2 text-sm text-slate-400">E</div>
                           <div className="absolute left-2 top-1/2 -translate-y-1/2 text-sm text-slate-400">W</div>
                         </div>
-                        
+
                         {/* Premium Qibla indicator */}
                         <div className="absolute inset-0 flex items-center justify-center">
                           <div
@@ -269,40 +270,39 @@ const Qibla = () => {
                                 <div className="text-5xl filter drop-shadow-lg">🕋</div>
                                 <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl animate-pulse"></div>
                               </div>
-                              
+
                               {/* Premium compass image */}
-                              <img 
-                                src={qiblaCompass} 
-                                alt="Qibla Direction" 
+                              <img
+                                src={qiblaCompass}
+                                alt="Qibla Direction"
                                 className="absolute w-36 h-36 drop-shadow-2xl opacity-90"
                                 loading="lazy"
                               />
                             </div>
                           </div>
                         </div>
-                        
+
                         {/* Premium golden arrow with enhanced effects */}
                         <div className="absolute top-0 left-1/2 -translate-x-1/2 -translate-y-2">
                           <div className="relative">
-                            <div className="w-0 h-0 border-l-[20px] border-r-[20px] border-b-[24px] border-l-transparent border-r-transparent border-b-amber-400 drop-shadow-2xl transition-all duration-500" 
-                                 style={{ 
-                                   filter: 'drop-shadow(0 0 20px hsl(45deg 100% 50% / 0.6))',
-                                 }} />
+                            <div className="w-0 h-0 border-l-[20px] border-r-[20px] border-b-[24px] border-l-transparent border-r-transparent border-b-amber-400 drop-shadow-2xl transition-all duration-500"
+                              style={{
+                                filter: 'drop-shadow(0 0 20px hsl(45deg 100% 50% / 0.6))',
+                              }} />
                             <div className="absolute top-0 left-1/2 -translate-x-1/2 w-2 h-2 bg-amber-400 rounded-full animate-pulse"></div>
                           </div>
                         </div>
                       </div>
                     </div>
                   </div>
-                  
+
                   {/* Accuracy indicator */}
                   {accuracy > 0 && (
                     <div className="absolute -top-2 -right-2">
-                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${
-                        accuracy < 10 ? 'bg-green-500/20 border-green-500/40 text-green-400' :
-                        accuracy < 20 ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' :
-                        'bg-red-500/20 border-red-500/40 text-red-400'
-                      } border`}>
+                      <div className={`w-8 h-8 rounded-full flex items-center justify-center text-xs font-bold ${accuracy < 10 ? 'bg-green-500/20 border-green-500/40 text-green-400' :
+                          accuracy < 20 ? 'bg-yellow-500/20 border-yellow-500/40 text-yellow-400' :
+                            'bg-red-500/20 border-red-500/40 text-red-400'
+                        } border`}>
                         {accuracy}°
                       </div>
                     </div>

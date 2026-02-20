@@ -30,114 +30,72 @@ const ISLAMIC_EVENTS_2026 = {
 // Notification history storage
 let notificationHistory = [];
 
-// Install event - cache essential files
+// Install event - skip waiting to ensure immediate update
 self.addEventListener('install', (event) => {
-  console.log('Service Worker: Installing...');
-  event.waitUntil(
-    caches.open(CACHE_NAME)
-      .then((cache) => {
-        return cache.addAll([
-          '/',
-          '/index.html',
-          '/manifest.json',
-          '/icon-192x192.png',
-          '/icon-512x512.png'
-        ]);
-      })
-      .then(() => {
-        console.log('Service Worker: Installation complete');
-        return self.skipWaiting();
-      })
-  );
+  self.skipWaiting();
 });
 
-// Activate event - clean up old caches
+// Activate event - clean up ALL old caches and claim clients
 self.addEventListener('activate', (event) => {
-  console.log('Service Worker: Activating...');
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
         cacheNames.map((cacheName) => {
-          if (cacheName !== CACHE_NAME && cacheName !== API_CACHE_NAME) {
-            console.log('Service Worker: Deleting old cache:', cacheName);
-            return caches.delete(cacheName);
-          }
+          // Delete any cache that isn't the current one (if we had one)
+          // For now, let's just clear everything to ensure a clean state
+          console.log('Service Worker: Clearing cache:', cacheName);
+          return caches.delete(cacheName);
         })
       );
     }).then(() => {
-      console.log('Service Worker: Activation complete');
+      console.log('Service Worker: Activation complete, claiming clients');
       return self.clients.claim();
     })
   );
 });
 
-// Fetch event - handle network requests
+// Fetch event - handle network requests with better caching strategies
 self.addEventListener('fetch', (event) => {
-  try {
-    const url = new URL(event.request.url);
+  const url = new URL(event.request.url);
 
-    // Ignore chrome-extension:// URLs to prevent errors
-    if (url.protocol === 'chrome-extension:') {
-      return;
-    }
+  // Ignore chrome-extension:// URLs
+  if (url.protocol === 'chrome-extension:') return;
 
-    // Task 3: Radio domains - Strictly NetworkOnly to avoid interference
-    if (url.hostname.includes('qurango.net') || url.hostname.includes('mp3quran.net') || url.pathname.includes('/radio/')) {
-      event.respondWith(fetch(event.request));
-      return;
-    }
-
-    // Cache API calls
-    if (url.pathname.startsWith('/api/') || url.hostname.includes('aladhan.com')) {
-      event.respondWith(
-        caches.open(API_CACHE_NAME)
-          .then((cache) => {
-            return cache.match(event.request)
-              .then((response) => {
-                if (response) {
-                  // Return cached response, but also fetch fresh data
-                  fetch(event.request).then((freshResponse) => {
-                    if (freshResponse.ok) {
-                      cache.put(event.request, freshResponse.clone());
-                    }
-                  });
-                  return response;
-                }
-
-                // Fetch from network and cache
-                return fetch(event.request)
-                  .then((response) => {
-                    if (response.ok) {
-                      cache.put(event.request, response.clone());
-                    }
-                    return response;
-                  })
-                  .catch(() => {
-                    // Return offline page or error
-                    return new Response('Offline', { status: 503 });
-                  });
-              });
-          })
-      );
-      return;
-    }
-
-    // Default: Workbox Precache or runtime cache fallback
-    event.respondWith(
-      caches.match(event.request).then((response) => {
-        return response || fetch(event.request).catch(() => {
-          // If both fail, return the offline fallback for navigation requests
-          if (event.request.mode === 'navigate') {
-            return caches.match('/index.html');
-          }
-          return new Response('Offline', { status: 503 });
-        });
-      })
-    );
-  } catch (error) {
-    // If URL parsing fails, just let the request go through
-    console.warn('Service Worker: Failed to parse URL:', event.request.url, error);
+  // Radio domains - NetworkOnly
+  if (url.hostname.includes('qurango.net') || url.hostname.includes('mp3quran.net') || url.pathname.includes('/radio/')) {
+    return;
   }
+
+  // API calls - NetworkFirst
+  if (url.pathname.startsWith('/api/') || url.hostname.includes('aladhan.com')) {
+    event.respondWith(
+      fetch(event.request)
+        .then((response) => {
+          if (response.ok) {
+            const copy = response.clone();
+            caches.open(API_CACHE_NAME).then(cache => cache.put(event.request, copy));
+          }
+          return response;
+        })
+        .catch(() => caches.match(event.request))
+    );
+    return;
+  }
+
+  // App Shell / Assets - StaleWhileRevalidate (handled by precache mostly, but as fallback)
+  event.respondWith(
+    caches.match(event.request).then((cachedResponse) => {
+      const networkFetch = fetch(event.request).then((networkResponse) => {
+        if (networkResponse.ok) {
+          const copy = networkResponse.clone();
+          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
+        }
+        return networkResponse;
+      });
+
+      return cachedResponse || networkFetch;
+    })
+  );
 });
 
 // Background sync and periodic sync

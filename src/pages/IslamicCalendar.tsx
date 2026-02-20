@@ -1,50 +1,12 @@
-import { useState, useEffect } from "react";
+// v2.0.3 - Fixed Missing useMemo import
+import { useState, useEffect, useMemo } from "react";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Calendar, Moon, Star, ChevronLeft, ChevronRight, X } from "lucide-react";
 import { toast } from "sonner";
-import { gToHApiResponseSchema, calendarApiResponseSchema, safeParseApiResponse } from "@/lib/api-schemas";
-
-interface IslamicDate {
-  hijri: {
-    date: string;
-    format: string;
-    day: string;
-    weekday: {
-      en: string;
-      ar: string;
-    };
-    month: {
-      number: number;
-      en: string;
-      ar: string;
-    };
-    year: string;
-    designation: {
-      abbreviated: string;
-      expanded: string;
-    };
-    holidays: string[];
-  };
-  gregorian: {
-    date: string;
-    format: string;
-    day: string;
-    weekday: {
-      en: string;
-    };
-    month: {
-      number: number;
-      en: string;
-    };
-    year: string;
-    designation: {
-      abbreviated: string;
-      expanded: string;
-    };
-  };
-}
+import { calendarApiResponseSchema, safeParseApiResponse } from "@/lib/api-schemas";
+import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 
 const importantDates = [
   { name: "Ramadan", icon: "🌙", description: "Month of Fasting", color: "bg-primary/10 text-foreground border border-primary/20" },
@@ -58,6 +20,12 @@ const importantDates = [
 
 interface CalendarDay {
   hijriDay: number;
+  hijriMonth: {
+    number: number;
+    en: string;
+    ar: string;
+  };
+  hijriYear: number;
   gregorianDate: string;
   isCurrentMonth: boolean;
   isToday: boolean;
@@ -65,9 +33,10 @@ interface CalendarDay {
 }
 
 export default function IslamicCalendar() {
-  const [islamicDate, setIslamicDate] = useState<IslamicDate | null>(null);
+  // Use the Maghrib-aware hook (same as Dashboard) for the header date
+  const { islamicInfo, isLoading: dateLoading } = useIslamicCalendar();
+
   const [loading, setLoading] = useState(true);
-  const [dateLoading, setDateLoading] = useState(true);
   const [currentMonth, setCurrentMonth] = useState<number>(new Date().getMonth() + 1);
   const [currentYear, setCurrentYear] = useState<number>(new Date().getFullYear());
   const [calendarDays, setCalendarDays] = useState<CalendarDay[]>([]);
@@ -75,49 +44,19 @@ export default function IslamicCalendar() {
   const [selectedDate, setSelectedDate] = useState<CalendarDay | null>(null);
 
   useEffect(() => {
-    fetchIslamicDate();
     fetchMonthCalendar(currentMonth, currentYear);
   }, [currentMonth, currentYear]);
-
-  const fetchIslamicDate = async () => {
-    try {
-      setDateLoading(true);
-      const today = new Date();
-      const formattedDate = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
-      
-      console.log('Fetching Islamic date for:', formattedDate);
-      
-      const response = await fetch(`https://api.aladhan.com/v1/gToH/${formattedDate}`);
-      const rawData = await response.json();
-      
-      console.log('API response:', rawData);
-      
-      const parseResult = safeParseApiResponse(gToHApiResponseSchema, rawData);
-      
-      if (parseResult.success && parseResult.data.code === 200) {
-        setIslamicDate(parseResult.data.data as IslamicDate);
-        console.log('Islamic date set:', parseResult.data.data);
-      } else {
-        throw new Error("Invalid API response");
-      }
-    } catch (error) {
-      console.error('Error fetching Islamic date:', error);
-      toast.error('Failed to load Islamic calendar');
-    } finally {
-      setDateLoading(false);
-    }
-  };
 
   const fetchMonthCalendar = async (month: number, year: number) => {
     try {
       setLoading(true);
       const response = await fetch(
-        `https://api.aladhan.com/v1/gToHCalendar/${month}/${year}`
+        `https://api.aladhan.com/v1/gToHCalendar/${month}/${year}?adjustment=0`
       );
       const rawData = await response.json();
-      
+
       const parseResult = safeParseApiResponse(calendarApiResponseSchema, rawData);
-      
+
       if (parseResult.success && parseResult.data.code === 200) {
         setMonthData(parseResult.data.data[0]);
         generateCalendarDays(parseResult.data.data);
@@ -135,9 +74,9 @@ export default function IslamicCalendar() {
   const generateCalendarDays = (monthData: any[]) => {
     const days: CalendarDay[] = [];
     const today = new Date();
-    
+
     if (monthData.length === 0) return;
-    
+
     // Get the first day of the month to determine starting weekday
     const firstDayData = monthData[0];
     const firstDayDate = new Date(
@@ -145,21 +84,23 @@ export default function IslamicCalendar() {
       firstDayData.gregorian.month.number - 1,
       firstDayData.gregorian.day
     );
-    
+
     // Get weekday index (0 = Sunday, 1 = Monday, etc.)
     const firstWeekdayIndex = firstDayDate.getDay();
-    
+
     // Add empty cells for days before the 1st of the month
     for (let i = 0; i < firstWeekdayIndex; i++) {
       days.push({
         hijriDay: 0,
+        hijriMonth: { number: 0, en: "", ar: "" },
+        hijriYear: 0,
         gregorianDate: '',
         isCurrentMonth: false,
         isToday: false,
         holidays: [],
       });
     }
-    
+
     // Add the actual days of the month
     monthData.forEach((dayData: any) => {
       const gregorianDate = new Date(
@@ -167,9 +108,15 @@ export default function IslamicCalendar() {
         dayData.gregorian.month.number - 1,
         dayData.gregorian.day
       );
-      
+
       days.push({
         hijriDay: parseInt(dayData.hijri.day),
+        hijriMonth: {
+          number: dayData.hijri.month.number,
+          en: dayData.hijri.month.en,
+          ar: dayData.hijri.month.ar
+        },
+        hijriYear: parseInt(dayData.hijri.year),
         gregorianDate: `${dayData.gregorian.day} ${dayData.gregorian.month.en}`,
         isCurrentMonth: true,
         isToday: gregorianDate.toDateString() === today.toDateString(),
@@ -212,6 +159,17 @@ export default function IslamicCalendar() {
     setSelectedDate(null);
   };
 
+  const hijriMonthHeader = useMemo(() => {
+    if (calendarDays.length === 0) return "";
+    const activeDays = calendarDays.filter(d => d.isCurrentMonth);
+    const months = Array.from(new Set(activeDays.map(d => d.hijriMonth.en)));
+    const years = Array.from(new Set(activeDays.map(d => d.hijriYear)));
+
+    if (months.length === 1) return `${months[0]} ${years[0]}`;
+    if (years.length === 1) return `${months.join(" / ")} ${years[0]}`;
+    return `${months[0]} ${years[0]} / ${months[1]} ${years[1]}`;
+  }, [calendarDays]);
+
   return (
     <div className="min-h-screen bg-background pt-6 px-4">
       <div className="max-w-6xl mx-auto space-y-6">
@@ -234,31 +192,31 @@ export default function IslamicCalendar() {
               </div>
             )}
 
-            {!dateLoading && islamicDate && (
+            {!dateLoading && islamicInfo && (
               <>
                 <div className="bg-gradient-primary rounded-xl p-6 space-y-2 text-primary-foreground">
                   <div className="text-4xl font-bold mb-2">
-                    {islamicDate.hijri.day} {islamicDate.hijri.month.en} {islamicDate.hijri.year} {islamicDate.hijri.designation.abbreviated}
+                    {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.en} {islamicInfo.currentDate.hijri.year} AH
                   </div>
                   <div className="text-3xl quran-arabic mb-4" dir="rtl">
-                    {islamicDate.hijri.day} {islamicDate.hijri.month.ar} {islamicDate.hijri.year} {islamicDate.hijri.designation.abbreviated}
+                    {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.ar} {islamicInfo.currentDate.hijri.year}
                   </div>
                   <div className="opacity-90">
-                    {islamicDate.hijri.weekday.en}
+                    {islamicInfo.currentDate.hijri.weekday.en}
                   </div>
                   <div className="text-sm opacity-80 mt-2">
-                    Gregorian: {islamicDate.gregorian.day} {islamicDate.gregorian.month.en} {islamicDate.gregorian.year}
+                    Gregorian: {new Date().toLocaleDateString('en-US', { day: 'numeric', month: 'long', year: 'numeric' })}
                   </div>
                 </div>
 
                 {/* Show holidays if any */}
-                {islamicDate.hijri.holidays && islamicDate.hijri.holidays.length > 0 && (
+                {islamicInfo.currentDate.hijri.holidays && islamicInfo.currentDate.hijri.holidays.length > 0 && (
                   <div className="bg-gradient-secondary rounded-lg p-4 border-2 border-accent">
                     <div className="flex items-center justify-center gap-2 mb-2">
                       <Star className="h-5 w-5 text-accent" />
                       <h3 className="font-semibold text-foreground">Special Day</h3>
                     </div>
-                    {islamicDate.hijri.holidays.map((holiday, index) => (
+                    {islamicInfo.currentDate.hijri.holidays.map((holiday: string, index: number) => (
                       <p key={index} className="text-center text-foreground font-medium">
                         {holiday}
                       </p>
@@ -276,28 +234,28 @@ export default function IslamicCalendar() {
             <div className="flex items-center justify-between">
               <CardTitle className="flex items-center gap-2">
                 <Moon className="h-5 w-5 text-primary" />
-                {monthData && `${monthData.hijri.month.en} ${monthData.hijri.year} AH`}
-                {!monthData && (
+                {hijriMonthHeader || (
                   <span className="inline-block h-5 w-40 bg-muted rounded animate-pulse" />
                 )}
+                {" AH"}
               </CardTitle>
               <div className="flex items-center gap-2">
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="sm"
                   onClick={handleToday}
                 >
                   Today
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={handlePreviousMonth}
                 >
                   <ChevronLeft className="h-4 w-4" />
                 </Button>
-                <Button 
-                  variant="outline" 
+                <Button
+                  variant="outline"
                   size="icon"
                   onClick={handleNextMonth}
                 >
@@ -321,7 +279,7 @@ export default function IslamicCalendar() {
                     {day}
                   </div>
                 ))}
-                
+
                 {/* Calendar days */}
                 {loading && (
                   Array.from({ length: 35 }).map((_, index) => (
@@ -345,6 +303,7 @@ export default function IslamicCalendar() {
                       ${!day.isCurrentMonth ? 'opacity-30 cursor-default' : 'cursor-pointer hover:bg-muted/50'}
                       ${day.isToday ? 'border-primary bg-primary/10' : ''}
                       ${day.holidays.length > 0 ? 'bg-accent/5' : ''}
+                      ${day.hijriDay === 1 ? 'ring-1 ring-inset ring-primary/40 bg-primary/5' : ''}
                     `}
                     onClick={() => day.isCurrentMonth && handleDateClick(day)}
                   >
@@ -355,6 +314,11 @@ export default function IslamicCalendar() {
                             <span className={`text-xs sm:text-sm md:text-base font-bold ${day.isToday ? 'text-primary' : 'text-foreground'}`}>
                               {day.hijriDay}
                             </span>
+                            {day.hijriDay === 1 && (
+                              <span className="text-[0.5rem] font-bold text-primary uppercase leading-none mt-1">
+                                {day.hijriMonth.en.substring(0, 3)}
+                              </span>
+                            )}
                           </div>
                           <div className="text-[0.7rem] sm:text-xs text-muted-foreground mb-0.5 truncate min-w-0">
                             {day.gregorianDate}
@@ -364,9 +328,9 @@ export default function IslamicCalendar() {
                               {/* Mobile: show dot; Desktop/Tablet: show badges */}
                               <div className="hidden sm:block">
                                 {day.holidays.map((holiday, idx) => (
-                                  <Badge 
-                                    key={idx} 
-                                    variant="secondary" 
+                                  <Badge
+                                    key={idx}
+                                    variant="secondary"
                                     className="text-[6px] sm:text-[8px] w-full mb-1 justify-center px-1 min-w-0"
                                   >
                                     {holiday.length > 10 ? `${holiday.substring(0, 10)}...` : holiday}
@@ -394,11 +358,11 @@ export default function IslamicCalendar() {
 
         {/* Date Details Modal */}
         {selectedDate && (
-          <div 
+          <div
             className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4"
             onClick={closeDateModal}
           >
-            <div 
+            <div
               className="bg-card rounded-lg shadow-elegant max-w-sm w-full max-h-[80vh] overflow-y-auto"
               onClick={(e) => e.stopPropagation()}
             >
@@ -415,10 +379,10 @@ export default function IslamicCalendar() {
                 <div className="space-y-2">
                   <div className="text-center">
                     <div className="text-2xl font-bold text-primary">
-                      {selectedDate.hijriDay} {monthData?.hijri.month.en} {monthData?.hijri.year} AH
+                      {selectedDate.hijriDay} {selectedDate.hijriMonth.en} {selectedDate.hijriYear} AH
                     </div>
                     <div className="text-xl quran-arabic" dir="rtl">
-                      {selectedDate.hijriDay} {monthData?.hijri.month.ar} {monthData?.hijri.year} AH
+                      {selectedDate.hijriDay} {selectedDate.hijriMonth.ar} {selectedDate.hijriYear} AH
                     </div>
                   </div>
                   <div className="text-center text-sm text-muted-foreground">
@@ -505,7 +469,7 @@ export default function IslamicCalendar() {
               ].map((month, index) => (
                 <Badge
                   key={index}
-                  variant={islamicDate?.hijri.month.number === index + 1 ? "default" : "outline"}
+                  variant={islamicInfo?.currentDate.hijri.month.number === index + 1 ? "default" : "outline"}
                   className="justify-center py-2 text-sm"
                 >
                   {index + 1}. {month}
