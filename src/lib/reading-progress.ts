@@ -4,6 +4,7 @@
 
 const PROGRESS_KEY = 'ebook-reading-progress';
 const LAST_READ_KEY = 'ebook-last-read';
+const BOOKMARKS_KEY = 'ebook-bookmarks';
 
 export interface ReadingProgress {
   bookUrl: string;
@@ -11,6 +12,12 @@ export interface ReadingProgress {
   totalPages: number;
   lastRead: number;
   completed: boolean;
+}
+
+export interface EbookBookmark {
+  bookUrl: string;
+  title: string;
+  createdAt: number;
 }
 
 const getAllProgress = (): Record<string, ReadingProgress> => {
@@ -49,6 +56,51 @@ export const saveReadingProgress = (
 
 export const getLastReadBook = (): string | null => {
   return localStorage.getItem(LAST_READ_KEY);
+};
+
+export const getBookBookmarks = (): EbookBookmark[] => {
+  try {
+    const data = localStorage.getItem(BOOKMARKS_KEY);
+    const parsed = data ? JSON.parse(data) : [];
+    if (!Array.isArray(parsed)) return [];
+    return parsed.filter(
+      (item): item is EbookBookmark =>
+        item &&
+        typeof item.bookUrl === 'string' &&
+        typeof item.title === 'string' &&
+        typeof item.createdAt === 'number'
+    );
+  } catch {
+    return [];
+  }
+};
+
+export const isBookBookmarked = (bookUrl: string): boolean => {
+  return getBookBookmarks().some((bookmark) => bookmark.bookUrl === bookUrl);
+};
+
+export const toggleBookBookmark = (bookUrl: string, title: string): boolean => {
+  const bookmarks = getBookBookmarks();
+  const existingIndex = bookmarks.findIndex((bookmark) => bookmark.bookUrl === bookUrl);
+
+  if (existingIndex >= 0) {
+    bookmarks.splice(existingIndex, 1);
+    localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+    return false;
+  }
+
+  bookmarks.push({
+    bookUrl,
+    title,
+    createdAt: Date.now(),
+  });
+  localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
+  return true;
+};
+
+export const removeBookBookmark = (bookUrl: string): void => {
+  const bookmarks = getBookBookmarks().filter((bookmark) => bookmark.bookUrl !== bookUrl);
+  localStorage.setItem(BOOKMARKS_KEY, JSON.stringify(bookmarks));
 };
 
 export const clearBookProgress = (bookUrl: string): void => {

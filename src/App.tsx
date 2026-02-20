@@ -13,6 +13,7 @@ import { notificationManager } from "@/lib/notification-manager";
 import { serviceWorkerManager } from "@/lib/service-worker-registration";
 import { getPerformanceMonitor } from "@/lib/performance-monitor";
 import { useGlobalRadio } from "@/lib/global-radio";
+import { islamicEventsService } from "@/lib/islamic-events-service";
 import { LayoutManager } from "@/components/LayoutManager";
 import { SplashScreen, PersistentPermissionReminder } from "@/components/SplashScreen";
 
@@ -26,7 +27,8 @@ if (!localStorage.getItem("theme")) {
 // Lazy load route components for code splitting - INCLUDING Dashboard for better LCP
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const Quran = lazy(() => import("./pages/Quran"));
-const SurahDetail = lazy(() => import("./pages/SurahDetail"));
+const QuranReader = lazy(() => import("./pages/QuranReader"));
+const QuranProgress = lazy(() => import("./pages/QuranProgress"));
 const Tasbeeh = lazy(() => import("./pages/Tasbeeh"));
 const Qibla = lazy(() => import("./pages/Qibla"));
 const Duas = lazy(() => import("./pages/Duas"));
@@ -102,7 +104,8 @@ function AppRoutes() {
           <Route path="/" element={<Dashboard />} />
           <Route path="/dashboard" element={<Dashboard />} />
           <Route path="/quran" element={<Quran />} />
-          <Route path="/quran/:surahNumber" element={<SurahDetail />} />
+          <Route path="/quran-reader/:surahNumber" element={<QuranReader />} />
+          <Route path="/quran-progress" element={<QuranProgress />} />
           <Route path="/tasbeeh" element={<Tasbeeh />} />
           <Route path="/qibla" element={<Qibla />} />
           <Route path="/duas" element={<Duas />} />
@@ -166,6 +169,11 @@ const App = () => {
 
     // Start the notification manager (only runs once per app load)
     notificationManager.start();
+
+    // Initialize Islamic events service
+    islamicEventsService.scheduleUpcomingEvents().catch(error => {
+      console.error('Failed to schedule Islamic events:', error);
+    });
 
     // For APK/PWA, ensure notifications are properly initialized
     if (isStandalone) {

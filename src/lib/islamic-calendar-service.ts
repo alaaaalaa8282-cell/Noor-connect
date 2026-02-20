@@ -174,20 +174,9 @@ class IslamicCalendarService {
         return 0;
       }
 
-      // Calculate days until next Ramadan
-      let targetYear = currentHijriYear.toString();
-      if (currentHijriMonth > 9) {
-        targetYear = (currentHijriYear + 1).toString();
-      }
-
-      // Get Ramadan 1st of target year
-      const ramadanStart = new Date(date);
-      ramadanStart.setMonth(date.getMonth());
-      ramadanStart.setDate(date.getDate());
-
       // Try to get exact date by checking forward
       let daysUntil = 0;
-      let checkDate = new Date(date);
+      const checkDate = new Date(date);
       
       while (daysUntil < 365) { // Prevent infinite loop
         checkDate.setDate(checkDate.getDate() + 1);

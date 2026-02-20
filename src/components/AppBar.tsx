@@ -1,7 +1,6 @@
-import { ArrowLeft, Settings, Sparkles } from "lucide-react";
+import { ArrowLeft, Sparkles } from "lucide-react";
 import { useNavigate } from "react-router-dom";
 import { Button } from "./ui/button";
-import { useLanguage } from "@/contexts/LanguageContext";
 
 interface AppBarProps {
   title: string;
@@ -58,22 +57,15 @@ export function AppBar({ title, showBack = false, actions }: AppBarProps) {
                 style={{ display: 'none' }}
               />
             </div>
-            <h1 className="text-xl font-bold tracking-wide text-transparent bg-clip-text bg-gradient-to-r from-white via-[#e0c097] to-white drop-shadow-sm">
-              {title}
-            </h1>
+            <h1 className="text-xl font-bold text-white tracking-wide">{title}</h1>
           </div>
           
-          <div className="flex items-center gap-2">
-            {actions}
-            <Button
-              variant="ghost"
-              size="icon"
-              onClick={() => navigate("/profile")}
-              className="rounded-xl text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105 hover:rotate-90"
-            >
-              <Settings className="w-5 h-5" />
-            </Button>
-          </div>
+          {/* Actions */}
+          {actions && (
+            <div className="ml-auto">
+              {actions}
+            </div>
+          )}
         </div>
         
         {/* Bottom Accent Line */}

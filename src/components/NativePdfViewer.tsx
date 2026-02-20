@@ -3,6 +3,7 @@ import { Button } from '@/components/ui/button';
 import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2, ExternalLink, Scroll } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { getPdfBlobUrl } from '@/lib/ebooks-storage';
+import { getReadingProgress, saveReadingProgress } from '@/lib/reading-progress';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -11,6 +12,7 @@ interface NativePdfViewerProps {
   url: string;
   title: string;
   localKey?: string;
+  progressKey?: string;
   onClose: () => void;
 }
 
@@ -99,7 +101,7 @@ function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; sca
   );
 }
 
-export default function NativePdfViewer({ url, title, localKey, onClose }: NativePdfViewerProps) {
+export default function NativePdfViewer({ url, title, localKey, progressKey, onClose }: NativePdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
@@ -108,10 +110,16 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
   const [viewerMode, setViewerMode] = useState<ViewerMode>('loading');
   const [error, setError] = useState<string | null>(null);
   const [isVertical, setIsVertical] = useState(false); // New state for vertical scroll mode
+  const effectiveProgressKey = progressKey || (localKey ? `local:${localKey}` : url);
 
   useEffect(() => {
     loadPdf();
   }, [url, localKey]);
+
+  useEffect(() => {
+    if (!effectiveProgressKey || totalPages <= 0) return;
+    saveReadingProgress(effectiveProgressKey, currentPage, totalPages);
+  }, [effectiveProgressKey, currentPage, totalPages]);
 
 
   const loadPdf = async () => {
@@ -149,16 +157,22 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
       });
 
       const pdf = await loadingTask.promise;
+      const savedProgress = getReadingProgress(effectiveProgressKey);
+      const initialPage = savedProgress && savedProgress.currentPage >= 1 && savedProgress.currentPage <= pdf.numPages
+        ? savedProgress.currentPage
+        : 1;
 
       setPdfDocument(pdf);
       setTotalPages(pdf.numPages);
-      setCurrentPage(1);
+      setCurrentPage(initialPage);
       setViewerMode('pdfjs');
 
       // Only render page 1 if we remain in single-page mode or want to init
       if (!isVertical) {
-        await renderPage(pdf, 1, scale);
+        await renderPage(pdf, initialPage, scale);
       }
+
+      saveReadingProgress(effectiveProgressKey, initialPage, pdf.numPages);
     } catch (err: any) {
       console.error('Failed to load PDF with pdf.js:', err);
 
@@ -320,7 +334,6 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
   // External viewer mode (fallback for CORS-restricted PDFs)
   if (viewerMode === 'iframe') {
     const viewerUrl = getBetterViewerUrl(url);
-    const isArchiveOrg = url.includes('archive.org');
 
     return (
       <div className="fixed inset-0 bg-background z-[1000] flex flex-col">
@@ -330,48 +343,28 @@ export default function NativePdfViewer({ url, title, localKey, onClose }: Nativ
             <ArrowLeft className="w-5 h-5" />
           </Button>
           <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
+          <Button
+            variant="ghost"
+            size="icon"
+            onClick={() => window.open(viewerUrl, '_blank', 'noopener,noreferrer')}
+            title="Open in browser"
+          >
+            <ExternalLink className="w-4 h-4" />
+          </Button>
         </header>
 
-        {/* Content - Prompt to open in browser */}
-        <div className="flex-1 flex items-center justify-center px-4 bg-muted/30">
-          <div className="text-center max-w-md bg-card p-6 rounded-xl shadow-lg border border-border">
-            <div className="w-16 h-16 mx-auto mb-4 rounded-full bg-primary/10 flex items-center justify-center">
-              <ExternalLink className="w-8 h-8 text-primary" />
-            </div>
-            <h2 className="text-lg font-semibold mb-2">
-              {isArchiveOrg ? 'View on Archive.org' : 'Open PDF in Browser'}
-            </h2>
-            <p className="text-sm text-muted-foreground mb-6">
-              {isArchiveOrg
-                ? 'This book is hosted on Archive.org. Tap below to view it in their specialized reader.'
-                : 'This PDF is hosted on an external server. For the best experience, open it in your browser.'}
-            </p>
-            <div className="flex flex-col gap-3">
-              <Button
-                size="lg"
-                className="w-full"
-                onClick={() => window.open(viewerUrl, '_blank', 'noopener,noreferrer')}
-              >
-                <ExternalLink className="w-4 h-4 mr-2" />
-                {isArchiveOrg ? 'View Book' : 'Open PDF'}
-              </Button>
-              <Button
-                variant="outline"
-                className="w-full"
-                onClick={downloadPdf}
-              >
-                <Download className="w-4 h-4 mr-2" />
-                Download PDF
-              </Button>
-              <Button
-                variant="ghost"
-                className="w-full"
-                onClick={onClose}
-              >
-                Go Back
-              </Button>
-            </div>
-          </div>
+        {/* Content - Embedded online reader */}
+        <div className="flex-1 bg-muted/20">
+          <iframe
+            src={viewerUrl}
+            title={title}
+            className="w-full h-full border-0"
+            sandbox="allow-scripts allow-same-origin allow-forms allow-popups allow-downloads"
+          />
+        </div>
+
+        <div className="px-4 py-2 border-t border-border text-xs text-muted-foreground">
+          If the PDF does not load here, use the external open button in the header.
         </div>
       </div>
     );

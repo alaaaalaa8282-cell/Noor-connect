@@ -27,6 +27,13 @@ export default function PdfViewer({ url, title, localKey, onClose }: PdfViewerPr
 
   useEffect(() => {
     try {
+      const existingProgress = getReadingProgress(progressKey);
+      saveReadingProgress(
+        progressKey,
+        existingProgress?.currentPage ?? 1,
+        existingProgress?.totalPages ?? 1
+      );
+
       // Keep compatibility with reading-progress.ts which expects a string here
       localStorage.setItem(EBOOK_LAST_READ_KEY, progressKey);
 
@@ -70,7 +77,7 @@ export default function PdfViewer({ url, title, localKey, onClose }: PdfViewerPr
 
   // Use native PDF viewer
   if (useNativeViewer) {
-    return <NativePdfViewer url={url} title={title} localKey={localKey} onClose={onClose} />;
+    return <NativePdfViewer url={url} title={title} localKey={localKey} progressKey={progressKey} onClose={onClose} />;
 
   }
 

@@ -1,8 +1,9 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { MessageCircle, RefreshCw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import hadithData from "@/data/hadith.json";
+import { pickNonRepeatingIndex } from "@/lib/non-repeating-picker";
 
 interface Hadith {
   text: string;
@@ -11,37 +12,31 @@ interface Hadith {
   number: string;
 }
 
-const DAILY_HADITH_KEY = 'daily-hadith-date';
-const HADITH_INDEX_KEY = 'daily-hadith-index';
+const HADITH_HISTORY_KEY = "dashboard-hadith-history";
 
 export function DailyHadith() {
-  const [hadith, setHadith] = useState<Hadith | null>(null);
+  const [hadithIndex, setHadithIndex] = useState(() =>
+    pickNonRepeatingIndex({
+      storageKey: HADITH_HISTORY_KEY,
+      length: hadithData.length,
+      maxRecent: 12,
+    })
+  );
 
-  useEffect(() => {
-    const today = new Date().toDateString();
-    const savedDate = localStorage.getItem(DAILY_HADITH_KEY);
-    
-    if (savedDate === today) {
-      const savedIndex = parseInt(localStorage.getItem(HADITH_INDEX_KEY) || '0');
-      setHadith(hadithData[savedIndex]);
-    } else {
-      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-      const index = dayOfYear % hadithData.length;
-      localStorage.setItem(DAILY_HADITH_KEY, today);
-      localStorage.setItem(HADITH_INDEX_KEY, index.toString());
-      setHadith(hadithData[index]);
-    }
-  }, []);
+  const hadith = hadithData[hadithIndex] ?? hadithData[0];
 
   const refreshHadith = () => {
-    const randomIndex = Math.floor(Math.random() * hadithData.length);
-    localStorage.setItem(HADITH_INDEX_KEY, randomIndex.toString());
-    setHadith(hadithData[randomIndex]);
+    const nextIndex = pickNonRepeatingIndex({
+      storageKey: HADITH_HISTORY_KEY,
+      length: hadithData.length,
+      maxRecent: 12,
+      exclude: [hadithIndex],
+    });
+    setHadithIndex(nextIndex);
   };
 
   const shareHadith = async () => {
-    if (!hadith) return;
-    const text = `"${hadith.translation}"\n— ${hadith.source} #${hadith.number}`;
+    const text = `"${hadith.translation}"\n- ${hadith.source} #${hadith.number}`;
     
     if (navigator.share) {
       try {
@@ -54,7 +49,6 @@ export function DailyHadith() {
     }
   };
 
-  if (!hadith) return null;
 
   return (
     <Card className="relative overflow-hidden border-accent/20 bg-gradient-to-br from-accent/10 via-accent/5 to-transparent">
@@ -70,10 +64,22 @@ export function DailyHadith() {
             <span className="text-sm font-semibold text-accent-foreground">Daily Hadith</span>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-accent/20" onClick={refreshHadith}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-xl hover:bg-accent/20"
+              onClick={refreshHadith}
+              aria-label="Show another hadith"
+            >
               <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-accent/20" onClick={shareHadith}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-xl hover:bg-accent/20"
+              onClick={shareHadith}
+              aria-label="Share hadith"
+            >
               <Share2 className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
@@ -93,7 +99,7 @@ export function DailyHadith() {
         <div className="flex items-center gap-2">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-accent-foreground/30 to-transparent" />
           <p className="text-xs text-accent-foreground font-semibold px-2">
-            — {hadith.source} #{hadith.number}
+            - {hadith.source} #{hadith.number}
           </p>
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-accent-foreground/30 to-transparent" />
         </div>
@@ -101,3 +107,4 @@ export function DailyHadith() {
     </Card>
   );
 }
+

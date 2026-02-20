@@ -577,6 +577,81 @@ export class LocalNotificationManager {
   }
 
   /**
+   * Schedule a custom notification (for Islamic events, etc.)
+   */
+  async scheduleNotification(
+    id: string,
+    title: string,
+    body: string,
+    scheduleTime: Date
+  ): Promise<void> {
+    if (!this.isInitialized) {
+      const initialized = await this.initialize();
+      if (!initialized) return;
+    }
+
+    try {
+      const notificationId = this.generateCustomNotificationId(id);
+      
+      await LocalNotifications.schedule({
+        notifications: [{
+          id: notificationId,
+          title,
+          body,
+          schedule: {
+            at: scheduleTime,
+            allowWhileIdle: true,
+            repeats: false,
+          },
+          sound: 'default',
+          smallIcon: 'ic_stat_notification',
+          iconColor: '#22c55e',
+          extra: {
+            type: 'islamic_event',
+            eventId: id
+          }
+        }]
+      });
+
+      console.log(`Scheduled custom notification: ${title} at ${scheduleTime.toISOString()}`);
+    } catch (error) {
+      console.error(`Failed to schedule custom notification ${id}:`, error);
+    }
+  }
+
+  /**
+   * Cancel a specific notification by ID
+   */
+  async cancelNotification(id: string): Promise<void> {
+    try {
+      const notificationId = this.generateCustomNotificationId(id);
+      
+      await LocalNotifications.cancel({
+        notifications: [{ id: notificationId }]
+      });
+
+      console.log(`Cancelled notification: ${id}`);
+    } catch (error) {
+      console.error(`Failed to cancel notification ${id}:`, error);
+    }
+  }
+
+  /**
+   * Generate numeric ID for custom notifications
+   */
+  private generateCustomNotificationId(id: string): number {
+    // Generate a consistent numeric ID from string
+    let hash = 0;
+    for (let i = 0; i < id.length; i++) {
+      const char = id.charCodeAt(i);
+      hash = ((hash << 5) - hash) + char;
+      hash = hash & hash; // Convert to 32-bit integer
+    }
+    // Use high range to avoid conflicts with prayer notifications
+    return Math.abs(hash) + 100000;
+  }
+
+  /**
    * Show an immediate notification using Service Worker Registration
    * Task 2: Native Push Notifications logic
    */
@@ -680,7 +755,7 @@ export class LocalNotificationManager {
   }
 
   /**
-   * Sync prayer times to the Service Worker for persistent background checks
+   * Sync prayer times to Service Worker for persistent background checks
    */
   private syncWithServiceWorker(timings: ServiceWorkerPrayerTimings): void {
     if ('serviceWorker' in navigator && navigator.serviceWorker.controller) {

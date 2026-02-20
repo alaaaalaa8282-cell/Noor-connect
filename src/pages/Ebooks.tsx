@@ -1,5 +1,5 @@
 import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
-import { Search, Book, Download, Plus, X, Trash2, CheckCircle, Clock, BookOpen } from "lucide-react";
+import { Search, Book, Download, Plus, X, Trash2, CheckCircle, Clock, BookOpen, Bookmark, BookmarkCheck } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -26,6 +26,10 @@ import {
   getProgressPercentage,
   getRecentlyRead,
   getReadingStats,
+  getLastReadBook,
+  getBookBookmarks,
+  toggleBookBookmark,
+  type EbookBookmark,
   type ReadingProgress
 } from "@/lib/reading-progress";
 import ebooksData from "@/data/ebooks-library.json";
@@ -81,6 +85,8 @@ export default function Ebooks() {
   const [viewingBook, setViewingBook] = useState<{ url: string; title: string; localKey?: string } | null>(null);
   const [recentlyRead, setRecentlyRead] = useState<ReadingProgress[]>([]);
   const [readingStats, setReadingStats] = useState({ totalBooks: 0, completedBooks: 0, inProgress: 0 });
+  const [bookmarks, setBookmarks] = useState<EbookBookmark[]>([]);
+  const [lastReadBookKey, setLastReadBookKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("browse");
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
@@ -104,9 +110,32 @@ export default function Ebooks() {
       setUserBooks(user);
       setRecentlyRead(getRecentlyRead(5));
       setReadingStats(getReadingStats());
+      setBookmarks(getBookBookmarks());
+      setLastReadBookKey(getLastReadBook());
     };
     load();
   }, [viewingBook]);
+
+  const getBookKey = useCallback((book: LibraryBook | DownloadedBook | UserBook): string => {
+    if ("url" in book && book.url) {
+      return ensureHttps(book.url);
+    }
+    return `${LOCAL_PREFIX}${book.localKey}`;
+  }, []);
+
+  const bookmarkedSet = useMemo(() => new Set(bookmarks.map((b) => b.bookUrl)), [bookmarks]);
+
+  const handleToggleBookmark = useCallback((book: LibraryBook | DownloadedBook | UserBook) => {
+    const bookKey = getBookKey(book);
+    const title = "file" in book ? cleanTitle(book.title) : book.title;
+    const isNowBookmarked = toggleBookBookmark(bookKey, title);
+    setBookmarks(getBookBookmarks());
+
+    toast({
+      title: isNowBookmarked ? "Bookmarked" : "Bookmark removed",
+      description: `${title} ${isNowBookmarked ? "added to" : "removed from"} bookmarks`,
+    });
+  }, [getBookKey, toast]);
 
   // Handle hardware back button to close viewer
   useEffect(() => {
@@ -161,6 +190,57 @@ export default function Ebooks() {
     // Sort alphabetically by title
     return [...filtered].sort((a, b) => cleanTitle(a.title).localeCompare(cleanTitle(b.title)));
   }, [selectedLetter, debouncedQuery]);
+
+  const resolveOpenTargetByKey = useCallback((bookKey: string): (LibraryBook | DownloadedBook | UserBook | null) => {
+    if (bookKey.startsWith(LOCAL_PREFIX)) {
+      const localKey = bookKey.slice(LOCAL_PREFIX.length);
+      return (
+        userBooks.find((book) => book.localKey === localKey) ||
+        downloadedBooks.find((book) => book.localKey === localKey) ||
+        null
+      );
+    }
+
+    const secureKey = ensureHttps(bookKey);
+    return (
+      books.find((book) => ensureHttps(book.url) === secureKey) ||
+      downloadedBooks.find((book) => ensureHttps(book.url) === secureKey) ||
+      null
+    );
+  }, [downloadedBooks, userBooks, LOCAL_PREFIX]);
+
+  const lastReadEntry = useMemo(() => {
+    if (!lastReadBookKey) return null;
+    const openTarget = resolveOpenTargetByKey(lastReadBookKey);
+    if (!openTarget) return null;
+    return {
+      openTarget,
+      bookKey: lastReadBookKey,
+      title: "file" in openTarget ? cleanTitle(openTarget.title) : openTarget.title,
+      progress: getProgressPercentage(lastReadBookKey),
+    };
+  }, [lastReadBookKey, resolveOpenTargetByKey]);
+
+  const bookmarkedEntries = useMemo(() => {
+    return bookmarks
+      .map((bookmark) => {
+        const openTarget = resolveOpenTargetByKey(bookmark.bookUrl);
+        if (!openTarget) return null;
+        const title = "file" in openTarget ? cleanTitle(openTarget.title) : openTarget.title;
+        return {
+          bookmark,
+          openTarget,
+          title,
+          progress: getProgressPercentage(bookmark.bookUrl),
+        };
+      })
+      .filter((entry): entry is {
+        bookmark: EbookBookmark;
+        openTarget: LibraryBook | DownloadedBook | UserBook;
+        title: string;
+        progress: number;
+      } => Boolean(entry));
+  }, [bookmarks, resolveOpenTargetByKey]);
 
   // Lazy loading for books
   const { visibleItems, hasMore, loadMoreRef } = useLazyLoad(filteredBooks, {
@@ -289,6 +369,8 @@ export default function Ebooks() {
     const downloaded = isDownloaded(book.url);
     const progress = downloadProgress[book.url];
     const readProgress = getProgressPercentage(ensureHttps(book.url));
+    const bookKey = ensureHttps(book.url);
+    const isBookmarked = bookmarkedSet.has(bookKey);
     const title = cleanTitle(book.title);
     const size = formatSize(book.size);
     const firstLetter = title.charAt(0).toUpperCase();
@@ -316,7 +398,21 @@ export default function Ebooks() {
 
           {/* Cover Content */}
           <div className="absolute inset-0 p-3 flex flex-col justify-between text-white">
-            <div className="text-[10px] opacity-70 font-serif tracking-widest text-right">ISLAMIC LIBRARY</div>
+            <div className="flex items-start justify-between gap-2">
+              <div className="text-[10px] opacity-70 font-serif tracking-widest">ISLAMIC LIBRARY</div>
+              <Button
+                variant="secondary"
+                size="icon"
+                className="h-6 w-6 bg-black/30 hover:bg-black/50 border border-white/20"
+                onClick={(e) => {
+                  e.stopPropagation();
+                  handleToggleBookmark(book);
+                }}
+                title={isBookmarked ? "Remove bookmark" : "Add bookmark"}
+              >
+                {isBookmarked ? <BookmarkCheck className="w-3.5 h-3.5 text-emerald-300" /> : <Bookmark className="w-3.5 h-3.5 text-white" />}
+              </Button>
+            </div>
 
             <div className="text-center">
               <div className="w-8 h-8 mx-auto mb-2 text-white/80 border-2 border-white/20 rounded-full flex items-center justify-center font-serif text-lg">
@@ -345,22 +441,48 @@ export default function Ebooks() {
 
           {/* Hover Actions Overlay */}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-4">
+            <Button size="sm" variant="secondary" className="w-full text-xs h-8">
+              <BookOpen className="w-3 h-3 mr-2" /> Read Online
+            </Button>
             {downloaded ? (
-              <Button size="sm" variant="secondary" className="w-full text-xs h-8">
-                <BookOpen className="w-3 h-3 mr-2" /> Read
-              </Button>
-            ) : (
               <Button
                 size="sm"
-                className="w-full text-xs h-8"
+                variant="outline"
+                className="w-full text-xs h-8 bg-black/40 border-white/20 text-white hover:bg-black/60"
                 onClick={(e) => {
                   e.stopPropagation();
-                  handleDownload(book);
+                  handleToggleBookmark(book);
                 }}
-                disabled={progress !== undefined}
               >
-                {progress !== undefined ? `${progress}%` : <><Download className="w-3 h-3 mr-2" /> Download</>}
+                {isBookmarked ? <BookmarkCheck className="w-3 h-3 mr-2" /> : <Bookmark className="w-3 h-3 mr-2" />}
+                {isBookmarked ? "Bookmarked" : "Bookmark"}
               </Button>
+            ) : (
+              <>
+                <Button
+                  size="sm"
+                  className="w-full text-xs h-8"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleDownload(book);
+                  }}
+                  disabled={progress !== undefined}
+                >
+                  {progress !== undefined ? `${progress}%` : <><Download className="w-3 h-3 mr-2" /> Download</>}
+                </Button>
+                <Button
+                  size="sm"
+                  variant="outline"
+                  className="w-full text-xs h-8 bg-black/40 border-white/20 text-white hover:bg-black/60"
+                  onClick={(e) => {
+                    e.stopPropagation();
+                    handleToggleBookmark(book);
+                  }}
+                >
+                  {isBookmarked ? <BookmarkCheck className="w-3 h-3 mr-2" /> : <Bookmark className="w-3 h-3 mr-2" />}
+                  {isBookmarked ? "Bookmarked" : "Bookmark"}
+                </Button>
+              </>
             )}
           </div>
         </div>

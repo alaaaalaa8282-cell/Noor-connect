@@ -110,7 +110,7 @@ const Quran = () => {
                   <Card
                     key={surah.number}
                     className="p-3 hover:bg-muted/50 transition-colors group cursor-pointer"
-                    onClick={() => navigate(`/quran/${surah.number}`)}
+                    onClick={() => navigate(`/quran-reader/${surah.number}`)}
                   >
                     <div className="flex items-center gap-3">
                       <div className="w-10 h-10 rounded-lg bg-primary/10 flex items-center justify-center shrink-0">
@@ -126,17 +126,32 @@ const Quran = () => {
                           <span className="text-xs text-muted-foreground">• {surah.numberOfAyahs} Ayahs</span>
                         </div>
                       </div>
-                      <Button
-                        variant="ghost"
-                        size="icon"
-                        className="shrink-0 opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
-                        onClick={(e) => {
-                          e.stopPropagation();
-                          navigate(`/quran/${surah.number}`);
-                        }}
-                      >
-                        <Play className="w-4 h-4 text-primary" />
-                      </Button>
+                      <div className="flex items-center gap-1 shrink-0">
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/quran-reader/${surah.number}`);
+                          }}
+                          title="Enhanced Reader"
+                        >
+                          <BookOpen className="w-4 h-4 text-primary" />
+                        </Button>
+                        <Button
+                          variant="ghost"
+                          size="icon"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity h-8 w-8"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            navigate(`/quran-reader/${surah.number}`);
+                          }}
+                          title="Audio Player"
+                        >
+                          <Play className="w-4 h-4 text-primary" />
+                        </Button>
+                      </div>
                     </div>
                   </Card>
                 ))}

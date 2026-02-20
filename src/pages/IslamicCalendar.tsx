@@ -85,13 +85,18 @@ export default function IslamicCalendar() {
       const today = new Date();
       const formattedDate = `${today.getDate()}-${today.getMonth() + 1}-${today.getFullYear()}`;
       
+      console.log('Fetching Islamic date for:', formattedDate);
+      
       const response = await fetch(`https://api.aladhan.com/v1/gToH/${formattedDate}`);
       const rawData = await response.json();
+      
+      console.log('API response:', rawData);
       
       const parseResult = safeParseApiResponse(gToHApiResponseSchema, rawData);
       
       if (parseResult.success && parseResult.data.code === 200) {
         setIslamicDate(parseResult.data.data as IslamicDate);
+        console.log('Islamic date set:', parseResult.data.data);
       } else {
         throw new Error("Invalid API response");
       }
@@ -131,6 +136,31 @@ export default function IslamicCalendar() {
     const days: CalendarDay[] = [];
     const today = new Date();
     
+    if (monthData.length === 0) return;
+    
+    // Get the first day of the month to determine starting weekday
+    const firstDayData = monthData[0];
+    const firstDayDate = new Date(
+      firstDayData.gregorian.year,
+      firstDayData.gregorian.month.number - 1,
+      firstDayData.gregorian.day
+    );
+    
+    // Get weekday index (0 = Sunday, 1 = Monday, etc.)
+    const firstWeekdayIndex = firstDayDate.getDay();
+    
+    // Add empty cells for days before the 1st of the month
+    for (let i = 0; i < firstWeekdayIndex; i++) {
+      days.push({
+        hijriDay: 0,
+        gregorianDate: '',
+        isCurrentMonth: false,
+        isToday: false,
+        holidays: [],
+      });
+    }
+    
+    // Add the actual days of the month
     monthData.forEach((dayData: any) => {
       const gregorianDate = new Date(
         dayData.gregorian.year,
@@ -311,38 +341,47 @@ export default function IslamicCalendar() {
                   <div
                     key={index}
                     className={`
-                      aspect-square min-w-0 p-1 border border-border bg-card min-h-[40px] cursor-pointer hover:bg-muted/50 transition-colors
+                      aspect-square min-w-0 p-1 border border-border bg-card min-h-[40px] transition-colors
+                      ${!day.isCurrentMonth ? 'opacity-30 cursor-default' : 'cursor-pointer hover:bg-muted/50'}
                       ${day.isToday ? 'border-primary bg-primary/10' : ''}
                       ${day.holidays.length > 0 ? 'bg-accent/5' : ''}
                     `}
-                    onClick={() => handleDateClick(day)}
+                    onClick={() => day.isCurrentMonth && handleDateClick(day)}
                   >
                     <div className="flex flex-col h-full min-w-0">
-                      <div className="flex justify-between items-start mb-0.5 min-w-0">
-                        <span className={`text-xs sm:text-sm md:text-base font-bold ${day.isToday ? 'text-primary' : 'text-foreground'}`}>
-                          {day.hijriDay}
-                        </span>
-                      </div>
-                      <div className="text-[0.7rem] sm:text-xs text-muted-foreground mb-0.5 truncate min-w-0">
-                        {day.gregorianDate}
-                      </div>
-                      {day.holidays.length > 0 && (
-                        <div className="mt-auto">
-                          {/* Mobile: show dot; Desktop/Tablet: show badges */}
-                          <div className="hidden sm:block">
-                            {day.holidays.map((holiday, idx) => (
-                              <Badge 
-                                key={idx} 
-                                variant="secondary" 
-                                className="text-[6px] sm:text-[8px] w-full mb-1 justify-center px-1 min-w-0"
-                              >
-                                {holiday.length > 10 ? `${holiday.substring(0, 10)}...` : holiday}
-                              </Badge>
-                            ))}
+                      {day.isCurrentMonth ? (
+                        <>
+                          <div className="flex justify-between items-start mb-0.5 min-w-0">
+                            <span className={`text-xs sm:text-sm md:text-base font-bold ${day.isToday ? 'text-primary' : 'text-foreground'}`}>
+                              {day.hijriDay}
+                            </span>
                           </div>
-                          <div className="sm:hidden flex justify-center">
-                            <div className="w-1 h-1 rounded-full bg-primary/60 mt-1"></div>
+                          <div className="text-[0.7rem] sm:text-xs text-muted-foreground mb-0.5 truncate min-w-0">
+                            {day.gregorianDate}
                           </div>
+                          {day.holidays.length > 0 && (
+                            <div className="mt-auto">
+                              {/* Mobile: show dot; Desktop/Tablet: show badges */}
+                              <div className="hidden sm:block">
+                                {day.holidays.map((holiday, idx) => (
+                                  <Badge 
+                                    key={idx} 
+                                    variant="secondary" 
+                                    className="text-[6px] sm:text-[8px] w-full mb-1 justify-center px-1 min-w-0"
+                                  >
+                                    {holiday.length > 10 ? `${holiday.substring(0, 10)}...` : holiday}
+                                  </Badge>
+                                ))}
+                              </div>
+                              <div className="sm:hidden flex justify-center">
+                                <div className="w-1 h-1 rounded-full bg-primary/60 mt-1"></div>
+                              </div>
+                            </div>
+                          )}
+                        </>
+                      ) : (
+                        <div className="flex items-center justify-center h-full">
+                          <span className="text-muted-foreground/30 text-sm">—</span>
                         </div>
                       )}
                     </div>

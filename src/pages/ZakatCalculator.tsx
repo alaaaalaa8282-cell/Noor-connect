@@ -22,6 +22,12 @@ interface ZakatAssets {
   otherAssets: number;
 }
 
+interface GoldCalculator {
+  amount: number;
+  karat: number;
+  unit: 'grams' | 'tolas' | 'ounces';
+}
+
 interface ZakatLiabilities {
   debts: number;
   loans: number;
@@ -30,6 +36,28 @@ interface ZakatLiabilities {
 
 const ZAKAT_STORAGE_KEY = 'zakat-calculator-data';
 const ZAKAT_RATE = 0.025; // 2.5%
+
+// Gold karat options with purity percentages
+const GOLD_KARAT_OPTIONS = [
+  { value: 24, label: '24K (Pure Gold)', purity: 1.0 },
+  { value: 22, label: '22K', purity: 0.916 },
+  { value: 21, label: '21K', purity: 0.875 },
+  { value: 20, label: '20K', purity: 0.833 },
+  { value: 18, label: '18K', purity: 0.75 },
+  { value: 16, label: '16K', purity: 0.667 },
+  { value: 14, label: '14K', purity: 0.583 },
+  { value: 12, label: '12K', purity: 0.5 },
+  { value: 10, label: '10K', purity: 0.417 },
+  { value: 9, label: '9K', purity: 0.375 },
+  { value: 8, label: '8K', purity: 0.333 },
+];
+
+// Unit conversion factors to grams
+const UNIT_CONVERSIONS = {
+  grams: 1,
+  tolas: 11.6638, // 1 tola = 11.6638 grams
+  ounces: 31.1035, // 1 troy ounce = 31.1035 grams
+};
 
 const FALLBACK_CURRENCIES = [
   "AED","AFN","ALL","AMD","ANG","AOA","ARS","AUD","AWG","AZN",
@@ -81,6 +109,11 @@ export default function ZakatCalculator() {
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [currency, setCurrency] = useState("USD");
+  const [goldCalculator, setGoldCalculator] = useState<GoldCalculator>({
+    amount: 0,
+    karat: 24,
+    unit: 'grams'
+  });
 
   // Load metal prices on component mount
   useEffect(() => {
@@ -210,6 +243,33 @@ export default function ZakatCalculator() {
     setLiabilities(prev => ({ ...prev, [key]: num }));
   };
 
+  // Calculate gold value based on amount, karat, and current prices
+  const calculateGoldValue = useMemo(() => {
+    if (!goldCalculator.amount || !goldPrice) return 0;
+    
+    const karatOption = GOLD_KARAT_OPTIONS.find(k => k.value === goldCalculator.karat);
+    const purity = karatOption?.purity || 1.0;
+    
+    // Convert to grams
+    const amountInGrams = goldCalculator.amount * UNIT_CONVERSIONS[goldCalculator.unit];
+    
+    // Calculate value based on pure gold content
+    const pureGoldGrams = amountInGrams * purity;
+    const value = pureGoldGrams * goldPrice;
+    
+    return value;
+  }, [goldCalculator, goldPrice]);
+
+  // Update gold asset when calculator value changes
+  useEffect(() => {
+    const calculatedValue = calculateGoldValue;
+    setAssets(prev => ({ ...prev, gold: calculatedValue }));
+  }, [calculateGoldValue]);
+
+  const updateGoldCalculator = (field: keyof GoldCalculator, value: string | number) => {
+    setGoldCalculator(prev => ({ ...prev, [field]: value }));
+  };
+
   const resetCalculator = () => {
     setAssets({
       cash: 0,
@@ -222,6 +282,11 @@ export default function ZakatCalculator() {
       otherAssets: 0,
     });
     setLiabilities({ debts: 0, loans: 0, bills: 0 });
+    setGoldCalculator({
+      amount: 0,
+      karat: 24,
+      unit: 'grams'
+    });
   };
 
   return (
@@ -392,13 +457,79 @@ export default function ZakatCalculator() {
                   />
                 </div>
                 <div>
-                  <Label className="text-xs">Gold Value</Label>
-                  <Input
-                    type="number"
-                    value={assets.gold || ''}
-                    onChange={(e) => updateAsset('gold', e.target.value)}
-                    placeholder="0"
-                  />
+                  <Label className="text-xs">Gold Calculator</Label>
+                  <div className="space-y-3 p-3 bg-muted/30 rounded-lg">
+                    {/* Amount and Unit Row */}
+                    <div className="grid grid-cols-2 gap-2">
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Amount</Label>
+                        <Input
+                          type="number"
+                          value={goldCalculator.amount || ''}
+                          onChange={(e) => updateGoldCalculator('amount', parseFloat(e.target.value) || 0)}
+                          placeholder="0"
+                          step="0.01"
+                        />
+                      </div>
+                      <div>
+                        <Label className="text-xs text-muted-foreground">Unit</Label>
+                        <Select value={goldCalculator.unit} onValueChange={(value) => updateGoldCalculator('unit', value as 'grams' | 'tolas' | 'ounces')}>
+                          <SelectTrigger>
+                            <SelectValue />
+                          </SelectTrigger>
+                          <SelectContent>
+                            <SelectItem value="grams">Grams</SelectItem>
+                            <SelectItem value="tolas">Tolas</SelectItem>
+                            <SelectItem value="ounces">Ounces</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+
+                    {/* Karat Selection */}
+                    <div>
+                      <Label className="text-xs text-muted-foreground">Gold Karat</Label>
+                      <Select value={goldCalculator.karat.toString()} onValueChange={(value) => updateGoldCalculator('karat', parseInt(value))}>
+                        <SelectTrigger>
+                          <SelectValue />
+                        </SelectTrigger>
+                        <SelectContent>
+                          {GOLD_KARAT_OPTIONS.map((karat) => (
+                            <SelectItem key={karat.value} value={karat.value.toString()}>
+                              {karat.label} ({Math.round(karat.purity * 100)}% pure)
+                            </SelectItem>
+                          ))}
+                        </SelectContent>
+                      </Select>
+                    </div>
+
+                    {/* Calculation Details */}
+                    <div className="space-y-1 pt-2 border-t">
+                      <div className="text-xs text-muted-foreground">
+                        <div className="flex justify-between">
+                          <span>Pure Gold Content:</span>
+                          <span>
+                            {(goldCalculator.amount * UNIT_CONVERSIONS[goldCalculator.unit] * 
+                              GOLD_KARAT_OPTIONS.find(k => k.value === goldCalculator.karat)?.purity || 0).toFixed(2)} grams
+                          </span>
+                        </div>
+                        <div className="flex justify-between">
+                          <span>Current Gold Price:</span>
+                          <span>{goldPrice.toFixed(2)} {currency}/gram</span>
+                        </div>
+                      </div>
+                    </div>
+
+                    {/* Calculated Value */}
+                    <div className="bg-primary/10 p-3 rounded-lg">
+                      <div className="flex justify-between items-center">
+                        <span className="text-sm font-medium">Total Gold Value:</span>
+                        <span className="text-lg font-bold text-primary">
+                          {formatMoney(calculateGoldValue)}
+                        </span>
+                      </div>
+                    </div>
+                  </div>
                 </div>
                 <div>
                   <Label className="text-xs">Silver Value</Label>

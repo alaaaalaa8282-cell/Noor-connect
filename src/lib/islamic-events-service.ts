@@ -1,0 +1,254 @@
+/**
+ * Islamic Events Notification Service
+ * Handles notifications for important Islamic events and holidays
+ */
+
+import { importantIslamicDates } from '@/data/islamic-dates';
+import { islamicCalendarService, type IslamicCalendarInfo } from '@/lib/islamic-calendar-service';
+import { localNotifications } from '@/lib/local-notifications';
+
+export interface IslamicEventNotification {
+  id: string;
+  title: string;
+  body: string;
+  date: Date;
+  hijriDate: string;
+  type: 'eid' | 'ramadan' | 'hajj' | 'other';
+  scheduled: boolean;
+}
+
+class IslamicEventsService {
+  private static instance: IslamicEventsService;
+  private readonly STORAGE_KEY = 'islamic-events-notifications';
+  private readonly NOTIFICATION_PREFIX = 'islamic-event-';
+
+  static getInstance(): IslamicEventsService {
+    if (!IslamicEventsService.instance) {
+      IslamicEventsService.instance = new IslamicEventsService();
+    }
+    return IslamicEventsService.instance;
+  }
+
+  /**
+   * Check and schedule notifications for upcoming Islamic events
+   */
+  async scheduleUpcomingEvents(): Promise<void> {
+    try {
+      const calendarInfo = await islamicCalendarService.getIslamicCalendarInfo();
+      const upcomingEvents = await this.getUpcomingEvents(calendarInfo);
+      
+      for (const event of upcomingEvents) {
+        await this.scheduleEventNotification(event);
+      }
+    } catch (error) {
+      console.error('Error scheduling Islamic events:', error);
+    }
+  }
+
+  /**
+   * Get upcoming Islamic events within the next 30 days
+   */
+  private async getUpcomingEvents(calendarInfo: IslamicCalendarInfo): Promise<Array<typeof importantIslamicDates[0] & { gregorianDate: Date }>> {
+    const upcomingEvents = [];
+    const currentDate = new Date();
+    const maxDate = new Date();
+    maxDate.setDate(maxDate.getDate() + 30);
+
+    // Check current month and next 2 months for events
+    for (let monthOffset = 0; monthOffset <= 2; monthOffset++) {
+      const checkDate = new Date(currentDate);
+      checkDate.setMonth(checkDate.getMonth() + monthOffset);
+      
+      for (const event of importantIslamicDates) {
+        try {
+          // Get Gregorian date for this Hijri event
+          const gregorianDate = await this.getGregorianDateForHijriEvent(
+            event.hijriMonth,
+            event.hijriDay,
+            checkDate.getFullYear()
+          );
+
+          if (gregorianDate >= currentDate && gregorianDate <= maxDate) {
+            upcomingEvents.push({
+              ...event,
+              gregorianDate
+            });
+          }
+        } catch (error) {
+          console.error(`Error calculating date for ${event.name}:`, error);
+        }
+      }
+    }
+
+    return upcomingEvents.sort((a, b) => a.gregorianDate.getTime() - b.gregorianDate.getTime());
+  }
+
+  /**
+   * Get Gregorian date for a specific Hijri event
+   */
+  private async getGregorianDateForHijriEvent(hijriMonth: number, hijriDay: number, year: number): Promise<Date> {
+    // This is a simplified approach - in production, you'd use a proper Hijri-Gregorian conversion library
+    // For now, we'll use the Islamic calendar service to find the date
+    
+    // Start from beginning of the year and find the matching Hijri date
+    const startDate = new Date(year, 0, 1);
+    
+    for (let dayOffset = 0; dayOffset < 365; dayOffset++) {
+      const checkDate = new Date(startDate);
+      checkDate.setDate(startDate.getDate() + dayOffset);
+      
+      try {
+        const islamicDate = await islamicCalendarService.getIslamicDate(checkDate);
+        const month = parseInt(islamicDate.hijri.month.number.toString());
+        const day = parseInt(islamicDate.hijri.day);
+        
+        if (month === hijriMonth && day === hijriDay) {
+          return checkDate;
+        }
+      } catch (error) {
+        continue;
+      }
+    }
+    
+    throw new Error(`Could not find Gregorian date for Hijri ${hijriMonth}-${hijriDay}`);
+  }
+
+  /**
+   * Schedule notification for a specific Islamic event
+   */
+  private async scheduleEventNotification(event: typeof importantIslamicDates[0] & { gregorianDate: Date }): Promise<void> {
+    const notificationId = `${this.NOTIFICATION_PREFIX}${event.id}`;
+    
+    try {
+      // Schedule notification for the day of the event at 9 AM
+      const notificationDate = new Date(event.gregorianDate);
+      notificationDate.setHours(9, 0, 0, 0);
+
+      // Only schedule if it's in the future
+      if (notificationDate > new Date()) {
+        await localNotifications.scheduleNotification(
+          notificationId,
+          event.name,
+          event.notificationMessage,
+          notificationDate
+        );
+
+        // Also schedule a reminder 1 day before for important events
+        if (event.type === 'eid' || event.type === 'ramadan') {
+          const reminderDate = new Date(notificationDate);
+          reminderDate.setDate(reminderDate.getDate() - 1);
+          reminderDate.setHours(20, 0, 0, 0); // 8 PM reminder
+
+          await localNotifications.scheduleNotification(
+            `${notificationId}-reminder`,
+            `Reminder: ${event.name} Tomorrow`,
+            `Prepare for ${event.name}. ${event.notificationMessage}`,
+            reminderDate
+          );
+        }
+
+        console.log(`Scheduled notification for ${event.name} on ${event.gregorianDate.toDateString()}`);
+      }
+    } catch (error) {
+      console.error(`Error scheduling notification for ${event.name}:`, error);
+    }
+  }
+
+  /**
+   * Get today's Islamic event if any
+   */
+  async getTodaysIslamicEvent(): Promise<typeof importantIslamicDates[0] | null> {
+    try {
+      const calendarInfo = await islamicCalendarService.getIslamicCalendarInfo();
+      
+      return importantIslamicDates.find(event => 
+        event.hijriMonth === calendarInfo.hijriMonth && 
+        event.hijriDay === calendarInfo.hijriDay
+      ) || null;
+    } catch (error) {
+      console.error('Error getting today\'s Islamic event:', error);
+      return null;
+    }
+  }
+
+  /**
+   * Get upcoming events in the next 7 days
+   */
+  async getUpcomingEventsNext7Days(): Promise<Array<typeof importantIslamicDates[0] & { gregorianDate: Date; daysUntil: number }>> {
+    try {
+      const calendarInfo = await islamicCalendarService.getIslamicCalendarInfo();
+      const upcomingEvents = await this.getUpcomingEvents(calendarInfo);
+      
+      return upcomingEvents
+        .filter(event => {
+          const daysUntil = Math.ceil((event.gregorianDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24));
+          return daysUntil <= 7 && daysUntil > 0;
+        })
+        .map(event => ({
+          ...event,
+          daysUntil: Math.ceil((event.gregorianDate.getTime() - new Date().getTime()) / (1000 * 60 * 60 * 24))
+        }));
+    } catch (error) {
+      console.error('Error getting upcoming events:', error);
+      return [];
+    }
+  }
+
+  /**
+   * Clear all Islamic event notifications
+   */
+  async clearAllNotifications(): Promise<void> {
+    try {
+      for (const event of importantIslamicDates) {
+        const notificationId = `${this.NOTIFICATION_PREFIX}${event.id}`;
+        await localNotifications.cancelNotification(notificationId);
+        await localNotifications.cancelNotification(`${notificationId}-reminder`);
+      }
+    } catch (error) {
+      console.error('Error clearing Islamic event notifications:', error);
+    }
+  }
+
+  /**
+   * Check if Ramadan is approaching and show special notifications
+   */
+  async checkRamadanApproaching(): Promise<void> {
+    try {
+      const calendarInfo = await islamicCalendarService.getIslamicCalendarInfo();
+      const daysUntilRamadan = calendarInfo.daysUntilRamadan;
+
+      if (daysUntilRamadan > 0 && daysUntilRamadan <= 30) {
+        let message = '';
+        let title = '';
+
+        if (daysUntilRamadan <= 7) {
+          title = 'Ramadan Approaching!';
+          message = daysUntilRamadan === 1 
+            ? 'Ramadan starts tomorrow! Prepare yourself for the blessed month.'
+            : `Ramadan starts in ${daysUntilRamadan} days! Start preparing yourself.`;
+        } else if (daysUntilRamadan <= 30) {
+          title = 'Ramadan Preparation';
+          message = `Ramadan starts in ${daysUntilRamadan} days. It's time to start preparing spiritually and physically.`;
+        }
+
+        if (title && message) {
+          // Schedule reminder for tomorrow if not already scheduled
+          const tomorrow = new Date();
+          tomorrow.setDate(tomorrow.getDate() + 1);
+          tomorrow.setHours(9, 0, 0, 0);
+
+          await localNotifications.scheduleNotification(
+            'ramadan-approaching-reminder',
+            title,
+            message,
+            tomorrow
+          );
+        }
+      }
+    } catch (error) {
+      console.error('Error checking Ramadan approaching:', error);
+    }
+  }
+}
+
+export const islamicEventsService = IslamicEventsService.getInstance();

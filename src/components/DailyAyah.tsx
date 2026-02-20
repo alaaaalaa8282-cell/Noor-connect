@@ -1,7 +1,8 @@
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent } from "@/components/ui/card";
 import { BookOpen, RefreshCw, Share2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
+import { pickNonRepeatingIndex } from "@/lib/non-repeating-picker";
 
 interface Ayah {
   arabic: string;
@@ -33,37 +34,31 @@ const ayahCollection: Ayah[] = [
   { arabic: "كُلُّ نَفْسٍ ذَائِقَةُ الْمَوْتِ", translation: "Every soul will taste death.", surah: "Al-Imran", ayahNumber: 185 },
 ];
 
-const DAILY_AYAH_KEY = 'daily-ayah-date';
-const AYAH_INDEX_KEY = 'daily-ayah-index';
+const AYAH_HISTORY_KEY = "dashboard-ayah-history";
 
 export function DailyAyah() {
-  const [ayah, setAyah] = useState<Ayah | null>(null);
+  const [ayahIndex, setAyahIndex] = useState(() =>
+    pickNonRepeatingIndex({
+      storageKey: AYAH_HISTORY_KEY,
+      length: ayahCollection.length,
+      maxRecent: 8,
+    })
+  );
 
-  useEffect(() => {
-    const today = new Date().toDateString();
-    const savedDate = localStorage.getItem(DAILY_AYAH_KEY);
-    
-    if (savedDate === today) {
-      const savedIndex = parseInt(localStorage.getItem(AYAH_INDEX_KEY) || '0');
-      setAyah(ayahCollection[savedIndex]);
-    } else {
-      const dayOfYear = Math.floor((Date.now() - new Date(new Date().getFullYear(), 0, 0).getTime()) / 86400000);
-      const index = dayOfYear % ayahCollection.length;
-      localStorage.setItem(DAILY_AYAH_KEY, today);
-      localStorage.setItem(AYAH_INDEX_KEY, index.toString());
-      setAyah(ayahCollection[index]);
-    }
-  }, []);
+  const ayah = ayahCollection[ayahIndex] ?? ayahCollection[0];
 
   const refreshAyah = () => {
-    const randomIndex = Math.floor(Math.random() * ayahCollection.length);
-    localStorage.setItem(AYAH_INDEX_KEY, randomIndex.toString());
-    setAyah(ayahCollection[randomIndex]);
+    const nextIndex = pickNonRepeatingIndex({
+      storageKey: AYAH_HISTORY_KEY,
+      length: ayahCollection.length,
+      maxRecent: 8,
+      exclude: [ayahIndex],
+    });
+    setAyahIndex(nextIndex);
   };
 
   const shareAyah = async () => {
-    if (!ayah) return;
-    const text = `"${ayah.translation}"\n— Quran ${ayah.surah}:${ayah.ayahNumber}`;
+    const text = `"${ayah.translation}"\n- Quran ${ayah.surah}:${ayah.ayahNumber}`;
     
     if (navigator.share) {
       try {
@@ -76,7 +71,6 @@ export function DailyAyah() {
     }
   };
 
-  if (!ayah) return null;
 
   return (
     <Card className="relative overflow-hidden border-primary/20 bg-gradient-to-br from-primary/10 via-primary/5 to-transparent">
@@ -92,10 +86,22 @@ export function DailyAyah() {
             <span className="text-sm font-semibold text-primary">Daily Ayah</span>
           </div>
           <div className="flex gap-1">
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10" onClick={refreshAyah}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-xl hover:bg-primary/10"
+              onClick={refreshAyah}
+              aria-label="Show another ayah"
+            >
               <RefreshCw className="w-4 h-4 text-muted-foreground" />
             </Button>
-            <Button variant="ghost" size="icon" className="h-8 w-8 rounded-xl hover:bg-primary/10" onClick={shareAyah}>
+            <Button
+              variant="ghost"
+              size="icon"
+              className="h-8 w-8 rounded-xl hover:bg-primary/10"
+              onClick={shareAyah}
+              aria-label="Share ayah"
+            >
               <Share2 className="w-4 h-4 text-muted-foreground" />
             </Button>
           </div>
@@ -115,7 +121,7 @@ export function DailyAyah() {
         <div className="flex items-center gap-2">
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
           <p className="text-xs text-primary font-semibold px-2">
-            — Surah {ayah.surah}, Ayah {ayah.ayahNumber}
+            - Surah {ayah.surah}, Ayah {ayah.ayahNumber}
           </p>
           <div className="h-px flex-1 bg-gradient-to-r from-transparent via-primary/30 to-transparent" />
         </div>
@@ -123,3 +129,4 @@ export function DailyAyah() {
     </Card>
   );
 }
+

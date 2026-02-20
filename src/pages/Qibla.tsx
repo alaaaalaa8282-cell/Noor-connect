@@ -12,86 +12,15 @@ import { GeolocationService } from "@/lib/geolocation-service";
 const Qibla = () => {
   const navigate = useNavigate();
   const [qiblaDirection, setQiblaDirection] = useState<number>(0);
-  const [deviceHeading, setDeviceHeading] = useState<number>(0);
   const [location, setLocation] = useState<string>("Detecting location...");
   const [distance, setDistance] = useState<string>("");
-  const [hasSensors, setHasSensors] = useState<boolean>(true);
   const [locationPermission, setLocationPermission] = useState<'granted' | 'denied' | 'prompt' | 'prompt-with-rationale' | null>(null);
   const [isRetrying, setIsRetrying] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [isCalibrating, setIsCalibrating] = useState<boolean>(false);
   const [accuracy, setAccuracy] = useState<number>(0);
   const [activeTab, setActiveTab] = useState<string>("compass");
-  const [userLat, setUserLat] = useState<number>(0);
-  const [userLng, setUserLng] = useState<number>(0);
-
-  // Islamic places data
-  const islamicPlaces = [
-    {
-      name: "Makkah (Kaaba)",
-      lat: 21.4225,
-      lng: 39.8262,
-      description: "The holiest city in Islam, home to the Kaaba",
-      importance: "highest",
-      icon: "🕋"
-    },
-    {
-      name: "Madinah (Prophet's Mosque)",
-      lat: 24.4672,
-      lng: 39.6112,
-      description: "City of Prophet Muhammad (PBUH) and Masjid an-Nabawi",
-      importance: "highest",
-      icon: "🕌"
-    },
-    {
-      name: "Jerusalem (Al-Aqsa)",
-      lat: 31.7783,
-      lng: 35.2355,
-      description: "Third holiest site, Masjid Al-Aqsa",
-      importance: "high",
-      icon: "⭐"
-    },
-    {
-      name: "Cairo (Al-Azhar)",
-      lat: 30.0444,
-      lng: 31.2357,
-      description: "Historic center of Islamic learning",
-      importance: "medium",
-      icon: "📚"
-    },
-    {
-      name: "Baghdad",
-      lat: 33.3152,
-      lng: 44.3661,
-      description: "Historic Abbasid capital",
-      importance: "medium",
-      icon: "🏛️"
-    },
-    {
-      name: "Istanbul (Blue Mosque)",
-      lat: 41.0082,
-      lng: 28.9784,
-      description: "Ottoman imperial capital",
-      importance: "medium",
-      icon: "🌉"
-    },
-    {
-      name: "Samarkand",
-      lat: 39.6542,
-      lng: 66.9597,
-      description: "Timurid Islamic architecture",
-      importance: "low",
-      icon: "🏺"
-    },
-    {
-      name: "Cordoba (Great Mosque)",
-      lat: 37.8882,
-      lng: -4.7794,
-      description: "Andalusian Islamic golden age",
-      importance: "low",
-      icon: "🕌"
-    }
-  ];
+  const [isLoading, setIsLoading] = useState<boolean>(false);
 
   // Calculate distance between two coordinates
   const calculateDistance = (lat1: number, lon1: number, lat2: number, lon2: number): number => {
@@ -116,8 +45,10 @@ const Qibla = () => {
     return (brng + 360) % 360;
   };
 
+  // Calculate Qibla direction to Kaaba
   const calculateQibla = async () => {
     try {
+      setIsLoading(true);
       setError("");
       setIsRetrying(false);
       
@@ -147,10 +78,6 @@ const Qibla = () => {
       });
 
       const { latitude, longitude } = position;
-      
-      // Store user coordinates for map
-      setUserLat(latitude);
-      setUserLng(longitude);
       
       // Kaaba coordinates
       const kaabaLat = 21.4225;
@@ -194,6 +121,8 @@ const Qibla = () => {
       if (errorMessage.includes("permission denied")) {
         setLocationPermission('denied');
       }
+    } finally {
+      setIsLoading(false);
     }
   };
 
@@ -203,85 +132,10 @@ const Qibla = () => {
     calculateQibla();
   };
 
+  // Only calculate Qibla on initial mount
   useEffect(() => {
-    const handleOrientation = (event: DeviceOrientationEvent) => {
-      if (event.alpha !== null) {
-        setDeviceHeading(360 - event.alpha);
-        setHasSensors(true);
-      }
-    };
-
-    // Check if device has orientation sensors
-    const checkDeviceSensors = () => {
-      if (window.DeviceOrientationEvent) {
-        window.addEventListener("deviceorientation", handleOrientation);
-        setHasSensors(true);
-      } else {
-        // No device orientation sensors available
-        setHasSensors(false);
-        setDeviceHeading(0); // Reset to North when no sensors
-      }
-    };
-
-    checkDeviceSensors();
-
     calculateQibla();
-
-    return () => {
-      window.removeEventListener("deviceorientation", handleOrientation);
-    };
   }, []);
-
-  const compassRotation = qiblaDirection - deviceHeading;
-
-  // Render Islamic places map
-  const renderIslamicPlacesMap = () => {
-    return (
-      <div className="space-y-4">
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-          {islamicPlaces.map((place, index) => {
-            const distance = userLat && userLng ? calculateDistance(userLat, userLng, place.lat, place.lng) : 0;
-            const direction = userLat && userLng ? calculateDirection(userLat, userLng, place.lat, place.lng) : 0;
-            
-            return (
-              <Card key={index} className={`p-4 backdrop-blur-sm border transition-all duration-300 hover:shadow-lg ${
-                place.importance === 'highest' ? 'bg-gradient-to-br from-amber-500/10 to-amber-600/5 border-amber-500/30' :
-                place.importance === 'high' ? 'bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/30' :
-                place.importance === 'medium' ? 'bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/30' :
-                'bg-gradient-to-br from-slate-500/10 to-slate-600/5 border-slate-500/30'
-              }`}>
-                <div className="flex items-start gap-3">
-                  <div className="text-2xl">{place.icon}</div>
-                  <div className="flex-1">
-                    <h3 className="font-semibold text-foreground mb-1">{place.name}</h3>
-                    <p className="text-xs text-muted-foreground mb-2">{place.description}</p>
-                    <div className="flex items-center gap-4 text-xs">
-                      {userLat && userLng && (
-                        <>
-                          <div className="flex items-center gap-1">
-                            <Navigation className="w-3 h-3" />
-                            <span>{Math.round(direction)}°</span>
-                          </div>
-                          <div className="flex items-center gap-1">
-                            <MapPin className="w-3 h-3" />
-                            <span>{Math.round(distance)} km</span>
-                          </div>
-                        </>
-                      )}
-                      <div className="flex items-center gap-1">
-                        <Globe className="w-3 h-3" />
-                        <span>{place.lat.toFixed(2)}°, {place.lng.toFixed(2)}°</span>
-                      </div>
-                    </div>
-                  </div>
-                </div>
-              </Card>
-            );
-          })}
-        </div>
-      </div>
-    );
-  };
 
   return (
     <div className="min-h-screen bg-background relative overflow-hidden">
@@ -306,7 +160,7 @@ const Qibla = () => {
           </Button>
           <div className="flex-1 text-center">
             <h1 className="text-3xl font-bold text-foreground font-serif bg-gradient-to-r from-primary to-primary/60 bg-clip-text text-transparent">
-              Qibla Compass & Islamic Places
+              Qibla Compass
             </h1>
             <div className="flex items-center justify-center gap-2 text-sm text-muted-foreground">
               <MapPin className="w-4 h-4 text-primary" />
@@ -318,16 +172,16 @@ const Qibla = () => {
           </div>
         </div>
 
-        {/* Tabs for Compass and Map */}
+        {/* Tabs for Compass and Instructions */}
         <Tabs value={activeTab} onValueChange={setActiveTab} className="w-full">
           <TabsList className="grid w-full grid-cols-2 bg-slate-800/50 border-slate-700/50">
             <TabsTrigger value="compass" className="flex items-center gap-2 data-[state=active]:bg-slate-700/50">
               <Compass className="w-4 h-4" />
               Compass
             </TabsTrigger>
-            <TabsTrigger value="map" className="flex items-center gap-2 data-[state=active]:bg-slate-700/50">
-              <Map className="w-4 h-4" />
-              Islamic Places
+            <TabsTrigger value="instructions" className="flex items-center gap-2 data-[state=active]:bg-slate-700/50">
+              <Navigation className="w-4 h-4" />
+              Instructions
             </TabsTrigger>
           </TabsList>
 
@@ -394,7 +248,7 @@ const Qibla = () => {
                         {/* Rotating compass base */}
                         <div
                           className="absolute inset-4 transition-transform duration-1000 ease-out"
-                          style={{ transform: `rotate(${-deviceHeading}deg)` }}
+                          style={{ transform: `rotate(${qiblaDirection}deg)` }}
                         >
                           {/* Cardinal directions with premium styling */}
                           <div className="absolute top-2 left-1/2 -translate-x-1/2 text-lg font-bold text-amber-400 drop-shadow-lg">N</div>
@@ -411,11 +265,9 @@ const Qibla = () => {
                           >
                             <div className="relative w-40 h-40 flex items-center justify-center">
                               {/* Central Kaaba indicator with premium styling */}
-                              <div className="absolute inset-0 rounded-full bg-gradient-to-br from-amber-500/20 via-orange-500/10 to-amber-500/20 backdrop-blur-sm border border-amber-500/30 flex items-center justify-center shadow-xl">
-                                <div className="relative">
-                                  <div className="text-5xl filter drop-shadow-lg">🕋</div>
-                                  <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl animate-pulse"></div>
-                                </div>
+                              <div className="relative">
+                                <div className="text-5xl filter drop-shadow-lg">🕋</div>
+                                <div className="absolute inset-0 rounded-full bg-amber-400/20 blur-xl animate-pulse"></div>
                               </div>
                               
                               {/* Premium compass image */}
@@ -470,7 +322,7 @@ const Qibla = () => {
                   <div className="p-4 bg-gradient-to-br from-blue-500/10 to-cyan-500/5 rounded-2xl backdrop-blur-sm border border-blue-500/20">
                     <div className="flex items-center gap-2 mb-2">
                       <Navigation className="w-4 h-4 text-blue-400" />
-                      <p className="text-xs text-blue-400/80 font-medium">Your Heading</p>
+                      <p className="text-xs text-blue-400/80 font-medium">Device Heading</p>
                     </div>
                     <p className="text-2xl font-bold text-blue-400">{Math.round(deviceHeading)}°</p>
                     <p className="text-xs text-slate-400 mt-1">Current Direction</p>
@@ -493,54 +345,22 @@ const Qibla = () => {
             </Card>
           </TabsContent>
 
-          <TabsContent value="map" className="mt-6">
-            <Card className="p-6 backdrop-blur-xl bg-gradient-to-br from-slate-900/90 via-slate-800/80 to-slate-900/90 border border-slate-700/50 shadow-2xl">
-              <div className="space-y-6">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-12 h-12 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 flex items-center justify-center">
-                      <Map className="w-6 h-6 text-blue-400" />
-                    </div>
-                    <div>
-                      <h2 className="text-2xl font-bold bg-gradient-to-r from-blue-400 to-cyan-400 bg-clip-text text-transparent">Islamic Places Map</h2>
-                      <p className="text-sm text-slate-400">Important locations in Islamic history</p>
-                    </div>
+          <TabsContent value="instructions" className="mt-6">
+            <Card className="p-5 backdrop-blur-sm bg-muted/30 border-border/50">
+              <div className="space-y-3">
+                <div className="flex items-center gap-2">
+                  <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center">
+                    <Navigation className="w-3 h-3 text-amber-400" />
                   </div>
-                  {userLat && userLng && (
-                    <Badge variant="outline" className="border-blue-500/30 text-blue-400 bg-blue-500/10">
-                      <Globe className="w-3 h-3 mr-1" />
-                      Your Location: {userLat.toFixed(2)}°, {userLng.toFixed(2)}°
-                    </Badge>
-                  )}
+                  <p className="text-sm font-semibold text-foreground">How to use</p>
                 </div>
-
-                {userLat && userLng ? renderIslamicPlacesMap() : (
-                  <div className="text-center py-12">
-                    <div className="w-16 h-16 rounded-full bg-gradient-to-br from-blue-500/20 to-blue-600/10 border border-blue-500/30 flex items-center justify-center mx-auto mb-4">
-                      <Map className="w-8 h-8 text-blue-400" />
-                    </div>
-                    <p className="text-slate-400">Enable location to see Islamic places and distances</p>
-                  </div>
-                )}
+                <p className="text-sm text-muted-foreground leading-relaxed">
+                  Hold your device flat and rotate your body until the Kaaba icon points upward toward the golden arrow. When aligned, you're facing Qibla.
+                </p>
               </div>
             </Card>
           </TabsContent>
         </Tabs>
-
-        {/* Instructions Card */}
-        <Card className="p-5 backdrop-blur-sm bg-muted/30 border-border/50">
-          <div className="space-y-3">
-            <div className="flex items-center gap-2">
-              <div className="w-6 h-6 rounded-full bg-gradient-to-br from-amber-500/20 to-amber-600/10 border border-amber-500/30 flex items-center justify-center">
-                <Navigation className="w-3 h-3 text-amber-400" />
-              </div>
-              <p className="text-sm font-semibold text-foreground">How to use</p>
-            </div>
-            <p className="text-sm text-muted-foreground leading-relaxed">
-              Hold your device flat and rotate your body until the Kaaba icon points upward toward the golden arrow. When aligned, you're facing Qibla.
-            </p>
-          </div>
-        </Card>
       </div>
     </div>
   );

@@ -2,13 +2,12 @@
 
 /**
  * PWA Icon Generator Script
- * Creates all required icon sizes from a single source image
- * 
+ * Creates all required icon sizes from a single source image.
+ *
  * Usage: node scripts/generate-icons.js [source-image-path]
  */
 
 const fs = require('fs');
-const path = require('path');
 
 // Icon sizes required for PWA
 const ICON_SIZES = [
@@ -31,50 +30,48 @@ const APPLE_SIZES = [
 ];
 
 function generateIcons() {
-  console.log('🚀 PWA Icon Generator for Noor Connect');
+  console.log('PWA Icon Generator for Noor Connect');
   console.log('=====================================\n');
-  
+
   // Check if source icon exists
   const sourceIcon = 'public/icon-512x512.png';
   if (!fs.existsSync(sourceIcon)) {
-    console.error(`❌ Source icon not found: ${sourceIcon}`);
-    console.log('Please place your source icon at public/icon-512x512.png');
+    console.error(`Source icon not found: ${sourceIcon}`);
+    console.log('Place your source icon at public/icon-512x512.png');
     console.log('Recommended: 512x512 PNG with transparent background');
     process.exit(1);
   }
-  
-  console.log(`✅ Source icon found: ${sourceIcon}`);
-  console.log('\n📱 Required Icons:');
-  
+
+  console.log(`Source icon found: ${sourceIcon}`);
+  console.log('\nRequired Icons:');
+
   // Display required icons
-  [...ICON_SIZES, ...APPLE_SIZES].forEach(icon => {
+  [...ICON_SIZES, ...APPLE_SIZES].forEach((icon) => {
     console.log(`  - ${icon.name} (${icon.size}x${icon.size}px)`);
   });
-  
-  console.log('\n📝 To generate icons, you have several options:');
-  console.log('');
+
+  console.log('\nTo generate icons, use one of these options:\n');
   console.log('Option 1: Online Tool (Recommended)');
   console.log('  Visit: https://www.pwabuilder.com/imageGenerator');
-  console.log('  Upload your icon-512x512.png and download all sizes');
-  console.log('');
+  console.log('  Upload icon-512x512.png and download generated sizes\n');
+
   console.log('Option 2: CLI Tool');
   console.log('  Install: npm install -g pwa-asset-generator');
-  console.log('  Run: pwa-asset-generator public/icon-512x512.png public/icons/');
-  console.log('');
+  console.log('  Run: pwa-asset-generator public/icon-512x512.png public/icons/\n');
+
   console.log('Option 3: Manual Resize');
-  console.log('  Use any image editor to create the required sizes');
-  console.log('');
-  console.log('📁 Place generated icons in the public/ directory');
-  console.log('');
-  console.log('🎨 Design Guidelines:');
-  console.log('  - Use the Noor Connect logo with "نور" Arabic text');
-  console.log('  - Background: Transparent or #000000');
-  logo: Gold gradient (#fbbf24 to #d97706)');
-  console.log('  - Keep it simple and recognizable at small sizes');
-  console.log('  - Ensure good contrast for accessibility');
-  
-  console.log('\n✨ PWA Setup Complete!');
-  console.log('Your app will now look like a native app on all devices!');
+  console.log('  Use any image editor to create the required sizes\n');
+
+  console.log('Place generated icons in the public/ directory\n');
+
+  console.log('Design Guidelines:');
+  console.log('  - Use the Noor Connect logo with Arabic text');
+  console.log('  - Background: transparent or #000000');
+  console.log('  - Logo: gold gradient (#fbbf24 to #d97706)');
+  console.log('  - Keep design simple and recognizable at small sizes');
+  console.log('  - Ensure strong contrast for accessibility\n');
+
+  console.log('PWA setup guidance complete.');
 }
 
 // Run the generator

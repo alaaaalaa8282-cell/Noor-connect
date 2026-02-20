@@ -1,198 +1,178 @@
 import { useState } from "react";
-import { moods, Mood, MoodContent } from "@/data/mood-data";
+import { moods, type Mood, type MoodContent } from "@/data/mood-data";
 import { Card } from "./ui/card";
-import { Drawer, DrawerContent, DrawerHeader, DrawerTitle, DrawerDescription } from "./ui/drawer";
 import { Button } from "./ui/button";
-import { ScrollArea } from "./ui/scroll-area";
-import { Play, Copy, Check, Sparkles, BookOpen, Quote, X } from "lucide-react";
+import { Play, Copy, Check, Sparkles, BookOpen, Quote, Shuffle } from "lucide-react";
 import { useGlobalQuran } from "@/lib/global-quran";
 import { useToast } from "@/hooks/use-toast";
-import { motion, AnimatePresence } from "framer-motion";
+import { pickNonRepeatingIndex } from "@/lib/non-repeating-picker";
+
+const storageKeyForMood = (moodId: string) => `dashboard-mood-remedy-${moodId}`;
+
+const pickMoodIndex = (mood: Mood, exclude: number[] = []) =>
+  pickNonRepeatingIndex({
+    storageKey: storageKeyForMood(mood.id),
+    length: mood.content.length,
+    maxRecent: 3,
+    exclude,
+  });
+
+const toCopyText = (item: MoodContent) =>
+  `${item.arabic ? `${item.arabic}\n\n` : ""}${item.text}\n${item.reference}`;
 
 export function MoodSelector() {
-    const [selectedMood, setSelectedMood] = useState<Mood | null>(null);
-    const { playSurah, reciter } = useGlobalQuran();
-    const { toast } = useToast();
-    const [copiedIndex, setCopiedIndex] = useState<number | null>(null);
+  const initialMood = moods[0] ?? null;
+  const [selectedMood, setSelectedMood] = useState<Mood | null>(initialMood);
+  const [activeIndexes, setActiveIndexes] = useState<Record<string, number>>(() => {
+    if (!initialMood) return {};
+    return { [initialMood.id]: pickMoodIndex(initialMood) };
+  });
+  const [copied, setCopied] = useState(false);
+  const { playSurah, reciter } = useGlobalQuran();
+  const { toast } = useToast();
 
-    const handleMoodClick = (mood: Mood) => {
-        setSelectedMood(mood);
-    };
+  const currentIndex = selectedMood ? activeIndexes[selectedMood.id] ?? 0 : 0;
+  const currentItem = selectedMood ? selectedMood.content[currentIndex] ?? selectedMood.content[0] : null;
 
-    const handlePlaySurah = (surahNumber: number, title: string) => {
-        if (!reciter) {
-            toast({
-                title: "Reciter Loading",
-                description: "Please wait for the audio player to initialize.",
-                variant: "destructive"
-            });
-            return;
-        }
-        playSurah(surahNumber, title, reciter);
-        toast({
-            title: "Playing Surah",
-            description: `Now playing ${title} for your mood.`
-        });
-    };
+  const handleMoodClick = (mood: Mood) => {
+    setSelectedMood(mood);
+    setActiveIndexes((prev) => {
+      if (typeof prev[mood.id] === "number") return prev;
+      return { ...prev, [mood.id]: pickMoodIndex(mood) };
+    });
+  };
 
-    const handleCopy = (text: string, index: number) => {
-        navigator.clipboard.writeText(text);
-        setCopiedIndex(index);
-        setTimeout(() => setCopiedIndex(null), 2000);
-        toast({ title: "Copied to clipboard" });
-    };
+  const handleAnotherRemedy = () => {
+    if (!selectedMood) return;
 
-    return (
-        <div className="space-y-4 mb-8">
-            <div className="flex items-center justify-between px-2">
-                <div className="flex items-center gap-2">
-                    <div className="p-1.5 rounded-lg bg-primary/10">
-                        <Sparkles className="w-4 h-4 text-primary" />
-                    </div>
-                    <h3 className="font-bold text-xl tracking-tight text-foreground">How are you feeling?</h3>
-                </div>
-                <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground/60 bg-muted px-2 py-0.5 rounded-full">
-                    Islamic Remedies
-                </span>
-            </div>
+    const nextIndex = pickMoodIndex(selectedMood, [currentIndex]);
+    setActiveIndexes((prev) => ({ ...prev, [selectedMood.id]: nextIndex }));
+  };
 
-            <div className="pt-2">
-                <div className="grid grid-cols-3 sm:flex sm:flex-nowrap sm:overflow-x-auto sm:pb-4 gap-2 sm:gap-4">
-                    {moods.map((mood, idx) => {
-                        const Icon = mood.icon;
-                        return (
-                            <motion.button
-                                key={mood.id}
-                                initial={{ opacity: 0, scale: 0.9 }}
-                                animate={{ opacity: 1, scale: 1 }}
-                                transition={{ delay: idx * 0.05 }}
-                                whileHover={{ y: -4, scale: 1.05 }}
-                                whileTap={{ scale: 0.95 }}
-                                onClick={() => handleMoodClick(mood)}
-                                className={`group relative flex flex-col items-center justify-center gap-2 p-2 aspect-square sm:aspect-auto sm:w-28 sm:h-28 rounded-[1.25rem] sm:rounded-[2rem] border transition-all duration-300
-                    bg-card/60 border-border/60 backdrop-blur-md shadow-sm
-                    hover:border-primary/40 hover:bg-card/80
-                    ${mood.glow} hover:shadow-xl
-                `}
-                            >
-                                {/* Inner Soft Glow Background */}
-                                <div className={`absolute inset-0 rounded-[1.25rem] sm:rounded-[2rem] bg-gradient-to-br ${mood.gradient} opacity-20 group-hover:opacity-40 transition-opacity`} />
+  const handlePlaySurah = () => {
+    if (!selectedMood || !currentItem?.surahNumber) return;
 
-                                <div className={`relative p-2 sm:p-3 rounded-xl sm:rounded-2xl bg-background border border-border/50 shadow-sm group-hover:scale-110 transition-transform duration-500`}>
-                                    <Icon className={`w-4 h-4 sm:w-6 sm:h-6 ${mood.color} drop-shadow-sm`} />
-                                </div>
+    if (!reciter) {
+      toast({
+        title: "Reciter loading",
+        description: "Please wait for the Quran player to initialize.",
+        variant: "destructive",
+      });
+      return;
+    }
 
-                                <span className="relative text-[10px] sm:text-[11px] font-black tracking-tight text-foreground group-hover:text-primary transition-colors truncate w-full px-1">
-                                    {mood.label}
-                                </span>
+    playSurah(currentItem.surahNumber, currentItem.reference, reciter);
+    toast({
+      title: "Playing Surah",
+      description: `Now playing ${currentItem.reference}.`,
+    });
+  };
 
-                                {/* Active Indicator Dot */}
-                                <div className={`absolute top-2 right-2 w-1.5 h-1.5 rounded-full bg-primary opacity-0 group-hover:opacity-100 transition-opacity shadow-[0_0_8px_rgba(var(--primary),0.5)]`} />
-                            </motion.button>
-                        );
-                    })}
-                </div>
-            </div>
+  const handleCopy = async () => {
+    if (!currentItem) return;
 
-            {/* Mood Details Drawer */}
-            <Drawer open={!!selectedMood} onOpenChange={(open) => !open && setSelectedMood(null)}>
-                <DrawerContent className="max-h-[85vh] border-t-0 bg-transparent p-0">
-                    <div className="mx-auto w-full max-w-lg bg-background rounded-t-[2.5rem] shadow-2xl overflow-hidden flex flex-col h-full ring-1 ring-border/50">
-                        <div className="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1.5 rounded-full bg-muted-foreground/20" />
+    try {
+      await navigator.clipboard.writeText(toCopyText(currentItem));
+      setCopied(true);
+      setTimeout(() => setCopied(false), 1800);
+      toast({ title: "Remedy copied" });
+    } catch {
+      toast({
+        title: "Copy failed",
+        description: "Clipboard is not available on this device.",
+        variant: "destructive",
+      });
+    }
+  };
 
-                        <DrawerHeader className="p-8 pb-4 text-center space-y-4">
-                            <motion.div
-                                initial={{ scale: 0 }}
-                                animate={{ scale: 1 }}
-                                className={`mx-auto w-20 h-20 rounded-3xl flex items-center justify-center bg-gradient-to-br ${selectedMood?.gradient} shadow-2xl relative group`}
-                            >
-                                <div className="absolute inset-0 rounded-3xl bg-white/20 blur-xl opacity-0 group-hover:opacity-100 transition-opacity" />
-                                {selectedMood && <selectedMood.icon className={`w-10 h-10 ${selectedMood.color} relative z-10 drop-shadow-lg`} />}
-                            </motion.div>
-
-                            <div className="space-y-1">
-                                <DrawerTitle className="text-3xl font-black tracking-tight text-center">
-                                    Feeling <span className={`${selectedMood?.color}`}>{selectedMood?.label}</span>?
-                                </DrawerTitle>
-                                <DrawerDescription className="text-sm font-medium text-muted-foreground flex items-center justify-center gap-1.5">
-                                    <BookOpen className="w-4 h-4" /> Spiritual Healing & Comfort
-                                </DrawerDescription>
-                            </div>
-
-                            {/* Hidden Close for Focus Trap */}
-                            <Button
-                                variant="ghost"
-                                size="sm"
-                                className="absolute top-2 right-4 rounded-full opacity-40 hover:opacity-100"
-                                onClick={() => setSelectedMood(null)}
-                            >
-                                <X className="w-4 h-4" />
-                            </Button>
-                        </DrawerHeader>
-
-                        <ScrollArea className="flex-1 px-6 pb-12 overflow-y-auto">
-                            <div className="space-y-6">
-                                {selectedMood?.content.map((item, idx) => (
-                                    <motion.div
-                                        key={idx}
-                                        initial={{ opacity: 0, x: -20 }}
-                                        animate={{ opacity: 1, x: 0 }}
-                                        transition={{ delay: idx * 0.1 }}
-                                    >
-                                        <Card className="overflow-hidden border-none bg-secondary/30 backdrop-blur-sm hover:bg-secondary/50 transition-colors group">
-                                            <div className="p-6 space-y-4">
-                                                <div className="flex items-center justify-between">
-                                                    <div className="flex items-center gap-2">
-                                                        <div className={`p-1.5 rounded-lg bg-background shadow-sm border border-border/50`}>
-                                                            {item.type === 'surah' ? <Play className="w-3 h-3 text-primary" /> : <Quote className="w-3 h-3 text-primary" />}
-                                                        </div>
-                                                        <span className="text-[10px] font-black uppercase tracking-widest text-primary">
-                                                            {item.type}
-                                                        </span>
-                                                    </div>
-                                                    <div className="flex gap-2 opacity-0 group-hover:opacity-100 transition-opacity">
-                                                        {item.type === 'surah' && item.surahNumber && (
-                                                            <Button size="icon" variant="secondary" className="h-9 w-9 rounded-full shadow-sm hover:bg-primary hover:text-white transition-all transform active:scale-90" onClick={() => handlePlaySurah(item.surahNumber!, item.reference)}>
-                                                                <Play className="w-4 h-4 fill-current ml-0.5" />
-                                                            </Button>
-                                                        )}
-                                                        <Button size="icon" variant="secondary" className="h-9 w-9 rounded-full shadow-sm hover:bg-primary hover:text-white transition-all transform active:scale-90" onClick={() => handleCopy(`${item.arabic ? item.arabic + '\n\n' : ''}${item.text} - ${item.reference}`, idx)}>
-                                                            {copiedIndex === idx ? <Check className="w-4 h-4" /> : <Copy className="w-4 h-4" />}
-                                                        </Button>
-                                                    </div>
-                                                </div>
-
-                                                <div className="space-y-4">
-                                                    {item.arabic && (
-                                                        <p className="font-arabic text-3xl text-right leading-[1.8] text-foreground font-medium drop-shadow-sm">{item.arabic}</p>
-                                                    )}
-                                                    <div className="relative pl-4 border-l-2 border-primary/20">
-                                                        <p className="text-[15px] text-foreground/80 leading-relaxed font-serif italic">
-                                                            "{item.text}"
-                                                        </p>
-                                                    </div>
-                                                    <div className="flex justify-end pt-2">
-                                                        <span className="text-[10px] font-bold text-muted-foreground uppercase tracking-widest bg-background/50 px-3 py-1.5 rounded-full ring-1 ring-border/50">
-                                                            — {item.reference}
-                                                        </span>
-                                                    </div>
-                                                </div>
-                                            </div>
-                                        </Card>
-                                    </motion.div>
-                                ))}
-                            </div>
-                        </ScrollArea>
-
-                        <div className="p-6 bg-gradient-to-t from-background to-transparent pointer-events-none sticky bottom-0 flex justify-center pb-8 pt-12">
-                            <Button variant="ghost" className="pointer-events-auto rounded-full bg-secondary/50 backdrop-blur-sm text-xs font-bold uppercase tracking-widest px-8" onClick={() => setSelectedMood(null)}>
-                                Minimize
-                            </Button>
-                        </div>
-                    </div>
-                </DrawerContent>
-            </Drawer>
+  return (
+    <div className="mb-8 space-y-4 rounded-2xl border border-border/60 bg-gradient-to-br from-card via-card to-primary/5 p-4">
+      <div className="flex items-center justify-between">
+        <div className="flex items-center gap-2">
+          <div className="rounded-lg bg-primary/10 p-1.5">
+            <Sparkles className="h-4 w-4 text-primary" />
+          </div>
+          <h3 className="text-base font-bold tracking-tight text-foreground">Islamic Remedies</h3>
         </div>
-    );
-}
+        <span className="rounded-full bg-muted px-2 py-0.5 text-[10px] font-bold uppercase tracking-wider text-muted-foreground">
+          Mood guide
+        </span>
+      </div>
 
+      <div className="flex gap-2 overflow-x-auto pb-1">
+        {moods.map((mood) => {
+          const Icon = mood.icon;
+          const isActive = selectedMood?.id === mood.id;
+
+          return (
+            <button
+              key={mood.id}
+              type="button"
+              onClick={() => handleMoodClick(mood)}
+              className={`flex shrink-0 items-center gap-2 rounded-full border px-3 py-2 text-xs font-semibold transition-colors ${
+                isActive
+                  ? "border-primary/50 bg-primary/10 text-primary"
+                  : "border-border/60 bg-background/70 text-foreground hover:border-primary/30 hover:bg-primary/5"
+              }`}
+              aria-label={`Show remedies for ${mood.label}`}
+            >
+              <Icon className={`h-4 w-4 ${mood.color}`} />
+              <span>{mood.label}</span>
+            </button>
+          );
+        })}
+      </div>
+
+      {selectedMood && currentItem ? (
+        <Card className="space-y-4 border-border/60 bg-background/80 p-4">
+          <div className="flex items-start justify-between gap-3">
+            <div className="flex items-center gap-3">
+              <div className={`rounded-xl bg-gradient-to-br p-2 ${selectedMood.gradient}`}>
+                <selectedMood.icon className={`h-5 w-5 ${selectedMood.color}`} />
+              </div>
+              <div>
+                <p className="text-sm font-semibold text-foreground">{selectedMood.label} remedy</p>
+                <p className="text-xs text-muted-foreground">{currentItem.reference}</p>
+              </div>
+            </div>
+            <div className="flex items-center gap-1 rounded-full border border-primary/20 bg-primary/5 px-2 py-1 text-[10px] font-bold uppercase tracking-wider text-primary">
+              {currentItem.type === "surah" ? <BookOpen className="h-3 w-3" /> : <Quote className="h-3 w-3" />}
+              {currentItem.type}
+            </div>
+          </div>
+
+          {currentItem.arabic && (
+            <p className="rounded-xl bg-muted/40 p-3 text-right font-arabic text-2xl leading-[1.9] text-foreground" dir="rtl">
+              {currentItem.arabic}
+            </p>
+          )}
+
+          <p className="rounded-xl border border-border/40 bg-card/70 p-3 text-sm leading-relaxed text-foreground/90">
+            {currentItem.text}
+          </p>
+
+          <div className="flex flex-wrap gap-2">
+            {currentItem.type === "surah" && currentItem.surahNumber && (
+              <Button size="sm" className="rounded-full" onClick={handlePlaySurah}>
+                <Play className="mr-2 h-4 w-4" />
+                Play Surah
+              </Button>
+            )}
+            <Button size="sm" variant="secondary" className="rounded-full" onClick={handleCopy}>
+              {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+              {copied ? "Copied" : "Copy"}
+            </Button>
+            <Button size="sm" variant="outline" className="rounded-full" onClick={handleAnotherRemedy}>
+              <Shuffle className="mr-2 h-4 w-4" />
+              Another remedy
+            </Button>
+          </div>
+        </Card>
+      ) : (
+        <Card className="border-dashed border-border/60 bg-background/60 p-4 text-sm text-muted-foreground">
+          Select a mood to get a Quran-based remedy.
+        </Card>
+      )}
+    </div>
+  );
+}

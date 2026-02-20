@@ -5,25 +5,25 @@ import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Naviga
 import { AppBar } from "@/components/AppBar";
 const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
 const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
+const MoodSelector = lazy(() => import("@/components/MoodSelector").then(module => ({ default: module.MoodSelector })));
+const DailyAyah = lazy(() => import("@/components/DailyAyah").then(module => ({ default: module.DailyAyah })));
+const DailyHadith = lazy(() => import("@/components/DailyHadith").then(module => ({ default: module.DailyHadith })));
 import { PrayerCountdown } from "@/components/PrayerCountdown";
 import { PrayerTimesList } from "@/components/PrayerTimesList";
 import { QazaTracker } from "@/components/QazaTracker";
-import { DailyAyah } from "@/components/DailyAyah";
-import { DailyHadith } from "@/components/DailyHadith";
 import { DhikrReminder } from "@/components/DhikrReminder";
 import { IslamicGreeting } from "@/components/IslamicGreeting";
+import { IslamicDateHeader } from "@/components/IslamicDateHeader";
+import { IslamicEventsWidget } from "@/components/IslamicEventsWidget";
 import { LocationSearch } from "@/components/LocationSearch";
-import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { MoodSelector } from "@/components/MoodSelector";
-
-import { usePrayerTimes } from "@/hooks/usePrayerTimes";
-import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
+import { QuranProgressWidget } from "@/components/QuranProgressWidget";
 import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { shouldShowMenstrualFeatures } from "@/lib/gender-settings";
 import { isMenstrualModeActive, getMenstrualModeData, activateMenstrualMode, deactivateMenstrualMode } from "@/lib/menstrual-mode";
 
+import { usePrayerTimes } from "@/hooks/usePrayerTimes";
+import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 // Dynamic imports for code splitting
 // const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
 // const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
@@ -62,6 +62,7 @@ export default function Dashboard() {
   const [loadingAPI, setLoadingAPI] = useState(false);
   const [timezone, setTimezone] = useState<string>("");
   const [initialLoad, setInitialLoad] = useState(true);
+  const [targetTime, setTargetTime] = useState<Date | null>(null);
   const { toast } = useToast();
 
   // Global location state
@@ -160,6 +161,9 @@ export default function Dashboard() {
       if (nextEvent) {
         setNextPrayerName(nextEvent.name);
         setNextEventCountdown(nextEvent);
+        if (nextEvent.targetDate) {
+          setTargetTime(nextEvent.targetDate);
+        }
       }
     } catch (error) {
       console.error('Failed to load API prayer times:', error);
@@ -269,39 +273,6 @@ export default function Dashboard() {
 
   // Update countdown every second
   // Optimize countdown: Fetch target time ONCE, then countdown locally
-  const [targetTime, setTargetTime] = useState<Date | null>(null);
-
-  // Fetch the next event target time whenever location changes
-  useEffect(() => {
-    const fetchNextEvent = async () => {
-      if (location.latitude && location.longitude) {
-        try {
-          // Get the next event data (name + time string)
-          const nextEvent = await AladhanAPI.getNextEventCountdown(
-            location.latitude,
-            location.longitude,
-            1,
-            false
-          );
-
-          if (nextEvent) {
-            setNextPrayerName(nextEvent.name);
-
-            // Use the authoritative targetDate from the API helper if available
-            if (nextEvent.targetDate) {
-              setTargetTime(nextEvent.targetDate);
-            }
-          }
-        } catch (error) {
-          console.error('Failed to fetch next event:', error);
-        }
-      }
-    };
-
-    fetchNextEvent();
-  }, [location.latitude, location.longitude]);
-
-
   // Lightweight interval: just updates the string based on targetTime
   useEffect(() => {
     if (!targetTime) return;
@@ -418,7 +389,9 @@ export default function Dashboard() {
           </div>
 
           {/* Mood Based Remedies */}
-          <MoodSelector />
+          <Suspense fallback={<div className="h-[220px] rounded-2xl bg-muted/20 animate-pulse" />}>
+            <MoodSelector />
+          </Suspense>
 
           {/* Hijri Date */}
           {hijriDate && (
@@ -427,8 +400,14 @@ export default function Dashboard() {
             </Card>
           )}
 
+          {/* Islamic Date Header - always visible */}
+          <IslamicDateHeader />
+
           {/* Islamic Greeting (shows on special days) */}
           <IslamicGreeting />
+
+          {/* Islamic Events Widget */}
+          <IslamicEventsWidget />
 
           {/* Prayer Countdown Widget */}
           <ErrorBoundary>
@@ -468,10 +447,17 @@ export default function Dashboard() {
           </ErrorBoundary>
 
           {/* Daily Ayah */}
-          <DailyAyah />
+          <Suspense fallback={<div className="h-52 rounded-xl bg-muted/20 animate-pulse" />}>
+            <DailyAyah />
+          </Suspense>
+
+          {/* Quran Progress Widget */}
+          <QuranProgressWidget />
 
           {/* Daily Hadith */}
-          <DailyHadith />
+          <Suspense fallback={<div className="h-52 rounded-xl bg-muted/20 animate-pulse" />}>
+            <DailyHadith />
+          </Suspense>
 
           {/* Dhikr Reminder */}
           <DhikrReminder />
