@@ -14,7 +14,7 @@ import { AdhanSelector } from "@/components/AdhanSelector";
 import { CustomAdhanUpload } from "@/components/CustomAdhanUpload";
 import { getCalculationMethod, setCalculationMethod, CALCULATION_METHOD_LABELS, type CalculationMethodName } from "@/lib/prayer-calculator";
 import { AladhanAPI } from "@/lib/aladhan-api";
-import { getStorageStats, clearAllBooks, formatFileSize } from "@/lib/ebooks-storage";
+import { getStorageStats, clearAllBooks, formatFileSize, downloadBook, isBookDownloaded } from "@/lib/ebooks-storage";
 import { downloadBackup, importBackup, clearCache, getQuranFontSize, setQuranFontSize } from "@/lib/backup";
 import { isSalamGreetingEnabled, setSalamGreetingEnabled } from "@/components/SalamGreeting";
 import { notificationManager, type NotificationPreferences } from "@/lib/notification-manager";
@@ -300,8 +300,9 @@ const Profile = () => {
     });
   };
 
-  const handleBackup = () => {
-    downloadBackup();
+  const handleBackup = async () => {
+    toast({ title: "Preparing backup..." });
+    await downloadBackup();
     toast({ title: "Backup downloaded" });
   };
 
@@ -309,15 +310,42 @@ const Profile = () => {
     const file = e.target.files?.[0];
     if (!file) return;
 
+    toast({ title: "Restoring backup..." });
     const result = await importBackup(file);
-    toast({
-      title: result.success ? "Success" : "Error",
-      description: result.message,
-      variant: result.success ? "default" : "destructive"
-    });
+
+    if (result.success && result.booksToDownload && result.booksToDownload.length > 0) {
+      toast({
+        title: "Restoring library...",
+        description: `Downloading ${result.booksToDownload.length} books. This may take a while. Please do not close the app.`,
+      });
+
+      let downloadedCount = 0;
+      for (const book of result.booksToDownload) {
+        try {
+          const isDownloaded = await isBookDownloaded(book.url);
+          if (!isDownloaded) {
+            await downloadBook(book);
+          }
+          downloadedCount++;
+        } catch (err) {
+          console.error(`Failed to download ${book.title}`, err);
+        }
+      }
+
+      toast({
+        title: "Library Restored",
+        description: `Successfully processed ${downloadedCount}/${result.booksToDownload.length} books.`,
+      });
+    } else {
+      toast({
+        title: result.success ? "Success" : "Error",
+        description: result.message,
+        variant: result.success ? "default" : "destructive"
+      });
+    }
 
     if (result.success) {
-      setTimeout(() => window.location.reload(), 500);
+      setTimeout(() => window.location.reload(), 1500);
     }
 
     if (fileInputRef.current) {

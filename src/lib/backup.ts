@@ -1,7 +1,7 @@
 /**
  * Backup & Restore - Export/Import all user data
  */
-import { clearAllBooks, getStorageStats } from './ebooks-storage';
+import { clearAllBooks, getStorageStats, getDownloadedBooks, type DownloadedBook } from './ebooks-storage';
 
 const BACKUP_VERSION = '1.0';
 
@@ -17,16 +17,20 @@ interface BackupData {
     tasbeehHistory: string | null;
     favorites: string | null;
     bookmarks: string | null;
+    readingProgress: string | null;
     prayerSettings: string | null;
     salahTracker: string | null;
     salahStreak: string | null;
     quranFontSize: string | null;
     selectedAdhan: string | null;
+    downloadedBooks?: DownloadedBook[];
   };
 }
 
 // Export all user data
-export const exportBackup = (): string => {
+export const exportBackup = async (): Promise<string> => {
+  const downloadedBooks = await getDownloadedBooks();
+
   const backup: BackupData = {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
@@ -39,23 +43,25 @@ export const exportBackup = (): string => {
       tasbeehHistory: localStorage.getItem('tasbeeh-history'),
       favorites: localStorage.getItem('favorites'),
       bookmarks: localStorage.getItem('bookmarks'),
+      readingProgress: localStorage.getItem('reading-progress'),
       prayerSettings: localStorage.getItem('prayer-settings'),
       salahTracker: localStorage.getItem('salah-tracker'),
       salahStreak: localStorage.getItem('salah-streak'),
       quranFontSize: localStorage.getItem('quran-font-size'),
       selectedAdhan: localStorage.getItem('selected-adhan-id'),
+      downloadedBooks,
     },
   };
-  
+
   return JSON.stringify(backup, null, 2);
 };
 
 // Download backup as file
-export const downloadBackup = (): void => {
-  const backup = exportBackup();
+export const downloadBackup = async (): Promise<void> => {
+  const backup = await exportBackup();
   const blob = new Blob([backup], { type: 'application/json' });
   const url = URL.createObjectURL(blob);
-  
+
   const a = document.createElement('a');
   a.href = url;
   a.download = `islamic-companion-backup-${new Date().toISOString().split('T')[0]}.json`;
@@ -66,29 +72,33 @@ export const downloadBackup = (): void => {
 };
 
 // Import backup from file
-export const importBackup = async (file: File): Promise<{ success: boolean; message: string }> => {
+export const importBackup = async (file: File): Promise<{ success: boolean; message: string; booksToDownload?: DownloadedBook[] }> => {
   try {
     const text = await file.text();
     const backup: BackupData = JSON.parse(text);
-    
+
     if (!backup.version || !backup.data) {
       return { success: false, message: 'Invalid backup file format' };
     }
-    
-    // Restore all data
+
+    // Restore all data except downloadedBooks (handled separately)
     Object.entries(backup.data).forEach(([key, value]) => {
-      if (value !== null) {
+      if (value !== null && key !== 'downloadedBooks') {
         const storageKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-        localStorage.setItem(storageKey, value);
+        localStorage.setItem(storageKey, value as string);
       }
     });
-    
+
     // Apply theme
     if (backup.data.theme) {
       document.documentElement.classList.toggle('dark', backup.data.theme === 'dark');
     }
-    
-    return { success: true, message: 'Backup restored successfully!' };
+
+    return {
+      success: true,
+      message: 'Backup restored successfully!',
+      booksToDownload: backup.data.downloadedBooks || []
+    };
   } catch (error) {
     return { success: false, message: 'Failed to parse backup file' };
   }
@@ -97,7 +107,7 @@ export const importBackup = async (file: File): Promise<{ success: boolean; mess
 // Clear all cache (PDFs and localforage)
 export const clearCache = async (): Promise<void> => {
   await clearAllBooks();
-  
+
   // Clear service worker caches
   if ('caches' in window) {
     const cacheNames = await caches.keys();
