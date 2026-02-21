@@ -9,6 +9,7 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { LayoutManager } from "@/components/LayoutManager";
 import { MetalPricesService, MetalPrices } from "@/lib/metalPrices";
+import { ZakatNisabService } from "@/lib/zakatNisab";
 import { METAL_PRICE_CONSTANTS } from "@/lib/constants";
 
 interface ZakatAssets {
@@ -109,6 +110,7 @@ export default function ZakatCalculator() {
   const [isLoadingPrices, setIsLoadingPrices] = useState(true);
   const [priceError, setPriceError] = useState<string | null>(null);
   const [currency, setCurrency] = useState("USD");
+  const [nisabStandard, setNisabStandard] = useState<'classical' | 'common'>('classical');
   const [goldCalculator, setGoldCalculator] = useState<GoldCalculator>({
     amount: 0,
     karat: 24,
@@ -124,7 +126,7 @@ export default function ZakatCalculator() {
     try {
       setIsLoadingPrices(true);
       setPriceError(null);
-      const prices = await MetalPricesService.getPrices(currency);
+      const prices = await MetalPricesService.getPrices(currency, nisabStandard);
       setMetalPrices(prices);
     } catch (error) {
       console.error('Failed to load metal prices:', error);
@@ -138,7 +140,7 @@ export default function ZakatCalculator() {
     try {
       setIsLoadingPrices(true);
       setPriceError(null);
-      const prices = await MetalPricesService.refreshPrices(currency);
+      const prices = await MetalPricesService.refreshPrices(currency, nisabStandard);
       setMetalPrices(prices);
     } catch (error) {
       console.error('Failed to refresh metal prices:', error);
@@ -148,12 +150,13 @@ export default function ZakatCalculator() {
     }
   };
 
-  // Clear cache and reload when currency changes to ensure fresh rates
+  // Clear cache and reload when currency or nisabStandard changes to ensure fresh rates
   useEffect(() => {
-    // Clear any existing cache for the new currency
+    // Clear any existing cache for the new currency and standard
     MetalPricesService.clearCache(currency);
+    ZakatNisabService.clearCache(currency);
     loadMetalPrices();
-  }, [currency]);
+  }, [currency, nisabStandard]);
 
   const currencyOptions = useMemo(() => {
     try {
@@ -203,6 +206,7 @@ export default function ZakatCalculator() {
         if (data.assets) setAssets(data.assets);
         if (data.liabilities) setLiabilities(data.liabilities);
         if (data.currency) setCurrency(data.currency);
+        if (data.nisabStandard) setNisabStandard(data.nisabStandard);
       } catch (e) {
         console.error('Failed to parse saved zakat data');
       }
@@ -214,8 +218,9 @@ export default function ZakatCalculator() {
       assets,
       liabilities,
       currency,
+      nisabStandard,
     }));
-  }, [assets, liabilities, currency]);
+  }, [assets, liabilities, currency, nisabStandard]);
 
   const totalAssets = Object.values(assets).reduce((a, b) => a + b, 0);
   const totalLiabilities = Object.values(liabilities).reduce((a, b) => a + b, 0);
@@ -227,8 +232,11 @@ export default function ZakatCalculator() {
   const silverPrice = metalPrices?.silverPricePerGram ||
     (METAL_PRICE_CONSTANTS.FALLBACK_SILVER_PRICE_PER_GRAM * (metalPrices?.exchangeRate || 1));
 
-  const nisabGold = METAL_PRICE_CONSTANTS.NISAB_GOLD_GRAMS * goldPrice;
-  const nisabSilver = METAL_PRICE_CONSTANTS.NISAB_SILVER_GRAMS * silverPrice;
+  // Use nisab data from Islamic API when available, otherwise calculate from metal prices
+  const nisabGold = metalPrices?.nisabData?.data.nisab_thresholds.gold.nisab_amount ||
+    (METAL_PRICE_CONSTANTS.NISAB_GOLD_GRAMS * goldPrice);
+  const nisabSilver = metalPrices?.nisabData?.data.nisab_thresholds.silver.nisab_amount ||
+    (METAL_PRICE_CONSTANTS.NISAB_SILVER_GRAMS * silverPrice);
   const nisab = Math.min(nisabGold, nisabSilver);
   const isZakatDue = netWorth >= nisab;
   const zakatAmount = isZakatDue ? netWorth * ZAKAT_RATE : 0;
@@ -287,6 +295,7 @@ export default function ZakatCalculator() {
       karat: 24,
       unit: 'grams'
     });
+    setNisabStandard('classical'); // Reset to default
   };
 
   return (
@@ -304,8 +313,13 @@ export default function ZakatCalculator() {
                   <p className="text-sm font-medium">About Zakat</p>
                   <p className="text-xs text-muted-foreground">
                     Zakat is 2.5% of your total wealth that exceeds the Nisab threshold for one lunar year.
-                    Current Nisab (Gold): {formatMoney(nisabGold)} | (Silver): {formatMoney(nisabSilver)}
+                    Current Nisab ({nisabStandard}): Gold {formatMoney(nisabGold)} | Silver {formatMoney(nisabSilver)}
                   </p>
+                  {metalPrices?.nisabData && (
+                    <p className="text-xs text-green-600 font-medium">
+                      ✓ Using Islamic API data ({metalPrices.nisabData.calculation_standard} standard)
+                    </p>
+                  )}
                 </div>
               </div>
             </CardContent>
@@ -316,26 +330,51 @@ export default function ZakatCalculator() {
             <CardHeader className="pb-2">
               <CardTitle className="text-base flex items-center gap-2">
                 <DollarSign className="w-4 h-4 text-primary" />
-                Currency
+                Currency & Standard
               </CardTitle>
             </CardHeader>
-            <CardContent className="space-y-2">
-              <Label className="text-xs">Select currency</Label>
-              <Select value={currency} onValueChange={setCurrency}>
-                <SelectTrigger>
-                  <SelectValue placeholder="Select currency" />
-                </SelectTrigger>
-                <SelectContent>
-                  {currencyOptions.map((code) => (
-                    <SelectItem key={code} value={code}>
-                      {code}
+            <CardContent className="space-y-4">
+              <div className="space-y-2">
+                <Label className="text-xs">Select currency</Label>
+                <Select value={currency} onValueChange={setCurrency}>
+                  <SelectTrigger>
+                    <SelectValue placeholder="Select currency" />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {currencyOptions.map((code) => (
+                      <SelectItem key={code} value={code}>
+                        {code}
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  Display: {currencySymbol} ({currency})
+                </p>
+              </div>
+              
+              <div className="space-y-2">
+                <Label className="text-xs">Nisab Calculation Standard</Label>
+                <Select value={nisabStandard} onValueChange={(value: 'classical' | 'common') => setNisabStandard(value)}>
+                  <SelectTrigger>
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    <SelectItem value="classical">
+                      Classical (Gold: 87.48g, Silver: 612.36g)
                     </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
-              <p className="text-xs text-muted-foreground">
-                Display: {currencySymbol} ({currency})
-              </p>
+                    <SelectItem value="common">
+                      Common (Gold: 85g, Silver: 595g)
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <p className="text-xs text-muted-foreground">
+                  {nisabStandard === 'classical' 
+                    ? 'Traditional calculation standard with precise weights'
+                    : 'Simplified calculation standard with rounded weights'
+                  }
+                </p>
+              </div>
             </CardContent>
           </Card>
 
@@ -412,6 +451,18 @@ export default function ZakatCalculator() {
                       <span>Gold/Silver Ratio:</span>
                       <span>{metalPrices.goldToSilverRatio.toFixed(1)}:1</span>
                     </div>
+                  )}
+                  {metalPrices.nisabData && (
+                    <>
+                      <div className="flex justify-between">
+                        <span>Nisab Standard:</span>
+                        <span className="text-green-600 capitalize">{metalPrices.nisabData.calculation_standard}</span>
+                      </div>
+                      <div className="flex justify-between">
+                        <span>Nisab Updated:</span>
+                        <span>{new Date(metalPrices.nisabData.updated_at).toLocaleTimeString()}</span>
+                      </div>
+                    </>
                   )}
                   {currency !== 'USD' && (
                     <div className="flex justify-between">

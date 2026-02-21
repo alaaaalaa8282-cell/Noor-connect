@@ -1,17 +1,20 @@
 import { useState, useEffect } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowLeft, RotateCcw, Sparkles } from "lucide-react";
+import { ArrowLeft, RotateCcw, Sparkles, History, ChevronRight, Volume2 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { getTasbeehTotal, getTasbeehHistory, addTasbeehEntry, setTasbeehTotal } from "@/lib/storage";
+import { motion, AnimatePresence } from "framer-motion";
+import { PageTransition } from "@/components/PageTransition";
+import { AppBar } from "@/components/AppBar";
 
 const DHIKR_OPTIONS = [
-  { value: "subhanallah", label: "سُبْحَانَ اللَّهِ", transliteration: "SubhanAllah" },
-  { value: "alhamdulillah", label: "ٱلْحَمْدُ لِلَّٰهِ", transliteration: "Alhamdulillah" },
-  { value: "allahuakbar", label: "اللَّٰهُ أَكْبَرُ", transliteration: "Allahu Akbar" },
-  { value: "lailahaillallah", label: "لَا إِلَٰهَ إِلَّا ٱللَّٰهُ", transliteration: "La ilaha illallah" },
-  { value: "astagfirullah", label: "أَسْتَغْفِرُ ٱللَّٰهَ", transliteration: "Astagfirullah" },
+  { value: "subhanallah", label: "سُبْحَانَ اللَّهِ", transliteration: "SubhanAllah", translation: "Glory be to Allah" },
+  { value: "alhamdulillah", label: "ٱلْحَمْدُ لِلَّٰهِ", transliteration: "Alhamdulillah", translation: "Praise be to Allah" },
+  { value: "allahuakbar", label: "اللَّٰهُ أَكْبَرُ", transliteration: "Allahu Akbar", translation: "Allah is the Greatest" },
+  { value: "lailahaillallah", label: "لَا إِلَٰهَ إِلَّا ٱللَّٰهُ", transliteration: "La ilaha illallah", translation: "None has the right to be worshipped but Allah" },
+  { value: "astagfirullah", label: "أَسْتَغْفِرُ ٱللَّٰهَ", transliteration: "Astagfirullah", translation: "I seek forgiveness from Allah" },
 ];
 
 const Tasbeeh = () => {
@@ -20,6 +23,7 @@ const Tasbeeh = () => {
   const [totalCount, setTotalCount] = useState(0);
   const [selectedDhikr, setSelectedDhikr] = useState(DHIKR_OPTIONS[0].value);
   const [dailyHistory, setDailyHistory] = useState<{ date: string; count: number; label: string }[]>([]);
+  const [isAnimating, setIsAnimating] = useState(false);
 
   const currentDhikr = DHIKR_OPTIONS.find(d => d.value === selectedDhikr) || DHIKR_OPTIONS[0];
   const label = `${currentDhikr.label} (${currentDhikr.transliteration})`;
@@ -35,90 +39,183 @@ const Tasbeeh = () => {
     addTasbeehEntry(label);
     setTotalCount(getTasbeehTotal());
     setDailyHistory(getTasbeehHistory());
+    setIsAnimating(true);
+
+    // Haptic feedback
+    if ('vibrate' in navigator) {
+      navigator.vibrate(10);
+    }
+
+    setTimeout(() => setIsAnimating(false), 100);
   };
 
   const handleReset = () => {
-    setCount(0);
+    if (confirm("Reset current counter to 0?")) {
+      setCount(0);
+    }
   };
 
   const nextMilestone = count < 33 ? 33 : count < 99 ? 99 : count < 100 ? 100 : Math.ceil((count + 1) / 100) * 100;
+  const progress = (count / nextMilestone) * 100;
 
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Tasbeeh</h1>
-            <p className="text-xs text-muted-foreground">Digital Counter</p>
+    <PageTransition>
+      <div className="min-h-screen bg-background pb-20">
+        <AppBar title="Digital Tasbeeh" showBack />
+
+        <div className="max-w-lg mx-auto px-5 pt-4 space-y-6">
+
+          {/* Dhikr Selector Hero */}
+          <Card className="overflow-hidden border-border/30 shadow-lg bg-card/50 backdrop-blur-xl">
+            <div className="p-4 flex flex-col gap-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className="p-1.5 bg-primary/10 rounded-lg">
+                    <Sparkles className="w-3.5 h-3.5 text-primary" />
+                  </div>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Select Dhikr</span>
+                </div>
+                <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-full text-[10px] font-bold text-primary">
+                  <History className="w-3 h-3" />
+                  Total: {totalCount.toLocaleString()}
+                </div>
+              </div>
+
+              <Select value={selectedDhikr} onValueChange={(v) => { setSelectedDhikr(v); setCount(0); }}>
+                <SelectTrigger className="h-16 rounded-2xl bg-card border-border/40 text-left px-5">
+                  <div className="flex flex-col">
+                    <span className="font-arabic text-lg text-primary leading-tight">{currentDhikr.label}</span>
+                    <span className="text-xs text-muted-foreground font-medium">{currentDhikr.transliteration}</span>
+                  </div>
+                </SelectTrigger>
+                <SelectContent>
+                  {DHIKR_OPTIONS.map((dhikr) => (
+                    <SelectItem key={dhikr.value} value={dhikr.value} className="py-3">
+                      <div className="flex flex-col">
+                        <span className="font-arabic text-base">{dhikr.label}</span>
+                        <span className="text-xs text-muted-foreground">{dhikr.transliteration}</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </Card>
+
+          {/* Main Visual Counter */}
+          <div className="flex flex-col items-center justify-center py-6 space-y-8">
+
+            <div className="relative w-72 h-72 flex items-center justify-center">
+              {/* Background Ring - Outer */}
+              <div className="absolute inset-0 rounded-full border-[10px] border-muted/20" />
+
+              {/* Progress Ring */}
+              <svg className="absolute inset-0 w-full h-full -rotate-90">
+                <circle
+                  cx="144"
+                  cy="144"
+                  r="134"
+                  fill="transparent"
+                  stroke="currentColor"
+                  strokeWidth="10"
+                  strokeDasharray={842}
+                  strokeDashoffset={842 - (842 * progress) / 100}
+                  className="text-primary transition-all duration-300 ease-out"
+                  strokeLinecap="round"
+                />
+              </svg>
+
+              {/* Animated Inner Aura */}
+              <AnimatePresence>
+                {isAnimating && (
+                  <motion.div
+                    initial={{ opacity: 0, scale: 0.8 }}
+                    animate={{ opacity: 0.2, scale: 1.1 }}
+                    exit={{ opacity: 0, scale: 1.2 }}
+                    className="absolute inset-4 rounded-full bg-primary"
+                  />
+                )}
+              </AnimatePresence>
+
+              {/* Main Counter Hub */}
+              <button
+                onClick={handleIncrement}
+                className="relative w-[210px] h-[210px] rounded-full bg-card shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-border/10 flex flex-col items-center justify-center group active:scale-[0.9] transition-all duration-150"
+              >
+                {/* Background reflection */}
+                <div className="absolute inset-4 border border-white/5 rounded-full" />
+
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Count</span>
+                <motion.span
+                  key={count}
+                  initial={{ scale: 0.8 }}
+                  animate={{ scale: 1 }}
+                  className="text-7xl font-black text-primary drop-shadow-sm font-mono"
+                >
+                  {count}
+                </motion.span>
+
+                <div className="absolute bottom-10 flex items-center gap-1">
+                  <Volume2 className="w-3 h-3 text-muted-foreground opacity-50" />
+                  <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter">Tap to Dhikr</span>
+                </div>
+              </button>
+            </div>
+
+            {/* Bottom Controls */}
+            <div className="flex items-center gap-4 w-full px-4">
+              <Button
+                variant="outline"
+                className="flex-1 h-14 rounded-2xl gap-3 text-xs font-bold border-border/40 bg-card/40 hover:bg-muted/50 transition-all"
+                onClick={handleReset}
+              >
+                <RotateCcw className="w-4 h-4" />
+                Reset Count
+              </Button>
+
+              <div className="flex-1 h-14 bg-muted/20 border border-border/20 rounded-2xl flex flex-col items-center justify-center px-4">
+                <span className="text-[9px] font-black uppercase text-muted-foreground/50 tracking-widest">Next Goal</span>
+                <span className="text-sm font-bold text-primary">{nextMilestone}</span>
+              </div>
+            </div>
           </div>
-          <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
-            <Sparkles className="w-5 h-5 text-primary-foreground" />
+
+          {/* Translation Card */}
+          <Card className="p-6 bg-primary/5 border-primary/20 rounded-3xl relative overflow-hidden">
+            <div className="absolute -right-4 -bottom-4 opacity-5">
+              <Sparkles className="w-24 h-24 text-primary" />
+            </div>
+            <p className="text-center text-sm font-medium italic text-primary leading-relaxed">
+              "{currentDhikr.translation}"
+            </p>
+          </Card>
+
+          {/* Today's History Tab */}
+          <div className="space-y-3">
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Today's Progress</h3>
+            <Card className="p-4 border-border/30 bg-card/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="w-10 h-10 rounded-xl bg-primary/10 flex items-center justify-center">
+                    <History className="w-5 h-5 text-primary" />
+                  </div>
+                  <div>
+                    <p className="text-sm font-bold">Sessions Completed</p>
+                    <p className="text-[10px] text-muted-foreground">Based on your activity today</p>
+                  </div>
+                </div>
+                <div className="text-right">
+                  <p className="text-lg font-black text-primary">
+                    {dailyHistory.find(h => h.date === new Date().toLocaleDateString() && h.label === label)?.count || 0}
+                  </p>
+                  <p className="text-[9px] font-bold text-muted-foreground uppercase">Dhikr</p>
+                </div>
+              </div>
+            </Card>
           </div>
         </div>
-
-        {/* Dhikr Selector */}
-        <Card className="p-3">
-          <Select value={selectedDhikr} onValueChange={setSelectedDhikr}>
-            <SelectTrigger className="bg-background">
-              <SelectValue />
-            </SelectTrigger>
-            <SelectContent className="bg-popover">
-              {DHIKR_OPTIONS.map((dhikr) => (
-                <SelectItem key={dhikr.value} value={dhikr.value}>
-                  <span className="font-arabic">{dhikr.label}</span>
-                  <span className="text-xs text-muted-foreground ml-2">({dhikr.transliteration})</span>
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </Card>
-
-        {/* Main Counter */}
-        <Card className="p-6 bg-primary text-primary-foreground border-0">
-          <div className="text-center space-y-4">
-            <p className="text-sm opacity-80">Current Count</p>
-            <div className="text-7xl font-bold font-mono">{count}</div>
-            <div>
-              <p className="text-lg font-arabic">{currentDhikr.label}</p>
-              <p className="text-sm opacity-80">{currentDhikr.transliteration}</p>
-            </div>
-            <p className="text-xs opacity-60">Next: {nextMilestone}</p>
-            
-            <button
-              onClick={handleIncrement}
-              className="w-28 h-28 mx-auto rounded-full bg-primary-foreground/20 hover:bg-primary-foreground/30 active:scale-95 transition-all flex items-center justify-center text-3xl font-bold"
-            >
-              +1
-            </button>
-
-            <Button onClick={handleReset} variant="secondary" size="sm" className="bg-primary-foreground/10 border-0">
-              <RotateCcw className="w-4 h-4 mr-2" />
-              Reset
-            </Button>
-          </div>
-        </Card>
-
-        {/* Stats */}
-        <Card className="p-4">
-          <div className="grid grid-cols-2 gap-3">
-            <div className="p-3 bg-primary/10 rounded-lg text-center">
-              <p className="text-2xl font-bold text-primary">{totalCount.toLocaleString()}</p>
-              <p className="text-xs text-muted-foreground">Total</p>
-            </div>
-            <div className="p-3 bg-primary/10 rounded-lg text-center">
-              <p className="text-2xl font-bold text-primary">
-                {dailyHistory.find(h => h.date === new Date().toLocaleDateString() && h.label === label)?.count || 0}
-              </p>
-              <p className="text-xs text-muted-foreground">Today</p>
-            </div>
-          </div>
-        </Card>
       </div>
-    </div>
+    </PageTransition>
   );
 };
 

@@ -2,9 +2,11 @@ import { useState } from "react";
 import { AppBar } from "@/components/AppBar";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Search, Star, Heart } from "lucide-react";
+import { Search, Star, Heart, Sparkles, BookOpen, Volume2, Info } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { ScrollArea } from "@/components/ui/scroll-area";
+import { motion, AnimatePresence } from "framer-motion";
+import { PageTransition } from "@/components/PageTransition";
 
 interface Name {
   number: number;
@@ -125,8 +127,10 @@ export default function NamesOfAllah() {
     return saved ? JSON.parse(saved) : [];
   });
   const [showFavoritesOnly, setShowFavoritesOnly] = useState(false);
+  const [selectedName, setSelectedName] = useState<Name | null>(null);
 
-  const toggleFavorite = (number: number) => {
+  const toggleFavorite = (event: React.MouseEvent, number: number) => {
+    event.stopPropagation();
     const newFavorites = favorites.includes(number)
       ? favorites.filter(n => n !== number)
       : [...favorites, number];
@@ -135,11 +139,11 @@ export default function NamesOfAllah() {
   };
 
   const filteredNames = namesOfAllah.filter(name => {
-    const matchesSearch = 
+    const matchesSearch =
       name.transliteration.toLowerCase().includes(searchQuery.toLowerCase()) ||
       name.meaning.toLowerCase().includes(searchQuery.toLowerCase()) ||
       name.arabic.includes(searchQuery);
-    
+
     if (showFavoritesOnly) {
       return matchesSearch && favorites.includes(name.number);
     }
@@ -147,85 +151,188 @@ export default function NamesOfAllah() {
   });
 
   return (
-    <div className="min-h-screen bg-background">
-      <AppBar title="99 Names of Allah" showBack />
-      
-      <div className="max-w-lg mx-auto p-4 space-y-4">
-        {/* Header */}
-        <Card className="bg-gradient-to-br from-primary/20 via-primary/10 to-transparent border-primary/20">
-          <CardContent className="p-4 text-center">
-            <h1 className="text-2xl font-arabic mb-2">أَسْمَاءُ اللهِ الْحُسْنَى</h1>
-            <p className="text-sm text-muted-foreground">
-              The Beautiful Names of Allah
-            </p>
-          </CardContent>
-        </Card>
+    <PageTransition>
+      <div className="min-h-screen bg-background pb-20">
+        <AppBar title="99 Names of Allah" showBack />
 
-        {/* Search & Filter */}
-        <div className="flex gap-2">
-          <div className="relative flex-1">
-            <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-muted-foreground" />
-            <Input
-              placeholder="Search names..."
-              value={searchQuery}
-              onChange={(e) => setSearchQuery(e.target.value)}
-              className="pl-10"
-            />
+        <div className="max-w-lg mx-auto px-5 pt-4 space-y-6">
+          {/* Premium Hero Card */}
+          <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-primary/80 p-8 text-white shadow-xl shadow-primary/10">
+            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+
+            <div className="relative z-10 text-center space-y-3">
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10">
+                <Sparkles className="w-3 h-3 text-primary" />
+                Asma'ul Husna
+              </div>
+              <h1 className="text-4xl font-arabic leading-tight">أَسْمَاءُ اللهِ الْحُسْنَى</h1>
+              <p className="text-white/70 text-xs font-medium tracking-wide">
+                Memorize and reflect upon the beautiful attributes of the Creator.
+              </p>
+            </div>
           </div>
-          <Button
-            variant={showFavoritesOnly ? "default" : "outline"}
-            size="icon"
-            onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
-          >
-            <Heart className={`w-4 h-4 ${showFavoritesOnly ? 'fill-current' : ''}`} />
-          </Button>
+
+          {/* Search & Filter Bar */}
+          <div className="flex gap-3 sticky top-[4.5rem] z-30 bg-background/80 backdrop-blur-xl py-2 -mx-5 px-5">
+            <div className="relative flex-1 group">
+              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+                <Search className="w-4 h-4" />
+              </div>
+              <Input
+                placeholder="Search by name or meaning..."
+                value={searchQuery}
+                onChange={(e) => setSearchQuery(e.target.value)}
+                className="pl-11 h-12 bg-card/50 border-border/40 rounded-2xl focus:ring-primary/20 transition-all"
+              />
+            </div>
+            <Button
+              variant={showFavoritesOnly ? "default" : "outline"}
+              className={`h-12 w-12 rounded-2xl transition-all ${showFavoritesOnly ? 'bg-primary' : 'bg-card/50'}`}
+              onClick={() => setShowFavoritesOnly(!showFavoritesOnly)}
+            >
+              <Heart className={`w-5 h-5 ${showFavoritesOnly ? 'fill-white' : ''}`} />
+            </Button>
+          </div>
+
+          {/* Names Grid */}
+          <div className="grid grid-cols-1 gap-4">
+            <AnimatePresence initial={false}>
+              {filteredNames.map((name, index) => (
+                <motion.div
+                  key={name.number}
+                  initial={{ opacity: 0, scale: 0.95, y: 10 }}
+                  animate={{ opacity: 1, scale: 1, y: 0 }}
+                  exit={{ opacity: 0, scale: 0.95 }}
+                  transition={{ duration: 0.2, delay: index % 10 * 0.03 }}
+                >
+                  <Card
+                    className="overflow-hidden border-border/30 hover:shadow-lg transition-all duration-300 group cursor-pointer active:scale-[0.98]"
+                    onClick={() => setSelectedName(name)}
+                  >
+                    <CardContent className="p-0">
+                      <div className="flex items-stretch min-h-[100px]">
+                        {/* Left Info Section */}
+                        <div className="flex-1 p-5 flex flex-col justify-center">
+                          <div className="flex items-center gap-3 mb-1">
+                            <span className="text-[10px] font-black text-primary/50 bg-primary/10 w-6 h-6 rounded-lg flex items-center justify-center">
+                              {name.number}
+                            </span>
+                            <h3 className="font-black text-lg group-hover:text-primary transition-colors">
+                              {name.transliteration}
+                            </h3>
+                          </div>
+                          <p className="text-muted-foreground text-xs font-medium leading-tight">
+                            {name.meaning}
+                          </p>
+                        </div>
+
+                        {/* Right Arabic Section */}
+                        <div className="w-[120px] bg-muted/20 flex flex-col items-center justify-center p-4 relative overflow-hidden group-hover:bg-primary/5 transition-colors">
+                          <div className="absolute top-2 right-2 z-20">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className="h-8 w-8 hover:bg-transparent"
+                              onClick={(e) => toggleFavorite(e, name.number)}
+                            >
+                              <Heart className={`w-4 h-4 transition-all ${favorites.includes(name.number) ? 'fill-primary text-primary scale-110' : 'text-muted-foreground'}`} />
+                            </Button>
+                          </div>
+                          <div className="absolute -left-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                            <Sparkles className="w-16 h-16 text-primary" />
+                          </div>
+                          <span className="text-3xl font-arabic text-primary drop-shadow-sm" dir="rtl">
+                            {name.arabic}
+                          </span>
+                        </div>
+                      </div>
+                    </CardContent>
+                  </Card>
+                </motion.div>
+              ))}
+            </AnimatePresence>
+          </div>
+
+          {filteredNames.length === 0 && (
+            <div className="text-center py-20 animate-fade-in">
+              <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-4">
+                <Search className="w-8 h-8 text-muted-foreground" />
+              </div>
+              <p className="text-muted-foreground font-medium">No matches found for your search.</p>
+              <Button
+                variant="link"
+                className="mt-2 text-primary"
+                onClick={() => setSearchQuery("")}
+              >
+                Clear all filters
+              </Button>
+            </div>
+          )}
         </div>
 
-        {/* Names Grid */}
-        <ScrollArea className="h-[calc(100vh-280px)]">
-          <div className="grid grid-cols-1 gap-3">
-            {filteredNames.map((name) => (
-              <Card key={name.number} className="overflow-hidden">
-                <CardContent className="p-4">
-                  <div className="flex items-start justify-between mb-2">
-                    <div className="flex items-center gap-2">
-                      <span className="w-8 h-8 rounded-full bg-primary/20 flex items-center justify-center text-xs font-bold text-primary">
-                        {name.number}
-                      </span>
-                      <div>
-                        <p className="font-medium">{name.transliteration}</p>
-                        <p className="text-xs text-muted-foreground">{name.meaning}</p>
-                      </div>
-                    </div>
+        {/* Detail Modal */}
+        <AnimatePresence>
+          {selectedName && (
+            <div className="fixed inset-0 z-[200] flex items-end justify-center px-4 pb-10 sm:items-center">
+              <motion.div
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                exit={{ opacity: 0 }}
+                className="absolute inset-0 bg-black/60 backdrop-blur-sm"
+                onClick={() => setSelectedName(null)}
+              />
+              <motion.div
+                layoutId={`card-${selectedName.number}`}
+                initial={{ opacity: 0, y: 100, scale: 0.9 }}
+                animate={{ opacity: 1, y: 0, scale: 1 }}
+                exit={{ opacity: 0, y: 100, scale: 0.9 }}
+                className="relative w-full max-w-sm bg-card rounded-[32px] overflow-hidden shadow-2xl z-[210] border border-border/50"
+              >
+                <div className="bg-primary/10 p-10 flex items-center justify-center text-center relative overflow-hidden">
+                  <div className="absolute inset-0 opacity-10 animate-spin-slow">
+                    <Sparkles className="w-full h-full text-primary" />
+                  </div>
+                  <h2 className="text-6xl font-arabic text-primary relative z-10" dir="rtl">
+                    {selectedName.arabic}
+                  </h2>
+                </div>
+
+                <div className="p-8 space-y-6">
+                  <div className="text-center">
+                    <span className="text-[10px] font-black tracking-widest text-primary uppercase mb-2 block">Attribute {selectedName.number}</span>
+                    <h3 className="text-3xl font-black">{selectedName.transliteration}</h3>
+                    <p className="text-muted-foreground font-medium mt-1">{selectedName.meaning}</p>
+                  </div>
+
+                  <div className="bg-muted/30 p-5 rounded-2xl relative">
+                    <Info className="absolute top-4 right-4 w-4 h-4 text-primary opacity-30" />
+                    <p className="text-sm leading-relaxed text-foreground/80 font-medium">
+                      {selectedName.description}
+                    </p>
+                  </div>
+
+                  <div className="flex gap-3">
                     <Button
-                      variant="ghost"
-                      size="icon"
-                      className="h-8 w-8"
-                      onClick={() => toggleFavorite(name.number)}
+                      className="flex-1 h-12 rounded-2xl gap-2 font-bold"
+                      onClick={() => setSelectedName(null)}
                     >
-                      <Heart className={`w-4 h-4 ${favorites.includes(name.number) ? 'fill-primary text-primary' : ''}`} />
+                      Close
+                    </Button>
+                    <Button
+                      variant="outline"
+                      className="h-12 w-12 rounded-2xl"
+                      onClick={(e) => toggleFavorite(e, selectedName.number)}
+                    >
+                      <Heart className={`w-5 h-5 ${favorites.includes(selectedName.number) ? 'fill-primary text-primary' : ''}`} />
                     </Button>
                   </div>
-                  <p className="text-2xl font-arabic text-right text-primary mb-2" dir="rtl">
-                    {name.arabic}
-                  </p>
-                  {name.description && (
-                    <p className="text-xs text-muted-foreground">
-                      {name.description}
-                    </p>
-                  )}
-                </CardContent>
-              </Card>
-            ))}
-          </div>
-        </ScrollArea>
-
-        {filteredNames.length === 0 && (
-          <div className="text-center py-8">
-            <p className="text-muted-foreground">No names found</p>
-          </div>
-        )}
+                </div>
+              </motion.div>
+            </div>
+          )}
+        </AnimatePresence>
       </div>
-    </div>
+    </PageTransition>
   );
 }

@@ -10,6 +10,7 @@ import { Switch } from "@/components/ui/switch";
 import { useToast } from "@/hooks/use-toast";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
+import { IslamicRamadanAPI } from "@/lib/islamic-fasting-api";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import { RamadanNotifications } from "@/lib/ramadan-notifications";
 
@@ -34,6 +35,12 @@ export default function RamadanMode() {
   const [iftarTime, setIftarTime] = useState<string>("");
   const [nextEvent, setNextEvent] = useState<{ name: string; time: string; countdown: string } | null>(null);
   const [loadingTimes, setLoadingTimes] = useState(true);
+  const [apiSource, setApiSource] = useState<'islamic' | 'aladhan' | 'fallback'>('islamic');
+  const [fastingDuration, setFastingDuration] = useState<string>("");
+  const [hijriDate, setHijriDate] = useState<string>("");
+  const [dailyDua, setDailyDua] = useState<{ title: string; arabic: string; translation: string; transliteration: string; reference: string } | null>(null);
+  const [dailyHadith, setDailyHadith] = useState<{ arabic: string; english: string; source: string; grade: string } | null>(null);
+  const [ramadanYear, setRamadanYear] = useState<number>(1447);
   
   // Use Islamic calendar hook for accurate Ramadan detection
   const { isRamadan, ramadanDay, daysUntilRamadan, isLoading: islamicLoading, error: islamicError, islamicInfo } = useIslamicCalendar();
@@ -78,33 +85,79 @@ export default function RamadanMode() {
   const loadRamadanTimes = async () => {
     setLoadingTimes(true);
     try {
-      // Check if we have cached data
+      // Try Islamic Ramadan API first
+      try {
+        const ramadanData = await IslamicRamadanAPI.getTodaysRamadanTimes(
+          location.latitude,
+          location.longitude,
+          3 // Muslim World League method
+        );
+
+        if (ramadanData.fastingTime && ramadanData.fullData.status === 'success') {
+          const todayFasting = ramadanData.fastingTime;
+          setSuhoorTime(todayFasting.time.sahur);
+          setIftarTime(todayFasting.time.iftar);
+          setFastingDuration(todayFasting.time.duration);
+          setHijriDate(todayFasting.hijri_readable);
+          setRamadanYear(ramadanData.fullData.ramadan_year);
+          setApiSource('islamic');
+
+          // Set daily dua and hadith if available
+          if (ramadanData.fullData.resource) {
+            setDailyDua(ramadanData.fullData.resource.dua);
+            setDailyHadith(ramadanData.fullData.resource.hadith);
+          }
+
+          // Get countdown to next event
+          await updateNextEventCountdown(todayFasting.time.sahur, todayFasting.time.iftar);
+
+          // Schedule Ramadan notifications if it's Ramadan
+          if (isRamadan && ramadanDay > 0) {
+            const ramadanNotifications = RamadanNotifications.getInstance();
+            await ramadanNotifications.scheduleDailyRamadanNotifications(
+              todayFasting.time.sahur,
+              todayFasting.time.iftar,
+              "22:00", // Default Isha time
+              location.locationName,
+              ramadanDay,
+              data.waterRemindersEnabled
+            );
+          }
+          return;
+        }
+      } catch (islamicError) {
+        console.warn('Islamic Ramadan API failed, falling back to Aladhan API:', islamicError);
+      }
+
+      // Fallback to Aladhan API
+      setApiSource('aladhan');
       const hasValidCache = AladhanAPI.isCachedDataValid();
 
       if (!hasValidCache) {
-        // Fetch fresh data for current month
         await AladhanAPI.fetchMonthlyCalendar(
           location.latitude,
           location.longitude,
           undefined,
           undefined,
-          1 // Pakistan/Karachi method
+          3 // Muslim World League method
         );
       }
 
-      // Get today's prayer times
-      const result = await AladhanAPI.getTodaysPrayerTimes(location.latitude, location.longitude, 1);
+      const result = await AladhanAPI.getTodaysPrayerTimes(location.latitude, location.longitude, 3);
       const timings = result.timings;
 
-      // Force display Suhoor and Iftar even if not Ramadan
       setSuhoorTime(formatTime(timings.Imsak || timings.Fajr));
       setIftarTime(formatTime(timings.Maghrib));
+      setFastingDuration(calculateDuration(timings.Imsak || timings.Fajr, timings.Maghrib));
+      setHijriDate(islamicInfo?.currentDate.hijri_readable || "Calculating...");
+      setDailyDua(null);
+      setDailyHadith(null);
 
       // Get countdown to next event
       const countdown = await AladhanAPI.getNextEventCountdown(
         location.latitude,
         location.longitude,
-        1,
+        3,
         true // Ramadan mode
       );
       setNextEvent(countdown);
@@ -121,16 +174,111 @@ export default function RamadanMode() {
           data.waterRemindersEnabled
         );
       }
+
     } catch (error) {
-      console.error('Failed to load Ramadan times:', error);
-      // Fallback to offline calculation
+      console.error('All APIs failed, using offline calculation:', error);
+      setApiSource('fallback');
+      
+      // Ultimate fallback to offline calculation
       const { calculatePrayerTimes } = await import('@/lib/prayer-calculator');
       const times = calculatePrayerTimes(location.latitude, location.longitude, new Date());
 
       setSuhoorTime(formatTimeFromDate(times.fajr));
       setIftarTime(formatTimeFromDate(times.maghrib));
+      setFastingDuration(calculateDurationFromDates(times.fajr, times.maghrib));
+      setHijriDate("Offline Mode");
+      setDailyDua(null);
+      setDailyHadith(null);
     } finally {
       setLoadingTimes(false);
+    }
+  };
+
+  // Helper function to update next event countdown
+  const updateNextEventCountdown = async (suhoor: string, iftar: string) => {
+    try {
+      const now = new Date();
+      const suhoorTime = parseTimeToDate(suhoor);
+      const iftarTime = parseTimeToDate(iftar);
+
+      let nextEvent: { name: string; time: string; countdown: string } | null = null;
+
+      // Check if Suhoor is next
+      if (suhoorTime > now) {
+        const diff = suhoorTime.getTime() - now.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        nextEvent = {
+          name: 'Suhoor Ends',
+          time: suhoor,
+          countdown: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+        };
+      }
+      // Check if Iftar is next
+      else if (iftarTime > now) {
+        const diff = iftarTime.getTime() - now.getTime();
+        const hours = Math.floor(diff / (1000 * 60 * 60));
+        const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+        nextEvent = {
+          name: 'Iftar Time',
+          time: iftar,
+          countdown: hours > 0 ? `${hours}h ${minutes}m` : `${minutes}m`
+        };
+      }
+
+      setNextEvent(nextEvent);
+    } catch (error) {
+      console.error('Failed to update countdown:', error);
+    }
+  };
+
+  // Helper function to parse time string to Date
+  const parseTimeToDate = (timeStr: string): Date => {
+    const cleaned = timeStr.replace(/\s*\(.*?\)\s*/g, '').trim();
+    const [time, period] = cleaned.split(' ');
+    const [hours, minutes] = time.split(':').map(Number);
+    
+    const date = new Date();
+    let hour24 = hours;
+    
+    if (period === 'PM' && hours !== 12) hour24 += 12;
+    if (period === 'AM' && hours === 12) hour24 = 0;
+    
+    if (isNaN(hour24) || isNaN(minutes)) return date;
+    date.setHours(hour24, minutes, 0, 0);
+    return date;
+  };
+
+  // Helper function to calculate duration between time strings
+  const calculateDuration = (suhoorStr: string, iftarStr: string): string => {
+    try {
+      const suhoor = parseTimeToDate(suhoorStr);
+      const iftar = parseTimeToDate(iftarStr);
+      
+      let diff = iftar.getTime() - suhoor.getTime();
+      if (diff < 0) diff += 24 * 60 * 60 * 1000; // Add 24 hours if next day
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      return `${hours}h ${minutes}m`;
+    } catch {
+      return "Calculating...";
+    }
+  };
+
+  // Helper function to calculate duration between Date objects
+  const calculateDurationFromDates = (suhoor: Date, iftar: Date): string => {
+    try {
+      let diff = iftar.getTime() - suhoor.getTime();
+      if (diff < 0) diff += 24 * 60 * 60 * 1000; // Add 24 hours if next day
+      
+      const hours = Math.floor(diff / (1000 * 60 * 60));
+      const minutes = Math.floor((diff % (1000 * 60 * 60)) / (1000 * 60));
+      
+      return `${hours}h ${minutes}m`;
+    } catch {
+      return "Calculating...";
     }
   };
 
@@ -171,14 +319,8 @@ export default function RamadanMode() {
 
     const updateCountdown = async () => {
       try {
-        if (location.latitude && location.longitude) {
-          const countdown = await AladhanAPI.getNextEventCountdown(
-            location.latitude,
-            location.longitude,
-            1,
-            true
-          );
-          setNextEvent(countdown);
+        if (suhoorTime && iftarTime) {
+          await updateNextEventCountdown(suhoorTime, iftarTime);
         }
       } catch (error) {
         console.error('Failed to update countdown:', error);
@@ -187,7 +329,7 @@ export default function RamadanMode() {
 
     const interval = setInterval(updateCountdown, 1000); // Update every second
     return () => clearInterval(interval);
-  }, [isRamadan, location.latitude, location.longitude]);
+  }, [isRamadan, suhoorTime, iftarTime]);
 
   const saveData = (newData: RamadanData) => {
     setData(newData);
@@ -418,6 +560,59 @@ export default function RamadanMode() {
               </Card>
             </div>
 
+            {/* Fasting Duration */}
+            {fastingDuration && (
+              <Card className="p-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Clock className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Fasting Duration</span>
+                  </div>
+                  <span className="text-sm font-bold text-primary">{fastingDuration}</span>
+                </div>
+              </Card>
+            )}
+
+            {/* Hijri Date */}
+            {hijriDate && (
+              <Card className="p-3 bg-muted/30">
+                <div className="flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <Calendar className="w-4 h-4 text-muted-foreground" />
+                    <span className="text-sm font-medium">Hijri Date</span>
+                  </div>
+                  <span className="text-sm text-muted-foreground">{hijriDate}</span>
+                </div>
+              </Card>
+            )}
+
+            {/* API Source Indicator */}
+            <Card className="p-3 bg-muted/30">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <div className={`w-2 h-2 rounded-full ${
+                    apiSource === 'islamic' ? 'bg-green-500' : 
+                    apiSource === 'aladhan' ? 'bg-blue-500' : 'bg-orange-500'
+                  }`} />
+                  <span className="text-sm font-medium">Data Source</span>
+                </div>
+                <div className="text-right">
+                  <span className={`text-xs capitalize block ${
+                    apiSource === 'islamic' ? 'text-green-600' : 
+                    apiSource === 'aladhan' ? 'text-blue-600' : 'text-orange-600'
+                  }`}>
+                    {apiSource === 'islamic' ? 'Islamic API' : 
+                     apiSource === 'aladhan' ? 'Aladhan API' : 'Offline'}
+                  </span>
+                  {ramadanYear && (
+                    <span className="text-xs text-muted-foreground block">
+                      Ramadan {ramadanYear} AH
+                    </span>
+                  )}
+                </div>
+              </div>
+            </Card>
+
             {/* Next Event Countdown */}
             {nextEvent && (
               <Card className="p-4 bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
@@ -442,7 +637,11 @@ export default function RamadanMode() {
             <Button
               variant="outline"
               className="w-full"
-              onClick={loadRamadanTimes}
+              onClick={() => {
+                IslamicRamadanAPI.clearCache();
+                AladhanAPI.clearCachedData();
+                loadRamadanTimes();
+              }}
               disabled={loadingTimes}
             >
               {loadingTimes ? (
@@ -453,7 +652,7 @@ export default function RamadanMode() {
               ) : (
                 <>
                   <RefreshCw className="w-4 h-4 mr-2" />
-                  Refresh Prayer Times
+                  Refresh Ramadan Times
                 </>
               )}
             </Button>
@@ -510,7 +709,54 @@ export default function RamadanMode() {
             </Button>
           </Card>
 
-          {/* Tarawih Prayer Tracker */}
+          {/* Daily Dua */}
+          {dailyDua && (
+            <Card className="p-4 space-y-4 bg-gradient-to-br from-green-500/10 to-green-600/5 border-green-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="w-5 h-5 text-green-600" />
+                <span className="font-medium text-green-600">Daily Dua</span>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <h4 className="text-sm font-semibold text-green-700 mb-2">{dailyDua.title}</h4>
+                  <p className="text-right text-lg arabic-text leading-loose mb-2" dir="rtl">
+                    {dailyDua.arabic}
+                  </p>
+                </div>
+                
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p><strong>Transliteration:</strong> {dailyDua.transliteration}</p>
+                  <p><strong>Translation:</strong> {dailyDua.translation}</p>
+                  <p><strong>Reference:</strong> {dailyDua.reference}</p>
+                </div>
+              </div>
+            </Card>
+          )}
+
+          {/* Daily Hadith */}
+          {dailyHadith && (
+            <Card className="p-4 space-y-4 bg-gradient-to-br from-blue-500/10 to-blue-600/5 border-blue-500/20">
+              <div className="flex items-center gap-2 mb-3">
+                <BookOpen className="w-5 h-5 text-blue-600" />
+                <span className="font-medium text-blue-600">Daily Hadith</span>
+              </div>
+              
+              <div className="space-y-3">
+                <div>
+                  <p className="text-right text-lg arabic-text leading-loose mb-2" dir="rtl">
+                    {dailyHadith.arabic}
+                  </p>
+                </div>
+                
+                <div className="text-xs text-muted-foreground space-y-1">
+                  <p><strong>English:</strong> {dailyHadith.english}</p>
+                  <p><strong>Source:</strong> {dailyHadith.source}</p>
+                  <p><strong>Grade:</strong> {dailyHadith.grade}</p>
+                </div>
+              </div>
+            </Card>
+          )}
           <Card className="p-4 space-y-4">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-2">

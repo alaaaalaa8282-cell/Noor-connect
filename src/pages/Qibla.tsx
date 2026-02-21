@@ -1,95 +1,161 @@
 import { useEffect, useState, useRef, useCallback } from "react";
-import { useNavigate } from "react-router-dom";
-import { ArrowLeft, MapPin, Navigation, Compass, Loader2, RefreshCw, AlertTriangle } from "lucide-react";
-import { Button } from "@/components/ui/button";
+import { ChevronUp, Loader2, RefreshCw, AlertTriangle, Paintbrush, Info } from "lucide-react";
 import { GeolocationService } from "@/lib/geolocation-service";
+import { AppBar } from "@/components/AppBar";
+import { PageTransition } from "@/components/PageTransition";
+import { useLanguage } from "@/contexts/LanguageContext";
 
 /**
- * Approximate magnetic declination using the IGRF/WMM simplified model.
- * Returns degrees East (positive) or West (negative) of true north.
- * Accuracy: ±1° for most inhabited areas — sufficient for Qibla.
+ * Approximate magnetic declination
  */
 function getMagneticDeclination(lat: number, lng: number): number {
-  // Simplified WMM 2025 coefficients (valid 2025-2030)
-  // For precise results, use the full WMM model. This covers the major
-  // population centres where this app is used.
-  //
-  // Declination lookup table for major regions:
-  // - South/Southeast Asia (Karachi, Delhi, Jakarta): ~0° to +1°
-  // - Middle East (Mecca, Cairo, Istanbul): +3° to +6°
-  // - North Africa: +1° to +3°
-  // - Western Europe: -1° to +2°
-  // - North America East: -10° to -15°
-  // - North America West: +10° to +18°
-  //
-  // Simple dipole approximation:
-  // D ≈ -1.2 * sin(lat) * sin(lng - 72) + 0.8 * cos(lat) * sin(2 * lng - 144)
   const latRad = (lat * Math.PI) / 180;
   const lngRad = (lng * Math.PI) / 180;
-  const refLng = (72 * Math.PI) / 180; // Magnetic pole reference longitude
+  const refLng = (72 * Math.PI) / 180;
 
   const declination =
     -1.2 * Math.sin(latRad) * Math.sin(lngRad - refLng) +
     0.8 * Math.cos(latRad) * Math.sin(2 * (lngRad - refLng));
-
-  // Convert from simplified radians back to degrees
   const decDeg = (declination * 180) / Math.PI;
-
-  // Clamp to reasonable range
   return Math.max(-25, Math.min(25, decDeg));
 }
 
+const QIBLA_ICONS = [
+  "/qibla.png",
+  "/qibla2.png",
+  "/qibla3.png"
+];
+
 const Qibla = () => {
-  const navigate = useNavigate();
-  const [qiblaDirection, setQiblaDirection] = useState<number>(0);
-  const [location, setLocation] = useState<string>("");
-  const [distance, setDistance] = useState<string>("");
+  const { t } = useLanguage();
   const [isLoading, setIsLoading] = useState<boolean>(true);
   const [error, setError] = useState<string>("");
-  const [compassHeading, setCompassHeading] = useState<number | null>(null);
-  const [hasCompass, setHasCompass] = useState<boolean>(false);
-  const [declination, setDeclination] = useState<number>(0);
-  const compassListenerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
-  const userLatRef = useRef<number>(0);
-  const userLngRef = useRef<number>(0);
+  const [hasCompass, setHasCompass] = useState<boolean>(true); // Assume true initially to avoid UI flicker
+  const [iconIndex, setIconIndex] = useState<number>(0);
 
-  // Start compass listener
+  const compassListenerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
+  const compassRef = useRef<HTMLImageElement>(null);
+  const textRef = useRef<HTMLParagraphElement>(null);
+
+  const qiblaDirectionRef = useRef<number>(0);
+  const declinationRef = useRef<number>(0);
+  const hasCompassRef = useRef<boolean>(true);
+
+  useEffect(() => {
+    hasCompassRef.current = hasCompass;
+  }, [hasCompass]);
+
+  // Smooth rotation properties
+  const currentRotationRef = useRef<number>(0);
+  const targetRotationRef = useRef<number>(0);
+  const animationFrameRef = useRef<number>();
+
+  // Lerp function for smooth compass movement
+  const lerp = (start: number, end: number, factor: number) => {
+    // Handle 360 boundary wrap around perfectly
+    let difference = end - start;
+    while (difference < -180) difference += 360;
+    while (difference > 180) difference -= 360;
+    return start + difference * factor;
+  };
+
+  const updateCompassUI = useCallback(() => {
+    // Smooth interpolation
+    currentRotationRef.current = lerp(currentRotationRef.current, targetRotationRef.current, 0.15);
+
+    // Update DOM directly bypassing React rendering to prevent lag
+    if (compassRef.current) {
+      if (hasCompassRef.current) {
+        compassRef.current.style.transform = `rotate(${currentRotationRef.current}deg)`;
+      } else {
+        // If device has no sensor, keep it straight
+        compassRef.current.style.transform = `rotate(0deg)`;
+      }
+    }
+
+    if (textRef.current) {
+      if (hasCompassRef.current) {
+        // Calculate how much to turn
+        // Current rotation modulo 360
+        let rot = currentRotationRef.current % 360;
+        if (rot < 0) rot += 360;
+
+        let diff = rot > 180 ? 360 - rot : rot;
+        let dir = rot > 180 ? "Right" : "Left";
+
+        if (diff < 2) {
+          textRef.current.innerHTML = `<span style="color:hsl(var(--primary)); font-weight:700">You are facing Qibla</span>`;
+        } else {
+          textRef.current.innerHTML = `Turn <span style="font-weight:700; color:hsl(var(--primary))">${dir}</span> ${Math.round(diff)}°`;
+        }
+      } else {
+        textRef.current.innerHTML = `Qibla is <span style="font-weight:700; color:hsl(var(--primary))">${Math.round(qiblaDirectionRef.current)}°</span> from North`;
+      }
+    }
+
+    animationFrameRef.current = requestAnimationFrame(updateCompassUI);
+  }, []);
+
   const startCompass = useCallback(() => {
-    if (compassListenerRef.current) return; // Already listening
+    if (compassListenerRef.current) return;
+
+    // Start animation loop
+    animationFrameRef.current = requestAnimationFrame(updateCompassUI);
 
     const handler = (e: DeviceOrientationEvent) => {
-      // webkitCompassHeading is available on iOS Safari
-      const heading = (e as any).webkitCompassHeading ?? (e.alpha != null ? (360 - e.alpha) % 360 : null);
+      // webkitCompassHeading is available on iOS devices
+      let heading = (e as any).webkitCompassHeading;
+
+      if (heading == null && e.alpha != null) {
+        // Fallback or absolute orientation
+        heading = (360 - e.alpha) % 360;
+      }
+
       if (heading != null && !isNaN(heading)) {
-        setCompassHeading(heading);
         setHasCompass(true);
+        // Calculate qibla rotation. declination applies if heading is based on magnetic north instead of true north
+        const isMagnetic = !(e as any).absolute && !('webkitCompassHeading' in e);
+        const rotation = qiblaDirectionRef.current - heading - (isMagnetic ? declinationRef.current : 0);
+        targetRotationRef.current = rotation;
       }
     };
 
-    // iOS 13+ requires permission request
     if (typeof (DeviceOrientationEvent as any).requestPermission === 'function') {
       (DeviceOrientationEvent as any).requestPermission()
         .then((state: string) => {
           if (state === 'granted') {
             window.addEventListener('deviceorientation', handler, true);
             compassListenerRef.current = handler;
+          } else {
+            setHasCompass(false);
           }
         })
         .catch(() => {
-          console.warn('Compass permission denied');
+          setHasCompass(false);
         });
     } else {
-      window.addEventListener('deviceorientation', handler, true);
+      // Use deviceorientationabsolute on Android Chrome for accurate true north tracking
+      const eventType = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
+      window.addEventListener(eventType, handler, true);
       compassListenerRef.current = handler;
-    }
-  }, []);
 
-  // Cleanup compass listener
+      // Fallback detection if no data after 1.5s
+      setTimeout(() => {
+        if (targetRotationRef.current === 0) setHasCompass(false);
+      }, 1500);
+    }
+  }, [updateCompassUI]);
+
   useEffect(() => {
     return () => {
       if (compassListenerRef.current) {
+        const eventType = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
+        window.removeEventListener(eventType, compassListenerRef.current, true);
         window.removeEventListener('deviceorientation', compassListenerRef.current, true);
         compassListenerRef.current = null;
+      }
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
       }
     };
   }, []);
@@ -99,18 +165,6 @@ const Qibla = () => {
       setIsLoading(true);
       setError("");
 
-      if (!GeolocationService.isSupported()) {
-        throw new Error("Geolocation is not supported on this device");
-      }
-
-      const permissions = await GeolocationService.checkPermissions();
-      if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
-        const granted = await GeolocationService.requestPermissions();
-        if (!granted) {
-          throw new Error("Location permission denied. Please enable location in settings.");
-        }
-      }
-
       const position = await GeolocationService.getCurrentPosition({
         enableHighAccuracy: true,
         timeout: 10000,
@@ -118,14 +172,9 @@ const Qibla = () => {
       });
 
       const { latitude, longitude } = position;
-      userLatRef.current = latitude;
-      userLngRef.current = longitude;
-
-      // Kaaba coordinates
       const kaabaLat = 21.4225;
       const kaabaLng = 39.8262;
 
-      // Calculate Qibla bearing (true north reference)
       const phiK = (kaabaLat * Math.PI) / 180;
       const lambdaK = (kaabaLng * Math.PI) / 180;
       const phi = (latitude * Math.PI) / 180;
@@ -137,38 +186,19 @@ const Qibla = () => {
         );
 
       const trueBearing = (psi + 360) % 360;
-
-      // Apply magnetic declination correction
       const decl = getMagneticDeclination(latitude, longitude);
-      setDeclination(decl);
-      setQiblaDirection(trueBearing);
 
-      // Distance to Mecca
-      const R = 6371;
-      const dLat = ((kaabaLat - latitude) * Math.PI) / 180;
-      const dLon = ((kaabaLng - longitude) * Math.PI) / 180;
-      const a =
-        Math.sin(dLat / 2) ** 2 +
-        Math.cos(phi) * Math.cos(phiK) * Math.sin(dLon / 2) ** 2;
-      const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
-      setDistance(`${Math.round(R * c).toLocaleString()} km`);
+      qiblaDirectionRef.current = trueBearing;
+      declinationRef.current = decl;
 
-      // Start compass after location is obtained
+      // If we don't have compass working yet, point it to true north bearing
+      if (!compassListenerRef.current) {
+        // Do not incorrectly rotate the physical ring if there is no continuous compass sensor tracking.
+        if (compassRef.current) compassRef.current.style.transform = `rotate(0deg)`;
+      }
+
       startCompass();
 
-      // Reverse geocode for city name
-      try {
-        const response = await fetch(
-          `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-          { headers: { 'User-Agent': 'NoorConnect/1.0' } }
-        );
-        if (response.ok) {
-          const data = await response.json();
-          setLocation(data.display_name?.split(',').slice(0, 2).join(',').trim() || `${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`);
-        }
-      } catch {
-        setLocation(`${latitude.toFixed(2)}°, ${longitude.toFixed(2)}°`);
-      }
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to detect location");
     } finally {
@@ -180,193 +210,148 @@ const Qibla = () => {
     calculateQibla();
   }, []);
 
-  // The rotation needed to point the compass arrow at Qibla.
-  // If live compass is available:  rotate = qibla_true_bearing - compass_magnetic_heading - declination
-  // If no compass:                 just show the static true bearing
-  const compassRotation = hasCompass && compassHeading != null
-    ? qiblaDirection - compassHeading - declination
-    : qiblaDirection;
-
   return (
-    <div className="min-h-screen bg-background">
-      <div className="max-w-lg mx-auto px-4 py-6 space-y-6">
+    <PageTransition>
+      <div className="min-h-screen bg-background flex flex-col pb-32">
 
-        {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => navigate("/")}
-            className="rounded-full"
-          >
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">Qibla</h1>
-            {location && (
-              <div className="flex items-center gap-1.5 text-xs text-muted-foreground">
-                <MapPin className="w-3 h-3" />
-                <span className="truncate max-w-[200px]">{location}</span>
+        {/* App Bar matches the rest of the application */}
+        <AppBar title={t('qibla') || "Qibla Direction"} />
+
+        <div className="flex-1 flex flex-col items-center justify-center p-6 mt-4">
+          {isLoading ? (
+            <div className="flex flex-col items-center py-20 gap-4">
+              <div className="relative">
+                <div className="w-16 h-16 border-4 border-primary/20 rounded-full animate-spin"></div>
+                <div className="w-16 h-16 border-4 border-primary border-t-transparent rounded-full animate-spin absolute inset-0"></div>
               </div>
-            )}
-          </div>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={calculateQibla}
-            disabled={isLoading}
-            className="rounded-full"
-          >
-            <RefreshCw className={`w-4 h-4 ${isLoading ? 'animate-spin' : ''}`} />
-          </Button>
-        </div>
-
-        {/* Compass */}
-        {isLoading ? (
-          <div className="flex flex-col items-center justify-center py-20 gap-3">
-            <Loader2 className="w-10 h-10 text-primary animate-spin" />
-            <p className="text-sm text-muted-foreground">Detecting location…</p>
-          </div>
-        ) : error ? (
-          <div className="flex flex-col items-center justify-center py-16 gap-4 text-center">
-            <Compass className="w-12 h-12 text-muted-foreground/40" />
-            <p className="text-sm text-muted-foreground max-w-[260px]">{error}</p>
-            <Button onClick={calculateQibla} variant="outline" size="sm" className="rounded-full">
-              <RefreshCw className="w-4 h-4 mr-2" /> Retry
-            </Button>
-          </div>
-        ) : (
-          <div className="flex flex-col items-center gap-8">
-
-            {/* Compass ring */}
-            <div className="relative" style={{ width: '280px', height: '280px' }}>
-              {/* Outer ring with degree ticks — rotates with device if compass available */}
-              <div
-                className="absolute inset-0 rounded-full border-2 border-border/30 transition-transform duration-200 ease-out"
-                style={{
-                  transform: hasCompass && compassHeading != null
-                    ? `rotate(${-compassHeading}deg)`
-                    : undefined
-                }}
+              <p className="text-sm font-medium text-muted-foreground animate-pulse">Calibrating sensor…</p>
+            </div>
+          ) : error ? (
+            <div className="flex flex-col items-center py-16 gap-5 bg-card/60 rounded-[32px] p-8 border border-border/50 shadow-sm max-w-[300px]">
+              <div className="w-16 h-16 rounded-2xl bg-destructive/10 flex items-center justify-center text-destructive mb-2">
+                <AlertTriangle className="w-8 h-8" strokeWidth={2.5} />
+              </div>
+              <h3 className="font-bold text-xl text-foreground text-center">Location Error</h3>
+              <p className="text-sm text-muted-foreground text-center px-2 leading-relaxed">{error}</p>
+              <button
+                onClick={calculateQibla}
+                className="mt-2 w-full px-6 py-3.5 bg-primary text-primary-foreground rounded-xl flex items-center justify-center font-bold shadow-[0_4px_14px_0_hsl(var(--primary)/0.3)] hover:translate-y-[-2px] transition-all active:translate-y-[1px]"
               >
-                {/* Cardinal labels */}
-                {[
-                  { label: 'N', angle: 0 },
-                  { label: 'E', angle: 90 },
-                  { label: 'S', angle: 180 },
-                  { label: 'W', angle: 270 },
-                ].map(({ label, angle }) => (
-                  <div
-                    key={label}
-                    className="absolute w-6 h-6 flex items-center justify-center text-xs font-bold text-muted-foreground"
-                    style={{
-                      top: `${50 - 46 * Math.cos((angle * Math.PI) / 180)}%`,
-                      left: `${50 + 46 * Math.sin((angle * Math.PI) / 180)}%`,
-                      transform: 'translate(-50%, -50%)',
-                    }}
-                  >
-                    {label}
-                  </div>
-                ))}
+                <RefreshCw className="w-5 h-5 mr-2" /> Try Again
+              </button>
+            </div>
+          ) : (
+            <div className="flex flex-col items-center w-full max-w-sm relative">
 
-                {/* Tick marks */}
-                {Array.from({ length: 36 }, (_, i) => (
-                  <div
-                    key={i}
-                    className={`absolute left-1/2 top-0 ${i % 3 === 0 ? 'w-0.5 h-3 bg-muted-foreground/40' : 'w-px h-2 bg-muted-foreground/20'}`}
-                    style={{
-                      transformOrigin: `center 140px`,
-                      transform: `translateX(-50%) rotate(${i * 10}deg)`
-                    }}
-                  />
-                ))}
+              {/* Decorative Subtle Glowing Background */}
+              <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10" />
+
+              {/* Top Chevron pointing to "forward/device top" */}
+              <div className="mb-6 z-10 animate-bounce">
+                <ChevronUp className="w-12 h-12 text-primary font-black drop-shadow-md" strokeWidth={4} />
               </div>
 
-              {/* Inner area */}
-              <div className="absolute inset-6 rounded-full bg-card/50 border border-border/20" />
+              {/* Compass Interactive Area */}
+              <div className="relative flex items-center justify-center w-[300px] h-[300px]">
 
-              {/* Qibla direction indicator — the golden arrow */}
-              <div
-                className="absolute inset-0 transition-transform duration-300 ease-out"
-                style={{ transform: `rotate(${compassRotation}deg)` }}
-              >
-                {/* Arrow pointing up (towards qibla direction) */}
-                <div className="absolute top-1 left-1/2 -translate-x-1/2 flex flex-col items-center">
-                  <div
-                    className="w-0 h-0 border-l-[14px] border-r-[14px] border-b-[18px] border-l-transparent border-r-transparent border-b-amber-400"
-                    style={{ filter: 'drop-shadow(0 0 10px hsl(45deg 100% 50% / 0.4))' }}
+                {/* 1st Decorative Ring (Static) */}
+                <div className="absolute inset-2 rounded-full border border-primary/10 -z-10" />
+
+                {/* 2nd Decorative Ring (Dashed, Static) */}
+                <div className="absolute inset-6 rounded-full border-[1.5px] border-dashed border-primary/20 -z-10" />
+
+                {/* 3rd Decorative Solid Background */}
+                <div className="absolute inset-10 rounded-full bg-card shadow-[inset_0_2px_20px_rgba(0,0,0,0.03)] border border-border/50 -z-10" />
+
+                {/* Main Image acting as the compass dial. It will rotate toward the Qibla bearing */}
+                <div className="relative w-[220px] h-[220px] flex items-center justify-center will-change-transform rounded-full drop-shadow-[0_12px_28px_rgba(0,0,0,0.2)] transition-shadow duration-300">
+                  <img
+                    ref={compassRef}
+                    src={QIBLA_ICONS[iconIndex]}
+                    alt="Qibla Compass Icon"
+                    className="w-full h-full object-contain absolute inset-0"
+                    style={{
+                      transition: hasCompass ? 'none' : 'transform 0.5s ease-out'
+                    }}
                   />
                 </div>
               </div>
 
-              {/* Kaaba icon at center */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div
-                  className="transition-transform duration-300 ease-out"
-                  style={{ transform: `rotate(${compassRotation}deg)` }}
+              {/* Dynamic Text updated without React renders */}
+              <div className="mt-14 w-full flex flex-col items-center gap-1 bg-card border border-border/40 py-5 px-8 rounded-3xl shadow-sm relative overflow-hidden">
+                <div className="absolute top-0 left-0 w-full h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
+                <span className="text-xs uppercase tracking-[0.2em] font-bold text-muted-foreground/70 mb-1">Direction</span>
+                <p
+                  ref={textRef}
+                  className="text-[20px] tracking-wide text-foreground w-full text-center min-h-[30px]"
                 >
-                  <div className="text-4xl" style={{ filter: 'drop-shadow(0 2px 8px rgba(0,0,0,0.3))' }}>
-                    🕋
+                  Aligning...
+                </p>
+              </div>
+
+              {/* Premium Icon Switcher Container */}
+              <div className="mt-10 flex flex-col w-full px-2">
+                <div className="flex items-center gap-3 mb-4">
+                  <div className="h-[1px] flex-1 bg-gradient-to-r from-transparent to-border"></div>
+                  <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest flex items-center gap-2 px-2">
+                    <Paintbrush className="w-3.5 h-3.5" />
+                    Style
+                  </span>
+                  <div className="h-[1px] flex-1 bg-gradient-to-l from-transparent to-border"></div>
+                </div>
+
+                <div className="flex justify-center gap-4">
+                  {QIBLA_ICONS.map((icon, idx) => (
+                    <button
+                      key={idx}
+                      onClick={() => setIconIndex(idx)}
+                      className={`relative w-16 h-16 rounded-[20px] flex items-center justify-center p-3 transition-all duration-300 ease-out ${iconIndex === idx
+                        ? "bg-card shadow-[0_8px_16px_-6px_hsl(var(--primary)/0.3)] ring-2 ring-primary ring-offset-2 ring-offset-background scale-110 z-10"
+                        : "bg-muted/40 border border-transparent hover:bg-muted opacity-60 hover:opacity-100 hover:scale-105"
+                        }`}
+                    >
+                      <img src={icon} alt={`Style ${idx + 1}`} className="w-full h-full object-contain filter drop-shadow-sm" />
+                      {iconIndex === idx && (
+                        <div className="absolute -top-1.5 -right-1.5 w-4 h-4 bg-primary rounded-full border-2 border-background flex items-center justify-center">
+                          <span className="w-1.5 h-1.5 bg-background rounded-full"></span>
+                        </div>
+                      )}
+                    </button>
+                  ))}
+                </div>
+              </div>
+
+              {/* Information and Errors Container */}
+              <div className="mt-8 flex flex-col gap-3 w-full px-2">
+                {/* Compass Error Fallback */}
+                {!hasCompass && (
+                  <div className="w-full px-5 py-3.5 relative overflow-hidden rounded-2xl bg-amber-500/10 border border-amber-500/20 shadow-sm flex items-center gap-3">
+                    <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 rounded-l-2xl"></div>
+                    <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />
+                    <p className="text-amber-700 dark:text-amber-300 text-[13px] font-medium leading-snug">
+                      Compass sensor not detected. Please check permissions or use an external compass to find <span className="font-bold">{Math.round(qiblaDirectionRef.current)}°</span> from North.
+                    </p>
+                  </div>
+                )}
+
+                {/* Usage Guide */}
+                <div className="w-full px-5 py-4 relative overflow-hidden rounded-2xl bg-card border border-border/50 shadow-sm flex gap-3 items-start">
+                  <div className="w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center shrink-0 mt-0.5">
+                    <Info className="w-4 h-4 text-primary" />
+                  </div>
+                  <div className="flex flex-col gap-1">
+                    <h4 className="text-sm font-bold text-foreground">How to use carefully</h4>
+                    <p className="text-[13px] text-muted-foreground leading-relaxed">
+                      Place your phone on a flat surface away from metallic objects or electronics to avoid magnetic interference. Turn your phone until it's aligned to Qibla.
+                    </p>
                   </div>
                 </div>
               </div>
             </div>
-
-            {/* Compass status badge */}
-            {!hasCompass && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-amber-500/10 border border-amber-500/20">
-                <AlertTriangle className="w-3.5 h-3.5 text-amber-500" />
-                <span className="text-xs text-amber-600 dark:text-amber-400">
-                  No compass sensor — showing static bearing
-                </span>
-              </div>
-            )}
-            {hasCompass && (
-              <div className="flex items-center gap-2 px-3 py-1.5 rounded-full bg-emerald-500/10 border border-emerald-500/20">
-                <Compass className="w-3.5 h-3.5 text-emerald-500" />
-                <span className="text-xs text-emerald-600 dark:text-emerald-400">
-                  Live compass active
-                </span>
-              </div>
-            )}
-
-            {/* Direction info */}
-            <div className="grid grid-cols-2 gap-3 w-full max-w-xs">
-              <div className="p-4 rounded-2xl bg-card border border-border/50 text-center">
-                <p className="text-2xl font-bold text-amber-500">{Math.round(qiblaDirection)}°</p>
-                <p className="text-[11px] text-muted-foreground mt-1">Qibla Bearing</p>
-              </div>
-              <div className="p-4 rounded-2xl bg-card border border-border/50 text-center">
-                <p className="text-2xl font-bold text-foreground">{distance}</p>
-                <p className="text-[11px] text-muted-foreground mt-1">Distance to Mecca</p>
-              </div>
-            </div>
-
-            {/* Declination info */}
-            {Math.abs(declination) > 0.5 && (
-              <div className="w-full max-w-xs text-center">
-                <p className="text-[10px] text-muted-foreground/60">
-                  Magnetic declination: {declination > 0 ? '+' : ''}{declination.toFixed(1)}° applied
-                </p>
-              </div>
-            )}
-
-            {/* Instructions */}
-            <div className="w-full max-w-xs p-4 rounded-2xl bg-muted/30 border border-border/30">
-              <div className="flex items-start gap-3">
-                <Navigation className="w-4 h-4 text-amber-500 mt-0.5 flex-shrink-0" />
-                <p className="text-xs text-muted-foreground leading-relaxed">
-                  {hasCompass
-                    ? "Hold your device flat. The golden arrow and Kaaba icon automatically point toward Qibla."
-                    : "Hold your device flat and rotate until the Kaaba icon points toward the golden arrow. You're then facing Qibla."
-                  }
-                </p>
-              </div>
-            </div>
-          </div>
-        )}
+          )}
+        </div>
       </div>
-    </div>
+    </PageTransition>
   );
 };
 

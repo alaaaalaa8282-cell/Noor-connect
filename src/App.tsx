@@ -47,6 +47,7 @@ const PrayerStats = lazy(() => import("./pages/PrayerStats"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const QuranRadio = lazy(() => import("./pages/QuranRadio"));
 const LiveStreams = lazy(() => import("./pages/LiveStreams"));
+const Services = lazy(() => import("./pages/Services"));
 const GlobalRadioPlayer = lazy(() => import("./components/GlobalRadioPlayer").then(module => ({ default: module.GlobalRadioPlayer })));
 const GlobalQuranPlayer = lazy(() => import("./components/GlobalQuranPlayer").then(module => ({ default: module.GlobalQuranPlayer })));
 const NotFound = lazy(() => import("./pages/NotFound"));
@@ -144,6 +145,7 @@ function AppRoutes() {
         <Route path="/habit-tracker" element={<HabitTracker />} />
         <Route path="/quran-radio" element={<QuranRadio />} />
         <Route path="/live" element={<LiveStreams />} />
+        <Route path="/services" element={<Services />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
@@ -270,10 +272,8 @@ const App = () => {
           </LayoutManager>
         </div>
 
-        {/* Bottom Navigation - Fixed outside main container */}
-        <div className="fixed bottom-0 left-0 right-0 z-[90]">
-          <BottomNav />
-        </div>
+        {/* Bottom Navigation */}
+        <BottomNav />
 
         {/* Global Radio Player - Fixed at bottom with proper z-index */}
         <GlobalRadioPlayer />

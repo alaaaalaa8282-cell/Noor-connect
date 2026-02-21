@@ -1,4 +1,4 @@
-/**
+ /**
  * Metal Price Constants and Configuration
  * Fallback prices and conversion ratios for Zakat calculations
  */
@@ -25,6 +25,12 @@ export const METAL_PRICE_CONSTANTS = {
   // API endpoints
   GOLD_PRICE_API: 'https://freegoldapi.com/data/latest.csv',
   GOLD_SILVER_RATIO_API: 'https://freegoldapi.com/data/gold_silver_ratio_enriched.csv',
+  
+  // Islamic API endpoints
+  ZAKAT_NISAB_API: 'https://islamicapi.com/api/v1/zakat-nisab/',
+  FASTING_API: 'https://islamicapi.com/api/v1/fasting/',
+  RAMADAN_API: 'https://islamicapi.com/api/v1/ramadan/',
+  ISLAMIC_API_KEY: 'yD8daxb0bKDmv11REv3HHUEKo6EAsvJqHmHav0kljK6HCt1o',
   
   // Storage keys
   CACHE_KEY: 'metal-prices-cache',

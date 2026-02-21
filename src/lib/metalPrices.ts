@@ -4,6 +4,7 @@
  */
 
 import { METAL_PRICE_CONSTANTS } from './constants';
+import { ZakatNisabResponse, ZakatNisabService } from './zakatNisab';
 
 export interface MetalPrices {
   goldPricePerGram: number;
@@ -15,6 +16,7 @@ export interface MetalPrices {
   goldToSilverRatio?: number;
   currency?: string;
   exchangeRate?: number;
+  nisabData?: ZakatNisabResponse; // New field for Islamic API data
 }
 
 interface CachedPrices {
@@ -33,18 +35,43 @@ export class MetalPricesService {
   /**
    * Get current metal prices with caching and fallback logic
    */
-  static async getPrices(currency: string = 'USD'): Promise<MetalPrices> {
+  static async getPrices(
+    currency: string = 'USD',
+    nisabStandard: 'classical' | 'common' = 'classical'
+  ): Promise<MetalPrices> {
     try {
       // Check cache first
-      const cached = this.getCachedPrices(currency);
+      const cached = this.getCachedPrices(currency, nisabStandard);
       if (cached) {
         return cached;
       }
 
-      // Try to fetch from API
-      const apiPrices = await this.fetchFromAPI(currency);
-      this.saveToCache(apiPrices, currency);
-      return apiPrices;
+      // Try to fetch from APIs in parallel
+      const [metalPrices, nisabData] = await Promise.allSettled([
+        this.fetchMetalPricesFromAPI(currency),
+        ZakatNisabService.getNisab(currency, nisabStandard, 'g')
+      ]);
+
+      const prices = metalPrices.status === 'fulfilled' ? metalPrices.value : null;
+      const nisab = nisabData.status === 'fulfilled' ? nisabData.value : null;
+
+      // If we have metal prices, use them; otherwise use fallback
+      let finalPrices = prices || await this.getFallbackPrices(currency);
+
+      // If we have nisab data from Islamic API, update the nisab values
+      if (nisab && nisab.status === 'success') {
+        finalPrices.goldNisab = nisab.data.nisab_thresholds.gold.nisab_amount;
+        finalPrices.silverNisab = nisab.data.nisab_thresholds.silver.nisab_amount;
+        finalPrices.nisabData = nisab;
+        
+        // Update source if we have Islamic API data
+        if (finalPrices.source === 'fallback' && nisab) {
+          finalPrices.source = 'api'; // We have some API data now
+        }
+      }
+
+      this.saveToCache(finalPrices, currency, nisabStandard);
+      return finalPrices;
     } catch (error) {
       console.warn('Failed to fetch metal prices from API, using fallback:', error);
       return this.getFallbackPrices(currency);
@@ -54,7 +81,7 @@ export class MetalPricesService {
   /**
    * Fetch prices from freegoldapi.com CSV endpoints
    */
-  private static async fetchFromAPI(currency: string = 'USD'): Promise<MetalPrices> {
+  private static async fetchMetalPricesFromAPI(currency: string = 'USD'): Promise<MetalPrices> {
     // Fetch both gold prices and ratio data
     const [goldResponse, ratioResponse] = await Promise.all([
       fetch(METAL_PRICE_CONSTANTS.GOLD_PRICE_API),
@@ -246,9 +273,12 @@ export class MetalPricesService {
   /**
    * Get cached prices if still valid
    */
-  static getCachedPrices(currency: string = 'USD'): MetalPrices | null {
+  static getCachedPrices(
+    currency: string = 'USD',
+    nisabStandard: 'classical' | 'common' = 'classical'
+  ): MetalPrices | null {
     try {
-      const cacheKey = `${METAL_PRICE_CONSTANTS.CACHE_KEY}-${currency}`;
+      const cacheKey = `${METAL_PRICE_CONSTANTS.CACHE_KEY}-${currency}-${nisabStandard}`;
       const cached = sessionStorage.getItem(cacheKey);
       if (!cached) return null;
 
@@ -265,7 +295,7 @@ export class MetalPricesService {
       return cachedData.data;
     } catch (error) {
       console.error('Error reading cached prices:', error);
-      sessionStorage.removeItem(`${METAL_PRICE_CONSTANTS.CACHE_KEY}-${currency}`);
+      sessionStorage.removeItem(`${METAL_PRICE_CONSTANTS.CACHE_KEY}-${currency}-${nisabStandard}`);
       return null;
     }
   }
@@ -273,9 +303,13 @@ export class MetalPricesService {
   /**
    * Save prices to cache
    */
-  private static saveToCache(prices: MetalPrices, currency: string = 'USD'): void {
+  private static saveToCache(
+    prices: MetalPrices,
+    currency: string = 'USD',
+    nisabStandard: 'classical' | 'common' = 'classical'
+  ): void {
     try {
-      const cacheKey = `${METAL_PRICE_CONSTANTS.CACHE_KEY}-${currency}`;
+      const cacheKey = `${METAL_PRICE_CONSTANTS.CACHE_KEY}-${currency}-${nisabStandard}`;
       const cachedData: CachedPrices = {
         data: prices,
         timestamp: Date.now()
@@ -306,8 +340,12 @@ export class MetalPricesService {
   /**
    * Force refresh prices from API
    */
-  static async refreshPrices(currency: string = 'USD'): Promise<MetalPrices> {
+  static async refreshPrices(
+    currency: string = 'USD',
+    nisabStandard: 'classical' | 'common' = 'classical'
+  ): Promise<MetalPrices> {
     this.clearCache(currency);
-    return this.getPrices(currency);
+    ZakatNisabService.clearCache(currency);
+    return this.getPrices(currency, nisabStandard);
   }
 }
