@@ -10,7 +10,7 @@
  *   (because the new Islamic day begins at Maghrib)
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { AladhanAPI, AladhanDayData } from '@/lib/aladhan-api';
 import { useLocationState } from '@/lib/location-state';
 
@@ -77,16 +77,12 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
 
       const now = new Date();
       const today = now;
-      const tomorrow = new Date(now);
-      tomorrow.setDate(tomorrow.getDate() + 1);
 
       // Get today's data from the Aladhan monthly calendar cache
       let todayData: AladhanDayData | null = null;
-      let tomorrowData: AladhanDayData | null = null;
 
       if (location.latitude && location.longitude) {
         todayData = AladhanAPI.getPrayerTimesForDate(today, location.latitude, location.longitude);
-        tomorrowData = AladhanAPI.getPrayerTimesForDate(tomorrow, location.latitude, location.longitude);
 
         // If cache miss, fetch fresh data
         if (!todayData) {
@@ -103,58 +99,26 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
             console.warn('[useIslamicCalendar] Failed to fetch monthly data:', fetchErr);
           }
         }
-
-        // Tomorrow might be in next month
-        if (!tomorrowData && todayData) {
-          if (tomorrow.getMonth() !== today.getMonth()) {
-            try {
-              await AladhanAPI.fetchMonthlyCalendar(
-                location.latitude,
-                location.longitude,
-                tomorrow.getFullYear(),
-                tomorrow.getMonth() + 1,
-                1
-              );
-              tomorrowData = AladhanAPI.getPrayerTimesForDate(tomorrow, location.latitude, location.longitude);
-            } catch (fetchErr) {
-              console.warn('[useIslamicCalendar] Failed to fetch next month data:', fetchErr);
-            }
-          } else {
-            tomorrowData = AladhanAPI.getPrayerTimesForDate(tomorrow, location.latitude, location.longitude);
-          }
-        }
       }
 
-      // Determine if we're past Maghrib
-      let isAfterMaghrib = false;
+      // Use today's Hijri date directly from the Aladhan API
+      // The API already returns the correct Hijri date for each Gregorian date.
+      // No Maghrib-based advancement — that was double-counting.
       if (todayData) {
-        const maghribMinutes = parseTimeToMinutes(todayData.timings.Maghrib);
-        const nowMinutes = now.getHours() * 60 + now.getMinutes();
-        isAfterMaghrib = maghribMinutes > 0 && nowMinutes >= maghribMinutes;
-      }
+        const h = todayData.date.hijri;
 
-      // Pick the correct Hijri date
-      let hijriSource: AladhanDayData | null = null;
+        // Support manual ±1 day offset from localStorage (user correction)
+        const offset = parseInt(localStorage.getItem('hijri-date-offset') || '0', 10);
+        const adjustedDay = Math.max(1, parseInt(h.day, 10) + offset);
 
-      if (isAfterMaghrib && tomorrowData) {
-        // After Maghrib: the new Islamic day has started → use tomorrow's Hijri date
-        hijriSource = tomorrowData;
-        console.log('[useIslamicCalendar] After Maghrib → using tomorrow\'s Hijri date');
-      } else if (todayData) {
-        // Before Maghrib: still the current Islamic day → use today's Hijri date
-        hijriSource = todayData;
-        console.log('[useIslamicCalendar] Before Maghrib → using today\'s Hijri date');
-      }
-
-      if (hijriSource) {
-        const h = hijriSource.date.hijri;
-        setHijriDay(h.day);
+        setHijriDay(String(adjustedDay));
         setHijriMonthNum(h.month.number);
         setHijriMonthEn(h.month.en);
         setHijriMonthAr(h.month.ar);
         setHijriYear(h.year);
         setHijriWeekday(h.weekday);
         setHijriHolidays(h.holidays || []);
+        console.log(`[useIslamicCalendar] Using API Hijri date: ${adjustedDay} ${h.month.en} ${h.year}${offset ? ` (offset: ${offset})` : ''}`);
       } else {
         // Fallback: use the gToH API directly
         console.log('[useIslamicCalendar] No cached data, falling back to gToH API');
@@ -227,7 +191,7 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
     hijriYear: parseInt(hijriYear) || 0,
   } : null;
 
-  return {
+  return useMemo(() => ({
     islamicInfo,
     isLoading,
     error,
@@ -238,5 +202,5 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
     isEidAlAdha,
     hijriDate,
     refresh: computeIslamicDate,
-  };
+  }), [islamicInfo, isLoading, error, isRamadan, ramadanDay, isEidAlFitr, isEidAlAdha, hijriDate, computeIslamicDate]);
 }

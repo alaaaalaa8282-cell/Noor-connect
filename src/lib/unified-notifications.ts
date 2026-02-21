@@ -108,7 +108,7 @@ class UnifiedNotificationService {
             body: options.body,
             schedule: { at: new Date() },
             sound: 'default',
-            smallIcon: 'ic_stat_notification',
+            smallIcon: 'ic_notification',
             iconColor: '#22c55e',
             extra: options.data || {}
           }]
@@ -271,7 +271,7 @@ class UnifiedNotificationService {
               allowWhileIdle: true
             },
             sound: 'default',
-            smallIcon: 'ic_stat_notification',
+            smallIcon: 'ic_notification',
             iconColor: '#22c55e',
             extra: notificationOptions.data
           }]

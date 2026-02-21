@@ -3,12 +3,18 @@ package com.noorconnect.app;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.os.Build;
 import android.util.Log;
 
 /**
- * Receives BOOT_COMPLETED broadcast and starts the foreground service
- * Ensures app runs in background immediately after phone boots
+ * Receives BOOT_COMPLETED and system time/timezone changes.
+ *
+ * Instead of starting a persistent foreground service (which drains battery
+ * and shows an annoying notification), we follow the Muslim Pro approach:
+ * - Reschedule native adhan alarms (setAlarmClock)
+ * - Update home-screen widgets
+ *
+ * The alarms themselves are Doze-immune (setAlarmClock), so no persistent
+ * service is needed to keep them alive.
  */
 public class BootReceiver extends BroadcastReceiver {
     private static final String TAG = "BootReceiver";
@@ -21,23 +27,15 @@ public class BootReceiver extends BroadcastReceiver {
                 || Intent.ACTION_TIME_CHANGED.equals(action)
                 || Intent.ACTION_TIMEZONE_CHANGED.equals(action)) {
 
-            Log.d(TAG, "System event received (" + action + "), restoring background tasks");
+            Log.d(TAG, "System event received (" + action + "), restoring alarms & widgets");
 
-            // Start the foreground service
-            Intent serviceIntent = new Intent(context, NoorConnectService.class);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(serviceIntent);
-            } else {
-                context.startService(serviceIntent);
-            }
-
-            // Update widgets
-            PrayerWidget.updateAllWidgets(context);
-
-            // Restore native adhan alarms after reboot/time changes.
+            // Restore native adhan alarms (setAlarmClock — Doze immune)
             NativeAdhanScheduler.rescheduleAlarms(context);
 
-            Log.d(TAG, "Service started, widgets updated, native adhan alarms restored");
+            // Update home-screen widgets
+            PrayerWidget.updateAllWidgets(context);
+
+            Log.d(TAG, "Adhan alarms rescheduled, widgets updated (no persistent service needed)");
         }
     }
 }

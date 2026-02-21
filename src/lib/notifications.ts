@@ -1,7 +1,9 @@
 /**
  * Local Web Notifications for Prayer Reminders
- * No Firebase - uses Web Notifications API only
+ * Uses Web Notifications API + Capacitor LocalNotifications for native
  */
+
+import { Capacitor } from '@capacitor/core';
 
 const NOTIFICATION_PERMISSION_KEY = 'prayer-notifications-enabled';
 
@@ -39,39 +41,69 @@ export const getNotificationPermission = (): NotificationPermission | null => {
 // Check if permission should be requested (APK users - persistent asking)
 export const shouldRequestPermission = (): boolean => {
   if (!isNotificationSupported()) return false;
-  
+
   const permission = getNotificationPermission();
-  if (permission !== 'default') return false;
-  
-  // Check if we're in APK/PWA mode - always ask for APK users
+  const isNative = Capacitor.isNativePlatform();
   const isStandalone = isStandaloneMode();
-  
-  if (!isStandalone) return false;
-  
-  // For APK users, check if we should ask again (more frequent)
+
+  // On native platform, always allow re-prompting even after denial
+  // Capacitor can re-trigger the native permission dialog
+  if (isNative && permission === 'denied') {
+    // Check cooldown — don't spam the user, ask every 30 minutes
+    const lastAskedTimestamp = localStorage.getItem('notification-last-asked');
+    if (lastAskedTimestamp) {
+      const thirtyMinutes = 30 * 60 * 1000;
+      if (Date.now() - parseInt(lastAskedTimestamp) < thirtyMinutes) {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  if (permission !== 'default') return false;
+
+  if (!isStandalone && !isNative) return false;
+
+  // For APK/PWA users, check if we should ask again (more frequent)
   const lastAskedTimestamp = localStorage.getItem('notification-last-asked');
   if (lastAskedTimestamp) {
     const lastAskedTime = parseInt(lastAskedTimestamp);
-    const oneHour = 60 * 60 * 1000; // Reduced from 24 hours to 1 hour
+    const oneHour = 60 * 60 * 1000;
     if (Date.now() - lastAskedTime < oneHour) {
       return false;
     }
   }
-  
+
   return true;
 };
 
 // Force request permission (for APK users - bypass cooldown)
 export const forceRequestPermission = (): boolean => {
   if (!isNotificationSupported()) return false;
-  
+
   const permission = getNotificationPermission();
-  if (permission !== 'default') return false;
-  
-  // Check if we're in APK/PWA mode
+  const isNative = Capacitor.isNativePlatform();
   const isStandalone = isStandaloneMode();
-  
+
+  // On native, allow force even when denied
+  if (isNative) return true;
+
+  if (permission !== 'default') return false;
+
   return Boolean(isStandalone);
+};
+
+// Open native notification settings (for APK users who permanently denied)
+export const openNotificationSettings = async (): Promise<void> => {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const { LocalNotifications } = await import('@capacitor/local-notifications');
+      // On Android, requesting permissions when denied opens the system settings
+      await LocalNotifications.requestPermissions();
+    } catch (error) {
+      console.error('Failed to open notification settings:', error);
+    }
+  }
 };
 
 // Check if user has enabled notifications in our app
@@ -87,29 +119,45 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
   }
 
   try {
-    // Check if we're in APK/PWA mode for enhanced permission handling
+    const isNative = Capacitor.isNativePlatform();
     const isStandalone = isStandaloneMode();
 
-    // Store when we last asked (for APK users)
-    if (isStandalone) {
-      localStorage.setItem('notification-last-asked', Date.now().toString());
+    // Store when we last asked
+    localStorage.setItem('notification-last-asked', Date.now().toString());
+
+    // On native platform, use Capacitor's LocalNotifications API
+    // This can re-trigger the native permission dialog even after denial
+    if (isNative) {
+      try {
+        const { LocalNotifications } = await import('@capacitor/local-notifications');
+        const result = await LocalNotifications.requestPermissions();
+        if (result.display === 'granted') {
+          localStorage.setItem(NOTIFICATION_PERMISSION_KEY, 'true');
+          localStorage.setItem('notification-permission-timestamp', Date.now().toString());
+          localStorage.removeItem('notification-permission-denied');
+          return true;
+        } else {
+          localStorage.setItem('notification-permission-denied', Date.now().toString());
+          return false;
+        }
+      } catch (capError) {
+        console.warn('Capacitor LocalNotifications not available, falling back to Web API:', capError);
+      }
     }
 
+    // Fallback to Web Notification API
     const permission = await Notification.requestPermission();
     if (permission === 'granted') {
       localStorage.setItem(NOTIFICATION_PERMISSION_KEY, 'true');
-      
-      // For APK/PWA, also store the permission timestamp
+
       if (isStandalone) {
         localStorage.setItem('notification-permission-timestamp', Date.now().toString());
         localStorage.setItem('app-install-source', 'apk');
-        // Clear any denial records
         localStorage.removeItem('notification-permission-denied');
       }
-      
+
       return true;
     } else {
-      // Store the denial for APK users (with shorter cooldown)
       if (isStandalone) {
         localStorage.setItem('notification-permission-denied', Date.now().toString());
       }
@@ -169,21 +217,21 @@ const activeTimeouts: Map<string, number> = new Map();
 // Schedule a notification for a specific time
 export const schedulePrayerNotification = (prayerName: string, prayerTime: Date): string | null => {
   if (!isNotificationsEnabled()) return null;
-  
+
   const now = new Date();
   const delay = prayerTime.getTime() - now.getTime();
-  
+
   // Don't schedule if time has passed
   if (delay <= 0) return null;
-  
+
   const id = `${prayerName}-${prayerTime.getTime()}`;
-  
+
   // Clear existing timeout for this prayer if exists
   const existingTimeout = activeTimeouts.get(id);
   if (existingTimeout) {
     clearTimeout(existingTimeout);
   }
-  
+
   const timeoutId = window.setTimeout(() => {
     showNotification(`${prayerName} Prayer Time`, {
       body: `It's time for ${prayerName} prayer. May Allah accept your worship.`,
@@ -191,33 +239,33 @@ export const schedulePrayerNotification = (prayerName: string, prayerTime: Date)
     });
     activeTimeouts.delete(id);
   }, delay);
-  
+
   activeTimeouts.set(id, timeoutId);
-  
+
   return id;
 };
 
 // Schedule pre-prayer reminder (X minutes before)
 export const schedulePrePrayerReminder = (
-  prayerName: string, 
-  prayerTime: Date, 
+  prayerName: string,
+  prayerTime: Date,
   minutesBefore: number
 ): string | null => {
   if (!isNotificationsEnabled()) return null;
-  
+
   const reminderTime = new Date(prayerTime.getTime() - minutesBefore * 60 * 1000);
   const now = new Date();
   const delay = reminderTime.getTime() - now.getTime();
-  
+
   if (delay <= 0) return null;
-  
+
   const id = `${prayerName}-reminder-${minutesBefore}-${prayerTime.getTime()}`;
-  
+
   const existingTimeout = activeTimeouts.get(id);
   if (existingTimeout) {
     clearTimeout(existingTimeout);
   }
-  
+
   const timeoutId = window.setTimeout(() => {
     showNotification(`${prayerName} in ${minutesBefore} minutes`, {
       body: `Prepare for ${prayerName} prayer. Time remaining: ${minutesBefore} minutes.`,
@@ -225,9 +273,9 @@ export const schedulePrePrayerReminder = (
     });
     activeTimeouts.delete(id);
   }, delay);
-  
+
   activeTimeouts.set(id, timeoutId);
-  
+
   return id;
 };
 
@@ -246,13 +294,13 @@ export const scheduleAllPrayerNotifications = (
 ): void => {
   // Clear existing
   clearAllScheduledNotifications();
-  
+
   if (!isNotificationsEnabled()) return;
-  
+
   prayers.forEach(({ name, time }) => {
     // Schedule the main prayer time notification
     schedulePrayerNotification(name, time);
-    
+
     // Schedule pre-prayer reminder if enabled
     if (reminderMinutes > 0) {
       schedulePrePrayerReminder(name, time, reminderMinutes);

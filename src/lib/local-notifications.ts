@@ -251,7 +251,7 @@ export class LocalNotificationManager {
               repeats: false,
             },
             sound: 'default',
-            smallIcon: 'ic_stat_notification',
+            smallIcon: 'ic_notification',
             iconColor: '#22c55e',
             extra: {
               prayerName,
@@ -351,7 +351,7 @@ export class LocalNotificationManager {
               repeats: false,
             },
             sound: 'default',
-            smallIcon: 'ic_stat_notification',
+            smallIcon: 'ic_notification',
             iconColor: '#22c55e',
             extra: {
               prayerName: prayer.name,
@@ -425,7 +425,7 @@ export class LocalNotificationManager {
             repeats: false,
           },
           sound: 'default',
-          smallIcon: 'ic_stat_notification',
+          smallIcon: 'ic_notification',
           iconColor: '#22c55e',
           extra: {
             prayerName,
@@ -592,7 +592,7 @@ export class LocalNotificationManager {
 
     try {
       const notificationId = this.generateCustomNotificationId(id);
-      
+
       await LocalNotifications.schedule({
         notifications: [{
           id: notificationId,
@@ -604,7 +604,7 @@ export class LocalNotificationManager {
             repeats: false,
           },
           sound: 'default',
-          smallIcon: 'ic_stat_notification',
+          smallIcon: 'ic_notification',
           iconColor: '#22c55e',
           extra: {
             type: 'islamic_event',
@@ -625,7 +625,7 @@ export class LocalNotificationManager {
   async cancelNotification(id: string): Promise<void> {
     try {
       const notificationId = this.generateCustomNotificationId(id);
-      
+
       await LocalNotifications.cancel({
         notifications: [{ id: notificationId }]
       });

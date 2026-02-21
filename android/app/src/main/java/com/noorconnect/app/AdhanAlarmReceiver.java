@@ -4,10 +4,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Build;
+import android.os.PowerManager;
 import android.util.Log;
 
 /**
  * Receives exact alarm events and starts native adhan playback service.
+ * Acquires a WakeLock to prevent the CPU from sleeping before the
+ * foreground service has a chance to call startForeground().
  */
 public class AdhanAlarmReceiver extends BroadcastReceiver {
     private static final String TAG = "AdhanAlarmReceiver";
@@ -16,6 +19,47 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
     public static final String EXTRA_ALARM_ID = "alarmId";
     public static final String EXTRA_PRAYER_NAME = "prayerName";
     public static final String EXTRA_ADHAN_URL = "adhanUrl";
+
+    // Static WakeLock so AdhanPlaybackService can release it
+    private static PowerManager.WakeLock sWakeLock;
+    private static final Object LOCK = new Object();
+
+    /**
+     * Acquire a partial WakeLock that keeps the CPU running until the
+     * foreground service is fully started. Times out after 30 seconds
+     * as a safety net.
+     */
+    static void acquireWakeLock(Context context) {
+        synchronized (LOCK) {
+            if (sWakeLock != null && sWakeLock.isHeld()) {
+                return; // Already held
+            }
+            PowerManager pm = (PowerManager) context.getApplicationContext()
+                    .getSystemService(Context.POWER_SERVICE);
+            if (pm != null) {
+                sWakeLock = pm.newWakeLock(
+                        PowerManager.PARTIAL_WAKE_LOCK,
+                        "noorconnect:adhan_alarm");
+                sWakeLock.setReferenceCounted(false);
+                sWakeLock.acquire(30_000); // 30-second timeout
+                Log.d(TAG, "WakeLock acquired");
+            }
+        }
+    }
+
+    /**
+     * Release the WakeLock (called by AdhanPlaybackService once
+     * startForeground() has been invoked).
+     */
+    public static void releaseWakeLock() {
+        synchronized (LOCK) {
+            if (sWakeLock != null && sWakeLock.isHeld()) {
+                sWakeLock.release();
+                Log.d(TAG, "WakeLock released");
+            }
+            sWakeLock = null;
+        }
+    }
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -27,6 +71,9 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             Log.d(TAG, "Native adhan playback disabled; skipping trigger");
             return;
         }
+
+        // Acquire WakeLock BEFORE starting the service to prevent Doze race condition
+        acquireWakeLock(context);
 
         int alarmId = intent.getIntExtra(EXTRA_ALARM_ID, -1);
         String prayerName = intent.getStringExtra(EXTRA_PRAYER_NAME);
@@ -51,6 +98,7 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
             Log.d(TAG, "Started adhan playback service for " + prayerName);
         } catch (Exception serviceError) {
             Log.e(TAG, "Failed to start adhan playback service", serviceError);
+            releaseWakeLock(); // Release if service failed to start
         }
     }
 }

@@ -84,6 +84,12 @@ export const GlobalPrayerAlarm = () => {
 
   const fetchAndCachePrayerTimes = useCallback(async () => {
     try {
+      // Guard: skip geolocation if we already have today's prayer times cached
+      const existingCache = readCachedPrayerTimes();
+      if (existingCache && existingCache.date === new Date().toDateString()) {
+        return; // Cache is fresh, no need to hit geolocation API
+      }
+
       const position = await new Promise<GeolocationPosition>((resolve, reject) => {
         navigator.geolocation.getCurrentPosition(resolve, reject, {
           enableHighAccuracy: false,
@@ -116,17 +122,34 @@ export const GlobalPrayerAlarm = () => {
         { name: 'Isha', time: normalizeTimeString(timings.Isha) },
       ];
 
-      localStorage.setItem(
-        PRAYER_TIMES_KEY,
-        JSON.stringify({
-          times: prayerTimes,
-          date: new Date().toDateString(),
-        } satisfies CachedPrayerTimes)
-      );
+      const cachedData = {
+        times: prayerTimes,
+        date: new Date().toDateString(),
+      } satisfies CachedPrayerTimes;
+
+      localStorage.setItem(PRAYER_TIMES_KEY, JSON.stringify(cachedData));
+
+      // Push to native adhan scheduler if available
+      try {
+        const { Capacitor } = await import('@capacitor/core');
+        if (Capacitor.isNativePlatform()) {
+          const { LocalNotificationManager } = await import('@/lib/local-notifications');
+          const manager = new LocalNotificationManager();
+          await manager.schedulePrayerNotifications(
+            prayerTimes.map(p => ({
+              name: p.name,
+              time: p.time,
+              date: new Date()
+            }))
+          );
+        }
+      } catch (err) {
+        console.warn('Failed to schedule native background alarms', err);
+      }
     } catch (error) {
       console.error('Error fetching prayer times:', error);
     }
-  }, []);
+  }, [readCachedPrayerTimes]);
 
   const playAdhan = useCallback(
     async (prayerName: string, options?: { force?: boolean }) => {

@@ -4,10 +4,10 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
-import { GlobalPrayerAlarm } from "@/components/GlobalPrayerAlarm";
-import { SalamGreeting } from "@/components/SalamGreeting";
-import { FestivePopup } from "@/components/FestivePopup";
-import { PWAInstallPrompt } from "@/components/PWAInstallPrompt";
+const GlobalPrayerAlarm = lazy(() => import("@/components/GlobalPrayerAlarm").then(module => ({ default: module.GlobalPrayerAlarm })));
+const SalamGreeting = lazy(() => import("@/components/SalamGreeting").then(module => ({ default: module.SalamGreeting })));
+const FestivePopup = lazy(() => import("@/components/FestivePopup").then(module => ({ default: module.FestivePopup })));
+const PWAInstallPrompt = lazy(() => import("@/components/PWAInstallPrompt").then(module => ({ default: module.PWAInstallPrompt })));
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { notificationManager } from "@/lib/notification-manager";
 import { serviceWorkerManager } from "@/lib/service-worker-registration";
@@ -212,6 +212,19 @@ const App = () => {
       });
     }
 
+    // Start widget auto-updates
+    const savedLocation = localStorage.getItem('user-location');
+    if (savedLocation) {
+      try {
+        const { latitude, longitude, locationName } = JSON.parse(savedLocation);
+        import('@/lib/widget-service').then(({ WidgetService }) => {
+          WidgetService.startAutoUpdate(latitude, longitude, locationName);
+        });
+      } catch (err) {
+        console.warn('Failed to start widget auto-update', err);
+      }
+    }
+
     // Initialize global radio state
     const savedRadioState = localStorage.getItem('global-radio-state');
     if (savedRadioState) {
@@ -238,16 +251,15 @@ const App = () => {
       </AnimatePresence>
       <PersistentPermissionReminder />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <div className="flex flex-col min-h-screen overflow-hidden" style={{
-          willChange: 'transform, opacity',
-          transform: 'translateZ(0)'
-        }}>
+        <div className="flex flex-col min-h-screen overflow-hidden">
           {/* Header/Top Elements */}
           <div className="flex-shrink-0">
-            <GlobalPrayerAlarm />
-            <SalamGreeting />
-            <FestivePopup />
-            <PWAInstallPrompt />
+            <Suspense fallback={null}>
+              <GlobalPrayerAlarm />
+              <SalamGreeting />
+              <FestivePopup />
+              <PWAInstallPrompt />
+            </Suspense>
           </div>
 
           {/* Main Content - Takes available space */}

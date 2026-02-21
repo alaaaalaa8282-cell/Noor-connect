@@ -110,7 +110,7 @@ function AppIcon() {
                     </svg>
                 </div>
             </div>
-            
+
             {/* Glow Effect */}
             <motion.div
                 className="absolute inset-0 rounded-2xl"
@@ -128,9 +128,9 @@ function AppIcon() {
 }
 
 // Permission Request Component
-function PermissionRequest({ onPermissionGranted, onSkip }: { 
-    onPermissionGranted: () => void; 
-    onSkip: () => void; 
+function PermissionRequest({ onPermissionGranted, onSkip }: {
+    onPermissionGranted: () => void;
+    onSkip: () => void;
 }) {
     const [isRequesting, setIsRequesting] = useState(false);
     const [error, setError] = useState<string | null>(null);
@@ -232,7 +232,7 @@ function PermissionRequest({ onPermissionGranted, onSkip }: {
                             Skip
                         </Button>
                     </div>
-                    
+
                     <p className="text-xs text-muted-foreground text-center">
                         Required: notification + location. Sensor access on Android does not need a separate runtime permission.
                     </p>
@@ -255,7 +255,7 @@ function PersistentPermissionReminder() {
         };
 
         window.addEventListener('requestNotificationPermission', handlePermissionRequest as EventListener);
-        
+
         return () => {
             window.removeEventListener('requestNotificationPermission', handlePermissionRequest as EventListener);
         };
@@ -372,8 +372,8 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                 // Continue normally for web users or those with permission already set
                 setTimeout(() => {
                     setIsVisible(false);
-                    setTimeout(onComplete, 400);
-                }, 2000);
+                    setTimeout(onComplete, 100);
+                }, 300);
             }
         };
 
@@ -411,7 +411,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
     const handleGenderSelectionComplete = () => {
         setShowGenderSelection(false);
         setGenderHandled(true);
-        
+
         // After gender selection, check if we need to request permissions
         const checkAndRequestPermissions = async () => {
             const shouldShowPrompt = await shouldShowPermissionPrompt();
@@ -424,7 +424,7 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                 }, 1000);
             }
         };
-        
+
         checkAndRequestPermissions();
     };
 

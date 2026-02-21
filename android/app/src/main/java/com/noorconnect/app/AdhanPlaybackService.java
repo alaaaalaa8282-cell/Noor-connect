@@ -63,6 +63,11 @@ public class AdhanPlaybackService extends Service {
         }
 
         startForeground(NOTIFICATION_ID, createNotification(prayerName));
+
+        // Release the WakeLock now that startForeground() has been called.
+        // This closes the Doze race-condition window opened by AdhanAlarmReceiver.
+        AdhanAlarmReceiver.releaseWakeLock();
+
         playAdhan(adhanUrl, prayerName);
 
         return START_NOT_STICKY;
@@ -118,12 +123,18 @@ public class AdhanPlaybackService extends Service {
     private void playFallbackAlarmTone(String prayerName) {
         stopPlayback();
 
-        Uri fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
-        if (fallbackUri == null) {
-            fallbackUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
-        }
+        // First try the adhan file bundled in res/raw/
+        Uri rawUri = Uri.parse(
+                "android.resource://" + getPackageName() + "/" + R.raw.adhan_makkah);
 
-        if (fallbackUri == null) {
+        if (rawUri == null) {
+            // Last-resort: system alarm tone
+            rawUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_ALARM);
+        }
+        if (rawUri == null) {
+            rawUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION);
+        }
+        if (rawUri == null) {
             stopForeground(true);
             stopSelf();
             return;
@@ -150,9 +161,9 @@ public class AdhanPlaybackService extends Service {
                 return true;
             });
 
-            mediaPlayer.setDataSource(getApplicationContext(), fallbackUri);
+            mediaPlayer.setDataSource(getApplicationContext(), rawUri);
             mediaPlayer.prepareAsync();
-            Log.d(TAG, "Playing fallback alarm tone for " + prayerName);
+            Log.d(TAG, "Playing fallback adhan from res/raw for " + prayerName);
         } catch (Exception fallbackError) {
             Log.e(TAG, "Failed to play fallback alarm tone", fallbackError);
             stopPlayback();
@@ -233,8 +244,7 @@ public class AdhanPlaybackService extends Service {
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
                 "Adhan Playback",
-                NotificationManager.IMPORTANCE_HIGH
-        );
+                NotificationManager.IMPORTANCE_HIGH);
         channel.setDescription("Foreground playback channel for adhan alarms");
         channel.setSound(null, null);
         channel.enableVibration(false);

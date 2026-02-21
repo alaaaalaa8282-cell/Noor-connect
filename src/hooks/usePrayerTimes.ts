@@ -4,7 +4,7 @@
  * Uses geolocation API with multiple fallbacks and manual search
  */
 
-import { useState, useEffect, useCallback, useRef } from 'react';
+import { useState, useEffect, useCallback, useRef, useMemo } from 'react';
 import { calculatePrayerTimes, getCalculationMethod } from '@/lib/prayer-calculator';
 import { GeocodingService } from '@/lib/geocoding';
 import { AladhanAPI, ALADHAN_METHODS } from '@/lib/aladhan-api';
@@ -226,11 +226,11 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   const getLocationFromGeolocation = useCallback(async (): Promise<LocationData> => {
     try {
       console.log('Getting location from geolocation...');
-      
+
       // Check permissions first
       const permissions = await GeolocationService.checkPermissions();
       console.log('Geolocation permissions:', permissions);
-      
+
       if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
         // Request permissions
         const granted = await GeolocationService.requestPermissions();
@@ -450,7 +450,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
           { name: 'Maghrib', time: times.maghrib },
           { name: 'Isha', time: times.isha }
         ];
-        
+
         let nextPrayer = prayers[0]; // Default to first prayer
         for (const prayer of prayers) {
           if (prayer.time > now) {
@@ -458,9 +458,9 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
             break;
           }
         }
-        
+
         const location = locationData.city || locationData.country || 'Unknown';
-        
+
         WidgetPlugin.updateWidget({
           name: nextPrayer.name,
           time: formatPrayerTime(nextPrayer.time, '24'),
@@ -658,7 +658,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     };
   }, [location, fetchPrayerTimesWithCoordinates]);
 
-  return {
+  return useMemo(() => ({
     prayerTimes,
     prayerTimesWithEnd,
     location,
@@ -667,5 +667,5 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     needsManualLocation,
     refresh: fetchPrayerTimes,
     setManualLocation
-  };
+  }), [prayerTimes, prayerTimesWithEnd, location, isLoading, error, needsManualLocation, fetchPrayerTimes, setManualLocation]);
 }

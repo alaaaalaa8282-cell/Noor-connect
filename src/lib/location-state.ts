@@ -3,7 +3,7 @@
  * Centralized location handling with localStorage persistence
  */
 
-import { useState, useEffect, useCallback } from 'react';
+import { useState, useEffect, useCallback, useMemo } from 'react';
 import { GeolocationService } from '@/lib/geolocation-service';
 
 export interface LocationState {
@@ -64,17 +64,25 @@ export const useLocationState = () => {
   const [location, setLocationState] = useState<LocationState>(loadStoredLocation);
 
   const setLocation = useCallback((lat: number, lng: number, name?: string, timeZone?: string) => {
-    const newLocation: LocationState = {
-      ...location,
-      latitude: lat,
-      longitude: lng,
-      locationName: name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
-      timeZone: timeZone || location.timeZone,
-      lastUpdated: new Date().toISOString()
-    };
-    setLocationState(newLocation);
-    saveLocation(newLocation);
-  }, [location]);
+    setLocationState(prev => {
+      const newLocation: LocationState = {
+        ...prev,
+        latitude: lat,
+        longitude: lng,
+        locationName: name || `${lat.toFixed(4)}, ${lng.toFixed(4)}`,
+        timeZone: timeZone || prev.timeZone,
+        lastUpdated: new Date().toISOString()
+      };
+      saveLocation(newLocation);
+
+      // Update Android widget with new location
+      import('@/lib/widget-service').then(({ WidgetService }) => {
+        WidgetService.updateWidget(newLocation.latitude, newLocation.longitude, newLocation.locationName);
+      });
+
+      return newLocation;
+    });
+  }, []); // No dependency on location — uses functional setState
 
   const detectLocation = useCallback(async (): Promise<boolean> => {
     if (location.isDetecting) {
@@ -92,7 +100,7 @@ export const useLocationState = () => {
       // Check permissions first
       const permissions = await GeolocationService.checkPermissions();
       console.log('Location permissions:', permissions);
-      
+
       if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
         // Request permissions
         const granted = await GeolocationService.requestPermissions();
@@ -151,7 +159,7 @@ export const useLocationState = () => {
     saveLocation(newLocation);
   }, []);
 
-  return {
+  return useMemo(() => ({
     ...location,
     setLocation,
     detectLocation,
@@ -160,5 +168,5 @@ export const useLocationState = () => {
       lat: location.latitude,
       lng: location.longitude
     }
-  };
+  }), [location, setLocation, detectLocation, resetToDefault]);
 };

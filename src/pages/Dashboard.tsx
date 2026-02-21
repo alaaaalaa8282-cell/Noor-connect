@@ -9,15 +9,15 @@ const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then
 const MoodSelector = lazy(() => import("@/components/MoodSelector").then(module => ({ default: module.MoodSelector })));
 const DailyAyah = lazy(() => import("@/components/DailyAyah").then(module => ({ default: module.DailyAyah })));
 const DailyHadith = lazy(() => import("@/components/DailyHadith").then(module => ({ default: module.DailyHadith })));
-import { PrayerCountdown } from "@/components/PrayerCountdown";
-import { PrayerTimesList } from "@/components/PrayerTimesList";
-import { QazaTracker } from "@/components/QazaTracker";
-import { DhikrReminder } from "@/components/DhikrReminder";
-import { IslamicGreeting } from "@/components/IslamicGreeting";
-import { IslamicDateHeader } from "@/components/IslamicDateHeader";
-import { IslamicEventsWidget } from "@/components/IslamicEventsWidget";
+const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
+const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
+const QazaTracker = lazy(() => import("@/components/QazaTracker").then(module => ({ default: module.QazaTracker })));
+const DhikrReminder = lazy(() => import("@/components/DhikrReminder").then(module => ({ default: module.DhikrReminder })));
+const IslamicGreeting = lazy(() => import("@/components/IslamicGreeting").then(module => ({ default: module.IslamicGreeting })));
+const IslamicDateHeader = lazy(() => import("@/components/IslamicDateHeader").then(module => ({ default: module.IslamicDateHeader })));
+const IslamicEventsWidget = lazy(() => import("@/components/IslamicEventsWidget").then(module => ({ default: module.IslamicEventsWidget })));
+const QuranProgressWidget = lazy(() => import("@/components/QuranProgressWidget").then(module => ({ default: module.QuranProgressWidget })));
 import { LocationSearch } from "@/components/LocationSearch";
-import { QuranProgressWidget } from "@/components/QuranProgressWidget";
 import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext";
 import { shouldShowMenstrualFeatures } from "@/lib/gender-settings";
@@ -38,7 +38,6 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GeocodingService } from "@/lib/geocoding";
 import { PRAYER_ALARM_CONTROL_EVENT, PRAYER_ALARM_TOGGLE_EVENT } from "@/lib/prayer-alarm-events";
 import { PageTransition } from "@/components/PageTransition";
-import { motion } from "framer-motion";
 
 const prayerIcons: Record<string, React.ReactNode> = {
   Fajr: <Moon className="w-5 h-5" />,
@@ -74,18 +73,8 @@ export default function Dashboard() {
 
 
 
-  // Visual feedback for clicks
-  const handleCardClick = (event: MouseEvent<HTMLDivElement>, route: string) => {
-    // Visual feedback
-    const card = event?.currentTarget as HTMLElement;
-    if (card) {
-      card.style.backgroundColor = 'hsl(var(--primary) / 0.2)';
-      setTimeout(() => {
-        card.style.backgroundColor = '';
-      }, 200);
-    }
-
-    // Navigate
+  // Navigate on card click — no DOM style mutation for better INP
+  const handleCardClick = (_event: MouseEvent<HTMLDivElement>, route: string) => {
     navigate(route);
   };
 
@@ -189,7 +178,7 @@ export default function Dashboard() {
       setLoadingAPI(false);
       setInitialLoad(false);
     }
-  }, [location, formatTimeFromAPI, parseTimeToDate]); // Add dependencies
+  }, [location.latitude, location.longitude, location.timeZone, location.locationName, location.setLocation, formatTimeFromAPI, parseTimeToDate]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -225,7 +214,7 @@ export default function Dashboard() {
     } else {
       const updated = activateMenstrualMode(new Date());
       setMenstrualModeData(updated);
-      
+
       // Disable the web adhan alarm state immediately while mode is active.
       localStorage.setItem("prayer-alarm-enabled", "false");
       window.dispatchEvent(
@@ -402,13 +391,19 @@ export default function Dashboard() {
           )}
 
           {/* Islamic Date Header - always visible */}
-          <IslamicDateHeader />
+          <Suspense fallback={<div className="h-10 bg-muted/20 animate-pulse rounded-lg" />}>
+            <IslamicDateHeader />
+          </Suspense>
 
           {/* Islamic Greeting (shows on special days) */}
-          <IslamicGreeting />
+          <Suspense fallback={null}>
+            <IslamicGreeting />
+          </Suspense>
 
           {/* Islamic Events Widget */}
-          <IslamicEventsWidget />
+          <Suspense fallback={<div className="h-20 bg-muted/20 animate-pulse rounded-lg" />}>
+            <IslamicEventsWidget />
+          </Suspense>
 
           {/* Prayer Countdown Widget */}
           <ErrorBoundary>
@@ -453,7 +448,9 @@ export default function Dashboard() {
           </Suspense>
 
           {/* Quran Progress Widget */}
-          <QuranProgressWidget />
+          <Suspense fallback={<div className="h-20 bg-muted/20 animate-pulse rounded-lg" />}>
+            <QuranProgressWidget />
+          </Suspense>
 
           {/* Daily Hadith */}
           <Suspense fallback={<div className="h-52 rounded-xl bg-muted/20 animate-pulse" />}>
@@ -461,32 +458,28 @@ export default function Dashboard() {
           </Suspense>
 
           {/* Dhikr Reminder */}
-          <DhikrReminder />
+          <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
+            <DhikrReminder />
+          </Suspense>
 
           {/* Menstrual Mode Toggle - Only show for female users */}
           {shouldShowMenstrualFeatures() && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.3, duration: 0.5 }}
-              className={`relative overflow-hidden rounded-[20px] border border-border/50 p-4 ${
-                menstrualModeData.isActive 
-                  ? 'bg-gradient-to-br from-rose-500/15 to-rose-600/5 border-rose-500/20' 
-                  : 'bg-card'
-              }`}
+            <div
+              className={`relative overflow-hidden rounded-[20px] border border-border/50 p-4 transition-all duration-300 ${menstrualModeData.isActive
+                ? 'bg-gradient-to-br from-rose-500/15 to-rose-600/5 border-rose-500/20'
+                : 'bg-card'
+                }`}
             >
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-2xl ${
-                    menstrualModeData.isActive 
-                      ? 'bg-rose-500/20' 
-                      : 'bg-rose-500/10'
-                  } shadow-sm`}>
-                    <Heart className={`w-6 h-6 ${
-                      menstrualModeData.isActive 
-                        ? 'text-rose-600' 
-                        : 'text-rose-500'
-                    }`} strokeWidth={2} />
+                  <div className={`p-3 rounded-2xl ${menstrualModeData.isActive
+                    ? 'bg-rose-500/20'
+                    : 'bg-rose-500/10'
+                    } shadow-sm`}>
+                    <Heart className={`w-6 h-6 ${menstrualModeData.isActive
+                      ? 'text-rose-600'
+                      : 'text-rose-500'
+                      }`} strokeWidth={2} />
                   </div>
                   <div>
                     <h3 className="font-semibold text-sm">{t('menstrualMode')}</h3>
@@ -514,13 +507,13 @@ export default function Dashboard() {
                   )}
                 </Button>
               </div>
-              
+
               {menstrualModeData.isActive && menstrualModeData.startedAt && (
                 <div className="mt-3 text-xs text-rose-600 dark:text-rose-400">
                   Started: {new Date(menstrualModeData.startedAt).toLocaleDateString()}
                 </div>
               )}
-            </motion.div>
+            </div>
           )}
 
           {/* Quick Access Grid */}
@@ -536,40 +529,35 @@ export default function Dashboard() {
               { icon: Trophy, label: t('islamicQuiz'), sub: t('islamic'), link: '/quiz', color: 'text-yellow-500', bgColor: 'bg-yellow-500/10' },
               { icon: Star, label: t('namesOfAllah'), sub: t('ofAllah'), link: '/names-of-allah', color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
             ].map((item, idx) => (
-              <motion.div
+              <div
                 key={idx}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: idx * 0.05, duration: 0.3 }}
-                whileHover={{ scale: 1.02, y: -2 }}
-                whileTap={{ scale: 0.98 }}
-                className="group relative overflow-hidden rounded-[20px] bg-card border border-border/50 p-4 cursor-pointer touch-feedback"
+                className="group relative overflow-hidden rounded-[20px] bg-card border border-border/50 p-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] touch-feedback"
                 onClick={(event) => handleCardClick(event, item.link)}
               >
                 {/* Hover Gradient Background */}
                 <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
-                
+
                 {/* Shine Effect */}
                 <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
                   <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
                 </div>
-                
+
                 <div className="relative z-10 flex flex-col items-center text-center gap-2">
                   {/* Icon Container with Premium Styling */}
                   <div className={`p-3 rounded-2xl ${item.bgColor} shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-110`}>
                     <item.icon className={`w-6 h-6 ${item.color}`} strokeWidth={2} />
                   </div>
-                  
+
                   {/* Text Content */}
                   <div className="space-y-0.5">
                     <h3 className="font-semibold text-sm group-hover:text-primary transition-colors duration-300">{item.label}</h3>
                     <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.sub}</p>
                   </div>
                 </div>
-                
+
                 {/* Corner Accent */}
                 <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary/20 group-hover:bg-primary/40 transition-colors duration-300" />
-              </motion.div>
+              </div>
             ))}
           </div>
 
@@ -588,7 +576,11 @@ export default function Dashboard() {
           </Suspense>
 
           {/* Qaza Tracker (compact view) */}
-          <QazaTracker compact />
+          <Suspense fallback={
+            <div className="h-40 card-premium skeleton-premium" />
+          }>
+            <QazaTracker compact />
+          </Suspense>
 
           {/* Location Detection Card */}
           {initialLoad ? (
@@ -716,7 +708,7 @@ export default function Dashboard() {
           <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-muted/20">
             {/* Decorative gradient accent */}
             <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-            
+
             <CardHeader className="pb-2 pt-4">
               <div className="flex items-center justify-center gap-2 mb-1">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />

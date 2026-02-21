@@ -1,6 +1,7 @@
 package com.noorconnect.app;
 
 import android.app.AlarmManager;
+import android.app.AlarmManager.AlarmClockInfo;
 import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
@@ -12,8 +13,18 @@ import java.util.HashSet;
 import java.util.Set;
 
 /**
- * Schedules exact alarm events for native adhan playback and persists them
- * so they can be restored after reboot.
+ * Schedules adhan alarms using AlarmManager.setAlarmClock() — the same
+ * approach used by Muslim Pro, Athan, and other major Islamic apps.
+ *
+ * Why setAlarmClock()?
+ * - Immune to Doze mode (always fires on time)
+ * - Immune to battery optimisation
+ * - Shows ⏰ alarm icon in status bar (users expect this)
+ * - Does NOT require USE_EXACT_ALARM or SCHEDULE_EXACT_ALARM permissions
+ * - No persistent foreground service needed
+ *
+ * Alarms are persisted in SharedPreferences so they can be restored
+ * after reboot via BootReceiver.
  */
 public final class NativeAdhanScheduler {
     private static final String TAG = "NativeAdhanScheduler";
@@ -57,6 +68,13 @@ public final class NativeAdhanScheduler {
         return getStoredIds(context).size();
     }
 
+    /**
+     * Schedule a single adhan alarm using setAlarmClock().
+     *
+     * setAlarmClock() is the gold standard for prayer apps because Android
+     * treats it as a user-visible alarm clock — it is exempt from ALL
+     * power-saving restrictions including Doze and App Standby.
+     */
     public static void scheduleAlarm(Context context, ScheduledAdhan alarm, boolean persist) {
         if (alarm.triggerAtMillis <= System.currentTimeMillis()) {
             removePersistedAlarm(context, alarm.id);
@@ -73,33 +91,53 @@ public final class NativeAdhanScheduler {
                 context,
                 alarm.id,
                 alarm.prayerName,
-                alarm.adhanUrl
-        );
+                alarm.adhanUrl);
+
+        // Create a PendingIntent that opens the app when user taps the alarm icon
+        Intent showIntent = new Intent(context, MainActivity.class);
+        showIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
+        int showFlags = PendingIntent.FLAG_UPDATE_CURRENT;
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            showFlags |= PendingIntent.FLAG_IMMUTABLE;
+        }
+        PendingIntent showPendingIntent = PendingIntent.getActivity(
+                context, alarm.id + 50000, showIntent, showFlags);
 
         try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                if (canUseExactAlarms(alarmManager)) {
-                    alarmManager.setExactAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            alarm.triggerAtMillis,
-                            pendingIntent
-                    );
+            // PRIMARY: setAlarmClock() — immune to Doze, shows ⏰ in status bar
+            AlarmClockInfo alarmClock = new AlarmClockInfo(
+                    alarm.triggerAtMillis,
+                    showPendingIntent // Shown when user taps the ⏰ icon
+            );
+            alarmManager.setAlarmClock(alarmClock, pendingIntent);
+            Log.d(TAG, "Scheduled AlarmClock for " + alarm.prayerName
+                    + " (id=" + alarm.id + ") at " + alarm.triggerAtMillis);
+        } catch (SecurityException alarmClockError) {
+            // Fallback chain: setExactAndAllowWhileIdle -> setAndAllowWhileIdle -> set
+            Log.w(TAG, "setAlarmClock rejected, trying exact alarm", alarmClockError);
+            try {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    if (canUseExactAlarms(alarmManager)) {
+                        alarmManager.setExactAndAllowWhileIdle(
+                                AlarmManager.RTC_WAKEUP,
+                                alarm.triggerAtMillis,
+                                pendingIntent);
+                    } else {
+                        alarmManager.setAndAllowWhileIdle(
+                                AlarmManager.RTC_WAKEUP,
+                                alarm.triggerAtMillis,
+                                pendingIntent);
+                    }
                 } else {
-                    alarmManager.setAndAllowWhileIdle(
-                            AlarmManager.RTC_WAKEUP,
-                            alarm.triggerAtMillis,
-                            pendingIntent
-                    );
+                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
                 }
-            } else {
-                alarmManager.setExact(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
-            }
-        } catch (SecurityException exactAlarmError) {
-            Log.w(TAG, "Exact alarm rejected, falling back to inexact alarm", exactAlarmError);
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
-            } else {
-                alarmManager.set(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
+            } catch (SecurityException exactAlarmError) {
+                Log.w(TAG, "Exact alarm rejected, falling back to inexact alarm", exactAlarmError);
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
+                } else {
+                    alarmManager.set(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
+                }
             }
         }
 
@@ -163,8 +201,7 @@ public final class NativeAdhanScheduler {
             scheduleAlarm(
                     context,
                     new ScheduledAdhan(id, triggerAt, prayerName, adhanUrl),
-                    false
-            );
+                    false);
         }
 
         Log.d(TAG, "Rescheduled native adhan alarms after reboot/time change");
@@ -178,8 +215,7 @@ public final class NativeAdhanScheduler {
             Context context,
             int alarmId,
             String prayerName,
-            String adhanUrl
-    ) {
+            String adhanUrl) {
         Intent intent = new Intent(context, AdhanAlarmReceiver.class);
         intent.setAction(AdhanAlarmReceiver.ACTION_TRIGGER);
         intent.putExtra(AdhanAlarmReceiver.EXTRA_ALARM_ID, alarmId);
