@@ -47,11 +47,18 @@ export default function IslamicCalendar() {
     fetchMonthCalendar(currentMonth, currentYear);
   }, [currentMonth, currentYear]);
 
+  useEffect(() => {
+    const handleOffsetChange = () => fetchMonthCalendar(currentMonth, currentYear);
+    window.addEventListener('hijri-date-offset-changed', handleOffsetChange);
+    return () => window.removeEventListener('hijri-date-offset-changed', handleOffsetChange);
+  }, [currentMonth, currentYear]);
+
   const fetchMonthCalendar = async (month: number, year: number) => {
     try {
       setLoading(true);
+      const offset = parseInt(localStorage.getItem('hijri-date-offset') || '0', 10);
       const response = await fetch(
-        `https://api.aladhan.com/v1/gToHCalendar/${month}/${year}?adjustment=0`
+        `https://api.aladhan.com/v1/gToHCalendar/${month}/${year}?adjustment=${offset}`
       );
       const rawData = await response.json();
 

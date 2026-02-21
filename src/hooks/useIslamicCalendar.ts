@@ -107,18 +107,14 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
       if (todayData) {
         const h = todayData.date.hijri;
 
-        // Support manual ±1 day offset from localStorage (user correction)
-        const offset = parseInt(localStorage.getItem('hijri-date-offset') || '0', 10);
-        const adjustedDay = Math.max(1, parseInt(h.day, 10) + offset);
-
-        setHijriDay(String(adjustedDay));
+        setHijriDay(h.day);
         setHijriMonthNum(h.month.number);
         setHijriMonthEn(h.month.en);
         setHijriMonthAr(h.month.ar);
         setHijriYear(h.year);
         setHijriWeekday(h.weekday);
         setHijriHolidays(h.holidays || []);
-        console.log(`[useIslamicCalendar] Using API Hijri date: ${adjustedDay} ${h.month.en} ${h.year}${offset ? ` (offset: ${offset})` : ''}`);
+        console.log(`[useIslamicCalendar] Using API Hijri date: ${h.day} ${h.month.en} ${h.year}`);
       } else {
         // Fallback: use the gToH API directly
         console.log('[useIslamicCalendar] No cached data, falling back to gToH API');
@@ -144,6 +140,13 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
   // Initial computation + recompute when location changes
   useEffect(() => {
     computeIslamicDate();
+  }, [computeIslamicDate]);
+
+  // Listen for manual Hijri offset changes
+  useEffect(() => {
+    const handleOffsetChange = () => computeIslamicDate();
+    window.addEventListener('hijri-date-offset-changed', handleOffsetChange);
+    return () => window.removeEventListener('hijri-date-offset-changed', handleOffsetChange);
   }, [computeIslamicDate]);
 
   // Check every minute to detect Maghrib crossing

@@ -13,6 +13,7 @@ import { getTheme, setTheme, getMadhab, setMadhab, getTimeFormat, setTimeFormat 
 import { AdhanSelector } from "@/components/AdhanSelector";
 import { CustomAdhanUpload } from "@/components/CustomAdhanUpload";
 import { getCalculationMethod, setCalculationMethod, CALCULATION_METHOD_LABELS, type CalculationMethodName } from "@/lib/prayer-calculator";
+import { AladhanAPI } from "@/lib/aladhan-api";
 import { getStorageStats, clearAllBooks, formatFileSize } from "@/lib/ebooks-storage";
 import { downloadBackup, importBackup, clearCache, getQuranFontSize, setQuranFontSize } from "@/lib/backup";
 import { isSalamGreetingEnabled, setSalamGreetingEnabled } from "@/components/SalamGreeting";
@@ -61,7 +62,7 @@ const Profile = () => {
   } = usePrayerAlarm();
 
   const [reminderMinutes, setReminderMinutes] = useState('0');
-
+  const [hijriOffset, setHijriOffset] = useState('0');
   // Prayer notification states
   const [prayerNotificationsEnabled, setPrayerNotificationsEnabled] = useState(false);
   const [prayerNotificationsLoading, setPrayerNotificationsLoading] = useState(true);
@@ -87,6 +88,9 @@ const Profile = () => {
     const saved = localStorage.getItem('prayer-reminder-minutes');
     if (saved) setReminderMinutes(saved);
 
+    const savedHijriOffset = localStorage.getItem('hijri-date-offset');
+    if (savedHijriOffset) setHijriOffset(savedHijriOffset);
+
     // Improved notification support check for mobile
     unifiedNotifications.getPermissionStatus().then(status => {
       setNotificationsSupported(status === 'granted');
@@ -104,7 +108,7 @@ const Profile = () => {
     };
 
     window.addEventListener('gender-settings-updated', handleGenderSettingsUpdate);
-    
+
     return () => {
       window.removeEventListener('gender-settings-updated', handleGenderSettingsUpdate);
     };
@@ -341,10 +345,10 @@ const Profile = () => {
   const handleGenderChange = (newGender: Gender) => {
     const updated = setGender(newGender);
     setGenderSettingsState(updated);
-    
+
     toast({
       title: "Gender updated",
-      description: newGender === "female" 
+      description: newGender === "female"
         ? "Menstrual mode features are now available."
         : "Your preferences have been updated.",
     });
@@ -353,6 +357,16 @@ const Profile = () => {
   const handleReminderChange = (value: string) => {
     setReminderMinutes(value);
     localStorage.setItem('prayer-reminder-minutes', value);
+  };
+
+  const handleHijriOffsetChange = (value: string) => {
+    setHijriOffset(value);
+    localStorage.setItem('hijri-date-offset', value);
+    AladhanAPI.clearCachedData();
+    window.dispatchEvent(new Event('hijri-date-offset-changed'));
+    const days = parseInt(value, 10);
+    const sign = days > 0 ? '+' : '';
+    toast({ title: `Hijri date offset updated`, description: `Offset is now ${sign}${days} day${Math.abs(days) !== 1 ? 's' : ''}` });
   };
 
 
@@ -470,7 +484,7 @@ const Profile = () => {
               </SelectContent>
             </Select>
             <p className="text-xs text-muted-foreground">
-              {genderSettings.gender === "female" 
+              {genderSettings.gender === "female"
                 ? "Menstrual mode features are available for you."
                 : "This helps us personalize your experience."}
             </p>
@@ -511,6 +525,28 @@ const Profile = () => {
               </SelectContent>
             </Select>
           </div>
+
+          <div className="space-y-2 pt-2 border-t border-border/50">
+            <Label className="text-xs text-muted-foreground font-medium flex items-center gap-2">
+              <Moon className="w-3 h-3" />
+              Hijri Date Adjustment
+            </Label>
+            <Select value={hijriOffset} onValueChange={handleHijriOffsetChange}>
+              <SelectTrigger>
+                <SelectValue />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="-2">-2 Days</SelectItem>
+                <SelectItem value="-1">-1 Day</SelectItem>
+                <SelectItem value="0">0 Days (Auto)</SelectItem>
+                <SelectItem value="1">+1 Day</SelectItem>
+                <SelectItem value="2">+2 Days</SelectItem>
+              </SelectContent>
+            </Select>
+            <p className="text-[10px] text-muted-foreground">
+              Adjust the Islamic calendar if the moon sighting differs in your region.
+            </p>
+          </div>
         </Card>
 
         {/* Adhan Settings */}
@@ -550,7 +586,7 @@ const Profile = () => {
                 }}
               />
             </div>
-            
+
             {isAlarmPlaying && (
               <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 animate-pulse mb-3">
                 <div className="flex items-center justify-between">
