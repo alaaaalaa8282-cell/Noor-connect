@@ -351,11 +351,11 @@ export default function Dashboard() {
                   {currentTime.toLocaleTimeString("en-US", {
                     hour: timeFormat === '12' ? 'numeric' : '2-digit',
                     minute: "2-digit",
-                    hour12: false,
+                    hour12: timeFormat === '12',
                     timeZone: location.timeZone || undefined
-                  })}
+                  }).replace(/\s+[APap][Mm]/, '')}
                   <span className="text-xl sm:text-2xl ml-2 font-light text-white/60 tracking-normal font-sans">
-                    {timeFormat === '12' ? currentTime.toLocaleTimeString("en-US", { hour12: true, timeZone: location.timeZone }).split(' ')[1] : ''}
+                    {timeFormat === '12' ? currentTime.toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: location.timeZone }).split(' ')[1] : ''}
                   </span>
                 </h1>
 
