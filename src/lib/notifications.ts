@@ -49,11 +49,11 @@ export const shouldRequestPermission = (): boolean => {
   // On native platform, always allow re-prompting even after denial
   // Capacitor can re-trigger the native permission dialog
   if (isNative && permission === 'denied') {
-    // Check cooldown — don't spam the user, ask every 30 minutes
+    // Check cooldown — don't spam the user, ask every 24 hours
     const lastAskedTimestamp = localStorage.getItem('notification-last-asked');
     if (lastAskedTimestamp) {
-      const thirtyMinutes = 30 * 60 * 1000;
-      if (Date.now() - parseInt(lastAskedTimestamp) < thirtyMinutes) {
+      const oneDay = 24 * 60 * 60 * 1000;
+      if (Date.now() - parseInt(lastAskedTimestamp) < oneDay) {
         return false;
       }
     }
@@ -62,19 +62,25 @@ export const shouldRequestPermission = (): boolean => {
 
   if (permission !== 'default') return false;
 
-  if (!isStandalone && !isNative) return false;
+  // We want to ask all users eventually, but maybe prioritize standalone/native
+  // For web users, we only ask if permission is 'default' and we haven't asked recently
 
   // For APK/PWA users, check if we should ask again (more frequent)
   const lastAskedTimestamp = localStorage.getItem('notification-last-asked');
   if (lastAskedTimestamp) {
     const lastAskedTime = parseInt(lastAskedTimestamp);
-    const oneHour = 60 * 60 * 1000;
-    if (Date.now() - lastAskedTime < oneHour) {
+    const oneDay = 24 * 60 * 60 * 1000; // Ask once a day max
+    if (Date.now() - lastAskedTime < oneDay) {
       return false;
     }
   }
 
   return true;
+};
+
+// Record when we asked for permission to respect cooldown
+export const recordPermissionAsked = (): void => {
+  localStorage.setItem('notification-last-asked', Date.now().toString());
 };
 
 // Force request permission (for APK users - bypass cooldown)
@@ -146,7 +152,13 @@ export const requestNotificationPermission = async (): Promise<boolean> => {
     }
 
     // Fallback to Web Notification API
-    const permission = await Notification.requestPermission();
+    // Compatibility for older browsers that don't return a promise
+    const permission = await new Promise<NotificationPermission>((resolve) => {
+      const result = Notification.requestPermission(resolve);
+      if (result && (result as any).then) {
+        (result as any).then(resolve);
+      }
+    });
     if (permission === 'granted') {
       localStorage.setItem(NOTIFICATION_PERMISSION_KEY, 'true');
 

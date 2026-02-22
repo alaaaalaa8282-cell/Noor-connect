@@ -96,9 +96,9 @@ function AppRoutes() {
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#0a1128] via-[#1a237e] to-[#0d1b2a] relative overflow-hidden">
-        {/* Animated background orbs */}
-        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#e0c097] rounded-full blur-[100px] opacity-20 animate-pulse" />
-        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#4fd1c5] rounded-full blur-[80px] opacity-15 animate-pulse" />
+        {/* Static background orbs optimized for mobile performance */}
+        <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#e0c097] rounded-full opacity-5 blur-3xl" />
+        <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#4fd1c5] rounded-full opacity-[0.03] blur-3xl" />
 
         <div className="relative z-10 flex flex-col items-center gap-6">
           {/* Premium Spinner Container */}

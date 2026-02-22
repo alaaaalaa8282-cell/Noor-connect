@@ -592,6 +592,21 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     return () => clearInterval(interval);
   }, [location?.latitude, location?.longitude, needsManualLocation]); // Use specific location properties
 
+  // Network listener - refresh as soon as we get internet
+  useEffect(() => {
+    const handleOnline = () => {
+      console.log('Internet connection restored, updating prayer times...');
+      if (location) {
+        fetchPrayerTimesWithCoordinates(location);
+      } else {
+        fetchPrayerTimes();
+      }
+    };
+
+    window.addEventListener('online', handleOnline);
+    return () => window.removeEventListener('online', handleOnline);
+  }, [location, fetchPrayerTimes, fetchPrayerTimesWithCoordinates]);
+
   // Schedule notifications only when prayer times actually change (deep comparison)
   useEffect(() => {
     if (!prayerTimes || !location) return;

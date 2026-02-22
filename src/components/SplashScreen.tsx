@@ -331,24 +331,41 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
 
     const shouldShowPermissionPrompt = useCallback(async (): Promise<boolean> => {
         try {
-            let needsNotificationPermission = shouldRequestPermission() || forceRequestPermission();
+            // Check global cooldown — don't bother user more than once every 24 hours
+            const lastAsked = localStorage.getItem('notification-last-asked');
+            if (lastAsked) {
+                const oneDay = 24 * 60 * 60 * 1000;
+                if (Date.now() - parseInt(lastAsked) < oneDay) {
+                    return false;
+                }
+            }
+
+            let needsNotificationPermission = shouldRequestPermission();
             if (Capacitor.isNativePlatform()) {
                 const notificationStatus = await unifiedNotifications.getPermissionStatus();
-                needsNotificationPermission = notificationStatus !== 'granted';
+                needsNotificationPermission = notificationStatus !== 'granted' && shouldRequestPermission();
             }
 
             let needsLocationPermission = false;
-            if (Capacitor.isNativePlatform() && GeolocationService.isSupported()) {
+            if (GeolocationService.isSupported()) {
                 const locationPermissions = await GeolocationService.checkPermissions();
-                needsLocationPermission =
-                    locationPermissions.location !== 'granted' &&
-                    locationPermissions.coarseLocation !== 'granted';
+
+                // If native, we check formal permission status
+                if (Capacitor.isNativePlatform()) {
+                    needsLocationPermission =
+                        locationPermissions.location !== 'granted' &&
+                        locationPermissions.coarseLocation !== 'granted';
+                } else {
+                    // On web, we check if we have any location stored. If not, we should prompt to get it.
+                    const storedLocation = localStorage.getItem('user-location-data');
+                    needsLocationPermission = !storedLocation || locationPermissions.location === 'prompt';
+                }
             }
 
             return needsNotificationPermission || needsLocationPermission;
         } catch (error) {
             console.error("Failed to check startup permissions:", error);
-            return shouldRequestPermission() || forceRequestPermission();
+            return shouldRequestPermission();
         }
     }, []);
 
@@ -384,9 +401,8 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
 
         if (isStandalone) {
             const permissionReminder = setInterval(() => {
-                const permission = getNotificationPermission();
-                if (permission === 'default' && !showPermissionRequest && !permissionHandled) {
-                    // Show permission reminder every 30 minutes for APK users
+                if (shouldRequestPermission() && !showPermissionRequest && !permissionHandled) {
+                    // Show permission reminder every 30 minutes for APK users (only if cooldown passed)
                     setShowPermissionRequest(true);
                 }
             }, 30 * 60 * 1000); // 30 minutes
@@ -438,6 +454,9 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
     };
 
     const handleSkipPermission = () => {
+        // Record that we asked so we don't ask again on next app open (respects 24h cooldown)
+        import("@/lib/notifications").then(mod => mod.recordPermissionAsked());
+
         setShowPermissionRequest(false);
         setPermissionHandled(true);
         setTimeout(() => {

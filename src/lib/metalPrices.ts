@@ -56,7 +56,7 @@ export class MetalPricesService {
       const nisab = nisabData.status === 'fulfilled' ? nisabData.value : null;
 
       // If we have metal prices, use them; otherwise use fallback
-      let finalPrices = prices || await this.getFallbackPrices(currency);
+      const finalPrices = prices || await this.getFallbackPrices(currency);
 
       // If we have nisab data from Islamic API, update the nisab values
       if (nisab && nisab.status === 'success') {

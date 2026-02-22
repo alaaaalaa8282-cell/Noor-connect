@@ -151,7 +151,14 @@ export class NotificationManager {
       return false;
     }
 
-    const permission = await Notification.requestPermission();
+    // Compatibility for older browsers that don't return a promise
+    const permission = await new Promise<NotificationPermission>((resolve) => {
+      const result = Notification.requestPermission(resolve);
+      if (result && (result as any).then) {
+        (result as any).then(resolve);
+      }
+    });
+
     return permission === 'granted';
   }
 
@@ -417,22 +424,23 @@ export class NotificationManager {
     }, 60000);
 
     // For APK users, add persistent permission checking
-    const isStandalone = window.matchMedia('(display-mode: standalone)').matches || 
-                       ('standalone' in window.navigator && (window.navigator as any).standalone) || 
-                       document.referrer.includes('android-app://');
+    const isStandalone = window.matchMedia('(display-mode: standalone)').matches ||
+      ('standalone' in window.navigator && (window.navigator as any).standalone) ||
+      document.referrer.includes('android-app://');
 
     if (isStandalone) {
-      // Check permissions every 5 minutes for APK users
-      this.permissionCheckInterval = setInterval(() => {
-        if (Notification.permission === 'default') {
-          console.log('APK user still has default notification permission - should request again');
+      // Check permissions every 30 minutes, but only trigger if cooldown allows
+      this.permissionCheckInterval = setInterval(async () => {
+        const { shouldRequestPermission } = await import('./notifications');
+        if (shouldRequestPermission()) {
+          console.log('APK user needs notification permission - triggering persistent check');
           // Trigger a permission request event that UI can listen to
           const permissionEvent = new CustomEvent('requestNotificationPermission', {
             detail: { source: 'apk-persistent-check' }
           });
           window.dispatchEvent(permissionEvent);
         }
-      }, 5 * 60 * 1000); // 5 minutes
+      }, 30 * 60 * 1000); // 30 minutes
     }
 
     // Check immediately on start
@@ -445,12 +453,12 @@ export class NotificationManager {
       clearInterval(this.intervalId);
       this.intervalId = null;
     }
-    
+
     if (this.permissionCheckInterval !== null) {
       clearInterval(this.permissionCheckInterval);
       this.permissionCheckInterval = null;
     }
-    
+
     console.log('Notification service stopped');
   }
 }

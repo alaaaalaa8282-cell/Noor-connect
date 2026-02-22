@@ -81,7 +81,14 @@ class UnifiedNotificationService {
 
     // Web Notifications
     try {
-      const permission = await Notification.requestPermission();
+      // Compatibility for older browsers that don't return a promise
+      const permission = await new Promise<NotificationPermission>((resolve) => {
+        const result = Notification.requestPermission(resolve);
+        if (result && (result as any).then) {
+          (result as any).then(resolve);
+        }
+      });
+
       this.permission = permission;
       return permission === 'granted';
     } catch (error) {

@@ -275,7 +275,7 @@ export class LocalNotificationManager {
             id: notificationId,
             triggerAt: prayerDate.getTime(),
             prayerName,
-            adhanUrl: getAdhanUrlForPrayer(prayerName as PrayerName),
+            adhanUrl: await getAdhanUrlForPrayer(prayerName as PrayerName),
           });
 
           if (dayOffset === 0) {

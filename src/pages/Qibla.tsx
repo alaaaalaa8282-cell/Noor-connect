@@ -4,6 +4,7 @@ import { GeolocationService } from "@/lib/geolocation-service";
 import { AppBar } from "@/components/AppBar";
 import { PageTransition } from "@/components/PageTransition";
 import { useLanguage } from "@/contexts/LanguageContext";
+import { Button } from "@/components/ui/button";
 
 /**
  * Approximate magnetic declination
@@ -28,10 +29,13 @@ const QIBLA_ICONS = [
 
 const Qibla = () => {
   const { t } = useLanguage();
-  const [isLoading, setIsLoading] = useState<boolean>(true);
+  const [isLoading, setIsLoading] = useState<boolean>(false);
   const [error, setError] = useState<string>("");
   const [hasCompass, setHasCompass] = useState<boolean>(true); // Assume true initially to avoid UI flicker
   const [iconIndex, setIconIndex] = useState<number>(0);
+  const [requiresActivation, setRequiresActivation] = useState<boolean>(false);
+  const [permissionState, setPermissionState] = useState<'prompt' | 'granted' | 'denied'>('prompt');
+  const [isInitialized, setIsInitialized] = useState<boolean>(false);
 
   const compassListenerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
   const compassRef = useRef<HTMLImageElement>(null);
@@ -40,6 +44,7 @@ const Qibla = () => {
   const qiblaDirectionRef = useRef<number>(0);
   const declinationRef = useRef<number>(0);
   const hasCompassRef = useRef<boolean>(true);
+  const eventReceivedRef = useRef<boolean>(false);
 
   useEffect(() => {
     hasCompassRef.current = hasCompass;
@@ -80,13 +85,14 @@ const Qibla = () => {
         let rot = currentRotationRef.current % 360;
         if (rot < 0) rot += 360;
 
-        let diff = rot > 180 ? 360 - rot : rot;
-        let dir = rot > 180 ? "Right" : "Left";
+        const diff = rot > 180 ? 360 - rot : rot;
+        const dir = rot > 180 ? "Right" : "Left";
 
         if (diff < 2) {
           textRef.current.innerHTML = `<span style="color:hsl(var(--primary)); font-weight:700">You are facing Qibla</span>`;
+          // Optional: Add haptic feedback here if we add the plugin later
         } else {
-          textRef.current.innerHTML = `Turn <span style="font-weight:700; color:hsl(var(--primary))">${dir}</span> ${Math.round(diff)}°`;
+          textRef.current.innerHTML = `Turn <span style="font-weight:700; color:hsl(var(--primary))">${dir}</span> ${Math.round(diff)}° <span style="font-size: 10px; opacity: 0.5; margin-left: 4px;">(${Math.round(rot)}°)</span>`;
         }
       } else {
         textRef.current.innerHTML = `Qibla is <span style="font-weight:700; color:hsl(var(--primary))">${Math.round(qiblaDirectionRef.current)}°</span> from North`;
@@ -108,11 +114,15 @@ const Qibla = () => {
 
       if (heading == null && e.alpha != null) {
         // Fallback or absolute orientation
+        // Check if alpha is actually absolute or if we should use absolute event
         heading = (360 - e.alpha) % 360;
       }
 
       if (heading != null && !isNaN(heading)) {
+        eventReceivedRef.current = true;
         setHasCompass(true);
+        setRequiresActivation(false);
+        setPermissionState('granted');
         // Calculate qibla rotation. declination applies if heading is based on magnetic north instead of true north
         const isMagnetic = !(e as any).absolute && !('webkitCompassHeading' in e);
         const rotation = qiblaDirectionRef.current - heading - (isMagnetic ? declinationRef.current : 0);
@@ -126,12 +136,16 @@ const Qibla = () => {
           if (state === 'granted') {
             window.addEventListener('deviceorientation', handler, true);
             compassListenerRef.current = handler;
+            setPermissionState('granted');
+            setRequiresActivation(false);
           } else {
             setHasCompass(false);
+            setPermissionState('denied');
           }
         })
         .catch(() => {
           setHasCompass(false);
+          setRequiresActivation(true); // Shows button to try again with gesture
         });
     } else {
       // Use deviceorientationabsolute on Android Chrome for accurate true north tracking
@@ -139,10 +153,13 @@ const Qibla = () => {
       window.addEventListener(eventType, handler, true);
       compassListenerRef.current = handler;
 
-      // Fallback detection if no data after 1.5s
+      // Check if we get data
       setTimeout(() => {
-        if (targetRotationRef.current === 0) setHasCompass(false);
-      }, 1500);
+        if (!eventReceivedRef.current) {
+          // If 2s passed and still no sensor data, we might need a user gesture
+          setRequiresActivation(true);
+        }
+      }, 2000);
     }
   }, [updateCompassUI]);
 
@@ -164,6 +181,7 @@ const Qibla = () => {
     try {
       setIsLoading(true);
       setError("");
+      eventReceivedRef.current = false; // Reset for new attempt
 
       const position = await GeolocationService.getCurrentPosition({
         enableHighAccuracy: true,
@@ -198,7 +216,7 @@ const Qibla = () => {
       }
 
       startCompass();
-
+      setIsInitialized(true);
     } catch (err) {
       setError(err instanceof Error ? err.message : "Unable to detect location");
     } finally {
@@ -206,9 +224,11 @@ const Qibla = () => {
     }
   };
 
-  useEffect(() => {
+  const handleInitialize = () => {
     calculateQibla();
-  }, []);
+  };
+
+  // Initialization is handled via user gesture (handleInitialize)
 
   return (
     <PageTransition>
@@ -218,7 +238,39 @@ const Qibla = () => {
         <AppBar title={t('qibla') || "Qibla Direction"} />
 
         <div className="flex-1 flex flex-col items-center justify-center p-6 mt-4">
-          {isLoading ? (
+          {!isInitialized ? (
+            <div className="flex flex-col items-center max-w-sm w-full gap-8 text-center animate-in fade-in zoom-in duration-500">
+              <div className="relative w-48 h-48 flex items-center justify-center">
+                <div className="absolute inset-0 bg-primary/10 rounded-full blur-2xl animate-pulse"></div>
+                <div className="relative w-32 h-32 rounded-[40px] bg-card border border-border shadow-xl flex items-center justify-center rotate-12">
+                  <div className="absolute inset-[-1px] rounded-[40px] bg-gradient-to-br from-primary/20 to-transparent -z-10"></div>
+                  <div className="w-20 h-20 rounded-full bg-primary/20 flex items-center justify-center">
+                    <RefreshCw className="w-10 h-10 text-primary animate-spin-slow" />
+                  </div>
+                </div>
+              </div>
+
+              <div className="space-y-4">
+                <h2 className="text-3xl font-bold tracking-tight text-foreground">Qibla Compass</h2>
+                <p className="text-muted-foreground leading-relaxed px-4">
+                  To find the precise direction of Kaaba, we need to access your device orientation sensors and location.
+                </p>
+              </div>
+
+              <Button
+                onClick={handleInitialize}
+                size="lg"
+                className="w-full max-w-[280px] h-16 rounded-2xl text-lg font-bold shadow-xl shadow-primary/20 hover:scale-[1.02] active:scale-[0.98] transition-all bg-primary text-primary-foreground"
+              >
+                Start Compass
+              </Button>
+
+              <div className="flex items-center gap-2 text-xs text-muted-foreground/60">
+                <Info className="w-3 h-3" />
+                <span>Requires orientation and location access</span>
+              </div>
+            </div>
+          ) : isLoading ? (
             <div className="flex flex-col items-center py-20 gap-4">
               <div className="relative">
                 <div className="w-16 h-16 border-4 border-primary/20 rounded-full animate-spin"></div>
@@ -247,8 +299,14 @@ const Qibla = () => {
               <div className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-[350px] h-[350px] bg-primary/10 rounded-full blur-3xl pointer-events-none -z-10" />
 
               {/* Top Chevron pointing to "forward/device top" */}
-              <div className="mb-6 z-10 animate-bounce">
-                <ChevronUp className="w-12 h-12 text-primary font-black drop-shadow-md" strokeWidth={4} />
+              <div className="mb-6 z-10 flex flex-col items-center gap-2">
+                <ChevronUp className="w-12 h-12 text-primary font-black drop-shadow-md animate-bounce" strokeWidth={4} />
+                {!requiresActivation && hasCompass && eventReceivedRef.current && (
+                  <div className="px-2 py-0.5 rounded-full bg-emerald-500/10 border border-emerald-500/20 flex items-center gap-1">
+                    <span className="w-1.5 h-1.5 rounded-full bg-emerald-500 animate-pulse"></span>
+                    <span className="text-[10px] font-bold text-emerald-600 uppercase tracking-widest">Live Sensor</span>
+                  </div>
+                )}
               </div>
 
               {/* Compass Interactive Area */}
@@ -323,8 +381,26 @@ const Qibla = () => {
 
               {/* Information and Errors Container */}
               <div className="mt-8 flex flex-col gap-3 w-full px-2">
+                {/* Activation Button if gesture needed */}
+                {requiresActivation && (
+                  <Button
+                    onClick={() => {
+                      if (compassListenerRef.current) {
+                        const eventType = 'ondeviceorientationabsolute' in window ? 'deviceorientationabsolute' : 'deviceorientation';
+                        window.removeEventListener(eventType, compassListenerRef.current, true);
+                        compassListenerRef.current = null;
+                      }
+                      startCompass();
+                    }}
+                    className="w-full py-6 rounded-2xl bg-primary text-primary-foreground font-bold shadow-lg flex items-center justify-center gap-2 animate-pulse"
+                  >
+                    <RefreshCw className="w-5 h-5" />
+                    Enable Compass Sensor
+                  </Button>
+                )}
+
                 {/* Compass Error Fallback */}
-                {!hasCompass && (
+                {!hasCompass && !requiresActivation && (
                   <div className="w-full px-5 py-3.5 relative overflow-hidden rounded-2xl bg-amber-500/10 border border-amber-500/20 shadow-sm flex items-center gap-3">
                     <div className="absolute left-0 top-0 bottom-0 w-1 bg-amber-500 rounded-l-2xl"></div>
                     <AlertTriangle className="w-5 h-5 text-amber-600 dark:text-amber-400 shrink-0" />

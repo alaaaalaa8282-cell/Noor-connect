@@ -62,10 +62,22 @@ export function getAdhanForPrayer(prayer: PrayerName): string {
 /**
  * Get the adhan URL for a specific prayer
  */
-export function getAdhanUrlForPrayer(prayer: PrayerName): string {
+export async function getAdhanUrlForPrayer(prayer: PrayerName): Promise<string> {
     const adhanId = getAdhanForPrayer(prayer);
+
+    // Check if it's a custom adhan
+    if (adhanId.startsWith('custom-')) {
+        try {
+            const { getCustomAdhanUrl } = await import('@/components/CustomAdhanUpload');
+            const customUrl = await getCustomAdhanUrl(adhanId);
+            if (customUrl) return customUrl;
+        } catch (err) {
+            console.error('Failed to load custom adhan url:', err);
+        }
+    }
+
     const adhan = ALL_ADHAN_OPTIONS.find(a => a.id === adhanId);
-    return adhan?.url || ALL_ADHAN_OPTIONS[0].url;
+    return adhan?.url || ALL_ADHAN_OPTIONS[1].url; // Default to Makkah if not found
 }
 
 /**

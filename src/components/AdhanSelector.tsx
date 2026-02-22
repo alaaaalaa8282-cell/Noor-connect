@@ -51,16 +51,43 @@ export const AdhanSelector = () => {
   const [preferences, setPreferences] = useState<AdhanPreferences>(getAdhanPreferences);
   const [isExpanded, setIsExpanded] = useState(false);
   const [playingPrayer, setPlayingPrayer] = useState<PrayerName | null>(null);
+  const [customAdhans, setCustomAdhans] = useState<{ id: string, name: string }[]>([]);
   const timeoutRef = useRef<NodeJS.Timeout | null>(null);
 
-  // Cleanup on unmount
   useEffect(() => {
+    // Load custom adhans for the dropdown
+    const loadCustomMetadata = async () => {
+      try {
+        const localforage = (await import('localforage')).default;
+        const adhanStore = localforage.createInstance({
+          name: 'islamic-companion',
+          storeName: 'custom-adhans',
+          description: 'User uploaded adhan audio files'
+        });
+        const saved = await adhanStore.getItem<any[]>('custom-adhan-audio');
+        if (saved) {
+          setCustomAdhans(saved.map(a => ({ id: a.id, name: `Custom: ${a.name}` })));
+        }
+      } catch (error) {
+        console.error("Error loading custom adhan metadata:", error);
+      }
+    };
+
+    loadCustomMetadata();
+
+    // Sync preferences when storage changes
+    const handleStorage = () => {
+      setPreferences(getAdhanPreferences());
+    };
+    window.addEventListener('storage', handleStorage);
+
     return () => {
       stopAllAdhanPreviews();
       if (timeoutRef.current) {
         clearTimeout(timeoutRef.current);
       }
       setPlayingPrayer(null);
+      window.removeEventListener('storage', handleStorage);
     };
   }, []);
 
@@ -74,12 +101,13 @@ export const AdhanSelector = () => {
       clearTimeout(timeoutRef.current);
     }
     setPlayingPrayer(null);
+
+    // Trigger notification reschedule
+    window.dispatchEvent(new Event('prayer-method-changed'));
   };
 
-  const handlePreview = (prayer: PrayerName) => {
+  const handlePreview = async (prayer: PrayerName) => {
     const adhanId = preferences[prayer];
-    const adhan = ALL_ADHAN_OPTIONS.find(a => a.id === adhanId);
-    if (!adhan) return;
 
     // If already playing this prayer's adhan, stop it
     if (playingPrayer === prayer) {
@@ -94,8 +122,20 @@ export const AdhanSelector = () => {
     // Stop any existing audio first
     stopAllAdhanPreviews();
 
+    let adhanUrl = "";
+    if (adhanId.startsWith('custom-')) {
+      const { getCustomAdhanUrl } = await import('./CustomAdhanUpload');
+      const url = await getCustomAdhanUrl(adhanId);
+      if (url) adhanUrl = url;
+    } else {
+      const adhan = ALL_ADHAN_OPTIONS.find(a => a.id === adhanId);
+      if (adhan) adhanUrl = adhan.url;
+    }
+
+    if (!adhanUrl) return;
+
     // Create new audio instance
-    globalPreviewAudio = new Audio(adhan.url);
+    globalPreviewAudio = new Audio(adhanUrl);
     globalPreviewAudio.volume = 0.5;
 
     const handleEnded = () => {
@@ -118,6 +158,8 @@ export const AdhanSelector = () => {
       globalPreviewAudio = null;
     });
   };
+
+  const combinedOptions = [...ALL_ADHAN_OPTIONS, ...customAdhans];
 
   return (
     <Card className="p-4 bg-card border-border">
@@ -158,7 +200,7 @@ export const AdhanSelector = () => {
                   <SelectValue placeholder="Select Adhan" />
                 </SelectTrigger>
                 <SelectContent className="bg-popover border-border z-50">
-                  {ALL_ADHAN_OPTIONS.map((adhan) => (
+                  {combinedOptions.map((adhan) => (
                     <SelectItem key={adhan.id} value={adhan.id}>
                       {adhan.name}
                     </SelectItem>

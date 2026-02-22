@@ -1,0 +1,15 @@
+
+> vite_react_shadcn_ts@0.0.0 lint
+> eslint .
+
+
+C:\Users\urooj\Videos\Noor-connect\src\lib\metalPrices.ts
+  59:11  error  'finalPrices' is never reassigned. Use 'const' instead  prefer-const
+
+C:\Users\urooj\Videos\Noor-connect\src\pages\Qibla.tsx
+  83:13  error  'diff' is never reassigned. Use 'const' instead  prefer-const
+  84:13  error  'dir' is never reassigned. Use 'const' instead   prefer-const
+
+✖ 3 problems (3 errors, 0 warnings)
+  3 errors and 0 warnings potentially fixable with the `--fix` option.
+

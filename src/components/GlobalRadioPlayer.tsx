@@ -28,6 +28,8 @@ export function GlobalRadioPlayer() {
   const [isLoading, setIsLoading] = useState(false);
   const [isVisible, setIsVisible] = useState(false);
   const [displayDuration, setDisplayDuration] = useState(0);
+  const [retryCount, setRetryCount] = useState(0);
+  const MAX_RETRIES = 2;
 
   // Protection refs
   const playPromiseRef = useRef<Promise<void> | null>(null);
@@ -135,6 +137,7 @@ export function GlobalRadioPlayer() {
       isTransitioning.current = false;
       globalRadio.updateRadioState({ isPlaying: true, sessionStartTime: Date.now() });
       setIsLoading(false);
+      setRetryCount(0); // Reset retry count on success
     };
 
     const handlePause = () => {
@@ -159,12 +162,48 @@ export function GlobalRadioPlayer() {
     };
 
     const handleError = (e: Event) => {
-      isTransitioning.current = false;
       const audioElem = e.target as HTMLAudioElement;
+
+      // Ignore spurious errors resulting from empty/cleared sources
+      if (!audioElem.src || audioElem.src === window.location.href) {
+        return;
+      }
+
+      // Ignore error if it's not the currently expected station (happens on fast switching)
+      const currentRequestedUrl = globalRadio.currentStation?.url?.replace("http://", "https://") || "";
+      if (currentRequestedUrl && !audioElem.src.includes(currentRequestedUrl)) {
+        return;
+      }
+
+      isTransitioning.current = false;
       console.error('Global radio error:', audioElem.error);
+
+      // Handle Automatic Retry
+      if (retryCount < MAX_RETRIES && audioElem.error?.code !== MediaError.MEDIA_ERR_ABORTED) {
+        console.log(`Retrying playback... Attempt ${retryCount + 1}/${MAX_RETRIES}`);
+        setRetryCount(prev => prev + 1);
+
+        // Brief delay before retrying
+        setTimeout(() => {
+          if (globalRadio.isPlaying && globalRadio.currentStation) {
+            // Add a cache-buster on retry to bypass potential server-side format errors/bad caches
+            const currentUrl = audioElem.src.split('?')[0];
+            const busterUrl = `${currentUrl}?cb=${Date.now()}`;
+            audioElem.src = busterUrl;
+            audioElem.load();
+            audioElem.play().catch(e => {
+              if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
+                console.warn('Retry play failed:', e);
+              }
+            });
+          }
+        }, 1500);
+        return;
+      }
 
       globalRadio.updateRadioState({ isPlaying: false });
       setIsLoading(false);
+      setRetryCount(0);
 
       let errorMessage = "Failed to play radio station.";
       if (audioElem.error) {
@@ -261,8 +300,6 @@ export function GlobalRadioPlayer() {
           isTransitioning.current = true;
           audio.pause();
           destroyHls();
-          audio.src = "";
-          audio.load(); // Explicit load as requested to clear
 
           const isM3U8 = secureUrl.toLowerCase().includes(".m3u8");
           const supportsNativeHls = audio.canPlayType('application/vnd.apple.mpegurl') ||
@@ -286,18 +323,24 @@ export function GlobalRadioPlayer() {
             });
           } else {
             audio.src = secureUrl;
-            audio.load();
+
             if (globalRadio.isPlaying) {
               const promise = audio.play();
-              playPromiseRef.current = promise;
-              await promise;
+              if (promise !== undefined) {
+                promise.catch(e => {
+                  if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
+                    console.error('Playback failed:', e);
+                  }
+                });
+              }
             }
           }
         } catch (e: any) {
-          if (e.name !== 'AbortError') console.error('Station change play error:', e);
+          if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
+            console.error('Station change play error:', e);
+          }
         } finally {
           isTransitioning.current = false;
-          playPromiseRef.current = null;
         }
         return;
       }
@@ -309,18 +352,25 @@ export function GlobalRadioPlayer() {
         if (globalRadio.isPlaying && audio.paused) {
           isTransitioning.current = true;
           const promise = audio.play();
-          playPromiseRef.current = promise;
-          await promise;
+          if (promise !== undefined) {
+            promise.catch(e => {
+              if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
+                console.error('Sync play failed:', e);
+              }
+            }).finally(() => {
+              isTransitioning.current = false;
+            });
+          } else {
+            isTransitioning.current = false;
+          }
         } else if (!globalRadio.isPlaying && !audio.paused) {
           audio.pause();
         }
       } catch (error: any) {
-        if (error.name !== 'AbortError') {
+        isTransitioning.current = false;
+        if (error.name !== 'AbortError' && error.name !== 'NotSupportedError') {
           console.error('Remote sync error:', error);
         }
-      } finally {
-        isTransitioning.current = false;
-        playPromiseRef.current = null;
       }
     }, 200);
 
@@ -348,12 +398,23 @@ export function GlobalRadioPlayer() {
       } else {
         setIsLoading(true);
         const promise = audio.play();
-        playPromiseRef.current = promise;
-        await promise;
+        if (promise !== undefined) {
+          promise.catch(e => {
+            if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
+              console.error('Manual play failed:', e);
+              setIsLoading(false);
+            }
+          }).finally(() => {
+            isTransitioning.current = false;
+          });
+        } else {
+          isTransitioning.current = false;
+        }
         // UI state updates via handlePlaying listener
       }
     } catch (error: any) {
-      if (error.name !== 'AbortError') {
+      isTransitioning.current = false;
+      if (error.name !== 'AbortError' && error.name !== 'NotSupportedError') {
         console.error('Manual play/pause error:', error);
         toast({
           title: "Playback Error",

@@ -33,7 +33,7 @@ export const BottomNav = memo(function BottomNav() {
       }}
     >
       {/* Floating Island Base matching the user's screenshot exactly */}
-      <div className="w-full max-w-screen-md bg-background/90 backdrop-blur-2xl border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.15)] pointer-events-auto rounded-[28px] overflow-hidden">
+      <div className="w-full max-w-screen-md bg-background/98 border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.3)] pointer-events-auto rounded-[28px] overflow-hidden">
         <div className="flex flex-row items-center justify-between h-[72px] px-2 sm:px-4">
           {navItems.map((item, index) => (
             <NavLink

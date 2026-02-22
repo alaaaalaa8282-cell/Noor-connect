@@ -4,6 +4,7 @@ import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { useToast } from "@/hooks/use-toast";
 import localforage from "localforage";
+import { getAdhanPreferences, setAdhanForPrayer, type PrayerName, type AdhanPreferences } from "@/lib/adhan-preferences";
 
 const CUSTOM_ADHAN_KEY = 'custom-adhan-audio';
 const SELECTED_ADHAN_KEY = 'selected-adhan';
@@ -22,18 +23,45 @@ const adhanStore = localforage.createInstance({
   description: 'User uploaded adhan audio files'
 });
 
+// Export helper function to get custom adhan audio
+export const getCustomAdhanUrl = async (id: string): Promise<string | null> => {
+  try {
+    const adhans = await adhanStore.getItem<CustomAdhan[]>(CUSTOM_ADHAN_KEY);
+    const adhan = adhans?.find(a => a.id === id);
+    if (!adhan) return null;
+
+    const binaryString = atob(adhan.data);
+    const bytes = new Uint8Array(binaryString.length);
+    for (let i = 0; i < binaryString.length; i++) {
+      bytes[i] = binaryString.charCodeAt(i);
+    }
+    const blob = new Blob([bytes], { type: 'audio/mp3' });
+    return URL.createObjectURL(blob);
+  } catch (error) {
+    console.error('getCustomAdhanUrl error:', error);
+    return null;
+  }
+};
+
+const PRAYERS: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+
 export function CustomAdhanUpload() {
   const [customAdhans, setCustomAdhans] = useState<CustomAdhan[]>([]);
-  const [selectedAdhan, setSelectedAdhan] = useState<string>("");
   const [playingId, setPlayingId] = useState<string | null>(null);
+  const [preferences, setPreferences] = useState<AdhanPreferences>(getAdhanPreferences());
   const audioRef = useRef<HTMLAudioElement | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
   useEffect(() => {
     loadCustomAdhans();
-    const saved = localStorage.getItem(SELECTED_ADHAN_KEY);
-    if (saved) setSelectedAdhan(saved);
+
+    // Listen for storage changes to keep preferences in sync
+    const handleStorageChange = () => {
+      setPreferences(getAdhanPreferences());
+    };
+    window.addEventListener('storage', handleStorageChange);
+    return () => window.removeEventListener('storage', handleStorageChange);
   }, []);
 
   const loadCustomAdhans = async () => {
@@ -76,7 +104,7 @@ export function CustomAdhanUpload() {
       const updated = [...customAdhans, newAdhan];
       await adhanStore.setItem(CUSTOM_ADHAN_KEY, updated);
       setCustomAdhans(updated);
-      
+
       toast({ title: "Adhan uploaded", description: `${newAdhan.name} added to your collection` });
     } catch (error) {
       console.error("Upload error:", error);
@@ -88,7 +116,7 @@ export function CustomAdhanUpload() {
     }
   };
 
-  const handlePlay = (adhan: CustomAdhan) => {
+  const handlePlay = async (adhan: CustomAdhan) => {
     if (playingId === adhan.id) {
       // Stop
       if (audioRef.current) {
@@ -101,20 +129,15 @@ export function CustomAdhanUpload() {
       if (audioRef.current) {
         audioRef.current.pause();
       }
-      
-      const binaryString = atob(adhan.data);
-      const bytes = new Uint8Array(binaryString.length);
-      for (let i = 0; i < binaryString.length; i++) {
-        bytes[i] = binaryString.charCodeAt(i);
-      }
-      const blob = new Blob([bytes], { type: 'audio/mp3' });
-      const url = URL.createObjectURL(blob);
-      
+
+      const url = await getCustomAdhanUrl(adhan.id);
+      if (!url) return;
+
       audioRef.current = new Audio(url);
       audioRef.current.onended = () => setPlayingId(null);
       audioRef.current.play();
       setPlayingId(adhan.id);
-      
+
       // Auto-stop after 15 seconds
       setTimeout(() => {
         if (audioRef.current && playingId === adhan.id) {
@@ -129,47 +152,52 @@ export function CustomAdhanUpload() {
     const updated = customAdhans.filter(a => a.id !== id);
     await adhanStore.setItem(CUSTOM_ADHAN_KEY, updated);
     setCustomAdhans(updated);
-    
-    if (selectedAdhan === id) {
-      localStorage.removeItem(SELECTED_ADHAN_KEY);
-      setSelectedAdhan("");
+
+    // Clear any prayer assignments for this adhan
+    let changed = false;
+    const newPrefs = { ...preferences };
+    PRAYERS.forEach(p => {
+      if (newPrefs[p] === id) {
+        newPrefs[p] = 'adhan-makkah'; // Reset to default
+        setAdhanForPrayer(p, 'adhan-makkah');
+        changed = true;
+      }
+    });
+
+    if (changed) {
+      setPreferences(newPrefs);
     }
-    
+
     toast({ title: "Adhan deleted" });
   };
 
-  const handleSelect = (id: string) => {
-    setSelectedAdhan(id);
-    localStorage.setItem(SELECTED_ADHAN_KEY, id);
-    toast({ title: "Adhan selected", description: "This will play for prayer notifications" });
+  const handleAssignToPrayer = (adhanId: string, prayer: PrayerName) => {
+    setAdhanForPrayer(prayer, adhanId);
+    setPreferences(prev => ({ ...prev, [prayer]: adhanId }));
+
+    toast({
+      title: "Adhan assigned",
+      description: `Assigned to ${prayer}`
+    });
+
+    // Trigger notification reschedule
+    window.dispatchEvent(new Event('prayer-method-changed'));
   };
 
-  // Export function to get custom adhan audio
-  const getCustomAdhanUrl = async (id: string): Promise<string | null> => {
-    const adhans = await adhanStore.getItem<CustomAdhan[]>(CUSTOM_ADHAN_KEY);
-    const adhan = adhans?.find(a => a.id === id);
-    if (!adhan) return null;
-    
-    const binaryString = atob(adhan.data);
-    const bytes = new Uint8Array(binaryString.length);
-    for (let i = 0; i < binaryString.length; i++) {
-      bytes[i] = binaryString.charCodeAt(i);
-    }
-    const blob = new Blob([bytes], { type: 'audio/mp3' });
-    return URL.createObjectURL(blob);
+  const isAssignedTo = (adhanId: string, prayer: PrayerName) => {
+    return preferences[prayer] === adhanId;
   };
 
-  // Make getCustomAdhanUrl available globally
-  useEffect(() => {
-    (window as any).getCustomAdhanUrl = getCustomAdhanUrl;
-  }, []);
+  const getAssignedPrayers = (adhanId: string) => {
+    return PRAYERS.filter(p => preferences[p] === adhanId);
+  };
 
   return (
     <Card className="p-4 space-y-4">
       <div className="flex items-center justify-between">
         <div className="flex items-center gap-2">
           <Music className="w-5 h-5 text-primary" />
-          <h3 className="font-medium">Custom Adhan</h3>
+          <h3 className="font-medium">Custom Adhan Library</h3>
         </div>
         <input
           type="file"
@@ -178,8 +206,8 @@ export function CustomAdhanUpload() {
           onChange={handleFileUpload}
           className="hidden"
         />
-        <Button 
-          variant="outline" 
+        <Button
+          variant="outline"
           size="sm"
           onClick={() => fileInputRef.current?.click()}
         >
@@ -193,70 +221,84 @@ export function CustomAdhanUpload() {
           No custom adhans uploaded. Upload your own MP3 file to use as prayer notification.
         </p>
       ) : (
-        <div className="space-y-2">
+        <div className="space-y-4">
           {customAdhans.map((adhan) => (
-            <div 
+            <div
               key={adhan.id}
-              className={`flex items-center gap-3 p-3 rounded-lg border transition-colors ${
-                selectedAdhan === adhan.id 
-                  ? 'border-primary bg-primary/5' 
-                  : 'border-border hover:bg-muted/50'
-              }`}
+              className="p-3 rounded-lg border border-border bg-card/50 space-y-3"
             >
-              <Button
-                variant="ghost"
-                size="icon"
-                className="shrink-0"
-                onClick={() => handlePlay(adhan)}
-              >
-                {playingId === adhan.id ? (
-                  <Pause className="w-4 h-4" />
-                ) : (
-                  <Play className="w-4 h-4" />
-                )}
-              </Button>
-              
-              <div className="flex-1 min-w-0">
-                <p className="font-medium text-sm truncate">{adhan.name}</p>
-                <p className="text-xs text-muted-foreground">
-                  Added {new Date(adhan.addedAt).toLocaleDateString()}
-                </p>
-              </div>
-              
-              <div className="flex items-center gap-1 shrink-0">
-                <Button
-                  variant={selectedAdhan === adhan.id ? "default" : "outline"}
-                  size="icon"
-                  className="h-8 w-8"
-                  onClick={() => handleSelect(adhan.id)}
-                >
-                  <Check className="w-4 h-4" />
-                </Button>
+              <div className="flex items-center gap-3">
                 <Button
                   variant="ghost"
                   size="icon"
-                  className="h-8 w-8 text-destructive"
+                  className="shrink-0"
+                  onClick={() => handlePlay(adhan)}
+                >
+                  {playingId === adhan.id ? (
+                    <Pause className="w-4 h-4" />
+                  ) : (
+                    <Play className="w-4 h-4" />
+                  )}
+                </Button>
+
+                <div className="flex-1 min-w-0">
+                  <p className="font-medium text-sm truncate">{adhan.name}</p>
+                  <div className="flex flex-wrap gap-1 mt-1">
+                    {getAssignedPrayers(adhan.id).map(p => (
+                      <span key={p} className="px-1.5 py-0.5 bg-primary/10 text-primary text-[10px] font-bold rounded uppercase">
+                        {p}
+                      </span>
+                    ))}
+                    {getAssignedPrayers(adhan.id).length === 0 && (
+                      <span className="text-[10px] text-muted-foreground italic">
+                        Not assigned to any prayer
+                      </span>
+                    )}
+                  </div>
+                </div>
+
+                <Button
+                  variant="ghost"
+                  size="icon"
+                  className="h-8 w-8 text-destructive opacity-50 hover:opacity-100"
                   onClick={() => handleDelete(adhan.id)}
                 >
                   <Trash2 className="w-4 h-4" />
                 </Button>
               </div>
+
+              <div className="pt-2 border-t border-border/50">
+                <p className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2">Assign to Prayer:</p>
+                <div className="flex flex-wrap gap-1.5">
+                  {PRAYERS.map(prayer => (
+                    <Button
+                      key={prayer}
+                      variant={isAssignedTo(adhan.id, prayer) ? "default" : "outline"}
+                      size="sm"
+                      className="h-7 text-[10px] px-2"
+                      onClick={() => handleAssignToPrayer(adhan.id, prayer)}
+                    >
+                      {prayer}
+                      {isAssignedTo(adhan.id, prayer) && <Check className="w-3 h-3 ml-1" />}
+                    </Button>
+                  ))}
+                </div>
+              </div>
             </div>
           ))}
         </div>
       )}
-      
-      <p className="text-xs text-muted-foreground">
-        Selected adhan will play for prayer time notifications. Max file size: 10MB.
+
+      <p className="text-[10px] text-muted-foreground">
+        Assign custom audio to specific prayers. They will automatically play at prayer times.
       </p>
     </Card>
   );
 }
 
-// Export helper function
+// Export helper function for legacy support
 export async function getSelectedCustomAdhanUrl(): Promise<string | null> {
   const selectedId = localStorage.getItem('selected-adhan');
   if (!selectedId || !selectedId.startsWith('custom-')) return null;
-  
-  return (window as any).getCustomAdhanUrl?.(selectedId) || null;
+  return getCustomAdhanUrl(selectedId);
 }
