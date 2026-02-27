@@ -15,7 +15,7 @@ import { getPerformanceMonitor } from "@/lib/performance-monitor";
 import { useGlobalRadio } from "@/lib/global-radio";
 import { islamicEventsService } from "@/lib/islamic-events-service";
 import { LayoutManager } from "@/components/LayoutManager";
-import { SplashScreen, PersistentPermissionReminder } from "@/components/SplashScreen";
+import { SplashScreen } from "@/components/SplashScreen";
 
 // Set default theme to light if no preference saved
 if (!localStorage.getItem("theme")) {
@@ -75,7 +75,6 @@ if (typeof window !== 'undefined') {
   }
 }
 
-// ... (existing imports)
 
 interface NavigatorWithStandalone extends Navigator {
   standalone?: boolean;
@@ -196,14 +195,24 @@ const App = () => {
       console.error('Failed to schedule Islamic events:', error);
     });
 
-    // For APK/PWA, ensure notifications are properly initialized
-    if (isStandalone) {
-      // Request notification permission if not already set
-      if ('Notification' in window && Notification.permission === 'default') {
-        // Don't request immediately - let splash screen handle it
-        console.log('App running in standalone mode, will request notifications via splash screen');
+    // Request permissions automatically
+    const requestInitialPermissions = async () => {
+      try {
+        await import('@/lib/unified-notifications').then(mod => mod.unifiedNotifications.requestPermission());
+        if (typeof window !== 'undefined' && 'Geolocation' in navigator) {
+          import('@/lib/geolocation-service').then(mod => {
+            if (mod.GeolocationService.isSupported()) {
+              mod.GeolocationService.requestPermissions();
+            }
+          });
+        }
+      } catch (e) {
+        console.error('Failed to request initial permissions:', e);
       }
-    }
+    };
+
+    // Request notification permission natively
+    requestInitialPermissions();
 
     // Register Service Worker (only in production and if not already registered)
     if (import.meta.env.PROD && !navigator.serviceWorker.controller) {
@@ -251,7 +260,6 @@ const App = () => {
       <AnimatePresence>
         {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
       </AnimatePresence>
-      <PersistentPermissionReminder />
       <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
         <div className="flex flex-col min-h-screen overflow-hidden">
           {/* Header/Top Elements */}

@@ -159,8 +159,8 @@ export const GlobalPrayerAlarm = () => {
       stopCurrentAdhan();
 
       const adhanUrl = isValidPrayerName(prayerName)
-        ? getAdhanUrlForPrayer(prayerName)
-        : getAdhanUrlForPrayer('Dhuhr');
+        ? await getAdhanUrlForPrayer(prayerName)
+        : await getAdhanUrlForPrayer('Dhuhr');
 
       const audio = new Audio(adhanUrl);
       audioRef.current = audio;

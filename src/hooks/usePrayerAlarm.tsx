@@ -66,7 +66,8 @@ export const usePrayerAlarm = () => {
     }
 
     // Try to unlock audio playback from a user gesture context.
-    const tempAudio = new Audio(getAdhanUrlForPrayer('Dhuhr'));
+    const url = await getAdhanUrlForPrayer('Dhuhr');
+    const tempAudio = new Audio(url);
     tempAudio.volume = 0;
     try {
       await tempAudio.play();

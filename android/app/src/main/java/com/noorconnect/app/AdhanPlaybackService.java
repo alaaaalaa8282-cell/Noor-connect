@@ -16,6 +16,10 @@ import android.util.Log;
 
 import androidx.core.app.NotificationCompat;
 
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.Locale;
+
 /**
  * Foreground service that plays adhan audio when native alarms fire.
  */
@@ -209,8 +213,47 @@ public class AdhanPlaybackService extends Service {
         return "file:///android_asset/public" + normalized;
     }
 
+    private String getPrayerEmoji(String prayerName) {
+        if (prayerName == null)
+            return "🕌";
+        switch (prayerName.toLowerCase()) {
+            case "fajr":
+                return "🌅";
+            case "dhuhr":
+                return "☀️";
+            case "asr":
+                return "🌤️";
+            case "maghrib":
+                return "🌇";
+            case "isha":
+                return "🌙";
+            default:
+                return "🕌";
+        }
+    }
+
+    private String getPrayerArabic(String prayerName) {
+        if (prayerName == null)
+            return "الصلاة";
+        switch (prayerName.toLowerCase()) {
+            case "fajr":
+                return "صلاة الفجر";
+            case "dhuhr":
+                return "صلاة الظهر";
+            case "asr":
+                return "صلاة العصر";
+            case "maghrib":
+                return "صلاة المغرب";
+            case "isha":
+                return "صلاة العشاء";
+            default:
+                return "الصلاة";
+        }
+    }
+
     private Notification createNotification(String prayerName) {
         Intent openIntent = new Intent(this, MainActivity.class);
+        openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         int openFlags = PendingIntent.FLAG_UPDATE_CURRENT;
         int stopFlags = PendingIntent.FLAG_UPDATE_CURRENT;
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
@@ -224,15 +267,34 @@ public class AdhanPlaybackService extends Service {
         stopIntent.setAction(ACTION_STOP);
         PendingIntent stopPendingIntent = PendingIntent.getService(this, 1, stopIntent, stopFlags);
 
+        String emoji = getPrayerEmoji(prayerName);
+        String arabic = getPrayerArabic(prayerName);
+        String currentTime = new SimpleDateFormat("h:mm a", Locale.getDefault()).format(new Date());
+
+        // Rich expanded text shown in BigText style
+        String bigText = arabic + "\n"
+                + "It is time to pray " + prayerName + ".\n"
+                + "\"Hayya 'ala as-Salah — Come to Prayer\"\n"
+                + "Tap to open Noor Connect ✦ " + currentTime;
+
         return new NotificationCompat.Builder(this, CHANNEL_ID)
-                .setContentTitle(prayerName + " Adhan")
-                .setContentText("Noor Connect is playing adhan")
+                .setContentTitle(emoji + " " + prayerName + " Prayer Time")
+                .setContentText(arabic + " — " + currentTime)
+                .setStyle(new NotificationCompat.BigTextStyle()
+                        .bigText(bigText)
+                        .setBigContentTitle(emoji + " " + prayerName + " Prayer — " + currentTime)
+                        .setSummaryText("Noor Connect 🕌"))
                 .setSmallIcon(R.drawable.ic_notification)
+                .setColor(0xFF22C55E) // Green accent
+                .setColorized(true)
                 .setContentIntent(contentIntent)
                 .setOngoing(true)
+                .setAutoCancel(false)
                 .setPriority(NotificationCompat.PRIORITY_HIGH)
+                .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
                 .setCategory(NotificationCompat.CATEGORY_ALARM)
-                .addAction(0, "Stop", stopPendingIntent)
+                .addAction(R.drawable.ic_notification, "⏹ Stop Adhan", stopPendingIntent)
+                .addAction(R.drawable.ic_notification, "🕌 Open App", contentIntent)
                 .build();
     }
 
@@ -243,11 +305,15 @@ public class AdhanPlaybackService extends Service {
 
         NotificationChannel channel = new NotificationChannel(
                 CHANNEL_ID,
-                "Adhan Playback",
+                "Adhan & Prayer Alerts",
                 NotificationManager.IMPORTANCE_HIGH);
-        channel.setDescription("Foreground playback channel for adhan alarms");
+        channel.setDescription(
+                "Shows rich prayer-time notifications and plays the adhan. Disable sound here — the adhan audio is played separately.");
         channel.setSound(null, null);
-        channel.enableVibration(false);
+        channel.enableVibration(true);
+        channel.setVibrationPattern(new long[] { 0, 250, 150, 250 });
+        channel.setShowBadge(true);
+        channel.setLockscreenVisibility(Notification.VISIBILITY_PUBLIC);
 
         NotificationManager manager = getSystemService(NotificationManager.class);
         if (manager != null) {

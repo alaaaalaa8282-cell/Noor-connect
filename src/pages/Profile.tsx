@@ -1,7 +1,7 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -48,6 +48,9 @@ const Profile = () => {
     eveningReminders: false,
   });
   const [notificationsSupported, setNotificationsSupported] = useState(false);
+  const [notifPermStatus, setNotifPermStatus] = useState<'loading' | 'granted' | 'denied' | 'default'>('loading');
+  const [isCapacitorApp] = useState(() => !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
+  const [requestingPerm, setRequestingPerm] = useState(false);
   const [genderSettings, setGenderSettingsState] = useState(getGenderSettings());
 
   // Prayer alarm state
@@ -67,6 +70,12 @@ const Profile = () => {
   const [prayerNotificationsEnabled, setPrayerNotificationsEnabled] = useState(false);
   const [prayerNotificationsLoading, setPrayerNotificationsLoading] = useState(true);
   const [scheduledPrayerCount, setScheduledPrayerCount] = useState(0);
+
+  const refreshPermissionStatus = useCallback(async () => {
+    const status = await unifiedNotifications.getPermissionStatus();
+    setNotifPermStatus(status as 'granted' | 'denied' | 'default');
+    setNotificationsSupported(status === 'granted');
+  }, []);
 
   useEffect(() => {
     setIsDarkMode(getTheme() === "dark");
@@ -92,9 +101,7 @@ const Profile = () => {
     if (savedHijriOffset) setHijriOffset(savedHijriOffset);
 
     // Improved notification support check for mobile
-    unifiedNotifications.getPermissionStatus().then(status => {
-      setNotificationsSupported(status === 'granted');
-    });
+    refreshPermissionStatus();
 
     // Load prayer notification status
     checkPrayerNotificationStatus();
@@ -159,17 +166,24 @@ const Profile = () => {
   };
 
   const requestNotificationPermission = async () => {
-    const granted = await unifiedNotifications.requestPermission();
-    setNotificationsSupported(granted);
-    await checkPrayerNotificationStatus();
-    if (granted) {
-      toast({ title: "Notifications enabled! You'll receive Islamic event reminders." });
-    } else {
-      toast({
-        title: "Permission denied",
-        description: "Please enable notifications in your device settings",
-        variant: "destructive"
-      });
+    setRequestingPerm(true);
+    try {
+      const granted = await unifiedNotifications.requestPermission();
+      await refreshPermissionStatus();
+      await checkPrayerNotificationStatus();
+      if (granted) {
+        toast({ title: "✅ Notifications enabled!", description: "You'll now receive prayer times and Islamic event reminders." });
+      } else {
+        toast({
+          title: "Permission denied",
+          description: isCapacitorApp
+            ? "Go to Android Settings → Apps → Noor Connect → Notifications and turn them on."
+            : "Click the lock icon in your browser address bar and allow Notifications.",
+          variant: "destructive"
+        });
+      }
+    } finally {
+      setRequestingPerm(false);
     }
   };
 
@@ -715,6 +729,114 @@ const Profile = () => {
           </div>
         </Card>
 
+        {/* ── Notification Permission Banner ───────────────────────────── */}
+        {notifPermStatus !== 'granted' && notifPermStatus !== 'loading' && (
+          <Card className="p-0 overflow-hidden border-2 border-amber-500/40 bg-gradient-to-br from-amber-500/10 via-background to-orange-500/5">
+            <div className="flex items-center gap-3 px-4 pt-4 pb-2">
+              {isCapacitorApp ? (
+                <Smartphone className="w-5 h-5 text-amber-500 shrink-0" />
+              ) : (
+                <Globe className="w-5 h-5 text-amber-500 shrink-0" />
+              )}
+              <div className="flex-1">
+                <h3 className="font-semibold text-sm text-foreground">
+                  {isCapacitorApp ? 'App Notifications' : 'Browser Notifications'}
+                </h3>
+                <p className="text-[11px] text-muted-foreground">
+                  {notifPermStatus === 'denied'
+                    ? isCapacitorApp
+                      ? 'Permission was denied. Open Android Settings to re-enable.'
+                      : 'Permission was blocked. Click the lock icon in your browser address bar.'
+                    : isCapacitorApp
+                      ? 'Allow Noor Connect to send prayer time alerts even when the app is closed.'
+                      : 'Allow browser notifications for prayer reminders and Islamic event alerts.'}
+                </p>
+              </div>
+              <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notifPermStatus === 'denied' ? 'bg-red-500/20' : 'bg-amber-500/20'
+                }`}>
+                {notifPermStatus === 'denied'
+                  ? <ShieldOff className="w-4 h-4 text-red-500" />
+                  : <AlertTriangle className="w-4 h-4 text-amber-500" />}
+              </div>
+            </div>
+
+            {/* What you'll get */}
+            <div className="mx-4 mb-3 p-2.5 rounded-lg bg-background/60 border border-border/50">
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1.5">You will receive</p>
+              <div className="grid grid-cols-2 gap-1">
+                {[
+                  { emoji: '🕌', label: 'Prayer times (Fajr → Isha)' },
+                  { emoji: '🌙', label: 'Ramadan & Eid reminders' },
+                  { emoji: '📖', label: 'Friday Surah Al-Kahf alert' },
+                  { emoji: '✨', label: 'Daily Hadith reminders' },
+                ].map(item => (
+                  <div key={item.label} className="flex items-center gap-1.5 text-[10px] text-foreground">
+                    <span>{item.emoji}</span>
+                    <span>{item.label}</span>
+                  </div>
+                ))}
+              </div>
+            </div>
+
+            <div className="px-4 pb-4 flex gap-2">
+              {notifPermStatus === 'denied' ? (
+                isCapacitorApp ? (
+                  <Button
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                    size="sm"
+                    onClick={() => {
+                      toast({
+                        title: 'Open Android Settings',
+                        description: 'Go to Settings → Apps → Noor Connect → Notifications → Allow.',
+                      });
+                    }}
+                  >
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                    Open Settings Guide
+                  </Button>
+                ) : (
+                  <Button
+                    className="flex-1 bg-amber-500 hover:bg-amber-600 text-white"
+                    size="sm"
+                    onClick={() => {
+                      toast({
+                        title: 'Unblock in browser',
+                        description: 'Click the 🔒 lock icon in the address bar → Site Settings → Notifications → Allow.',
+                      });
+                    }}
+                  >
+                    <ShieldCheck className="w-4 h-4 mr-2" />
+                    How to Unblock
+                  </Button>
+                )
+              ) : (
+                <Button
+                  className="flex-1 bg-emerald-600 hover:bg-emerald-700 text-white"
+                  size="sm"
+                  onClick={requestNotificationPermission}
+                  disabled={requestingPerm}
+                >
+                  {requestingPerm ? (
+                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  ) : (
+                    <Bell className="w-4 h-4 mr-2" />
+                  )}
+                  {isCapacitorApp ? 'Allow App Notifications' : 'Allow Browser Notifications'}
+                </Button>
+              )}
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={refreshPermissionStatus}
+                className="shrink-0"
+                title="Refresh permission status"
+              >
+                <RefreshCw className="w-4 h-4" />
+              </Button>
+            </div>
+          </Card>
+        )}
+
         {/* Notification Preferences */}
         <Card className="p-4 bg-muted/30">
           <h3 className="font-semibold text-sm mb-4 flex items-center gap-2">
@@ -723,23 +845,13 @@ const Profile = () => {
           </h3>
 
           {!notificationsSupported ? (
-            <div className="space-y-4 text-center py-4">
-              <div className="w-12 h-12 bg-muted/50 rounded-full flex items-center justify-center mx-auto mb-2 text-muted-foreground">
-                <BellOff className="w-6 h-6" />
+            <div className="space-y-3 text-center py-3">
+              <div className="w-10 h-10 bg-muted/50 rounded-full flex items-center justify-center mx-auto text-muted-foreground">
+                <BellOff className="w-5 h-5" />
               </div>
-              <p className="text-xs text-muted-foreground max-w-[200px] mx-auto">
-                {unifiedNotifications.isRunningAsNativeApp()
-                  ? "Enable device notifications to receive prayer reminders and Islamic event updates."
-                  : "Enable browser notifications to receive Islamic event reminders and spiritual content."}
+              <p className="text-xs text-muted-foreground">
+                Grant notification permission above to unlock these settings.
               </p>
-              <Button
-                onClick={requestNotificationPermission}
-                className="w-full mt-2"
-                variant="default"
-              >
-                <Bell className="w-4 h-4 mr-2" />
-                {t('enableNotifications')}
-              </Button>
             </div>
           ) : (
             <div className="space-y-4">

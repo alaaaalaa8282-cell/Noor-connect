@@ -1,14 +1,6 @@
-import { useEffect, useState, useMemo, useCallback } from "react";
+import { useEffect, useState, useMemo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
-import { Bell, AlertTriangle, Smartphone } from "lucide-react";
-import { Button } from "@/components/ui/button";
-import { Card, CardContent } from "@/components/ui/card";
-import { isNotificationSupported, requestNotificationPermission, getNotificationPermission, shouldRequestPermission, forceRequestPermission } from "@/lib/notifications";
-import { GenderSelection } from "@/components/GenderSelection";
-import { isFirstTimeUser } from "@/lib/gender-settings";
-import { unifiedNotifications } from "@/lib/unified-notifications";
-import { GeolocationService } from "@/lib/geolocation-service";
-import { Capacitor } from "@capacitor/core";
+import { Smartphone } from "lucide-react";
 
 interface NavigatorWithStandalone extends Navigator {
     standalone?: boolean;
@@ -127,343 +119,18 @@ function AppIcon() {
     );
 }
 
-// Permission Request Component
-function PermissionRequest({ onPermissionGranted, onSkip }: {
-    onPermissionGranted: () => void;
-    onSkip: () => void;
-}) {
-    const [isRequesting, setIsRequesting] = useState(false);
-    const [error, setError] = useState<string | null>(null);
-
-    const handleRequestPermission = async () => {
-        if (!Capacitor.isNativePlatform() && !isNotificationSupported()) {
-            setError("Notifications not supported on this device");
-            return;
-        }
-
-        setIsRequesting(true);
-        setError(null);
-
-        try {
-            const notificationGranted = Capacitor.isNativePlatform()
-                ? await unifiedNotifications.requestPermission()
-                : await requestNotificationPermission();
-
-            let locationGranted = true;
-            if (GeolocationService.isSupported()) {
-                const permissions = await GeolocationService.checkPermissions();
-                const needsLocationPermission =
-                    permissions.location !== 'granted' &&
-                    permissions.coarseLocation !== 'granted';
-
-                if (needsLocationPermission) {
-                    locationGranted = await GeolocationService.requestPermissions();
-                }
-            }
-
-            if (notificationGranted && locationGranted) {
-                setTimeout(onPermissionGranted, 500);
-            } else {
-                const missing: string[] = [];
-                if (!notificationGranted) missing.push("notification");
-                if (!locationGranted) missing.push("location");
-                setError(`Please allow ${missing.join(" and ")} permission in settings.`);
-            }
-        } catch (err) {
-            setError("Failed to request permission. Please try again.");
-        } finally {
-            setIsRequesting(false);
-        }
-    };
-
-    return (
-        <motion.div
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 1.5, duration: 0.5 }}
-            className="w-full max-w-sm mx-auto px-4"
-        >
-            <Card className="glass-card border-primary/20">
-                <CardContent className="p-4 space-y-4">
-                    <div className="flex items-center gap-3">
-                        <div className="p-2 rounded-lg bg-primary/20">
-                            <Bell className="w-5 h-5 text-primary" />
-                        </div>
-                        <div>
-                            <h3 className="font-semibold text-sm">Enable Permissions</h3>
-                            <p className="text-xs text-muted-foreground">
-                                Required for prayer reminders and accurate city timing
-                            </p>
-                        </div>
-                    </div>
-
-                    {error && (
-                        <div className="flex items-center gap-2 p-2 rounded-lg bg-red-500/10 border border-red-500/20">
-                            <AlertTriangle className="w-4 h-4 text-red-500" />
-                            <p className="text-xs text-red-500">{error}</p>
-                        </div>
-                    )}
-
-                    <div className="flex gap-2">
-                        <Button
-                            onClick={handleRequestPermission}
-                            disabled={isRequesting}
-                            className="flex-1 gap-2 rounded-xl"
-                            size="sm"
-                        >
-                            {isRequesting ? (
-                                <>
-                                    <div className="w-3 h-3 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
-                                    Requesting...
-                                </>
-                            ) : (
-                                <>
-                                    <Bell className="w-3 h-3" />
-                                    Enable
-                                </>
-                            )}
-                        </Button>
-                        <Button
-                            variant="ghost"
-                            onClick={onSkip}
-                            className="rounded-xl"
-                            size="sm"
-                        >
-                            Skip
-                        </Button>
-                    </div>
-
-                    <p className="text-xs text-muted-foreground text-center">
-                        Required: notification + location. Sensor access on Android does not need a separate runtime permission.
-                    </p>
-                </CardContent>
-            </Card>
-        </motion.div>
-    );
-}
-
-// Persistent Permission Reminder (for ongoing APK users)
-function PersistentPermissionReminder() {
-    const [isVisible, setIsVisible] = useState(false);
-    const [isRequesting, setIsRequesting] = useState(false);
-
-    useEffect(() => {
-        const handlePermissionRequest = (event: CustomEvent) => {
-            if (event.detail?.source === 'apk-persistent-check') {
-                setIsVisible(true);
-            }
-        };
-
-        window.addEventListener('requestNotificationPermission', handlePermissionRequest as EventListener);
-
-        return () => {
-            window.removeEventListener('requestNotificationPermission', handlePermissionRequest as EventListener);
-        };
-    }, []);
-
-    const handleRequestPermission = async () => {
-        if (!Capacitor.isNativePlatform() && !isNotificationSupported()) return;
-
-        setIsRequesting(true);
-        try {
-            if (Capacitor.isNativePlatform()) {
-                await unifiedNotifications.requestPermission();
-            } else {
-                await requestNotificationPermission();
-            }
-            setIsVisible(false);
-        } catch (error) {
-            console.error('Failed to request permission:', error);
-        } finally {
-            setIsRequesting(false);
-        }
-    };
-
-    if (!isVisible) return null;
-
-    return (
-        <AnimatePresence>
-            {isVisible && (
-                <motion.div
-                    initial={{ opacity: 0, y: 50 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    exit={{ opacity: 0, y: 50 }}
-                    className="fixed bottom-4 right-4 z-50 max-w-sm"
-                >
-                    <Card className="glass-card border-primary/20 shadow-lg">
-                        <CardContent className="p-3 space-y-2">
-                            <div className="flex items-center gap-2">
-                                <Bell className="w-4 h-4 text-primary animate-pulse" />
-                                <p className="text-xs font-medium">Enable prayer reminders?</p>
-                            </div>
-                            <div className="flex gap-2">
-                                <Button
-                                    onClick={handleRequestPermission}
-                                    disabled={isRequesting}
-                                    size="sm"
-                                    className="flex-1 text-xs"
-                                >
-                                    {isRequesting ? 'Requesting...' : 'Enable'}
-                                </Button>
-                                <Button
-                                    variant="ghost"
-                                    size="sm"
-                                    onClick={() => setIsVisible(false)}
-                                    className="text-xs"
-                                >
-                                    Later
-                                </Button>
-                            </div>
-                        </CardContent>
-                    </Card>
-                </motion.div>
-            )}
-        </AnimatePresence>
-    );
-}
-
 export function SplashScreen({ onComplete }: { onComplete: () => void }) {
     const [isVisible, setIsVisible] = useState(true);
-    const [showPermissionRequest, setShowPermissionRequest] = useState(false);
-    const [showGenderSelection, setShowGenderSelection] = useState(false);
-    const [permissionHandled, setPermissionHandled] = useState(false);
-    const [genderHandled, setGenderHandled] = useState(false);
-
-    const shouldShowPermissionPrompt = useCallback(async (): Promise<boolean> => {
-        try {
-            // Check global cooldown — don't bother user more than once every 24 hours
-            const lastAsked = localStorage.getItem('notification-last-asked');
-            if (lastAsked) {
-                const oneDay = 24 * 60 * 60 * 1000;
-                if (Date.now() - parseInt(lastAsked) < oneDay) {
-                    return false;
-                }
-            }
-
-            let needsNotificationPermission = shouldRequestPermission();
-            if (Capacitor.isNativePlatform()) {
-                const notificationStatus = await unifiedNotifications.getPermissionStatus();
-                needsNotificationPermission = notificationStatus !== 'granted' && shouldRequestPermission();
-            }
-
-            let needsLocationPermission = false;
-            if (GeolocationService.isSupported()) {
-                const locationPermissions = await GeolocationService.checkPermissions();
-
-                // If native, we check formal permission status
-                if (Capacitor.isNativePlatform()) {
-                    needsLocationPermission =
-                        locationPermissions.location !== 'granted' &&
-                        locationPermissions.coarseLocation !== 'granted';
-                } else {
-                    // On web, we check if we have any location stored. If not, we should prompt to get it.
-                    const storedLocation = localStorage.getItem('user-location-data');
-                    needsLocationPermission = !storedLocation || locationPermissions.location === 'prompt';
-                }
-            }
-
-            return needsNotificationPermission || needsLocationPermission;
-        } catch (error) {
-            console.error("Failed to check startup permissions:", error);
-            return shouldRequestPermission();
-        }
-    }, []);
 
     useEffect(() => {
-        const checkFirstTimeUser = () => {
-            const isFirstTime = isFirstTimeUser();
-            if (isFirstTime) {
-                // Show gender selection first for first-time users
-                setTimeout(() => setShowGenderSelection(true), 1500);
-            } else {
-                // For returning users, check permissions as usual
-                checkAndRequestPermissions();
-            }
-        };
-
-        const checkAndRequestPermissions = async () => {
-            const shouldShowPrompt = await shouldShowPermissionPrompt();
-            if (shouldShowPrompt) {
-                setTimeout(() => setShowPermissionRequest(true), 1500);
-            } else {
-                // Continue normally for web users or those with permission already set
-                setTimeout(() => {
-                    setIsVisible(false);
-                    setTimeout(onComplete, 100);
-                }, 300);
-            }
-        };
-
-        checkFirstTimeUser();
-
-        // For APK users, set up periodic permission reminders
-        const isStandalone = isStandaloneMode();
-
-        if (isStandalone) {
-            const permissionReminder = setInterval(() => {
-                if (shouldRequestPermission() && !showPermissionRequest && !permissionHandled) {
-                    // Show permission reminder every 30 minutes for APK users (only if cooldown passed)
-                    setShowPermissionRequest(true);
-                }
-            }, 30 * 60 * 1000); // 30 minutes
-
-            // Listen for persistent permission requests from notification manager
-            const handlePermissionRequest = (event: CustomEvent) => {
-                if (event.detail?.source === 'apk-persistent-check' && !showPermissionRequest && !permissionHandled) {
-                    console.log('Received persistent permission request:', event.detail);
-                    setShowPermissionRequest(true);
-                }
-            };
-
-            window.addEventListener('requestNotificationPermission', handlePermissionRequest as EventListener);
-
-            return () => {
-                clearInterval(permissionReminder);
-                window.removeEventListener('requestNotificationPermission', handlePermissionRequest as EventListener);
-            };
-        }
-    }, [onComplete, permissionHandled, showPermissionRequest, shouldShowPermissionPrompt]);
-
-    const handleGenderSelectionComplete = () => {
-        setShowGenderSelection(false);
-        setGenderHandled(true);
-
-        // After gender selection, check if we need to request permissions
-        const checkAndRequestPermissions = async () => {
-            const shouldShowPrompt = await shouldShowPermissionPrompt();
-            if (shouldShowPrompt) {
-                setTimeout(() => setShowPermissionRequest(true), 500);
-            } else {
-                setTimeout(() => {
-                    setIsVisible(false);
-                    setTimeout(onComplete, 400);
-                }, 1000);
-            }
-        };
-
-        checkAndRequestPermissions();
-    };
-
-    const handlePermissionGranted = () => {
-        setShowPermissionRequest(false);
-        setPermissionHandled(true);
-        setTimeout(() => {
+        // Just show splash screen for a short duration then finish
+        const timer = setTimeout(() => {
             setIsVisible(false);
-            setTimeout(onComplete, 400);
-        }, 800);
-    };
+            setTimeout(onComplete, 400); // 400ms for exit animation
+        }, 1500); // reduced splash time
 
-    const handleSkipPermission = () => {
-        // Record that we asked so we don't ask again on next app open (respects 24h cooldown)
-        import("@/lib/notifications").then(mod => mod.recordPermissionAsked());
-
-        setShowPermissionRequest(false);
-        setPermissionHandled(true);
-        setTimeout(() => {
-            setIsVisible(false);
-            setTimeout(onComplete, 400);
-        }, 800);
-    };
+        return () => clearTimeout(timer);
+    }, [onComplete]);
 
     return (
         <AnimatePresence>
@@ -506,38 +173,25 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                         </p>
 
                         {/* Reserve vertical space to prevent CLS when switching splash content */}
-                        <div className="w-full max-w-sm min-h-[220px] flex items-center justify-center">
-                            {!showPermissionRequest && !showGenderSelection && !permissionHandled && !genderHandled && (
-                                <motion.div className="flex space-x-2">
-                                    {[0, 1, 2].map((i) => (
-                                        <motion.div
-                                            key={i}
-                                            className="w-2 h-2 rounded-full bg-[#D4AF37]"
-                                            animate={{ y: [0, -6, 0] }}
-                                            transition={{
-                                                duration: 0.6,
-                                                repeat: Infinity,
-                                                delay: i * 0.15,
-                                                ease: "easeInOut"
-                                            }}
-                                            style={{
-                                                boxShadow: "0 0 8px rgba(212, 175, 55, 0.6)",
-                                            }}
-                                        />
-                                    ))}
-                                </motion.div>
-                            )}
-
-                            {showGenderSelection && (
-                                <GenderSelection onComplete={handleGenderSelectionComplete} />
-                            )}
-
-                            {showPermissionRequest && (
-                                <PermissionRequest
-                                    onPermissionGranted={handlePermissionGranted}
-                                    onSkip={handleSkipPermission}
-                                />
-                            )}
+                        <div className="w-full max-w-sm min-h-[50px] flex items-center justify-center mt-8">
+                            <motion.div className="flex space-x-2">
+                                {[0, 1, 2].map((i) => (
+                                    <motion.div
+                                        key={i}
+                                        className="w-2 h-2 rounded-full bg-[#D4AF37]"
+                                        animate={{ y: [0, -6, 0] }}
+                                        transition={{
+                                            duration: 0.6,
+                                            repeat: Infinity,
+                                            delay: i * 0.15,
+                                            ease: "easeInOut"
+                                        }}
+                                        style={{
+                                            boxShadow: "0 0 8px rgba(212, 175, 55, 0.6)",
+                                        }}
+                                    />
+                                ))}
+                            </motion.div>
                         </div>
                     </div>
 
@@ -561,6 +215,3 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
         </AnimatePresence>
     );
 }
-
-export { PersistentPermissionReminder };
-
