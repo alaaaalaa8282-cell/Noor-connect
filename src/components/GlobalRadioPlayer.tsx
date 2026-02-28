@@ -36,6 +36,25 @@ export function GlobalRadioPlayer() {
   const isTransitioning = useRef(false);
   const debounceTimerRef = useRef<NodeJS.Timeout | null>(null);
 
+  // Suppress chrome extension errors globally
+  useEffect(() => {
+    const originalConsoleError = console.error;
+    console.error = (...args) => {
+      const message = args[0];
+      if (typeof message === 'string' && 
+          (message.includes('chrome-extension://') || 
+           message.includes('sdk.script.js') ||
+           message.includes('net::ERR_FAILED'))) {
+        return; // Suppress chrome extension errors
+      }
+      originalConsoleError.apply(console, args);
+    };
+
+    return () => {
+      console.error = originalConsoleError;
+    };
+  }, []);
+
   // Helper to destroy Hls
   const destroyHls = () => {
     if (hlsRef.current) {
@@ -178,7 +197,7 @@ export function GlobalRadioPlayer() {
       isTransitioning.current = false;
       console.error('Global radio error:', audioElem.error);
 
-      // Handle Automatic Retry
+      // Handle Automatic Retry with format fallback
       if (retryCount < MAX_RETRIES && audioElem.error?.code !== MediaError.MEDIA_ERR_ABORTED) {
         console.log(`Retrying playback... Attempt ${retryCount + 1}/${MAX_RETRIES}`);
         setRetryCount(prev => prev + 1);
@@ -186,10 +205,21 @@ export function GlobalRadioPlayer() {
         // Brief delay before retrying
         setTimeout(() => {
           if (globalRadio.isPlaying && globalRadio.currentStation) {
-            // Add a cache-buster on retry to bypass potential server-side format errors/bad caches
             const currentUrl = audioElem.src.split('?')[0];
-            const busterUrl = `${currentUrl}?cb=${Date.now()}`;
-            audioElem.src = busterUrl;
+            
+            // Try different formats on retry
+            let retryUrl = currentUrl;
+            if (retryCount === 0) {
+              // First retry: try adding format extension
+              if (!currentUrl.includes('.mp3') && !currentUrl.includes('.aac') && !currentUrl.includes('.m3u8')) {
+                retryUrl = `${currentUrl}.mp3`;
+              }
+            } else if (retryCount === 1) {
+              // Second retry: try with cache buster
+              retryUrl = `${currentUrl}?cb=${Date.now()}`;
+            }
+            
+            audioElem.src = retryUrl;
             audioElem.load();
             audioElem.play().catch(e => {
               if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
@@ -215,10 +245,10 @@ export function GlobalRadioPlayer() {
             errorMessage = "Network error. Please check your internet connection.";
             break;
           case MediaError.MEDIA_ERR_DECODE:
-            errorMessage = "Audio format not supported.";
+            errorMessage = "Audio format not supported. Trying alternative format...";
             break;
           case MediaError.MEDIA_ERR_SRC_NOT_SUPPORTED:
-            errorMessage = "Radio stream not available.";
+            errorMessage = "Radio stream not available or format not supported.";
             break;
         }
       }
@@ -322,14 +352,36 @@ export function GlobalRadioPlayer() {
               }
             });
           } else {
-            audio.src = secureUrl;
+            // Standard audio stream - add format detection and fallback
+            let audioUrl = secureUrl;
+            
+            // Try to detect missing format and add appropriate extension
+            if (!audioUrl.includes('.mp3') && !audioUrl.includes('.aac') && !audioUrl.includes('.m3u8') && !audioUrl.includes('.ogg')) {
+              // Most radio streams are MP3, try that first
+              audioUrl = `${audioUrl}.mp3`;
+            }
+            
+            audio.src = audioUrl;
+            audio.crossOrigin = "anonymous"; // Handle CORS issues
 
             if (globalRadio.isPlaying) {
               const promise = audio.play();
               if (promise !== undefined) {
                 promise.catch(e => {
                   if (e.name !== 'AbortError' && e.name !== 'NotSupportedError') {
-                    console.error('Playback failed:', e);
+                    // If format fails, try without extension
+                    if (e.name === 'NotSupportedError' && audioUrl !== secureUrl) {
+                      console.log('Format not supported, trying original URL');
+                      audio.src = secureUrl;
+                      audio.load();
+                      audio.play().catch(playError => {
+                        if (playError.name !== 'AbortError' && playError.name !== 'NotSupportedError') {
+                          console.error('Playback failed:', playError);
+                        }
+                      });
+                    } else {
+                      console.error('Playback failed:', e);
+                    }
                   }
                 });
               }
@@ -453,7 +505,12 @@ export function GlobalRadioPlayer() {
         ref={audioRef}
         preload="auto"
         playsInline
+        crossOrigin="anonymous"
         style={{ display: 'none' }}
+        onError={(e) => {
+          // Prevent extension-related errors from bubbling up
+          e.stopPropagation();
+        }}
       />
 
       {/* Mini Player UI - only shown when visible and station selected */}

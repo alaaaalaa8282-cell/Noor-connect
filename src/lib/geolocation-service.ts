@@ -10,6 +10,8 @@ export interface LocationCoordinates {
   latitude: number;
   longitude: number;
   accuracy?: number;
+  city?: string;
+  country?: string;
 }
 
 export class GeolocationService {

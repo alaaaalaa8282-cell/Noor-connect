@@ -1,9 +1,11 @@
 /**
- * Intelligent Notification System
- * Handles Islamic event notifications, Ramadan countdown, and daily reminders
+ * Enhanced Notification System
+ * Handles Islamic event notifications, Ramadan countdown, and diverse daily reminders
+ * Features: varied content, smart frequency, time-based themes, and rich Islamic content
  */
 
 import { importantIslamicDates, IslamicDate, isRamadanCountdownPeriod, getDaysUntilRamadan } from '@/data/islamic-dates';
+import { getRandomContent, getContentByType, getContentByCategory, IslamicContent } from '@/data/expanded-islamic-content';
 
 export interface NotificationPreferences {
   ramadanCountdowns: boolean;
@@ -12,6 +14,11 @@ export interface NotificationPreferences {
   dailyHadithNotifications: boolean;
   morningReminders: boolean;
   eveningReminders: boolean;
+  quranicVerses: boolean;
+  dhikrReminders: boolean;
+  islamicKnowledge: boolean;
+  motivationalMessages: boolean;
+  maxDailyNotifications: number; // Smart frequency control
 }
 
 export interface NotificationEvent {
@@ -20,21 +27,30 @@ export interface NotificationEvent {
   body: string;
   icon?: string;
   timestamp: number;
-  type: 'ramadan-countdown' | 'eid-greeting' | 'islamic-date' | 'friday-kahf' | 'daily-hadith';
+  type: 'ramadan-countdown' | 'eid-greeting' | 'islamic-date' | 'friday-kahf' | 'daily-hadith' | 'quranic-verse' | 'dhikr-reminder' | 'islamic-knowledge' | 'motivational-message' | 'morning-reminder' | 'evening-reminder';
+  contentType?: 'hadith' | 'quran' | 'dhikr' | 'dua' | 'knowledge' | 'motivation';
+  priority?: 'low' | 'medium' | 'high';
 }
 
 const DEFAULT_PREFERENCES: NotificationPreferences = {
   ramadanCountdowns: true,
   eidGreetings: true,
   fridayKahfReminders: true,
-  dailyHadithNotifications: false,
-  morningReminders: false,
-  eveningReminders: false,
+  dailyHadithNotifications: true, // Enabled by default now
+  morningReminders: true,
+  eveningReminders: true,
+  quranicVerses: true,
+  dhikrReminders: true,
+  islamicKnowledge: true,
+  motivationalMessages: true,
+  maxDailyNotifications: 5, // Smart frequency limit
 };
 
 const STORAGE_KEY = 'notification-preferences';
 const SENT_NOTIFICATIONS_KEY = 'sent-notifications-today';
 const LAST_NOTIFICATION_DATE_KEY = 'last-notification-date';
+const DAILY_NOTIFICATION_COUNT_KEY = 'daily-notification-count';
+const NOTIFICATION_HISTORY_KEY = 'notification-history';
 
 export class NotificationManager {
   private preferences: NotificationPreferences;
@@ -44,12 +60,16 @@ export class NotificationManager {
   private intervalId: ReturnType<typeof setInterval> | null = null;
   private static instance: NotificationManager | null = null;
   private permissionCheckInterval: ReturnType<typeof setInterval> | null = null;
+  private dailyNotificationCount: number = 0;
+  private notificationHistory: NotificationEvent[] = [];
 
   constructor() {
     this.isSupported = 'Notification' in window;
     this.preferences = this.loadPreferences();
     this.lastNotificationDate = this.getLastNotificationDate();
     this.sentNotificationIds = this.loadSentNotifications();
+    this.dailyNotificationCount = this.loadDailyNotificationCount();
+    this.notificationHistory = this.loadNotificationHistory();
   }
 
   // Load preferences from localStorage
@@ -125,18 +145,128 @@ export class NotificationManager {
     }
   }
 
+  // Load daily notification count
+  private loadDailyNotificationCount(): number {
+    try {
+      const today = new Date().toDateString();
+      const stored = localStorage.getItem(DAILY_NOTIFICATION_COUNT_KEY);
+      if (stored) {
+        const data = JSON.parse(stored);
+        // Reset if it's a new day
+        if (data.date === today) {
+          return data.count || 0;
+        }
+      }
+    } catch (error) {
+      console.error('Failed to load daily notification count:', error);
+    }
+    return 0;
+  }
+
+  // Save daily notification count
+  private saveDailyNotificationCount(): void {
+    try {
+      const today = new Date().toDateString();
+      localStorage.setItem(DAILY_NOTIFICATION_COUNT_KEY, JSON.stringify({
+        date: today,
+        count: this.dailyNotificationCount
+      }));
+    } catch (error) {
+      console.error('Failed to save daily notification count:', error);
+    }
+  }
+
+  // Load notification history
+  private loadNotificationHistory(): NotificationEvent[] {
+    try {
+      const stored = localStorage.getItem(NOTIFICATION_HISTORY_KEY);
+      if (stored) {
+        return JSON.parse(stored);
+      }
+    } catch (error) {
+      console.error('Failed to load notification history:', error);
+    }
+    return [];
+  }
+
+  // Save notification to history
+  private saveNotificationToHistory(notification: NotificationEvent): void {
+    this.notificationHistory.unshift(notification);
+    // Keep only last 50 notifications
+    if (this.notificationHistory.length > 50) {
+      this.notificationHistory = this.notificationHistory.slice(0, 50);
+    }
+    try {
+      localStorage.setItem(NOTIFICATION_HISTORY_KEY, JSON.stringify(this.notificationHistory));
+    } catch (error) {
+      console.error('Failed to save notification history:', error);
+    }
+  }
+
+  // Check if daily notification limit reached
+  private hasReachedDailyLimit(): boolean {
+    return this.dailyNotificationCount >= this.preferences.maxDailyNotifications;
+  }
+
+  // Increment daily notification count
+  private incrementDailyCount(): void {
+    this.dailyNotificationCount++;
+    this.saveDailyNotificationCount();
+  }
+
+  // Reset daily count (called when date changes)
+  private resetDailyCount(): void {
+    this.dailyNotificationCount = 0;
+    this.saveDailyNotificationCount();
+  }
+
+  // Get time-based notification type
+  private getTimeBasedType(): 'morning' | 'afternoon' | 'evening' | 'night' {
+    const hour = new Date().getHours();
+    if (hour >= 5 && hour < 12) return 'morning';
+    if (hour >= 12 && hour < 17) return 'afternoon';
+    if (hour >= 17 && hour < 21) return 'evening';
+    return 'night';
+  }
+
   // Check if notification was already sent today
   private wasNotificationSentToday(id: string): boolean {
     const today = new Date().toDateString();
     // Reset if it's a new day
     if (this.lastNotificationDate !== today) {
       this.sentNotificationIds.clear();
+      this.resetDailyCount();
       this.saveLastNotificationDate(today);
     }
     return this.sentNotificationIds.has(id);
   }
 
-  // Request notification permission
+  // Get appropriate content based on time and preferences
+  private getTimelyContent(): IslamicContent | null {
+    const timeOfDay = this.getTimeBasedType();
+    const availableTypes: string[] = [];
+
+    // Build list of available content types based on preferences
+    if (this.preferences.dailyHadithNotifications) availableTypes.push('hadith');
+    if (this.preferences.quranicVerses) availableTypes.push('quran');
+    if (this.preferences.dhikrReminders) availableTypes.push('dhikr');
+    if (this.preferences.islamicKnowledge) availableTypes.push('knowledge');
+    if (this.preferences.motivationalMessages) availableTypes.push('motivation');
+
+    if (availableTypes.length === 0) return null;
+
+    // Time-based content selection
+    let selectedType = availableTypes[Math.floor(Math.random() * availableTypes.length)];
+    
+    // Prioritize certain content types based on time
+    if (timeOfDay === 'morning' && availableTypes.includes('quran')) {
+      selectedType = 'quran'; // Morning Quran verses
+    } else if (timeOfDay === 'evening' && availableTypes.includes('dhikr')) {
+      selectedType = 'dhikr'; // Evening dhikr
+    }
+
+    return getRandomContent(selectedType);
+  }
   async requestPermission(): Promise<boolean> {
     if (!this.isSupported) {
       console.warn('Notifications not supported');
@@ -182,9 +312,15 @@ export class NotificationManager {
     this.savePreferences();
   }
 
-  // Send a notification
+  // Send a notification with enhanced features
   private async sendNotification(event: NotificationEvent): Promise<void> {
     if (!this.areNotificationsEnabled()) {
+      return;
+    }
+
+    // Check daily limit
+    if (this.hasReachedDailyLimit() && event.priority !== 'high') {
+      console.log('Daily notification limit reached, skipping:', event.title);
       return;
     }
 
@@ -198,15 +334,18 @@ export class NotificationManager {
         body: event.body,
         icon: event.icon || '/icon-192x192.png',
         tag: event.id,
-        requireInteraction: event.type === 'eid-greeting',
+        requireInteraction: event.type === 'eid-greeting' || event.priority === 'high',
         badge: '/icon-192x192.png',
       });
 
-      // Auto-close after 5 seconds for non-important notifications
+      // Auto-close timing based on priority
+      const closeDelay = event.priority === 'high' ? 8000 : 
+                        event.priority === 'medium' ? 6000 : 5000;
+      
       if (event.type !== 'eid-greeting') {
         setTimeout(() => {
           notification.close();
-        }, 5000);
+        }, closeDelay);
       }
 
       // Handle click events
@@ -215,15 +354,19 @@ export class NotificationManager {
         window.focus();
       };
 
-      // Mark as sent
+      // Mark as sent and update counters
       this.saveSentNotification(event.id);
       this.saveLastNotificationDate(new Date().toDateString());
+      this.incrementDailyCount();
+      this.saveNotificationToHistory(event);
+      
+      console.log(`Notification sent: ${event.title} (${event.type})`);
     } catch (error) {
       console.error('Failed to send notification:', error);
     }
   }
 
-  // Check and send Ramadan countdown notifications
+  // Enhanced Ramadan countdown with contextual messages
   private async checkRamadanCountdown(): Promise<void> {
     if (!this.preferences.ramadanCountdowns) {
       return;
@@ -235,12 +378,30 @@ export class NotificationManager {
       const daysUntil = getDaysUntilRamadan(today);
 
       if (daysUntil > 0 && daysUntil <= 30) {
+        let title = 'Ramadan Countdown';
+        let body = '';
+        
+        // Contextual messages based on proximity
+        if (daysUntil <= 7) {
+          title = 'Ramadan is Almost Here!';
+          body = daysUntil === 1 ? 
+            'Tomorrow begins the blessed month of Ramadan! Prepare your heart and home.' :
+            `Only ${daysUntil} days left until Ramadan! Time to prepare for the month of mercy.`;
+        } else if (daysUntil <= 14) {
+          title = 'Ramadan Preparation';
+          body = `${daysUntil} days until Ramadan. Start planning your spiritual goals.`;
+        } else {
+          body = `${daysUntil} day${daysUntil > 1 ? 's' : ''} until Ramadan ${today.getFullYear() + (today.getMonth() < 6 ? 1447 : 1446)} AH`;
+        }
+
         const event: NotificationEvent = {
           id: `ramadan-countdown-${daysUntil}`,
-          title: 'Ramadan Countdown',
-          body: `${daysUntil} day${daysUntil > 1 ? 's' : ''} until Ramadan ${today.getFullYear() + (today.getMonth() < 6 ? 1447 : 1446)} AH`,
+          title,
+          body,
           type: 'ramadan-countdown',
           timestamp: Date.now(),
+          priority: daysUntil <= 7 ? 'high' : 'medium',
+          icon: daysUntil <= 7 ? '🌙' : '/icon-192x192.png'
         };
 
         await this.sendNotification(event);
@@ -322,7 +483,7 @@ export class NotificationManager {
     return false;
   }
 
-  // Check and send Friday Surah Kahf reminders
+  // Enhanced Friday Surah Kahf reminder with varied content
   private async checkFridayKahfReminder(): Promise<void> {
     if (!this.preferences.fridayKahfReminders) {
       return;
@@ -332,54 +493,194 @@ export class NotificationManager {
 
     // Check if today is Friday (day 5 in JavaScript, where 0 = Sunday)
     if (today.getDay() === 5) {
+      const fridayMessages = [
+        {
+          title: 'Friday Blessings',
+          body: 'Don\'t forget to read Surah Al-Kahf today! It\'s a Sunnah with great rewards.',
+          icon: '📖'
+        },
+        {
+          title: 'Jumu\'ah Mubarak',
+          body: 'Friday is here! Send blessings upon the Prophet and read Surah Al-Kahf.',
+          icon: '✨'
+        },
+        {
+          title: 'Best Day of the Week',
+          body: 'Friday is the best day! Seize its blessings with Surah Al-Kahf and good deeds.',
+          icon: '🌟'
+        }
+      ];
+      
+      const message = fridayMessages[Math.floor(Math.random() * fridayMessages.length)];
+      
       const event: NotificationEvent = {
         id: 'friday-kahf',
-        title: 'Friday Reminder',
-        body: 'Don\'t forget to read Surah Al-Kahf today! It\'s a Sunnah with great rewards.',
+        title: message.title,
+        body: message.body,
+        icon: message.icon,
         type: 'friday-kahf',
         timestamp: Date.now(),
+        priority: 'medium'
       };
 
       await this.sendNotification(event);
     }
   }
 
-  // Check and send daily hadith notifications
+  // Enhanced daily hadith with variety
   private async checkDailyHadith(): Promise<void> {
     if (!this.preferences.dailyHadithNotifications) {
       return;
     }
 
-    const today = new Date();
-    const todayStr = today.toDateString();
+    // Send at different times to avoid predictability
+    const now = new Date();
+    const hour = now.getHours();
+    const minute = now.getMinutes();
+    
+    // Random time between 8 AM - 8 PM
+    const targetHour = 8 + Math.floor(Math.random() * 12);
+    const targetMinute = Math.floor(Math.random() * 60);
+    
+    if (hour === targetHour && minute === targetMinute) {
+      const content = getRandomContent('hadith');
+      
+      if (content) {
+        const event: NotificationEvent = {
+          id: `daily-hadith-${now.toDateString()}`,
+          title: 'Daily Hadith',
+          body: content.translation,
+          type: 'daily-hadith',
+          contentType: 'hadith',
+          timestamp: Date.now(),
+          icon: '📜',
+          priority: 'medium'
+        };
 
-    // Send at a specific time (e.g., 9 AM)
-    if (today.getHours() === 9 && today.getMinutes() === 0) {
-      const hadith = this.getRandomHadith();
-
-      const event: NotificationEvent = {
-        id: `daily-hadith-${todayStr}`,
-        title: 'Daily Hadith',
-        body: hadith,
-        type: 'daily-hadith',
-        timestamp: Date.now(),
-      };
-
-      await this.sendNotification(event);
+        await this.sendNotification(event);
+      }
     }
   }
 
-  // Get random hadith (simplified - would use hadith database in production)
-  private getRandomHadith(): string {
-    const hadiths = [
-      "The best among you are those who learn the Quran and teach it. - Bukhari",
-      "Kindness is a mark of faith, and whoever is not kind has no faith. - Muslim",
-      "Speak good or remain silent. - Bukhari",
-      "The strong believer is better and more beloved to Allah than the weak believer. - Muslim",
-      "None of you truly believes until he wishes for his brother what he wishes for himself. - Bukhari",
-    ];
+  // New: Quranic verse notifications
+  private async checkQuranicVerses(): Promise<void> {
+    if (!this.preferences.quranicVerses) {
+      return;
+    }
 
-    return hadiths[Math.floor(Math.random() * hadiths.length)];
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // Morning Quran verses (6 AM - 10 AM)
+    if (hour >= 6 && hour < 10) {
+      const content = getRandomContent('quran');
+      
+      if (content) {
+        const event: NotificationEvent = {
+          id: `quran-verse-${now.toDateString()}`,
+          title: 'Quranic Verse',
+          body: content.translation,
+          type: 'quranic-verse',
+          contentType: 'quran',
+          timestamp: Date.now(),
+          icon: '🕌',
+          priority: 'medium'
+        };
+
+        await this.sendNotification(event);
+      }
+    }
+  }
+
+  // New: Dhikr reminders
+  private async checkDhikrReminders(): Promise<void> {
+    if (!this.preferences.dhikrReminders) {
+      return;
+    }
+
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // Morning and evening dhikr
+    if ((hour >= 7 && hour < 9) || (hour >= 18 && hour < 20)) {
+      const content = getRandomContent('dhikr');
+      
+      if (content) {
+        const timeOfDay = hour < 12 ? 'Morning' : 'Evening';
+        const event: NotificationEvent = {
+          id: `dhikr-${timeOfDay.toLowerCase()}-${now.toDateString()}`,
+          title: `${timeOfDay} Dhikr`,
+          body: content.translation,
+          type: 'dhikr-reminder',
+          contentType: 'dhikr',
+          timestamp: Date.now(),
+          icon: '🤲',
+          priority: 'low'
+        };
+
+        await this.sendNotification(event);
+      }
+    }
+  }
+
+  // New: Islamic knowledge notifications
+  private async checkIslamicKnowledge(): Promise<void> {
+    if (!this.preferences.islamicKnowledge) {
+      return;
+    }
+
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // Afternoon knowledge bites (2 PM - 4 PM)
+    if (hour >= 14 && hour < 16) {
+      const content = getRandomContent('knowledge');
+      
+      if (content) {
+        const event: NotificationEvent = {
+          id: `islamic-knowledge-${now.toDateString()}`,
+          title: 'Islamic Knowledge',
+          body: content.translation,
+          type: 'islamic-knowledge',
+          contentType: 'knowledge',
+          timestamp: Date.now(),
+          icon: '🎓',
+          priority: 'low'
+        };
+
+        await this.sendNotification(event);
+      }
+    }
+  }
+
+  // New: Motivational messages
+  private async checkMotivationalMessages(): Promise<void> {
+    if (!this.preferences.motivationalMessages) {
+      return;
+    }
+
+    const now = new Date();
+    const hour = now.getHours();
+    
+    // Mid-morning motivation (10 AM - 11 AM)
+    if (hour >= 10 && hour < 11) {
+      const content = getRandomContent('motivation');
+      
+      if (content) {
+        const event: NotificationEvent = {
+          id: `motivation-${now.toDateString()}`,
+          title: 'Daily Motivation',
+          body: content.translation,
+          type: 'motivational-message',
+          contentType: 'motivation',
+          timestamp: Date.now(),
+          icon: '💪',
+          priority: 'low'
+        };
+
+        await this.sendNotification(event);
+      }
+    }
   }
 
   // Trigger festive UI for special events
@@ -397,7 +698,7 @@ export class NotificationManager {
     window.dispatchEvent(customEvent);
   }
 
-  // Main check method - call this periodically
+  // Enhanced main check method with all notification types
   async checkAllNotifications(): Promise<void> {
     if (!this.areNotificationsEnabled()) {
       return;
@@ -408,6 +709,10 @@ export class NotificationManager {
       this.checkEidGreetings(),
       this.checkFridayKahfReminder(),
       this.checkDailyHadith(),
+      this.checkQuranicVerses(),
+      this.checkDhikrReminders(),
+      this.checkIslamicKnowledge(),
+      this.checkMotivationalMessages(),
     ]);
   }
 
@@ -445,6 +750,46 @@ export class NotificationManager {
 
     // Check immediately on start
     this.checkAllNotifications();
+  }
+
+  // Get notification history
+  getNotificationHistory(): NotificationEvent[] {
+    return [...this.notificationHistory];
+  }
+
+  // Clear notification history
+  clearNotificationHistory(): void {
+    this.notificationHistory = [];
+    try {
+      localStorage.setItem(NOTIFICATION_HISTORY_KEY, JSON.stringify(this.notificationHistory));
+    } catch (error) {
+      console.error('Failed to clear notification history:', error);
+    }
+  }
+
+  // Get today's notification count
+  getTodayNotificationCount(): number {
+    return this.dailyNotificationCount;
+  }
+
+  // Test notification with random content
+  async sendTestNotification(): Promise<void> {
+    const content = getRandomContent();
+    
+    if (content) {
+      const event: NotificationEvent = {
+        id: `test-${Date.now()}`,
+        title: 'Test Notification',
+        body: content.translation,
+        type: 'motivational-message',
+        contentType: content.type,
+        timestamp: Date.now(),
+        icon: '🧪',
+        priority: 'low'
+      };
+
+      await this.sendNotification(event);
+    }
   }
 
   // Stop the notification service and clean up intervals

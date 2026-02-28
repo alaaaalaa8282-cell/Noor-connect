@@ -1,179 +1,206 @@
-import { useState, useEffect } from "react";
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
-import { Button } from "@/components/ui/button";
-import { Switch } from "@/components/ui/switch";
-import { Bell, BellOff, Settings, CheckCircle, AlertCircle, Play } from "lucide-react";
-import { unifiedNotifications } from "@/lib/unified-notifications";
-import { useToast } from "@/hooks/use-toast";
+import { useState, useEffect } from 'react';
+import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
+import { Switch } from '@/components/ui/switch';
+import { Slider } from '@/components/ui/slider';
+import { Button } from '@/components/ui/button';
+import { Badge } from '@/components/ui/badge';
+import { toast } from 'sonner';
+import { notificationManager, NotificationPreferences } from '@/lib/notification-manager';
+import { Bell, Clock, Settings, Trash2, TestTube } from 'lucide-react';
 
-export const NotificationSettings = () => {
-  const [isEnabled, setIsEnabled] = useState(false);
-  const [isLoading, setIsLoading] = useState(true);
-  const [scheduledCount, setScheduledCount] = useState(0);
-  const { toast } = useToast();
+export default function NotificationSettings() {
+  const [preferences, setPreferences] = useState<NotificationPreferences>(
+    notificationManager.getPreferences()
+  );
+  const [todayCount, setTodayCount] = useState(0);
+  const [isLoading, setIsLoading] = useState(false);
 
   useEffect(() => {
-    checkNotificationStatus();
+    setPreferences(notificationManager.getPreferences());
+    setTodayCount(notificationManager.getTodayNotificationCount());
   }, []);
 
-  const checkNotificationStatus = async () => {
+  const handlePreferenceChange = (key: keyof NotificationPreferences, value: any) => {
+    const newPreferences = { ...preferences, [key]: value };
+    setPreferences(newPreferences);
+    notificationManager.updatePreferences({ [key]: value });
+    toast.success('Notification preferences updated');
+  };
+
+  const handleTestNotification = async () => {
+    setIsLoading(true);
     try {
-      const enabled = await unifiedNotifications.getPermissionStatus();
-      setIsEnabled(enabled === 'granted');
-      
-      const scheduled = await unifiedNotifications.getScheduledNotifications();
-      setScheduledCount(scheduled.length);
+      await notificationManager.sendTestNotification();
+      toast.success('Test notification sent!');
     } catch (error) {
-      console.error('Failed to check notification status:', error);
+      toast.error('Failed to send test notification');
     } finally {
       setIsLoading(false);
     }
   };
 
-  const handleToggleNotifications = async (enabled: boolean) => {
-    if (enabled) {
-      const success = await unifiedNotifications.requestPermission();
-      if (success) {
-        setIsEnabled(true);
-        toast({
-          title: "Notifications Enabled",
-          description: "Prayer reminders will be scheduled automatically",
-        });
-      } else {
-        toast({
-          title: "Permission Denied",
-          description: "Please enable notifications in your device settings",
-          variant: "destructive",
-        });
-      }
-    } else {
-      await unifiedNotifications.clearAllNotifications();
-      setIsEnabled(false);
-      setScheduledCount(0);
-      toast({
-        title: "Notifications Disabled",
-        description: "Prayer reminders have been cancelled",
-      });
+  const handleClearHistory = () => {
+    notificationManager.clearNotificationHistory();
+    toast.success('Notification history cleared');
+  };
+
+  const notificationCategories = [
+    {
+      title: 'Islamic Events',
+      description: 'Special occasions and religious observances',
+      items: [
+        { key: 'ramadanCountdowns', label: 'Ramadan Countdown', description: 'Daily countdown during Ramadan preparation' },
+        { key: 'eidGreetings', label: 'Eid Greetings', description: 'Eid-ul-Fitr and Eid-ul-Adha notifications' },
+        { key: 'fridayKahfReminders', label: 'Friday Reminders', description: 'Surah Al-Kahf reading reminders' },
+      ]
+    },
+    {
+      title: 'Daily Content',
+      description: 'Regular Islamic inspiration and knowledge',
+      items: [
+        { key: 'dailyHadithNotifications', label: 'Daily Hadith', description: 'Random hadith throughout the day' },
+        { key: 'quranicVerses', label: 'Quranic Verses', description: 'Morning Quran verses for reflection' },
+        { key: 'dhikrReminders', label: 'Dhikr Reminders', description: 'Morning and evening remembrance' },
+        { key: 'islamicKnowledge', label: 'Islamic Knowledge', description: 'Interesting facts and teachings' },
+        { key: 'motivationalMessages', label: 'Motivational Messages', description: 'Daily Islamic motivation' },
+      ]
+    },
+    {
+      title: 'Time-Based',
+      description: 'Specific time notifications',
+      items: [
+        { key: 'morningReminders', label: 'Morning Reminders', description: 'Early morning Islamic content' },
+        { key: 'eveningReminders', label: 'Evening Reminders', description: 'Evening Islamic content' },
+      ]
     }
-  };
-
-  const handleRefreshStatus = async () => {
-    setIsLoading(true);
-    await checkNotificationStatus();
-  };
-
-  const handleClearNotifications = async () => {
-    await unifiedNotifications.clearAllNotifications();
-    setScheduledCount(0);
-    toast({
-      title: "Notifications Cleared",
-      description: "All scheduled prayer reminders have been cancelled",
-    });
-  };
-
-  const handleTestNotification = async () => {
-    const result = await unifiedNotifications.testNotification();
-    
-    if (result.success) {
-      toast({
-        title: "Test Notification Sent",
-        description: "Check your notification tray",
-      });
-    } else {
-      toast({
-        title: "Test Failed",
-        description: "Notifications may not be working properly",
-        variant: "destructive",
-      });
-      
-      // Show detailed debug info in console
-      console.log('Notification test details:', result.details);
-    }
-  };
+  ];
 
   return (
-    <Card className="w-full">
-      <CardHeader>
-        <div className="flex items-center gap-2">
-          <Bell className="w-5 h-5" />
-          <CardTitle>Prayer Notifications</CardTitle>
-        </div>
-        <CardDescription>
-          Receive reminders for prayer times even when the app is closed
-        </CardDescription>
-      </CardHeader>
-      <CardContent className="space-y-4">
-        {/* Enable/Disable Toggle */}
-        <div className="flex items-center justify-between">
-          <div className="space-y-1">
-            <div className="font-medium">Prayer Reminders</div>
-            <div className="text-sm text-muted-foreground">
-              Get notified at prayer times
+    <div className="space-y-6">
+      {/* Header */}
+      <Card>
+        <CardHeader>
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <Bell className="h-5 w-5 text-primary" />
+              <CardTitle>Enhanced Notification Settings</CardTitle>
+            </div>
+            <div className="flex items-center gap-2">
+              <Badge variant="outline" className="flex items-center gap-1">
+                <Clock className="h-3 w-3" />
+                {todayCount} today
+              </Badge>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={handleTestNotification}
+                disabled={isLoading}
+              >
+                <TestTube className="h-4 w-4 mr-1" />
+                Test
+              </Button>
             </div>
           </div>
-          <Switch
-            checked={isEnabled}
-            onCheckedChange={handleToggleNotifications}
-            disabled={isLoading}
-          />
-        </div>
+          <CardDescription>
+            Customize your Islamic notification preferences and frequency with diverse content
+          </CardDescription>
+        </CardHeader>
+      </Card>
 
-        {/* Status */}
-        <div className="flex items-center gap-2 p-3 rounded-lg bg-muted/30">
-          {isEnabled ? (
-            <CheckCircle className="w-4 h-4 text-green-500" />
-          ) : (
-            <AlertCircle className="w-4 h-4 text-orange-500" />
-          )}
-          <span className="text-sm">
-            {isEnabled
-              ? `${scheduledCount} prayer reminders scheduled`
-              : 'Prayer reminders are disabled'}
-          </span>
-        </div>
+      {/* Notification Categories */}
+      {notificationCategories.map((category, categoryIndex) => (
+        <Card key={categoryIndex}>
+          <CardHeader>
+            <CardTitle className="text-lg">{category.title}</CardTitle>
+            <CardDescription>{category.description}</CardDescription>
+          </CardHeader>
+          <CardContent className="space-y-4">
+            {category.items.map((item, itemIndex) => (
+              <div key={itemIndex} className="flex items-center justify-between space-x-2">
+                <div className="space-y-0.5">
+                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
+                    {item.label}
+                  </label>
+                  <p className="text-xs text-muted-foreground">
+                    {item.description}
+                  </p>
+                </div>
+                <Switch
+                  checked={preferences[item.key as keyof NotificationPreferences] as boolean}
+                  onCheckedChange={(checked) => 
+                    handlePreferenceChange(item.key as keyof NotificationPreferences, checked)
+                  }
+                />
+              </div>
+            ))}
+          </CardContent>
+        </Card>
+      ))}
 
-        {/* Actions */}
-        <div className="flex gap-2">
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleRefreshStatus}
-            disabled={isLoading}
-          >
-            <Settings className="w-4 h-4 mr-2" />
-            Refresh Status
-          </Button>
-          
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={handleTestNotification}
-            disabled={isLoading}
-          >
-            <Play className="w-4 h-4 mr-2" />
-            Test Notification
-          </Button>
-          
-          {isEnabled && scheduledCount > 0 && (
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleClearNotifications}
-            >
-              <BellOff className="w-4 h-4 mr-2" />
-              Clear All
-            </Button>
-          )}
-        </div>
+      {/* Frequency Control */}
+      <Card>
+        <CardHeader>
+          <CardTitle className="flex items-center gap-2">
+            <Settings className="h-5 w-5" />
+            Notification Frequency
+          </CardTitle>
+          <CardDescription>
+            Control maximum number of notifications per day to avoid notification fatigue
+          </CardDescription>
+        </CardHeader>
+        <CardContent className="space-y-4">
+          <div className="space-y-2">
+            <div className="flex items-center justify-between">
+              <label className="text-sm font-medium">Max Daily Notifications</label>
+              <Badge variant="secondary">{preferences.maxDailyNotifications}</Badge>
+            </div>
+            <Slider
+              value={[preferences.maxDailyNotifications]}
+              onValueChange={([value]) => 
+                handlePreferenceChange('maxDailyNotifications', value)
+              }
+              min={1}
+              max={15}
+              step={1}
+              className="w-full"
+            />
+            <div className="flex justify-between text-xs text-muted-foreground">
+              <span>Minimal (1)</span>
+              <span>Moderate (5)</span>
+              <span>Frequent (10)</span>
+              <span>Maximum (15)</span>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
 
-        {/* Info */}
-        <div className="text-xs text-muted-foreground space-y-1">
-          <p>• Notifications use system alarm to wake up device</p>
-          <p>• Works even when app is closed or device is in deep sleep</p>
-          <p>• Automatically schedules next day's prayers</p>
-          <p>• FOSS-friendly - no proprietary services required</p>
-        </div>
-      </CardContent>
-    </Card>
+      {/* Info Card */}
+      <Card className="border-primary/20 bg-primary/5">
+        <CardContent className="pt-6">
+          <div className="flex items-start gap-3">
+            <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
+            <div className="space-y-1">
+              <h4 className="text-sm font-medium">About Enhanced Notifications</h4>
+              <p className="text-xs text-muted-foreground leading-relaxed">
+                Our enhanced notification system provides diverse Islamic content including hadith, 
+                Quranic verses, dhikr reminders, and motivational messages. 
+                Notifications are time-sensitive and respect your frequency preferences 
+                to provide spiritual enrichment without overwhelming you.
+              </p>
+              <div className="mt-2 space-y-1">
+                <p className="text-xs font-medium">Features:</p>
+                <ul className="text-xs text-muted-foreground space-y-1 ml-4">
+                  <li>• Diverse Islamic content (hadith, Quran, dhikr, knowledge)</li>
+                  <li>• Time-based notifications (morning/evening themes)</li>
+                  <li>• Smart frequency control to prevent notification fatigue</li>
+                  <li>• Contextual Ramadan countdown messages</li>
+                  <li>• Enhanced Friday reminders with varied content</li>
+                </ul>
+              </div>
+            </div>
+          </div>
+        </CardContent>
+      </Card>
+    </div>
   );
-};
+}
