@@ -93,6 +93,38 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
     }
   };
 
+  const handleOpenSettings = (type: PermissionType) => {
+    if (platform === 'mobile') {
+      if (type === 'location') {
+        window.open('android-app://settings');
+      } else if (type === 'notifications') {
+        window.open('android-app://settings/android.permission.POST_NOTIFICATIONS');
+      }
+    } else {
+      // Web platform
+      if (type === 'location') {
+        toast({
+          title: 'Location Settings',
+          description: 'Click the location icon in your browser address bar and allow location access.',
+        });
+      } else if (type === 'notifications') {
+        if (navigator.permissions) {
+          (navigator.permissions as any).request({ name: 'notifications' }).then(() => {
+            toast({
+              title: 'Settings Opened',
+              description: 'Please enable notifications in your browser settings.',
+            });
+          });
+        } else {
+          toast({
+            title: 'Settings Opened',
+            description: 'Click the lock icon in your browser address bar to manage notifications.',
+          });
+        }
+      }
+    }
+  };
+
   const getStatusIcon = (status: string) => {
     switch (status) {
       case 'granted':
@@ -131,7 +163,7 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
       <div className="flex items-center justify-between mb-4">
         <h3 className="font-semibold text-sm flex items-center gap-2">
           <Shield className="w-4 h-4" />
-          Permission Summary
+          Permissions
         </h3>
         <Button
           variant="outline"
@@ -243,6 +275,15 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
             <div className="text-xs text-muted-foreground bg-background p-2 rounded border">
               <strong>How to Fix:</strong> {locationPermission?.instructions?.[platform] || 'Check your device settings'}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenSettings('location')}
+              className="w-full mt-2"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Open {platform === 'mobile' ? 'App Settings' : 'Browser Settings'}
+            </Button>
           </div>
         )}
       </div>
@@ -342,6 +383,15 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
             <div className="text-xs text-muted-foreground bg-background p-2 rounded border">
               <strong>How to Fix:</strong> {notificationPermission?.instructions?.[platform] || 'Check your device settings'}
             </div>
+            <Button
+              variant="outline"
+              size="sm"
+              onClick={() => handleOpenSettings('notifications')}
+              className="w-full mt-2"
+            >
+              <Settings className="w-4 h-4 mr-2" />
+              Open {platform === 'mobile' ? 'Notification Settings' : 'Browser Settings'}
+            </Button>
           </div>
         )}
       </div>
