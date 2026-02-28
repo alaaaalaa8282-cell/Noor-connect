@@ -11,6 +11,8 @@
         android:layout_height="wrap_content"
         android:layout_centerVertical="true"
         android:layout_alignParentStart="true"
+        android:layout_toStartOf="@id/widget_right_section"
+        android:layout_marginEnd="16dp"
         android:orientation="vertical">
 
         <TextView
@@ -27,7 +29,7 @@
             android:id="@+id/widget_prayer_name"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="Maghrib"
+            android:text="@string/prayer_maghrib"
             android:textColor="#FFFFFF"
             android:textSize="22sp"
             android:textStyle="bold" />
@@ -36,7 +38,7 @@
             android:id="@+id/widget_location"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="London, UK"
+            android:text="@string/widget_location_default"
             android:textColor="#6EE7B7"
             android:textSize="12sp"
             android:maxLines="1"
@@ -56,7 +58,7 @@
             android:id="@+id/widget_prayer_time"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="18:45"
+            android:text="@string/widget_time_default"
             android:textColor="#F59E0B"
             android:textSize="28sp"
             android:textStyle="bold" />
@@ -65,7 +67,7 @@
             android:id="@+id/widget_time_remaining"
             android:layout_width="wrap_content"
             android:layout_height="wrap_content"
-            android:text="in 45 minutes"
+            android:text="@string/widget_time_remaining_default"
             android:textColor="#D1FAE5"
             android:textSize="14sp" />
     </LinearLayout>

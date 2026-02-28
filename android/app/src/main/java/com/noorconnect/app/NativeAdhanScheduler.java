@@ -96,10 +96,7 @@ public final class NativeAdhanScheduler {
         // Create a PendingIntent that opens the app when user taps the alarm icon
         Intent showIntent = new Intent(context, MainActivity.class);
         showIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        int showFlags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            showFlags |= PendingIntent.FLAG_IMMUTABLE;
-        }
+        int showFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
         PendingIntent showPendingIntent = PendingIntent.getActivity(
                 context, alarm.id + 50000, showIntent, showFlags);
 
@@ -116,28 +113,20 @@ public final class NativeAdhanScheduler {
             // Fallback chain: setExactAndAllowWhileIdle -> setAndAllowWhileIdle -> set
             Log.w(TAG, "setAlarmClock rejected, trying exact alarm", alarmClockError);
             try {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    if (canUseExactAlarms(alarmManager)) {
-                        alarmManager.setExactAndAllowWhileIdle(
-                                AlarmManager.RTC_WAKEUP,
-                                alarm.triggerAtMillis,
-                                pendingIntent);
-                    } else {
-                        alarmManager.setAndAllowWhileIdle(
-                                AlarmManager.RTC_WAKEUP,
-                                alarm.triggerAtMillis,
-                                pendingIntent);
-                    }
+                if (canUseExactAlarms(alarmManager)) {
+                    alarmManager.setExactAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            alarm.triggerAtMillis,
+                            pendingIntent);
                 } else {
-                    alarmManager.setExact(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
+                    alarmManager.setAndAllowWhileIdle(
+                            AlarmManager.RTC_WAKEUP,
+                            alarm.triggerAtMillis,
+                            pendingIntent);
                 }
             } catch (SecurityException exactAlarmError) {
                 Log.w(TAG, "Exact alarm rejected, falling back to inexact alarm", exactAlarmError);
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                    alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
-                } else {
-                    alarmManager.set(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
-                }
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, alarm.triggerAtMillis, pendingIntent);
             }
         }
 
@@ -226,10 +215,7 @@ public final class NativeAdhanScheduler {
             intent.putExtra(AdhanAlarmReceiver.EXTRA_ADHAN_URL, adhanUrl);
         }
 
-        int flags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            flags |= PendingIntent.FLAG_IMMUTABLE;
-        }
+        int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
 
         return PendingIntent.getBroadcast(context, alarmId, intent, flags);
     }

@@ -216,7 +216,7 @@ public class AdhanPlaybackService extends Service {
     private String getPrayerEmoji(String prayerName) {
         if (prayerName == null)
             return "🕌";
-        switch (prayerName.toLowerCase()) {
+        switch (prayerName.toLowerCase(Locale.ROOT)) {
             case "fajr":
                 return "🌅";
             case "dhuhr":
@@ -235,7 +235,7 @@ public class AdhanPlaybackService extends Service {
     private String getPrayerArabic(String prayerName) {
         if (prayerName == null)
             return "الصلاة";
-        switch (prayerName.toLowerCase()) {
+        switch (prayerName.toLowerCase(Locale.ROOT)) {
             case "fajr":
                 return "صلاة الفجر";
             case "dhuhr":
@@ -254,12 +254,8 @@ public class AdhanPlaybackService extends Service {
     private Notification createNotification(String prayerName) {
         Intent openIntent = new Intent(this, MainActivity.class);
         openIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
-        int openFlags = PendingIntent.FLAG_UPDATE_CURRENT;
-        int stopFlags = PendingIntent.FLAG_UPDATE_CURRENT;
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            openFlags |= PendingIntent.FLAG_IMMUTABLE;
-            stopFlags |= PendingIntent.FLAG_IMMUTABLE;
-        }
+        int openFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
+        int stopFlags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
 
         PendingIntent contentIntent = PendingIntent.getActivity(this, 0, openIntent, openFlags);
 

@@ -109,7 +109,7 @@ public class PrayerWidget extends AppWidgetProvider {
         if (info != null && info.initialLayout == R.layout.prayer_widget_medium) {
             views.setOnClickPendingIntent(R.id.widget_right_section, pendingIntent);
         } else {
-            views.setOnClickPendingIntent(R.id.widget_text_container, pendingIntent);
+            views.setOnClickPendingIntent(R.id.widget_prayer_name, pendingIntent);
         }
 
         appWidgetManager.updateAppWidget(appWidgetId, views);
