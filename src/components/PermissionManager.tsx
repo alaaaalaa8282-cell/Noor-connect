@@ -273,9 +273,9 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (window.chrome) {
+                      if ((window as any).chrome) {
                         window.open('chrome://settings/content/location');
-                      } else if (window.mozInnerScreenX !== undefined) {
+                      } else if ((window as any).mozInnerScreenX !== undefined) {
                         window.open('about:preferences#privacy');
                       } else {
                         toast({
@@ -452,11 +452,11 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (window.chrome) {
+                      if ((window as any).chrome) {
                         window.open('chrome://settings/content/notifications');
-                      } else if (window.mozInnerScreenX !== undefined) {
+                      } else if ((window as any).mozInnerScreenX !== undefined) {
                         window.open('about:preferences#privacy');
-                      } else if (window.safari) {
+                      } else if ((window as any).safari) {
                         toast({
                           title: 'Safari Settings',
                           description: 'Go to Safari > Preferences > Websites > Notifications',
