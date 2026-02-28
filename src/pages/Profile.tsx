@@ -24,6 +24,7 @@ import { quranFontManager, type QuranFont } from "@/lib/quran-font-manager";
 import { unifiedNotifications } from "@/lib/unified-notifications";
 import { getGenderSettings, setGender, type Gender } from "@/lib/gender-settings";
 import { usePrayerAlarm } from "@/hooks/usePrayerAlarm";
+import PermissionManager from "@/components/PermissionManager";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -836,6 +837,9 @@ const Profile = () => {
             </div>
           </Card>
         )}
+
+        {/* Permission Management */}
+        <PermissionManager className="mt-4" />
 
         {/* Notification Preferences */}
         <Card className="p-4 bg-muted/30">
