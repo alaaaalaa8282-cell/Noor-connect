@@ -101,26 +101,17 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
         window.open('android-app://settings/android.permission.POST_NOTIFICATIONS');
       }
     } else {
-      // Web platform
+      // Web platform - show guidance
       if (type === 'location') {
         toast({
           title: 'Location Settings',
-          description: 'Click the location icon in your browser address bar and allow location access.',
+          description: 'Click location icon in your browser address bar (usually 🌐 or ⚠️) and select "Allow"',
         });
       } else if (type === 'notifications') {
-        if (navigator.permissions) {
-          (navigator.permissions as any).request({ name: 'notifications' }).then(() => {
-            toast({
-              title: 'Settings Opened',
-              description: 'Please enable notifications in your browser settings.',
-            });
-          });
-        } else {
-          toast({
-            title: 'Settings Opened',
-            description: 'Click the lock icon in your browser address bar to manage notifications.',
-          });
-        }
+        toast({
+          title: 'Notification Settings',
+          description: 'Click lock icon in your browser address bar and allow notifications',
+        });
       }
     }
   };
@@ -275,15 +266,68 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
             <div className="text-xs text-muted-foreground bg-background p-2 rounded border">
               <strong>How to Fix:</strong> {locationPermission?.instructions?.[platform] || 'Check your device settings'}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenSettings('location')}
-              className="w-full mt-2"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Open {platform === 'mobile' ? 'App Settings' : 'Browser Settings'}
-            </Button>
+            <div className="space-y-2 mt-2">
+              {platform === 'web' && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.chrome) {
+                        window.open('chrome://settings/content/location');
+                      } else if (window.mozInnerScreenX !== undefined) {
+                        window.open('about:preferences#privacy');
+                      } else {
+                        toast({
+                          title: 'Browser Settings',
+                          description: 'Please check your browser\'s settings menu for location permissions',
+                        });
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Open Chrome Settings
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (navigator.geolocation) {
+                        navigator.geolocation.getCurrentPosition(
+                          () => {
+                            toast({
+                              title: 'Location Permission',
+                              description: 'Please allow location access in the browser prompt',
+                            });
+                          },
+                          () => {
+                            toast({
+                              title: 'Location Denied',
+                              description: 'Please click the location icon in your browser address bar',
+                            });
+                          },
+                          { timeout: 1000 }
+                        );
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <MapPin className="w-4 h-4 mr-2" />
+                    Request Location Again
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenSettings('location')}
+                className="w-full"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Open {platform === 'mobile' ? 'App Settings' : 'Browser Settings'}
+              </Button>
+            </div>
           </div>
         )}
       </div>
@@ -383,15 +427,92 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
             <div className="text-xs text-muted-foreground bg-background p-2 rounded border">
               <strong>How to Fix:</strong> {notificationPermission?.instructions?.[platform] || 'Check your device settings'}
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={() => handleOpenSettings('notifications')}
-              className="w-full mt-2"
-            >
-              <Settings className="w-4 h-4 mr-2" />
-              Open {platform === 'mobile' ? 'Notification Settings' : 'Browser Settings'}
-            </Button>
+            <div className="space-y-2 mt-2">
+              {platform === 'web' && (
+                <>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (navigator.permissions) {
+                        (navigator.permissions as any).request({ name: 'notifications' }).then(() => {
+                          toast({
+                            title: 'Settings Opened',
+                            description: 'Please enable notifications in your browser settings.',
+                          });
+                        });
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Bell className="w-4 h-4 mr-2" />
+                    Request Permission
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      if (window.chrome) {
+                        window.open('chrome://settings/content/notifications');
+                      } else if (window.mozInnerScreenX !== undefined) {
+                        window.open('about:preferences#privacy');
+                      } else if (window.safari) {
+                        toast({
+                          title: 'Safari Settings',
+                          description: 'Go to Safari > Preferences > Websites > Notifications',
+                        });
+                      } else {
+                        toast({
+                          title: 'Browser Settings',
+                          description: 'Click lock icon in your browser address bar and allow notifications',
+                        });
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Settings className="w-4 h-4 mr-2" />
+                    Open Browser Settings
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="sm"
+                    onClick={() => {
+                      // Test notification to show current status
+                      if ('Notification' in window) {
+                        const testNotification = new Notification('Test Notification', {
+                          body: 'This is a test notification from Noor Connect',
+                          icon: '/favicon.ico'
+                        });
+                        setTimeout(() => testNotification.close(), 3000);
+                        toast({
+                          title: 'Test Notification Sent',
+                          description: 'If you don\'t see this, please enable notifications in browser settings',
+                        });
+                      } else {
+                        toast({
+                          title: 'Notifications Not Supported',
+                          description: 'Your browser does not support notifications',
+                          variant: 'destructive'
+                        });
+                      }
+                    }}
+                    className="w-full"
+                  >
+                    <Bell className="w-4 h-4 mr-2" />
+                    Test Notification
+                  </Button>
+                </>
+              )}
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => handleOpenSettings('notifications')}
+                className="w-full"
+              >
+                <Settings className="w-4 h-4 mr-2" />
+                Open {platform === 'mobile' ? 'Notification Settings' : 'Browser Settings'}
+              </Button>
+            </div>
           </div>
         )}
       </div>
