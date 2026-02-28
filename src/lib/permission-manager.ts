@@ -44,8 +44,37 @@ class PermissionManager {
 
   private detectPlatform(): PlatformType {
     // Check if running in Capacitor (mobile app)
-    const isCapacitor = !!(window as unknown as { Capacitor?: unknown }).Capacitor;
-    return isCapacitor ? 'mobile' : 'web';
+    const capacitor = (window as unknown as { Capacitor?: unknown }).Capacitor;
+    
+    // Debug logging to help identify issues
+    console.log('Platform Detection Debug:', {
+      capacitor: !!capacitor,
+      userAgent: window.navigator.userAgent,
+      protocol: window.location.protocol,
+      cordova: !!(window as any).cordova,
+      devicePlatform: (window as any).device?.platform,
+      hasCapacitorInUA: window.navigator.userAgent.includes('Capacitor')
+    });
+    
+    // More robust platform detection
+    if (capacitor) {
+      // Additional check to ensure we're actually in a native app
+      const isNativeApp = !!(window as unknown as { 
+        cordova?: unknown;
+        // Check for mobile-specific indicators
+        device?: { platform?: string };
+      }).cordova || 
+      (window as any).device?.platform ||
+      // Check if we're in a standalone mobile app context
+      window.location.protocol === 'file:' ||
+      window.navigator.userAgent.includes('Capacitor');
+      
+      console.log('Detected platform:', isNativeApp ? 'mobile' : 'web');
+      return isNativeApp ? 'mobile' : 'web';
+    }
+    
+    console.log('Detected platform: web (no Capacitor)');
+    return 'web';
   }
 
   private initializeCache(): void {
