@@ -86,6 +86,43 @@ export default function Dashboard() {
     : location.locationName;
 
   useEffect(() => {
+    if (!prayerLocation) return;
+
+    // #region agent log
+    fetch('http://127.0.0.1:7242/ingest/8477e0e0-47e5-465e-a357-0ba401b2356d', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify({
+        id: `log_${Date.now()}_dashboard_location`,
+        timestamp: Date.now(),
+        runId: 'location-debug',
+        hypothesisId: 'H2',
+        location: 'Dashboard.tsx:locationSummary',
+        message: 'Dashboard location/time summary',
+        data: {
+          headerLabel: locationLabel,
+          globalLocation: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            locationName: location.locationName,
+            timeZone: location.timeZone ?? null,
+          },
+          prayerLocation: {
+            source: prayerLocation.source,
+            city: prayerLocation.city ?? null,
+            country: prayerLocation.country ?? null,
+            latitude: prayerLocation.latitude,
+            longitude: prayerLocation.longitude,
+            timeZone: prayerLocation.timeZone ?? null,
+          },
+          clockTimeZone: location.timeZone ?? null,
+        },
+      }),
+    }).catch(() => {});
+    // #endregion agent log
+  }, [location.latitude, location.longitude, location.locationName, location.timeZone, locationLabel, prayerLocation]);
+
+  useEffect(() => {
     setTimeFormat(getTimeFormat());
   }, [setTimeFormat]);
 
@@ -207,6 +244,28 @@ export default function Dashboard() {
     const success = await location.detectLocation();
     if (success) {
       toast({ title: "Location detected", description: `Updated to ${location.locationName}` });
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/8477e0e0-47e5-465e-a357-0ba401b2356d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: `log_${Date.now()}_dashboard_detect`,
+          timestamp: Date.now(),
+          runId: 'location-debug',
+          hypothesisId: 'H3',
+          location: 'Dashboard.tsx:handleDetectLocation',
+          message: 'Global location detected via GeolocationService',
+          data: {
+            latitude: location.latitude,
+            longitude: location.longitude,
+            locationName: location.locationName,
+            timeZone: location.timeZone ?? null,
+          },
+        }),
+      }).catch(() => {});
+      // #endregion agent log
+
       // Reload prayer times with new location
       await loadPrayerTimes();
     } else {

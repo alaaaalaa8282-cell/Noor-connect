@@ -214,8 +214,11 @@ const QiblaCompassModern = () => {
         });
 
         setLocation(position);
-        setQiblaBearing(calculateQiblaBearing(position.latitude, position.longitude));
-        setDistanceKm(calculateDistanceToKaabaKm(position.latitude, position.longitude));
+        const bearing = calculateQiblaBearing(position.latitude, position.longitude);
+        const distance = calculateDistanceToKaabaKm(position.latitude, position.longitude);
+
+        setQiblaBearing(bearing);
+        setDistanceKm(distance);
       } catch (error) {
         const message = error instanceof Error ? error.message : "Unable to detect location.";
         setLocationError(message);

@@ -434,14 +434,10 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                     variant="outline"
                     size="sm"
                     onClick={() => {
-                      if (navigator.permissions) {
-                        (navigator.permissions as any).request({ name: 'notifications' }).then(() => {
-                          toast({
-                            title: 'Settings Opened',
-                            description: 'Please enable notifications in your browser settings.',
-                          });
-                        });
-                      }
+                      // There is no standard `navigator.permissions.request()` on the web.
+                      // Attempting requestPermission here will usually return "denied" if the user
+                      // previously blocked it, but it keeps the UX consistent.
+                      handleRequestPermission('notifications');
                     }}
                     className="w-full"
                   >

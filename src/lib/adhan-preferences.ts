@@ -88,6 +88,11 @@ export function setAdhanForPrayer(prayer: PrayerName, adhanId: string): void {
         const prefs = getAdhanPreferences();
         prefs[prayer] = adhanId;
         localStorage.setItem(STORAGE_KEY, JSON.stringify(prefs));
+        if (typeof window !== 'undefined') {
+            window.dispatchEvent(
+                new CustomEvent('adhan-preferences-changed', { detail: { prayer, adhanId } })
+            );
+        }
     } catch (error) {
         console.error('Failed to save adhan preference:', error);
     }
@@ -98,4 +103,7 @@ export function setAdhanForPrayer(prayer: PrayerName, adhanId: string): void {
  */
 export function resetAdhanPreferences(): void {
     localStorage.removeItem(STORAGE_KEY);
+    if (typeof window !== 'undefined') {
+        window.dispatchEvent(new Event('adhan-preferences-changed'));
+    }
 }

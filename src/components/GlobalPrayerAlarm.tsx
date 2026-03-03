@@ -38,6 +38,18 @@ const normalizeTimeString = (time: string): string =>
 const isValidPrayerName = (name: string): name is PrayerName =>
   ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'].includes(name);
 
+const normalizePrayerName = (name: string): PrayerName | null => {
+  const trimmed = (name || '').trim();
+  if (!trimmed) return null;
+  const lower = trimmed.toLowerCase();
+  if (lower === 'fajr') return 'Fajr';
+  if (lower === 'dhuhr' || lower === 'zuhr' || lower === 'dhur') return 'Dhuhr';
+  if (lower === 'asr') return 'Asr';
+  if (lower === 'maghrib') return 'Maghrib';
+  if (lower === 'isha' || lower === 'ishaa') return 'Isha';
+  return null;
+};
+
 export const GlobalPrayerAlarm = () => {
   const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
@@ -158,9 +170,12 @@ export const GlobalPrayerAlarm = () => {
 
       stopCurrentAdhan();
 
-      const adhanUrl = isValidPrayerName(prayerName)
-        ? await getAdhanUrlForPrayer(prayerName)
-        : await getAdhanUrlForPrayer('Dhuhr');
+      const normalizedPrayer = normalizePrayerName(prayerName);
+      const adhanUrl = normalizedPrayer
+        ? await getAdhanUrlForPrayer(normalizedPrayer)
+        : isValidPrayerName(prayerName)
+          ? await getAdhanUrlForPrayer(prayerName)
+          : await getAdhanUrlForPrayer('Dhuhr');
 
       const audio = new Audio(adhanUrl);
       audioRef.current = audio;
@@ -203,18 +218,19 @@ export const GlobalPrayerAlarm = () => {
         }
       }
 
-      toast.success(`${prayerName} Time!`, {
+      const displayPrayerName = normalizedPrayer || (prayerName || 'Prayer').trim() || 'Prayer';
+      toast.success(`${displayPrayerName} Time!`, {
         description: 'It is time for prayer. Adhan is playing.',
         duration: 30000,
       });
 
       localNotifications.showNativeNotification(
-        `${prayerName} Prayer Time`,
-        `It is time for ${prayerName} prayer.`,
+        `${displayPrayerName} Prayer Time`,
+        `It is time for ${displayPrayerName} prayer.`,
         { url: '/dashboard', tag: 'prayer-alarm' }
       );
 
-      emitPlaybackState(true, prayerName);
+      emitPlaybackState(true, displayPrayerName);
 
       try {
         await audio.play();

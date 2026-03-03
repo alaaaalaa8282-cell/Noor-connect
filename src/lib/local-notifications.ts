@@ -775,3 +775,27 @@ export class LocalNotificationManager {
 }
 
 export const localNotifications = new LocalNotificationManager();
+
+// If the user changes Adhan preferences, reschedule future alarms so each prayer
+// uses the newly selected sound (especially important for native background alarms).
+declare global {
+  interface Window {
+    __noorConnectAdhanPrefsListenerAttached?: boolean;
+    __noorConnectAdhanPrefsRescheduleTimer?: number;
+  }
+}
+
+if (typeof window !== 'undefined' && !window.__noorConnectAdhanPrefsListenerAttached) {
+  window.__noorConnectAdhanPrefsListenerAttached = true;
+
+  window.addEventListener('adhan-preferences-changed', () => {
+    if (window.__noorConnectAdhanPrefsRescheduleTimer) {
+      window.clearTimeout(window.__noorConnectAdhanPrefsRescheduleTimer);
+    }
+    window.__noorConnectAdhanPrefsRescheduleTimer = window.setTimeout(() => {
+      localNotifications.schedulePrayerNotificationsFromAPI().catch((error) => {
+        console.warn('Failed to reschedule after adhan preference change:', error);
+      });
+    }, 600);
+  });
+}

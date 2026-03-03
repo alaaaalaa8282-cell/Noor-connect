@@ -232,29 +232,27 @@ class PermissionManager {
         return false;
       }
     } else {
-      // Web - request geolocation permission
+      // Web - request geolocation permission.
+      // Note: Permissions API does not provide a standard `request()` method.
+      // The reliable way to trigger the browser prompt is calling getCurrentPosition()
       if (!navigator.geolocation) return false;
 
-      if (navigator.permissions) {
-        const result = await (navigator.permissions as any).request({ name: 'geolocation' });
-        return result.state === 'granted';
-      } else {
-        // Fallback for older browsers
-        return new Promise<boolean>((resolve) => {
-          navigator.geolocation.getCurrentPosition(
-            () => resolve(true),
-            (error: any) => {
-              // Check if error is PERMISSION_DENIED (code 1)
-              if (error && error.code === 1) {
-                resolve(false);
-              } else {
-                // Other errors might mean location is available
-                resolve(true);
-              }
+      return new Promise<boolean>((resolve) => {
+        navigator.geolocation.getCurrentPosition(
+          () => resolve(true),
+          (error: any) => {
+            // PERMISSION_DENIED is code 1
+            if (error && error.code === 1) {
+              resolve(false);
+              return;
             }
-          );
-        });
-      }
+            // If it failed for another reason (timeout/unavailable), permission may still be granted.
+            // Treat as granted so the UI can proceed and handle location retrieval separately.
+            resolve(true);
+          },
+          { enableHighAccuracy: false, timeout: 8000, maximumAge: 300000 }
+        );
+      });
     }
   }
 

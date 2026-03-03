@@ -433,7 +433,32 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
       setPrayerTimes(times);
       setPrayerTimesWithEnd(withEnd);
-      setLocation({ ...locationData, timeZone });
+      const finalLocation: LocationData = { ...locationData, timeZone };
+
+      // #region agent log
+      fetch('http://127.0.0.1:7242/ingest/8477e0e0-47e5-465e-a357-0ba401b2356d', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          id: `log_${Date.now()}_prayer_location`,
+          timestamp: Date.now(),
+          runId: 'location-debug',
+          hypothesisId: 'H1',
+          location: 'usePrayerTimes.ts:fetchPrayerTimesWithCoordinates',
+          message: 'PrayerTimes location resolved',
+          data: {
+            source: finalLocation.source,
+            city: finalLocation.city ?? null,
+            country: finalLocation.country ?? null,
+            latitude: finalLocation.latitude,
+            longitude: finalLocation.longitude,
+            timeZone: finalLocation.timeZone ?? null,
+          },
+        }),
+      }).catch(() => {});
+      // #endregion agent log
+
+      setLocation(finalLocation);
       setError(null);
 
       // Update our "cache" key
