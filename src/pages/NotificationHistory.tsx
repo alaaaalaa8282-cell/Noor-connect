@@ -183,12 +183,12 @@ const NotificationHistory = () => {
           <div className="space-y-4">
             {/* Search */}
             <div className="relative">
-              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
+              <Search className="absolute start-3 top-1/2 transform -translate-y-1/2 w-4 h-4 text-muted-foreground" />
               <Input
                 placeholder="Search notifications..."
                 value={searchTerm}
                 onChange={(e) => setSearchTerm(e.target.value)}
-                className="pl-10"
+                className="ps-10"
               />
             </div>
 
@@ -196,7 +196,7 @@ const NotificationHistory = () => {
             <div className="flex gap-2">
               <Select value={filterType} onValueChange={setFilterType}>
                 <SelectTrigger className="flex-1">
-                  <Filter className="w-4 h-4 mr-2" />
+                  <Filter className="w-4 h-4 ms-2" />
                   <SelectValue placeholder="Filter by type" />
                 </SelectTrigger>
                 <SelectContent>
@@ -215,7 +215,7 @@ const NotificationHistory = () => {
                 className="text-destructive hover:text-destructive"
                 disabled={notifications.length === 0}
               >
-                <Trash2 className="w-4 h-4 mr-2" />
+                <Trash2 className="w-4 h-4 me-2" />
                 Clear All
               </Button>
             </div>

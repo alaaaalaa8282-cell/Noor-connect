@@ -39,8 +39,7 @@ export default function LiveStreams() {
             setMakkahVideoId(streams.makkah);
             setMadinahVideoId(streams.madinah);
             
-            console.log('[LiveStreams] Updated live stream IDs:', streams);
-        } catch (error) {
+                    } catch (error) {
             console.error('[LiveStreams] Failed to fetch live streams:', error);
             setErrorMakkah(true);
             setErrorMadinah(true);

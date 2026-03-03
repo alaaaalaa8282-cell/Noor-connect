@@ -154,16 +154,16 @@ export function MoodSelector() {
           <div className="flex flex-wrap gap-2">
             {currentItem.type === "surah" && currentItem.surahNumber && (
               <Button size="sm" className="rounded-full" onClick={handlePlaySurah}>
-                <Play className="mr-2 h-4 w-4" />
+                <Play className="me-2 h-4 w-4" />
                 Play Surah
               </Button>
             )}
             <Button size="sm" variant="secondary" className="rounded-full" onClick={handleCopy}>
-              {copied ? <Check className="mr-2 h-4 w-4" /> : <Copy className="mr-2 h-4 w-4" />}
+              {copied ? <Check className="me-2 h-4 w-4" /> : <Copy className="me-2 h-4 w-4" />}
               {copied ? "Copied" : "Copy"}
             </Button>
             <Button size="sm" variant="outline" className="rounded-full" onClick={handleAnotherRemedy}>
-              <Shuffle className="mr-2 h-4 w-4" />
+              <Shuffle className="me-2 h-4 w-4" />
               Another remedy
             </Button>
           </div>

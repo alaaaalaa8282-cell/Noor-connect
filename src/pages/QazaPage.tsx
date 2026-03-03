@@ -315,7 +315,7 @@ export default function QazaPage() {
           className="w-full text-destructive"
           onClick={handleReset}
         >
-          <RotateCcw className="w-4 h-4 mr-2" />
+          <RotateCcw className="w-4 h-4 ms-2" />
           Reset All Qaza
         </Button>
       </div>

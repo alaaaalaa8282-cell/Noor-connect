@@ -57,7 +57,7 @@ export const PrayerAlarmControl = () => {
                 size="sm"
                 onClick={stopAdhan}
               >
-                <Square className="h-4 w-4 mr-2" />
+                <Square className="h-4 w-4 me-2" />
                 Stop
               </Button>
             </div>
@@ -100,7 +100,7 @@ export const PrayerAlarmControl = () => {
                   onClick={testAdhan}
                   disabled={isPlaying}
                 >
-                  <Play className="h-4 w-4 mr-2" />
+                  <Play className="h-4 w-4 me-2" />
                   Test Adhan
                 </Button>
                 <Button
@@ -108,7 +108,7 @@ export const PrayerAlarmControl = () => {
                   className="flex-1"
                   onClick={disableAlarm}
                 >
-                  <VolumeX className="h-4 w-4 mr-2" />
+                  <VolumeX className="h-4 w-4 me-2" />
                   Disable
                 </Button>
               </div>

@@ -1,6 +1,7 @@
 import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext-new";
+import { useI18n } from "@/hooks/useI18n";
 import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
@@ -30,6 +31,7 @@ const Profile = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
   const { language, setLanguage, t } = useLanguage();
+  const { t: ti18n } = useI18n();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
   const [isDarkMode, setIsDarkMode] = useState(false);
@@ -47,6 +49,11 @@ const Profile = () => {
     dailyHadithNotifications: false,
     morningReminders: false,
     eveningReminders: false,
+    quranicVerses: true,
+    dhikrReminders: true,
+    islamicKnowledge: true,
+    motivationalMessages: true,
+    maxDailyNotifications: 5,
   });
   const [notificationsSupported, setNotificationsSupported] = useState(false);
   const [notifPermStatus, setNotifPermStatus] = useState<'loading' | 'granted' | 'denied' | 'default'>('loading');
@@ -127,7 +134,6 @@ const Profile = () => {
     const handleMethodChange = () => {
       // Trigger prayer time reload when method changes
       // This will be handled by any component that listens for this event
-      console.log('Prayer method changed in settings');
     };
 
     window.addEventListener('prayer-method-changed', handleMethodChange);
@@ -139,7 +145,7 @@ const Profile = () => {
   const handleSalamGreetingToggle = (checked: boolean) => {
     setSalamGreetingEnabledState(checked);
     setSalamGreetingEnabled(checked);
-    toast({ title: checked ? "Salam greeting enabled" : "Salam greeting disabled" });
+    toast({ title: ti18n(checked ? 'salamGreetingEnabled' : 'salamGreetingDisabled') });
   };
 
   const handleNotificationToggle = async (key: keyof NotificationPreferences, checked: boolean) => {
@@ -153,8 +159,8 @@ const Profile = () => {
       setNotificationsSupported(granted);
       if (!granted) {
         toast({
-          title: "Notification permission denied",
-          description: "Please enable notifications in your browser settings",
+          title: ti18n('notificationPermissionDenied'),
+          description: ti18n('pleaseEnableNotificationsInBrowser'),
           variant: "destructive"
         });
         return;
@@ -173,7 +179,7 @@ const Profile = () => {
       await refreshPermissionStatus();
       await checkPrayerNotificationStatus();
       if (granted) {
-        toast({ title: "✅ Notifications enabled!", description: "You'll now receive prayer times and Islamic event reminders." });
+        toast({ title: ti18n('notificationsEnabled'), description: ti18n('youllReceivePrayerReminders') });
       } else {
         toast({
           title: "Permission denied",
@@ -316,55 +322,101 @@ const Profile = () => {
   };
 
   const handleBackup = async () => {
-    toast({ title: "Preparing backup..." });
-    await downloadBackup();
-    toast({ title: "Backup downloaded" });
+    const { id: toastId, update } = toast({
+      title: "Creating Backup...",
+      description: "Please wait while we prepare your backup file.",
+    });
+
+    try {
+      await downloadBackup();
+      update({
+        id: toastId,
+        title: "✅ Backup Complete",
+        description: "Your backup has been downloaded successfully.",
+      });
+    } catch (error) {
+      update({
+        id: toastId,
+        title: "❌ Backup Failed",
+        description: "Failed to create backup. Please try again.",
+        variant: "destructive"
+      });
+    }
   };
 
   const handleRestore = async (e: React.ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0];
     if (!file) return;
 
-    toast({ title: "Restoring backup..." });
-    const result = await importBackup(file);
+    const { id: toastId, update } = toast({
+      title: "Restoring Backup...",
+      description: "Please wait while we restore your data.",
+    });
 
-    if (result.success && result.booksToDownload && result.booksToDownload.length > 0) {
-      toast({
-        title: "Restoring library...",
-        description: `Downloading ${result.booksToDownload.length} books. This may take a while. Please do not close the app.`,
-      });
+    try {
+      const result = await importBackup(file);
 
-      let downloadedCount = 0;
-      for (const book of result.booksToDownload) {
-        try {
-          const isDownloaded = await isBookDownloaded(book.url);
-          if (!isDownloaded) {
-            await downloadBook(book);
-          }
-          downloadedCount++;
-        } catch (err) {
-          console.error(`Failed to download ${book.title}`, err);
-        }
+      if (!result.success) {
+        update({
+          id: toastId,
+          title: "❌ Restore Failed",
+          description: result.message,
+          variant: "destructive"
+        });
+        return;
       }
 
-      toast({
-        title: "Library Restored",
-        description: `Successfully processed ${downloadedCount}/${result.booksToDownload.length} books.`,
-      });
-    } else {
-      toast({
-        title: result.success ? "Success" : "Error",
-        description: result.message,
-        variant: result.success ? "default" : "destructive"
-      });
-    }
+      if (result.booksToDownload && result.booksToDownload.length > 0) {
+        update({
+          id: toastId,
+          title: "📚 Downloading Library...",
+          description: `Restoring ${result.booksToDownload.length} books. This may take a few minutes.`,
+        });
 
-    if (result.success) {
-      setTimeout(() => window.location.reload(), 1500);
-    }
+        let downloadedCount = 0;
+        for (const book of result.booksToDownload) {
+          try {
+            const isDownloaded = await isBookDownloaded(book.url);
+            if (!isDownloaded) {
+              await downloadBook(book);
+            }
+            downloadedCount++;
+            
+            // Update progress every few books
+            if (downloadedCount % Math.max(1, Math.floor(result.booksToDownload.length / 5)) === 0) {
+              update({
+                id: toastId,
+                title: "📚 Downloading Library...",
+                description: `Progress: ${downloadedCount}/${result.booksToDownload.length} books restored.`,
+              });
+            }
+          } catch (err) {
+            console.error(`Failed to download ${book.title}`, err);
+          }
+        }
 
-    if (fileInputRef.current) {
-      fileInputRef.current.value = '';
+        update({
+          id: toastId,
+          title: "✅ Restore Complete",
+          description: `Successfully restored ${downloadedCount}/${result.booksToDownload.length} books. App will refresh in 2 seconds.`,
+        });
+      } else {
+        update({
+          id: toastId,
+          title: "✅ Restore Complete",
+          description: "Your data has been restored successfully. App will refresh in 2 seconds.",
+        });
+      }
+
+      // Delayed reload for better UX
+      setTimeout(() => window.location.reload(), 2000);
+    } catch (error) {
+      update({
+        id: toastId,
+        title: "❌ Restore Failed",
+        description: "Failed to restore backup. Please check file and try again.",
+        variant: "destructive"
+      });
     }
   };
 
@@ -438,7 +490,7 @@ const Profile = () => {
               <Globe className="w-3 h-3" />
               {t('language')}
             </Label>
-            <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "ar" | "ur")}>
+            <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "ar" | "ur" | "id" | "tr")}>
               <SelectTrigger className="w-full">
                 <SelectValue />
               </SelectTrigger>
@@ -446,6 +498,8 @@ const Profile = () => {
                 <SelectItem value="en">English</SelectItem>
                 <SelectItem value="ar">Arabic</SelectItem>
                 <SelectItem value="ur">Urdu</SelectItem>
+                <SelectItem value="id">Bahasa</SelectItem>
+                <SelectItem value="tr">Turkish</SelectItem>
               </SelectContent>
             </Select>
           </div>
@@ -496,11 +550,11 @@ const Profile = () => {
         {/* Gender Settings */}
         <Card className="p-4 space-y-4">
           <h3 className="font-semibold text-sm flex items-center gap-2">
-            <User className="w-4 h-4" /> Personal Information
+            <User className="w-4 h-4" /> {t('personalInformation')}
           </h3>
 
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Gender</Label>
+            <Label className="text-xs text-muted-foreground">{t('gender')}</Label>
             <Select value={genderSettings.gender} onValueChange={(v: Gender) => handleGenderChange(v)}>
               <SelectTrigger className="w-full">
                 <SelectValue />
@@ -528,8 +582,8 @@ const Profile = () => {
             </Select>
             <p className="text-xs text-muted-foreground">
               {genderSettings.gender === "female"
-                ? "Menstrual mode features are available for you."
-                : "This helps us personalize your experience."}
+                ? t('menstrualModeAvailable')
+                : t('thisHelpsPersonalizeExperience')}
             </p>
           </div>
         </Card>
@@ -544,7 +598,7 @@ const Profile = () => {
           <PrayerMethodSelector />
 
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Asr Calculation (Madhab)</Label>
+            <Label className="text-xs text-muted-foreground">{t('asrCalculationMadhab')}</Label>
             <Select value={madhab} onValueChange={(v) => handleMadhabChange(v as "shafi" | "hanafi")}>
               <SelectTrigger>
                 <SelectValue />
@@ -557,7 +611,7 @@ const Profile = () => {
           </div>
 
           <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Time Format</Label>
+            <Label className="text-xs text-muted-foreground">{t('timeFormat')}</Label>
             <Select value={timeFormat} onValueChange={(v) => handleTimeFormatChange(v as "12" | "24")}>
               <SelectTrigger>
                 <SelectValue />
@@ -587,7 +641,7 @@ const Profile = () => {
               </SelectContent>
             </Select>
             <p className="text-[10px] text-muted-foreground">
-              Adjust the Islamic calendar if the moon sighting differs in your region.
+              {t('hijriDateAdjustmentDescription')}
             </p>
           </div>
         </Card>
@@ -605,8 +659,8 @@ const Profile = () => {
           </h3>
           <div className="flex items-center justify-between">
             <div>
-              <Label>Salam Greeting</Label>
-              <p className="text-xs text-muted-foreground">Play "Assalamu Alaikum" when app opens</p>
+              <Label>{t('salamGreeting')}</Label>
+              <p className="text-xs text-muted-foreground">{t('salamGreetingDescription')}</p>
             </div>
             <Switch checked={salamGreetingEnabled} onCheckedChange={handleSalamGreetingToggle} />
           </div>
@@ -615,8 +669,8 @@ const Profile = () => {
           <div className="mt-4 pt-4 border-t border-border/50">
             <div className="flex items-center justify-between mb-3">
               <div>
-                <Label className="text-sm font-medium">Prayer Alarm (Adhan)</Label>
-                <p className="text-xs text-muted-foreground">Play Adhan automatically at prayer times</p>
+                <Label className="text-sm font-medium">{t('prayerAlarmAdhan')}</Label>
+                <p className="text-xs text-muted-foreground">{t('prayerAlarmDescription')}</p>
               </div>
               <Switch
                 checked={isAlarmEnabled}
@@ -636,8 +690,8 @@ const Profile = () => {
                   <div className="flex items-center gap-2">
                     <Bell className="h-4 w-4 text-primary animate-bounce" />
                     <div>
-                      <p className="text-sm font-medium text-primary">{currentPrayer} Time!</p>
-                      <p className="text-xs text-muted-foreground">Adhan is playing...</p>
+                      <p className="text-sm font-medium text-primary">{currentPrayer} {t('time')}!</p>
+                      <p className="text-xs text-muted-foreground">{t('adhanIsPlaying')}</p>
                     </div>
                   </div>
                   <Button
@@ -653,8 +707,8 @@ const Profile = () => {
 
             <div className="flex items-center justify-between mb-3">
               <div>
-                <Label className="text-xs text-muted-foreground">Pre-Prayer Reminder</Label>
-                <p className="text-xs text-muted-foreground">Get notified before prayer time</p>
+                <Label className="text-xs text-muted-foreground">{t('prePrayerReminder')}</Label>
+                <p className="text-xs text-muted-foreground">{t('prePrayerReminderDescription')}</p>
               </div>
               <Select value={reminderMinutes} onValueChange={handleReminderChange}>
                 <SelectTrigger className="w-20">
@@ -677,7 +731,7 @@ const Profile = () => {
                 disabled={isAlarmPlaying}
                 className="flex-1"
               >
-                Test Adhan
+                {t('testAdhan')}
               </Button>
             </div>
           </div>
@@ -691,19 +745,19 @@ const Profile = () => {
 
           <div className="bg-muted/50 rounded-lg p-3">
             <div className="flex items-center justify-between text-sm">
-              <span className="text-muted-foreground">Downloaded Books</span>
+              <span className="text-muted-foreground">{t('downloadedBooks')}</span>
               <span className="font-medium">{storageStats.totalBooks}</span>
             </div>
             <div className="flex items-center justify-between text-sm mt-1">
-              <span className="text-muted-foreground">Storage Used</span>
+              <span className="text-muted-foreground">{t('storageUsed')}</span>
               <span className="font-medium">{formatFileSize(storageStats.totalSize)}</span>
             </div>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="sm" onClick={handleBackup}>
-              <Download className="w-4 h-4 mr-2" />
-              Backup
+              <Download className="w-4 h-4 ms-2" />
+              {t('backup')}
             </Button>
             <input
               type="file"
@@ -713,19 +767,19 @@ const Profile = () => {
               className="hidden"
             />
             <Button variant="outline" size="sm" onClick={() => fileInputRef.current?.click()}>
-              <Upload className="w-4 h-4 mr-2" />
-              Restore
+              <Upload className="w-4 h-4 ms-2" />
+              {t('restore')}
             </Button>
           </div>
 
           <div className="grid grid-cols-2 gap-2">
             <Button variant="outline" size="sm" onClick={handleClearBooks} className="text-destructive">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear Books
+              <Trash2 className="w-4 h-4 ms-2" />
+              {t('clearBooks')}
             </Button>
             <Button variant="outline" size="sm" onClick={handleClearCache} className="text-destructive">
-              <Trash2 className="w-4 h-4 mr-2" />
-              Clear Cache
+              <Trash2 className="w-4 h-4 ms-2" />
+              {t('clearCache')}
             </Button>
           </div>
         </Card>
@@ -741,16 +795,16 @@ const Profile = () => {
               )}
               <div className="flex-1">
                 <h3 className="font-semibold text-sm text-foreground">
-                  {isCapacitorApp ? 'App Notifications' : 'Browser Notifications'}
+                  {isCapacitorApp ? t('appNotifications') : t('browserNotifications')}
                 </h3>
                 <p className="text-[11px] text-muted-foreground">
                   {notifPermStatus === 'denied'
                     ? isCapacitorApp
-                      ? 'Permission was denied. Open Android Settings to re-enable.'
-                      : 'Permission was blocked. Click the lock icon in your browser address bar.'
+                      ? t('permissionWasDeniedApp')
+                      : t('permissionWasDeniedBrowser')
                     : isCapacitorApp
-                      ? 'Allow Noor Connect to send prayer time alerts even when the app is closed.'
-                      : 'Allow browser notifications for prayer reminders and Islamic event alerts.'}
+                      ? t('allowAppNotificationsDescription')
+                      : t('allowBrowserNotificationsDescription')}
                 </p>
               </div>
               <div className={`w-8 h-8 rounded-full flex items-center justify-center shrink-0 ${notifPermStatus === 'denied' ? 'bg-red-500/20' : 'bg-amber-500/20'
@@ -763,13 +817,13 @@ const Profile = () => {
 
             {/* What you'll get */}
             <div className="mx-4 mb-3 p-2.5 rounded-lg bg-background/60 border border-border/50">
-              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1.5">You will receive</p>
+              <p className="text-[10px] text-muted-foreground font-semibold uppercase tracking-wider mb-1.5">{t('youWillReceive')}</p>
               <div className="grid grid-cols-2 gap-1">
                 {[
-                  { emoji: '🕌', label: 'Prayer times (Fajr → Isha)' },
-                  { emoji: '🌙', label: 'Ramadan & Eid reminders' },
-                  { emoji: '📖', label: 'Friday Surah Al-Kahf alert' },
-                  { emoji: '✨', label: 'Daily Hadith reminders' },
+                  { emoji: '🕌', label: t('prayerTimesFajrIsha') },
+                  { emoji: '🌙', label: t('ramadanEidReminders') },
+                  { emoji: '📖', label: t('fridayKahfAlert') },
+                  { emoji: '✨', label: t('dailyHadithReminders') },
                 ].map(item => (
                   <div key={item.label} className="flex items-center gap-1.5 text-[10px] text-foreground">
                     <span>{item.emoji}</span>
@@ -787,13 +841,13 @@ const Profile = () => {
                     size="sm"
                     onClick={() => {
                       toast({
-                        title: 'Open Android Settings',
-                        description: 'Go to Settings → Apps → Noor Connect → Notifications → Allow.',
+                        title: t('openAndroidSettings'),
+                        description: t('openAndroidSettingsDescription'),
                       });
                     }}
                   >
-                    <ShieldCheck className="w-4 h-4 mr-2" />
-                    Open Settings Guide
+                    <ShieldCheck className="w-4 h-4 ms-2" />
+                    {t('openSettingsGuide')}
                   </Button>
                 ) : (
                   <Button
@@ -801,13 +855,13 @@ const Profile = () => {
                     size="sm"
                     onClick={() => {
                       toast({
-                        title: 'Unblock in browser',
-                        description: 'Click the 🔒 lock icon in the address bar → Site Settings → Notifications → Allow.',
+                        title: t('unblockInBrowser'),
+                        description: t('unblockInBrowserDescription'),
                       });
                     }}
                   >
-                    <ShieldCheck className="w-4 h-4 mr-2" />
-                    How to Unblock
+                    <ShieldCheck className="w-4 h-4 ms-2" />
+                    {t('howToUnblock')}
                   </Button>
                 )
               ) : (
@@ -818,11 +872,11 @@ const Profile = () => {
                   disabled={requestingPerm}
                 >
                   {requestingPerm ? (
-                    <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                    <RefreshCw className="w-4 h-4 ms-2 animate-spin" />
                   ) : (
-                    <Bell className="w-4 h-4 mr-2" />
+                    <Bell className="w-4 h-4 ms-2" />
                   )}
-                  {isCapacitorApp ? 'Allow App Notifications' : 'Allow Browser Notifications'}
+                  {isCapacitorApp ? t('allowAppNotifications') : t('allowBrowserNotifications')}
                 </Button>
               )}
               <Button
@@ -854,7 +908,7 @@ const Profile = () => {
                 <BellOff className="w-5 h-5" />
               </div>
               <p className="text-xs text-muted-foreground">
-                Grant notification permission above to unlock these settings.
+                {t('grantNotificationPermissionAbove')}
               </p>
             </div>
           ) : (
@@ -862,7 +916,7 @@ const Profile = () => {
               <div className="flex items-center justify-between">
                 <div>
                   <Label>{t('prayerNotifications')}</Label>
-                  <p className="text-xs text-muted-foreground">Receive reminders for daily prayer times</p>
+                  <p className="text-xs text-muted-foreground">{t('receiveRemindersDailyPrayerTimes')}</p>
                 </div>
                 <Switch
                   checked={prayerNotificationsEnabled}
@@ -889,7 +943,7 @@ const Profile = () => {
               )}
 
               <div className="border-t border-border/50 my-2 pt-2">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 block">Islamic Events</Label>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 block">{t('islamicEvents')}</Label>
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -928,7 +982,7 @@ const Profile = () => {
               </div>
 
               <div className="border-t border-border/50 my-2 pt-2">
-                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 block">Daily Reminders</Label>
+                <Label className="text-[10px] uppercase tracking-wider text-muted-foreground font-bold mb-2 block">{t('dailyReminders')}</Label>
 
                 <div className="space-y-3">
                   <div className="flex items-center justify-between">
@@ -993,10 +1047,10 @@ const Profile = () => {
         <Card className="p-4 bg-muted/30">
           <h3 className="font-semibold text-sm mb-2">{t('about')}</h3>
           <p className="text-xs text-muted-foreground leading-relaxed">
-            100% Free, Open Source & Privacy-focused. All data stored locally on your device. No accounts, no tracking, no ads.
+            {t('aboutDescription')}
           </p>
           <p className="text-xs text-center text-muted-foreground mt-3">
-            FOSS - Made with love for the Ummah
+            {t('fossMadeWithLove')}
           </p>
         </Card>
 
@@ -1009,7 +1063,7 @@ const Profile = () => {
               className="w-full justify-start"
               onClick={() => window.location.href = 'mailto:ubaid0345@proton.me'}
             >
-              <Mail className="w-4 h-4 mr-2" />
+              <Mail className="w-4 h-4 ms-2" />
               {t('contactDeveloper')}
             </Button>
             <Button
@@ -1022,7 +1076,7 @@ const Profile = () => {
                 });
               }}
             >
-              <HandHeart className="w-4 h-4 mr-2" />
+              <HandHeart className="w-4 h-4 ms-2" />
               {t('makeDua')}
             </Button>
             <Button
@@ -1030,7 +1084,7 @@ const Profile = () => {
               className="w-full justify-start text-[#5865F2] hover:text-[#5865F2] hover:bg-[#5865F2]/10 border-[#5865F2]/20"
               onClick={() => window.open('https://discord.gg/DNChmZWk5k', '_blank')}
             >
-              <MessageCircle className="w-4 h-4 mr-2" />
+              <MessageCircle className="w-4 h-4 ms-2" />
               {t('joinDiscord')}
             </Button>
           </div>

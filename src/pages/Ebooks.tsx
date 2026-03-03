@@ -2,7 +2,8 @@ import { useState, useEffect, useMemo, useCallback, useRef, memo } from "react";
 import {
   Search, Book, Download, Plus, X, Trash2, CheckCircle, Clock,
   BookOpen, Bookmark, BookmarkCheck, ArrowUpDown, HardDrive,
-  TrendingUp, Star, Filter, ChevronRight, BarChart3, LibraryBig
+  TrendingUp, Star, Filter, ChevronRight, BarChart3, LibraryBig,
+  Grid3X3, List
 } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
@@ -79,6 +80,170 @@ function detectCategory(title: string): BookCategory {
   return 'General';
 }
 
+// --- Text-to-Speech System ---
+const initializeTTS = (setTtsVoice: React.Dispatch<React.SetStateAction<SpeechSynthesisVoice | null>>) => {
+  if ('speechSynthesis' in window) {
+    const voices = window.speechSynthesis.getVoices();
+    const preferredVoice = voices.find(voice => 
+      voice.lang.includes('en') || voice.lang.includes('ar') || voice.lang.includes('ur')
+    ) || voices[0];
+    setTtsVoice(preferredVoice);
+  }
+};
+
+const speakText = (text: string, voice: SpeechSynthesisVoice | null) => {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+    const utterance = new SpeechSynthesisUtterance(text);
+    utterance.voice = voice;
+    utterance.rate = 0.9;
+    utterance.pitch = 1;
+    utterance.volume = 1;
+    window.speechSynthesis.speak(utterance);
+  }
+};
+
+const stopSpeaking = () => {
+  if ('speechSynthesis' in window) {
+    window.speechSynthesis.cancel();
+  }
+};
+
+// --- Collections System ---
+interface Collection {
+  id: string;
+  name: string;
+  description: string;
+  books: string[];
+  color: string;
+  icon: string;
+  createdAt: Date;
+}
+
+const createCollection = (name: string, description: string, color: string, icon: string): Collection => {
+  return {
+    id: Date.now().toString(),
+    name,
+    description,
+    books: [],
+    color,
+    icon,
+    createdAt: new Date()
+  };
+};
+
+const getCollections = (): Collection[] => {
+  const stored = localStorage.getItem('book-collections');
+  return stored ? JSON.parse(stored) : [
+    {
+      id: '1',
+      name: 'Ramadan Reading',
+      description: 'Books to read during Ramadan',
+      books: [],
+      color: 'from-emerald-500 to-emerald-700',
+      icon: '🌙',
+      createdAt: new Date()
+    },
+    {
+      id: '2',
+      name: 'Islamic Studies',
+      description: 'Books for learning Islam',
+      books: [],
+      color: 'from-blue-500 to-blue-700',
+      icon: '🎓',
+      createdAt: new Date()
+    }
+  ];
+};
+
+const saveCollections = (collections: Collection[]): void => {
+  localStorage.setItem('book-collections', JSON.stringify(collections));
+};
+
+const addBookToCollection = (collectionId: string, bookUrl: string): void => {
+  const collections = getCollections();
+  const collection = collections.find(c => c.id === collectionId);
+  if (collection && !collection.books.includes(bookUrl)) {
+    collection.books.push(bookUrl);
+    saveCollections(collections);
+  }
+};
+
+const removeBookFromCollection = (collectionId: string, bookUrl: string): void => {
+  const collections = getCollections();
+  const collection = collections.find(c => c.id === collectionId);
+  if (collection) {
+    collection.books = collection.books.filter(url => url !== bookUrl);
+    saveCollections(collections);
+  }
+};
+
+// --- New Arrivals System ---
+const getNewArrivals = (allBooks: LibraryBook[]): LibraryBook[] => {
+  // Simulate new arrivals by taking a random selection
+  // In a real app, this would be based on actual addition dates
+  return allBooks
+    .filter(book => !book.title.toLowerCase().includes('read me first'))
+    .sort(() => Math.random() - 0.5) // Randomize for demo
+    .slice(0, 8); // Show 8 new arrivals
+};
+
+// --- Trending Books System ---
+const getTrendingBooks = (allBooks: LibraryBook[]): LibraryBook[] => {
+  // Simulate trending books based on popular categories
+  const popularCategories: BookCategory[] = [
+    'Quran & Tafsir', 'Hadith', 'Fiqh', 'Seerah', 'Dua & Dhikr'
+  ];
+  
+  return allBooks
+    .filter(book => {
+      const title = cleanTitle(book.title);
+      if (title.toLowerCase().includes('read me first')) return false;
+      const category = detectCategory(title);
+      return popularCategories.includes(category);
+    })
+    .sort(() => Math.random() - 0.5) // Randomize for demo
+    .slice(0, 12); // Show 12 trending books
+};
+
+// --- Recommendation System ---
+const generateRecommendations = (recentBooks: ReadingProgress[], allBooks: LibraryBook[]): LibraryBook[] => {
+  if (recentBooks.length === 0) {
+    // If no reading history, return popular books
+    return allBooks
+      .filter(book => !book.title.toLowerCase().includes('read me first'))
+      .sort(() => Math.random() - 0.5)
+      .slice(0, 6);
+  }
+
+  // Get categories user has read
+  const readCategories = new Set<string>();
+  const readTitles = new Set<string>();
+  
+  recentBooks.forEach(item => {
+    const book = allBooks.find(b => ensureHttps(b.url) === item.bookUrl);
+    if (book) {
+      readCategories.add(detectCategory(cleanTitle(book.title)));
+      readTitles.add(book.title);
+    }
+  });
+
+  // Find books in similar categories that haven't been read
+  const recommendations = allBooks
+    .filter(book => {
+      const title = cleanTitle(book.title);
+      if (readTitles.has(title)) return false; // Already read
+      if (title.toLowerCase().includes('read me first')) return false; // Skip system books
+      
+      const category = detectCategory(title);
+      return readCategories.has(category); // Same category as read books
+    })
+    .sort(() => Math.random() - 0.5) // Randomize
+    .slice(0, 8); // Limit to 8 recommendations
+
+  return recommendations;
+};
+
 // --- Helpers ---
 const cleanTitle = (title: string): string => title.replace(/\.pdf$/i, '').replace(/_/g, ' ').trim();
 
@@ -97,7 +262,19 @@ export default function Ebooks() {
   const [selectedCategory, setSelectedCategory] = useState<BookCategory | null>(null);
   const [selectedLetter, setSelectedLetter] = useState<string | null>(null);
   const [sortBy, setSortBy] = useState<SortOption>('a-z');
+  const [viewMode, setViewMode] = useState<'grid' | 'list'>('grid');
   const [showSortMenu, setShowSortMenu] = useState(false);
+  const [recommendedBooks, setRecommendedBooks] = useState<LibraryBook[]>([]);
+  const [trendingBooks, setTrendingBooks] = useState<LibraryBook[]>([]);
+  const [newArrivals, setNewArrivals] = useState<LibraryBook[]>([]);
+  const [readingGoals, setReadingGoals] = useState({
+    daily: { pages: 10, enabled: false },
+    weekly: { pages: 50, enabled: false },
+    streak: { days: 0, enabled: true }
+  });
+  const [collections, setCollections] = useState<Collection[]>([]);
+  const [ttsEnabled, setTtsEnabled] = useState(false);
+  const [ttsVoice, setTtsVoice] = useState<SpeechSynthesisVoice | null>(null);
   const [downloadedBooks, setDownloadedBooks] = useState<DownloadedBook[]>([]);
   const [userBooks, setUserBooks] = useState<UserBook[]>([]);
   const [downloadProgress, setDownloadProgress] = useState<Record<string, number>>({});
@@ -128,9 +305,37 @@ export default function Ebooks() {
       setReadingStats(getReadingStats());
       setBookmarks(getBookBookmarks());
       setLastReadBookKey(getLastReadBook());
+      
+      // Generate recommendations based on reading history
+      const recommendations = generateRecommendations(getRecentlyRead(10), books);
+      setRecommendedBooks(recommendations);
+      
+      // Get trending books
+      const trending = getTrendingBooks(books);
+      setTrendingBooks(trending);
+      
+      // Get new arrivals
+      const arrivals = getNewArrivals(books);
+      setNewArrivals(arrivals);
+      
+      // Initialize TTS
+      initializeTTS(setTtsVoice);
     };
     load();
   }, [viewingBook]);
+  
+  // Initialize TTS on mount
+  useEffect(() => {
+    initializeTTS(setTtsVoice);
+    
+    // Listen for voice changes
+    const handleVoiceChange = () => initializeTTS(setTtsVoice);
+    window.speechSynthesis?.addEventListener('voiceschanged', handleVoiceChange);
+    
+    return () => {
+      window.speechSynthesis?.removeEventListener('voiceschanged', handleVoiceChange);
+    };
+  }, []);
 
   const getBookKey = useCallback((book: LibraryBook | DownloadedBook | UserBook): string => {
     if ("url" in book && book.url) return ensureHttps(book.url);
@@ -317,6 +522,24 @@ export default function Ebooks() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // --- Reading Goals System ---
+  const updateReadingGoal = (goalType: 'daily' | 'weekly', pages: number) => {
+    setReadingGoals(prev => ({
+      ...prev,
+      [goalType]: { pages, enabled: true }
+    }));
+    
+    // Update reading stats when goals are met
+    const today = new Date().toDateString();
+    const todayStats = JSON.parse(localStorage.getItem(`reading-stats-${today}`) || '{}');
+    const totalPagesRead = todayStats.totalPages || 0;
+    
+    // Check if daily goal is met
+    if (readingGoals.daily.enabled && totalPagesRead >= readingGoals.daily.pages) {
+      localStorage.setItem('daily-goal-met', new Date().toISOString());
+    }
+  };
+
   const openBook = (book: LibraryBook | DownloadedBook | UserBook) => {
     if ('url' in book && book.url) {
       const downloaded = getDownloadedBookData(book.url);
@@ -329,6 +552,114 @@ export default function Ebooks() {
   if (viewingBook) {
     return <PdfViewer url={viewingBook.url} title={viewingBook.title} localKey={viewingBook.localKey} onClose={() => window.history.back()} />;
   }
+
+  // --- BookListItem ---
+  const BookListItem = memo(({ 
+    book, 
+    showProgress = false, 
+    onOpen, 
+    onToggleBookmark 
+  }: { 
+    book: LibraryBook; 
+    showProgress?: boolean; 
+    onOpen: () => void;
+    onToggleBookmark: () => void;
+  }) => {
+    const downloaded = isDownloaded(book.url);
+    const readProgress = getProgressPercentage(ensureHttps(book.url));
+    const bookKey = ensureHttps(book.url);
+    const isBookmarked = bookmarkedSet.has(bookKey);
+    const title = cleanTitle(book.title);
+    const size = formatSize(book.size);
+    const category = detectCategory(title);
+    const catConfig = CATEGORY_CONFIG[category];
+
+    return (
+      <Card className="p-3 hover:bg-accent/50 transition-colors cursor-pointer group"
+            onClick={onOpen}>
+        <div className="flex gap-3">
+          {/* Book Cover Thumbnail */}
+          <div className="w-12 h-16 rounded-lg bg-gradient-to-br flex-shrink-0 relative overflow-hidden"
+               style={{ background: `linear-gradient(135deg, ${catConfig.color.split(' ')[0]}, ${catConfig.color.split(' ')[2]})` }}>
+            {/* Decorative pattern */}
+            <div className="absolute inset-0 opacity-[0.06]"
+                 style={{ backgroundImage: 'url("data:image/svg+xml,%3Csvg width=\'40\' height=\'40\' viewBox=\'0 0 40 40\' xmlns=\'http://www.w3.org/2000/svg\'%3E%3Cpath d=\'M20 0L40 20L20 40L0 20z\' fill=\'%23fff\' fill-opacity=\'1\'/%3E%3C/svg%3E")', backgroundSize: '20px 20px' }}
+            />
+            
+            {/* Content */}
+            <div className="absolute inset-0 p-2 flex flex-col items-center justify-center text-white">
+              <div className="text-lg mb-1">{catConfig.icon}</div>
+              <div className="text-[9px] opacity-60 font-medium tracking-wider uppercase">{category}</div>
+            </div>
+            
+            {/* Progress indicator */}
+            {showProgress && readProgress > 0 && (
+              <div className="absolute bottom-0 inset-inline-start-0 inset-inline-end-0 h-0.5 bg-black/30">
+                <div className="h-full bg-emerald-400 transition-all" style={{ width: `${readProgress}%` }} />
+              </div>
+            )}
+            
+            {/* Downloaded indicator */}
+            {downloaded && (
+              <div className="absolute top-1 inset-inline-end-1">
+                <CheckCircle className="w-3 h-3 text-emerald-300" />
+              </div>
+            )}
+          </div>
+
+          {/* Book Info */}
+          <div className="flex-1 min-w-0">
+            <div className="flex items-start justify-between gap-2 mb-1">
+              <h3 className="font-semibold text-sm leading-tight truncate group-hover:text-primary transition-colors">
+                {title}
+              </h3>
+              <div className="flex items-center gap-2 shrink-0">
+                <Button size="icon" variant="ghost" className="h-6 w-6"
+                        onClick={(e) => { e.stopPropagation(); onToggleBookmark(); }}>
+                  {isBookmarked
+                    ? <BookmarkCheck className="w-3.5 h-3.5 text-amber-500" />
+                    : <Bookmark className="w-3.5 h-3.5 text-muted-foreground" />}
+                </Button>
+                {!downloaded && (
+                  <Button size="sm" className="h-6 px-2 text-xs"
+                          onClick={(e) => { e.stopPropagation(); handleDownload(book); }}>
+                    <Download className="w-3 h-3 me-1" />
+                    Download
+                  </Button>
+                )}
+              </div>
+            </div>
+            
+            <div className="flex items-center justify-between text-[10px] text-muted-foreground">
+              <span>{size}</span>
+              <div className="flex items-center gap-2">
+                {showProgress && readProgress > 0 && (
+                  <Badge variant="secondary" className="text-[9px]">
+                    {readProgress}% read
+                  </Badge>
+                )}
+                <span className="text-[9px]">{category}</span>
+              </div>
+            </div>
+          </div>
+
+          {/* Quick Actions */}
+          <div className="flex items-center gap-1 shrink-0 opacity-0 group-hover:opacity-100 transition-opacity">
+            <Button size="icon" variant="ghost" className="h-8 w-8" onClick={onOpen}>
+              <BookOpen className="w-4 h-4" />
+            </Button>
+            {downloaded && (
+              <Button size="icon" variant="ghost" className="h-8 w-8 text-destructive" 
+                      onClick={(e) => { e.stopPropagation(); handleDelete(book.url); }}>
+                <Trash2 className="w-4 h-4" />
+              </Button>
+            )}
+          </div>
+        </div>
+      </Card>
+    );
+  });
+  BookListItem.displayName = 'BookListItem';
 
   // --- BookCard ---
   const BookCard = memo(({ book, showProgress = false }: { book: LibraryBook; showProgress?: boolean }) => {
@@ -355,7 +686,7 @@ export default function Ebooks() {
           />
 
           {/* Spine Effect */}
-          <div className="absolute left-0 top-0 bottom-0 w-1.5 bg-white/15" />
+          <div className="absolute inset-inline-start-0 top-0 bottom-0 w-1.5 bg-white/15" />
 
           {/* Cover Content */}
           <div className="absolute inset-0 p-3 flex flex-col justify-between text-white">
@@ -384,7 +715,7 @@ export default function Ebooks() {
 
           {/* Read Progress Bar */}
           {showProgress && readProgress > 0 && (
-            <div className="absolute bottom-0 left-0 right-0 h-1 bg-black/30">
+            <div className="absolute bottom-0 inset-inline-start-0 inset-inline-end-0 h-1 bg-black/30">
               <div className="h-full bg-emerald-400 transition-all" style={{ width: `${readProgress}%` }} />
             </div>
           )}
@@ -404,12 +735,12 @@ export default function Ebooks() {
           {/* Hover Actions */}
           <div className="absolute inset-0 bg-black/60 opacity-0 group-hover:opacity-100 transition-opacity flex flex-col items-center justify-center gap-2 p-3">
             <Button size="sm" variant="secondary" className="w-full text-xs h-8">
-              <BookOpen className="w-3 h-3 mr-2" /> Read Now
+              <BookOpen className="w-3 h-3 me-2" /> Read Now
             </Button>
             {!downloaded && progress === undefined && (
               <Button size="sm" className="w-full text-xs h-8"
                 onClick={(e) => { e.stopPropagation(); handleDownload(book); }}>
-                <Download className="w-3 h-3 mr-2" /> Download
+                <Download className="w-3 h-3 me-2" /> Download
               </Button>
             )}
           </div>
@@ -438,27 +769,71 @@ export default function Ebooks() {
             <h1 className="text-lg font-bold">Islamic Library</h1>
           </div>
           <div className="flex items-center gap-1.5">
-            {/* Sort */}
-            <div className="relative">
-              <Button variant="ghost" size="icon" className="h-8 w-8"
-                onClick={() => setShowSortMenu(!showSortMenu)}>
-                <ArrowUpDown className="w-4 h-4" />
-              </Button>
-              {showSortMenu && (
-                <div className="absolute right-0 top-9 bg-card border border-border rounded-lg shadow-xl z-50 py-1 w-40">
-                  {[
-                    { value: 'a-z' as SortOption, label: 'A → Z' },
-                    { value: 'z-a' as SortOption, label: 'Z → A' },
-                    { value: 'size-asc' as SortOption, label: 'Size ↑' },
-                    { value: 'size-desc' as SortOption, label: 'Size ↓' },
-                  ].map(opt => (
-                    <button key={opt.value}
-                      className={`w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors ${sortBy === opt.value ? 'text-primary font-medium bg-primary/5' : ''}`}
-                      onClick={() => { setSortBy(opt.value); setShowSortMenu(false); }}>
-                      {opt.label}
-                    </button>
-                  ))}
-                </div>
+            {/* Sort & View Controls */}
+            <div className="flex items-center gap-1.5">
+              {/* View Mode Toggle */}
+              <div className="flex items-center bg-muted rounded-lg p-1">
+                <Button
+                  size="sm"
+                  variant={viewMode === 'grid' ? 'default' : 'ghost'}
+                  className="h-6 w-6 px-1"
+                  onClick={() => setViewMode('grid')}
+                >
+                  <Grid3X3 className="w-3.5 h-3.5" />
+                </Button>
+                <Button
+                  size="sm"
+                  variant={viewMode === 'list' ? 'default' : 'ghost'}
+                  className="h-6 w-6 px-1"
+                  onClick={() => setViewMode('list')}
+                >
+                  <List className="w-3.5 h-3.5" />
+                </Button>
+              </div>
+
+              {/* Sort */}
+              <div className="relative">
+                <Button variant="ghost" size="icon" className="h-8 w-8"
+                  onClick={() => setShowSortMenu(!showSortMenu)}>
+                  <ArrowUpDown className="w-4 h-4" />
+                </Button>
+                {showSortMenu && (
+                  <div className="absolute right-0 top-9 bg-card border border-border rounded-lg shadow-xl z-50 py-1 w-40">
+                    {[
+                      { value: 'a-z' as SortOption, label: 'A → Z' },
+                      { value: 'z-a' as SortOption, label: 'Z → A' },
+                      { value: 'size-asc' as SortOption, label: 'Size ↑' },
+                      { value: 'size-desc' as SortOption, label: 'Size ↓' },
+                    ].map(opt => (
+                      <button key={opt.value}
+                        className={`w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors ${sortBy === opt.value ? 'text-primary font-medium bg-primary/5' : ''}`}
+                        onClick={() => { setSortBy(opt.value); setShowSortMenu(false); }}>
+                        {opt.label}
+                      </button>
+                    ))}
+                  </div>
+                )}
+              </div>
+              
+              {/* TTS Toggle */}
+              {ttsVoice && (
+                <Button
+                  variant={ttsEnabled ? 'default' : 'ghost'}
+                  size="icon"
+                  className="h-8 w-8"
+                  onClick={() => setTtsEnabled(!ttsEnabled)}
+                  title={ttsEnabled ? 'Disable Text-to-Speech' : 'Enable Text-to-Speech'}
+                >
+                  {ttsEnabled ? (
+                    <div className="w-4 h-4 bg-blue-500 rounded-full flex items-center justify-center">
+                      <span className="text-white text-xs">🔊</span>
+                    </div>
+                  ) : (
+                    <div className="w-4 h-4 bg-gray-300 rounded-full flex items-center justify-center">
+                      <span className="text-gray-600 text-xs">🔇</span>
+                    </div>
+                  )}
+                </Button>
               )}
             </div>
           </div>
@@ -471,10 +846,10 @@ export default function Ebooks() {
             placeholder="Search 200+ Islamic books..."
             value={searchQuery}
             onChange={(e) => setSearchQuery(e.target.value)}
-            className="pl-10 pr-10 bg-card rounded-xl"
+            className="ps-10 pe-10 bg-card rounded-xl"
           />
           {searchQuery && (
-            <button onClick={() => setSearchQuery("")} className="absolute right-3 top-1/2 -translate-y-1/2">
+            <button onClick={() => setSearchQuery("")} className="absolute inset-inline-end-3 top-1/2 -translate-y-1/2">
               <X className="w-4 h-4 text-muted-foreground" />
             </button>
           )}
@@ -485,26 +860,58 @@ export default function Ebooks() {
       <div className="px-4 py-2.5 border-b border-border/50">
         <div className="flex items-center justify-between text-xs text-muted-foreground">
           <div className="flex items-center gap-3">
-            <span><Book className="w-3.5 h-3.5 inline mr-1" />{filteredBooks.length} books</span>
-            <span><Download className="w-3.5 h-3.5 inline mr-1" />{downloadedBooks.length} saved</span>
-            <span><HardDrive className="w-3.5 h-3.5 inline mr-1" />{storageUsed}</span>
+            <span><Book className="w-3.5 h-3.5 inline me-1" />{filteredBooks.length} books</span>
+            <span><Download className="w-3.5 h-3.5 inline me-1" />{downloadedBooks.length} saved</span>
+            <span><HardDrive className="w-3.5 h-3.5 inline me-1" />{storageUsed}</span>
           </div>
           {readingStats.inProgress > 0 && (
             <Badge variant="secondary" className="text-[10px]">
-              <TrendingUp className="w-3 h-3 mr-1" />{readingStats.inProgress} reading
+              <TrendingUp className="w-3 h-3 me-1" />{readingStats.inProgress} reading
             </Badge>
           )}
         </div>
       </div>
 
       <Tabs value={activeTab} onValueChange={setActiveTab} className="px-4 py-3">
-        <TabsList className="w-full grid grid-cols-5 mb-4 h-9">
+        <TabsList className="w-full grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-9 mb-4 h-9">
           <TabsTrigger value="browse" className="text-[11px]">Browse</TabsTrigger>
+          <TabsTrigger value="recommended" className="text-[11px] relative">
+            For You
+            {recommendedBooks.length > 0 && (
+              <span className="absolute -top-1 -inset-inline-end-1 w-4 h-4 bg-primary text-primary-foreground text-[9px] rounded-full flex items-center justify-center">
+                {recommendedBooks.length}
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="trending" className="text-[11px] relative">
+            Trending
+            {trendingBooks.length > 0 && (
+              <span className="absolute -top-1 -inset-inline-end-1 w-4 h-4 bg-amber-500 text-white text-[9px] rounded-full flex items-center justify-center">
+                🔥
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="new" className="text-[11px] relative">
+            New
+            {newArrivals.length > 0 && (
+              <span className="absolute -top-1 -inset-inline-end-1 w-4 h-4 bg-green-500 text-white text-[9px] rounded-full flex items-center justify-center">
+                ✨
+              </span>
+            )}
+          </TabsTrigger>
+          <TabsTrigger value="collections" className="text-[11px] relative">
+            Collections
+            {collections.length > 0 && (
+              <span className="absolute -top-1 -inset-inline-end-1 w-4 h-4 bg-purple-500 text-white text-[9px] rounded-full flex items-center justify-center">
+                {collections.length}
+              </span>
+            )}
+          </TabsTrigger>
           <TabsTrigger value="categories" className="text-[11px]">Topics</TabsTrigger>
           <TabsTrigger value="bookmarks" className="text-[11px] relative">
             Saved
             {bookmarks.length > 0 && (
-              <span className="absolute -top-1 -right-1 w-4 h-4 bg-primary text-primary-foreground text-[9px] rounded-full flex items-center justify-center">
+              <span className="absolute -top-1 -inset-inline-end-1 w-4 h-4 bg-primary text-primary-foreground text-[9px] rounded-full flex items-center justify-center">
                 {bookmarks.length}
               </span>
             )}
@@ -512,6 +919,124 @@ export default function Ebooks() {
           <TabsTrigger value="downloads" className="text-[11px]">Offline</TabsTrigger>
           <TabsTrigger value="upload" className="text-[11px]">Add</TabsTrigger>
         </TabsList>
+
+        {/* ===== COLLECTIONS TAB ===== */}
+        <TabsContent value="collections" className="space-y-4 mt-0">
+          <div className="flex items-center justify-between mb-4">
+            <h3 className="text-sm font-semibold">My Collections</h3>
+            <Button size="sm" onClick={() => {
+              const newCollection = createCollection('New Collection', 'Create your own book collection', 'from-purple-500 to-purple-700', '📚');
+              setCollections(prev => [...prev, newCollection]);
+              saveCollections([...collections, newCollection]);
+            }}>
+              <Plus className="w-4 h-4 me-2" /> Create Collection
+            </Button>
+          </div>
+          
+          {collections.length === 0 ? (
+            <div className="text-center py-12">
+              <div className="w-16 h-16 bg-purple-100 dark:bg-purple-900 rounded-full flex items-center justify-center mx-auto mb-4">
+                <span className="text-2xl">📚</span>
+              </div>
+              <p className="text-muted-foreground font-medium">No collections yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Create collections to organize your books by topic or reading goals</p>
+              <Button variant="outline" className="mt-4" onClick={() => setActiveTab("browse")}>Browse Books</Button>
+            </div>
+          ) : (
+            <div className="space-y-3">
+              {collections.map((collection) => (
+                <Card key={collection.id} className="p-4">
+                  <div className="flex items-start gap-3">
+                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${collection.color} flex items-center justify-center shrink-0`}>
+                      <span className="text-lg">{collection.icon}</span>
+                    </div>
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-start justify-between">
+                        <div>
+                          <h4 className="font-semibold text-sm">{collection.name}</h4>
+                          <p className="text-xs text-muted-foreground mt-1">{collection.description}</p>
+                        </div>
+                        <div className="flex items-center gap-2">
+                          <span className="text-xs text-muted-foreground">{collection.books.length} books</span>
+                          <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive"
+                            onClick={() => {
+                              const updated = collections.filter(c => c.id !== collection.id);
+                              setCollections(updated);
+                              saveCollections(updated);
+                            }}>
+                            <Trash2 className="w-4 h-4" />
+                          </Button>
+                        </div>
+                      </div>
+                    </div>
+                  </div>
+                </Card>
+              ))}
+            </div>
+          )}
+        </TabsContent>
+
+        {/* ===== NEW ARRIVALS TAB ===== */}
+        <TabsContent value="new" className="space-y-4 mt-0">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-1">
+              <div className="w-4 h-4 bg-green-500 rounded-full flex items-center justify-center">
+                <span className="text-white text-xs">✨</span>
+              </div>
+              <h3 className="text-sm font-semibold">New Arrivals</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">Freshly added Islamic books</p>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {newArrivals.map((book, i) => (
+              <BookCard key={`new-${book.url}-${i}`} book={book} showProgress />
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* ===== TRENDING TAB ===== */}
+        <TabsContent value="trending" className="space-y-4 mt-0">
+          <div className="flex items-center gap-2 mb-4">
+            <div className="flex items-center gap-1">
+              <TrendingUp className="w-4 h-4 text-amber-500" />
+              <h3 className="text-sm font-semibold">Trending Books</h3>
+            </div>
+            <p className="text-xs text-muted-foreground">Popular books in the community</p>
+          </div>
+          
+          <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+            {trendingBooks.map((book, i) => (
+              <BookCard key={`trending-${book.url}-${i}`} book={book} showProgress />
+            ))}
+          </div>
+        </TabsContent>
+
+        {/* ===== RECOMMENDED TAB ===== */}
+        <TabsContent value="recommended" className="space-y-4 mt-0">
+          {recommendedBooks.length === 0 ? (
+            <div className="text-center py-12">
+              <Star className="w-12 h-12 text-muted-foreground/30 mx-auto mb-3" />
+              <p className="text-muted-foreground font-medium">No recommendations yet</p>
+              <p className="text-sm text-muted-foreground mt-1">Start reading books to get personalized recommendations</p>
+              <Button variant="outline" className="mt-4" onClick={() => setActiveTab("browse")}>Browse Library</Button>
+            </div>
+          ) : (
+            <>
+              <div className="flex items-center gap-2 mb-4">
+                <Star className="w-4 h-4 text-amber-500" />
+                <h3 className="text-sm font-semibold">Recommended for You</h3>
+                <p className="text-xs text-muted-foreground">Based on your reading history</p>
+              </div>
+              
+              <div className="grid grid-cols-2 sm:grid-cols-3 md:grid-cols-4 lg:grid-cols-5 gap-3">
+                {recommendedBooks.map((book, i) => (
+                  <BookCard key={`recommended-${book.url}-${i}`} book={book} showProgress />
+                ))}
+              </div>
+            </>
+          )}
+        </TabsContent>
 
         {/* ===== BROWSE TAB ===== */}
         <TabsContent value="browse" className="space-y-4 mt-0">
@@ -538,23 +1063,26 @@ export default function Ebooks() {
 
           {/* Reading Stats */}
           {readingStats.totalBooks > 0 && !debouncedQuery && (
-            <div className="grid grid-cols-3 gap-2">
-              <div className="bg-card rounded-xl p-3 text-center border border-border/50">
-                <BarChart3 className="w-4 h-4 text-blue-500 mx-auto mb-1" />
-                <p className="text-lg font-bold">{readingStats.totalBooks}</p>
-                <p className="text-[10px] text-muted-foreground">Started</p>
+            <div className="space-y-3">
+              <div className="grid grid-cols-3 gap-2">
+                <div className="bg-card rounded-xl p-3 text-center border border-border/50">
+                  <BarChart3 className="w-4 h-4 text-blue-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold">{readingStats.totalBooks}</p>
+                  <p className="text-[10px] text-muted-foreground">Started</p>
+                </div>
+                <div className="bg-card rounded-xl p-3 text-center border border-border/50">
+                  <TrendingUp className="w-4 h-4 text-amber-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold">{readingStats.inProgress}</p>
+                  <p className="text-[10px] text-muted-foreground">In Progress</p>
+                </div>
+                <div className="bg-card rounded-xl p-3 text-center border border-border/50">
+                  <Star className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
+                  <p className="text-lg font-bold">{readingStats.completedBooks}</p>
+                  <p className="text-[10px] text-muted-foreground">Completed</p>
+                </div>
               </div>
-              <div className="bg-card rounded-xl p-3 text-center border border-border/50">
-                <TrendingUp className="w-4 h-4 text-amber-500 mx-auto mb-1" />
-                <p className="text-lg font-bold">{readingStats.inProgress}</p>
-                <p className="text-[10px] text-muted-foreground">In Progress</p>
+              
               </div>
-              <div className="bg-card rounded-xl p-3 text-center border border-border/50">
-                <Star className="w-4 h-4 text-emerald-500 mx-auto mb-1" />
-                <p className="text-lg font-bold">{readingStats.completedBooks}</p>
-                <p className="text-[10px] text-muted-foreground">Completed</p>
-              </div>
-            </div>
           )}
 
           {/* Recently Read */}
@@ -602,7 +1130,7 @@ export default function Ebooks() {
               {selectedLetter && (
                 <Badge variant="outline" className="cursor-pointer text-xs"
                   onClick={() => setSelectedLetter(null)}>
-                  {selectedLetter} <X className="w-3 h-3 ml-1" />
+                  {selectedLetter} <X className="w-3 h-3 ms-1" />
                 </Badge>
               )}
               <button className="text-xs text-primary hover:underline" onClick={() => { setSelectedCategory(null); setSelectedLetter(null); }}>
@@ -616,19 +1144,36 @@ export default function Ebooks() {
             <p>Showing {visibleItems.length} of {filteredBooks.length} books</p>
           </div>
 
-          {/* Book Grid */}
-          <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
-            {visibleItems.map((book, i) => (
-              <BookCard key={`${book.url}-${i}`} book={book} showProgress />
-            ))}
-            {hasMore && Array.from({ length: 6 }).map((_, i) => (
-              <div key={`skeleton-${i}`} className="space-y-2">
-                <div className="aspect-[2/3] bg-muted animate-pulse rounded-xl" />
-                <div className="h-3 bg-muted animate-pulse rounded w-3/4" />
-                <div className="h-2 bg-muted animate-pulse rounded w-1/2" />
-              </div>
-            ))}
-          </div>
+          {/* Book Grid/List */}
+          {viewMode === 'grid' ? (
+            <div className="grid grid-cols-3 sm:grid-cols-4 md:grid-cols-5 lg:grid-cols-6 gap-3">
+              {visibleItems.map((book, i) => (
+                <BookCard key={`${book.url}-${i}`} book={book} showProgress />
+              ))}
+              {hasMore && Array.from({ length: 6 }).map((_, i) => (
+                <div key={`skeleton-${i}`} className="space-y-2">
+                  <div className="aspect-[2/3] bg-muted animate-pulse rounded-xl" />
+                  <div className="h-3 bg-muted animate-pulse rounded w-3/4" />
+                  <div className="h-2 bg-muted animate-pulse rounded w-1/2" />
+                </div>
+              ))}
+            </div>
+          ) : (
+            <div className="space-y-2">
+              {visibleItems.map((book, i) => (
+                <BookListItem key={`${book.url}-${i}`} book={book} showProgress onOpen={() => openBook(book)} onToggleBookmark={() => handleToggleBookmark(book)} />
+              ))}
+              {hasMore && Array.from({ length: 3 }).map((_, i) => (
+                <div key={`skeleton-list-${i}`} className="flex gap-3 p-3 bg-card rounded-lg border border-border/50">
+                  <div className="w-12 h-16 bg-muted animate-pulse rounded-lg" />
+                  <div className="flex-1 space-y-2">
+                    <div className="h-4 bg-muted animate-pulse rounded w-3/4" />
+                    <div className="h-3 bg-muted animate-pulse rounded w-1/2" />
+                  </div>
+                </div>
+              ))}
+            </div>
+          )}
 
           {hasMore && <div ref={loadMoreRef} className="h-4" />}
           {!hasMore && visibleItems.length > 0 && (
@@ -793,7 +1338,7 @@ export default function Ebooks() {
             <p className="text-sm text-muted-foreground mb-4">Upload any Islamic PDF or eBook to read it in-app</p>
             <input type="file" accept=".pdf,application/pdf" ref={fileInputRef} onChange={handleFileUpload} className="hidden" />
             <Button onClick={() => fileInputRef.current?.click()} className="rounded-full">
-              <Plus className="w-4 h-4 mr-2" /> Select PDF File
+              <Plus className="w-4 h-4 me-2" /> Select PDF File
             </Button>
           </Card>
 

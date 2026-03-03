@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Noor Connect</string>
+    <string name="title_activity_main">Noor Connect</string>
+    
+    <string name="widget_tap_to_setup">Uygulamayı açmak için dokunun</string>
+    <string name="widget_no_data">Namaz vakitleri mevcut değil</string>
+    <string name="widget_loading">Yükleniyor…</string>
+    <string name="widget_next_prayer">Sonraki Namaz</string>
+    <string name="widget_location_default">İstanbul, Türkiye</string>
+    <string name="widget_time_default">18:45</string>
+    <string name="widget_time_remaining_default">45 dakika içinde</string>
+    
+    <string name="prayer_fajr">Sabah</string>
+    <string name="prayer_sunrise">Güneş</string>
+    <string name="prayer_dhuhr">Öğle</string>
+    <string name="prayer_asr">İkindi</string>
+    <string name="prayer_maghrib">Akşam</string>
+    <string name="prayer_isha">Yatsı</string>
+</resources>

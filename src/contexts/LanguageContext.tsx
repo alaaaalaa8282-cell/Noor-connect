@@ -18,13 +18,24 @@ interface LanguageProviderProps {
 
 const STORAGE_KEY = 'app-language';
 
+// Dynamic font loading for Urdu
+const loadUrduFont = () => {
+    if (!document.getElementById('urdu-font-stylesheet')) {
+        const link = document.createElement('link');
+        link.id = 'urdu-font-stylesheet';
+        link.rel = 'stylesheet';
+        link.href = '/src/styles/urdu-font.css';
+        document.head.appendChild(link);
+    }
+};
+
 export function LanguageProvider({ children }: LanguageProviderProps) {
     const [language, setLanguageState] = useState<Language>('en');
 
     useEffect(() => {
         // Load saved language or detect
         const savedLang = localStorage.getItem(STORAGE_KEY) as Language;
-        if (savedLang && ['en', 'ar', 'ur'].includes(savedLang)) {
+        if (savedLang && ['en', 'ar', 'ur', 'id', 'tr'].includes(savedLang)) {
             setLanguageState(savedLang);
         } else {
             // Basic detection
@@ -41,6 +52,11 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
         document.documentElement.dir = dir;
         document.documentElement.lang = language;
         localStorage.setItem(STORAGE_KEY, language);
+
+        // Load Urdu font dynamically when Urdu is selected
+        if (language === 'ur') {
+            loadUrduFont();
+        }
     }, [language]);
 
     const setLanguage = (lang: Language) => {

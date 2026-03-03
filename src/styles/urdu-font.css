@@ -1,0 +1,20 @@
+/* Urdu Nastaliq Font - Lazy Loaded */
+@import url('https://fonts.googleapis.com/css2?family=Noto+Nastaliq+Urdu:wght@400;700&display=swap');
+
+/* Apply Nastaliq font only when Urdu language is active */
+html[lang="ur"] body,
+html[lang="ur"] .font-urdu {
+  font-family: 'Noto Nastaliq Urdu', 'Noto Sans Arabic', sans-serif;
+}
+
+/* Ensure proper text rendering for Urdu */
+html[lang="ur"] {
+  font-feature-settings: "rlig" 1, "calt" 1;
+  text-rendering: optimizeLegibility;
+}
+
+/* Specific styling for Urdu text to improve readability */
+html[lang="ur"] .urdu-text {
+  line-height: 1.8;
+  letter-spacing: 0.02em;
+}

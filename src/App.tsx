@@ -4,18 +4,27 @@ import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
-const GlobalPrayerAlarm = lazy(() => import("@/components/GlobalPrayerAlarm").then(module => ({ default: module.GlobalPrayerAlarm })));
-const SalamGreeting = lazy(() => import("@/components/SalamGreeting").then(module => ({ default: module.SalamGreeting })));
-const FestivePopup = lazy(() => import("@/components/FestivePopup").then(module => ({ default: module.FestivePopup })));
-const PWAInstallPrompt = lazy(() => import("@/components/PWAInstallPrompt").then(module => ({ default: module.PWAInstallPrompt })));
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { notificationManager } from "@/lib/notification-manager";
 import { serviceWorkerManager } from "@/lib/service-worker-registration";
 import { getPerformanceMonitor } from "@/lib/performance-monitor";
-import { useGlobalRadio } from "@/lib/global-radio";
 import { islamicEventsService } from "@/lib/islamic-events-service";
 import { LayoutManager } from "@/components/LayoutManager";
 import { SplashScreen } from "@/components/SplashScreen";
+
+// Lazy load critical components
+const GlobalPrayerAlarm = lazy(() => import("@/components/GlobalPrayerAlarm").then(module => ({ default: module.GlobalPrayerAlarm })));
+const SalamGreeting = lazy(() => import("@/components/SalamGreeting").then(module => ({ default: module.SalamGreeting })));
+const FestivePopup = lazy(() => import("@/components/FestivePopup").then(module => ({ default: module.FestivePopup })));
+const PWAInstallPrompt = lazy(() => import("@/components/PWAInstallPrompt").then(module => ({ default: module.PWAInstallPrompt })));
+
+// Dynamic imports for heavy components - only load when needed
+const GlobalRadioPlayer = lazy(() => import("@/components/lazy/RadioComponents").then(module => ({ 
+  default: module.GlobalRadioPlayer 
+})));
+const GlobalQuranPlayer = lazy(() => import("@/components/lazy/RadioComponents").then(module => ({ 
+  default: module.GlobalQuranPlayer 
+})));
 
 // Set default theme to light if no preference saved
 if (!localStorage.getItem("theme")) {
@@ -35,7 +44,7 @@ const Duas = lazy(() => import("./pages/Duas"));
 const Hadith = lazy(() => import("./pages/Hadith"));
 const Profile = lazy(() => import("./pages/Profile"));
 const IslamicCalendar = lazy(() => import("./pages/IslamicCalendar"));
-const Ebooks = lazy(() => import("./pages/Ebooks"));
+const Ebooks = lazy(() => import("./pages/EbooksOptimized"));
 const QazaPage = lazy(() => import("./pages/QazaPage"));
 const RamadanMode = lazy(() => import("./pages/RamadanMode"));
 const MenstrualMode = lazy(() => import("./pages/MenstrualMode"));
@@ -48,11 +57,10 @@ const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const QuranRadio = lazy(() => import("./pages/QuranRadio"));
 const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const Services = lazy(() => import("./pages/Services"));
-const GlobalRadioPlayer = lazy(() => import("./components/GlobalRadioPlayer").then(module => ({ default: module.GlobalRadioPlayer })));
-const GlobalQuranPlayer = lazy(() => import("./components/GlobalQuranPlayer").then(module => ({ default: module.GlobalQuranPlayer })));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-import { AnimatePresence } from "framer-motion";
+import { prefetchCriticalChunks } from "@/lib/build-optimization";
+import { useTranslation } from "react-i18next";
 
 // Prefetch critical route chunks after initial load
 const prefetchRoutes = () => {
@@ -91,6 +99,7 @@ const isStandaloneMode = (): boolean => {
 
 function AppRoutes() {
   const location = useLocation();
+  const { t } = useTranslation();
 
   return (
     <Suspense fallback={
@@ -114,7 +123,7 @@ function AppRoutes() {
 
           {/* Text with glass effect */}
           <div className="glass-card px-6 py-3 rounded-2xl">
-            <p className="text-[#e0c097] text-sm font-semibold tracking-widest uppercase">Loading</p>
+            <p className="text-[#e0c097] text-sm font-semibold tracking-widest uppercase">{t('loading')}</p>
           </div>
         </div>
       </div>
@@ -283,9 +292,11 @@ const App = () => {
         {/* Bottom Navigation */}
         <BottomNav />
 
-        {/* Global Radio Player - Fixed at bottom with proper z-index */}
-        <GlobalRadioPlayer />
-        <GlobalQuranPlayer />
+        {/* Global Players - Only render when needed with Suspense */}
+        <Suspense fallback={null}>
+          <GlobalRadioPlayer />
+          <GlobalQuranPlayer />
+        </Suspense>
       </BrowserRouter>
     </TooltipProvider>
   );

@@ -5,7 +5,8 @@ import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext-new";
+import { useI18n } from "@/hooks/useI18n";
 import { PageTransition } from "@/components/PageTransition";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppBar } from "@/components/AppBar";
@@ -22,6 +23,7 @@ interface Surah {
 const Quran = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { t: ti18n } = useI18n();
   const [surahs, setSurahs] = useState<Surah[]>(() => {
     try {
       const cached = localStorage.getItem('quran-surahs-cache');
@@ -77,33 +79,33 @@ const Quran = () => {
           {/* Premium Hero Section */}
           <div className="relative overflow-hidden rounded-[32px] bg-[#1a4a4a] p-8 shadow-xl shadow-emerald-500/10">
             {/* Background elements */}
-            <div className="absolute top-0 right-0 w-40 h-40 bg-emerald-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-32 h-32 bg-primary/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+            <div className="absolute top-0 end-0 w-40 h-40 bg-emerald-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 start-0 w-32 h-32 bg-primary/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
 
             <div className="relative z-10">
               <div className="flex items-center gap-2 mb-4">
                 <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md">
                   <BookOpen className="w-5 h-5 text-white" />
                 </div>
-                <span className="text-white/80 text-[10px] font-bold uppercase tracking-widest">Al-Qur'an Al-Kareem</span>
+                <span className="text-white/80 text-[10px] font-bold uppercase tracking-widest">{ti18n('alQuranAlKareem')}</span>
               </div>
 
-              <h1 className="text-3xl font-black text-white mb-2 font-arabic tracking-tight">The Noble Qur'an</h1>
-              <p className="text-white/60 text-xs font-medium max-w-[200px]">Read, listen, and contemplate the words of Allah.</p>
+              <h1 className="text-3xl font-black text-white mb-2 font-arabic tracking-tight">{ti18n('theNobleQuran')}</h1>
+              <p className="text-white/60 text-xs font-medium max-w-[200px]">{ti18n('readListenContemplate')}</p>
 
               {/* Quick Stats Grid */}
               <div className="grid grid-cols-3 gap-2 mt-6">
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
                   <p className="text-primary text-sm font-black">114</p>
-                  <p className="text-white/40 text-[9px] uppercase font-bold">Surahs</p>
+                  <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('surahs')}</p>
                 </div>
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
                   <p className="text-primary text-sm font-black">6236</p>
-                  <p className="text-white/40 text-[9px] uppercase font-bold">Ayahs</p>
+                  <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('ayahs')}</p>
                 </div>
                 <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
                   <p className="text-primary text-sm font-black">30</p>
-                  <p className="text-white/40 text-[9px] uppercase font-bold">Juz</p>
+                  <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('juz')}</p>
                 </div>
               </div>
             </div>
@@ -119,7 +121,7 @@ const Quran = () => {
                 <History className="w-6 h-6 text-white" />
               </div>
               <div className="flex-1 text-left">
-                <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">Continue Reading</p>
+                <p className="text-[10px] font-bold text-primary uppercase tracking-widest mb-1">{ti18n('continueReading')}</p>
                 <h3 className="text-lg font-black">{lastRead.name}</h3>
               </div>
               <ChevronRight className="w-5 h-5 text-primary opacity-50" />
@@ -129,14 +131,14 @@ const Quran = () => {
           {/* Search Header */}
           <div className="sticky top-[4.5rem] z-30 bg-background/80 backdrop-blur-xl py-2 -mx-5 px-5">
             <div className="relative group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+              <div className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                 <Search className="w-4 h-4" />
               </div>
               <Input
-                placeholder="Search by Surah name or number..."
+                placeholder={ti18n('searchBySurahNameOrNumber')}
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 h-12 bg-card/50 border-border/40 rounded-2xl focus:ring-primary/20"
+                className="ps-11 h-12 bg-card/50 border-border/40 rounded-2xl focus:ring-primary/20"
               />
             </div>
           </div>
@@ -166,7 +168,7 @@ const Quran = () => {
                         <span className="relative z-10 font-black text-primary text-xs">{surah.number}</span>
                       </div>
 
-                      <div className="ml-4 flex-1">
+                      <div className="ms-4 flex-1">
                         <div className="flex items-center justify-between">
                           <div>
                             <h3 className="font-bold text-[15px] group-hover:text-primary transition-colors">{surah.englishName}</h3>
@@ -191,7 +193,7 @@ const Quran = () => {
               <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-muted-foreground">No surahs found matching your search.</p>
+              <p className="text-muted-foreground">{ti18n('noSurahsFound')}</p>
             </div>
           )}
         </div>

@@ -38,7 +38,6 @@ export async function getCurrentLiveVideoId(channelId: string): Promise<string |
         // Search for live videos on the channel
         const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&order=date&key=${apiKey}`;
         
-        console.log(`[YouTube] Fetching from: ${searchUrl.replace(/key=[^&]+/, 'key=REDACTED')}`);
         
         const response = await fetch(searchUrl);
         
@@ -50,17 +49,14 @@ export async function getCurrentLiveVideoId(channelId: string): Promise<string |
         }
 
         const data = await response.json();
-        console.log(`[YouTube] API Response for ${channelId}:`, data);
         
         // Check if we found any live videos
         if (data.items && data.items.length > 0) {
             const liveVideo = data.items[0];
             const videoId = liveVideo.id.videoId;
-            console.log(`[YouTube] Found live video for channel ${channelId}: ${videoId}`);
-            return videoId;
+                return videoId;
         }
 
-        console.log(`[YouTube] No live stream found for channel ${channelId}`);
         return null;
         
     } catch (error) {
@@ -73,17 +69,14 @@ export async function getCurrentLiveVideoId(channelId: string): Promise<string |
  * Get live video ID with multiple fallback strategies
  */
 export async function getLiveVideoIdWithFallback(channelId: string, fallbackId: string): Promise<string> {
-    console.log(`[YouTube] Getting live video ID for channel ${channelId} with fallback`);
     
     // Try to get current live video first
     const liveVideoId = await getCurrentLiveVideoId(channelId);
     
     if (liveVideoId) {
-        console.log(`[YouTube] Using live video: ${liveVideoId}`);
         return liveVideoId;
     }
     
-    console.log(`[YouTube] No live video found, trying most recent video`);
     
     // If no live video found, try to get the most recent video
     try {
@@ -91,17 +84,14 @@ export async function getLiveVideoIdWithFallback(channelId: string, fallbackId: 
         if (apiKey) {
             const recentVideosUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=1&key=${apiKey}`;
             
-            console.log(`[YouTube] Fetching recent video from: ${recentVideosUrl.replace(/key=[^&]+/, 'key=REDACTED')}`);
             
             const response = await fetch(recentVideosUrl);
             if (response.ok) {
                 const data = await response.json();
-                console.log(`[YouTube] Recent videos response:`, data);
                 
                 if (data.items && data.items.length > 0) {
                     const recentVideoId = data.items[0].id.videoId;
-                    console.log(`[YouTube] Using most recent video for channel ${channelId}: ${recentVideoId}`);
-                    return recentVideoId;
+                        return recentVideoId;
                 }
             } else {
                 console.error(`[YouTube] Recent videos API error: ${response.status} ${response.statusText}`);
@@ -135,15 +125,13 @@ export const YoutubeService = {
             const isExpired = Date.now() - data.timestamp > CACHE_DURATION;
 
             if (!isExpired && data.makkah && data.madinah) {
-                console.log('[YouTube] Using cached live stream IDs');
-                return {
+                        return {
                     makkah: data.makkah,
                     madinah: data.madinah
                 };
             }
         }
 
-        console.log('[YouTube] Fetching fresh live stream IDs');
         
         // Fetch fresh data with enhanced fallbacks
         const [makkahId, madinahId] = await Promise.all([
@@ -159,7 +147,6 @@ export const YoutubeService = {
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
 
-        console.log('[YouTube] Updated live stream IDs:', { makkah: makkahId, madinah: madinahId });
 
         return {
             makkah: makkahId,
@@ -190,6 +177,5 @@ export const YoutubeService = {
      */
     clearCache() {
         localStorage.removeItem(CACHE_KEY);
-        console.log('[YouTube] Cache cleared');
     }
 };

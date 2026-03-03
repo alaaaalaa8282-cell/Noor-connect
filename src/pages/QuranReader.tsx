@@ -20,6 +20,7 @@ import { quranFontManager, type QuranFont } from '@/lib/quran-font-manager';
 import { quranFeaturesService, type QuranBookmark, type QuranNote, type RecitationProgress } from '@/lib/quran-features';
 import { AppBar } from '@/components/AppBar';
 import { PageTransition } from '@/components/PageTransition';
+import { useI18n } from '@/hooks/useI18n';
 
 // Translation editions
 const TRANSLATIONS = [
@@ -54,6 +55,7 @@ export default function QuranReader() {
   const navigate = useNavigate();
   const { surahNumber } = useParams<{ surahNumber: string }>();
   const { toast } = useToast();
+  const { t: ti18n } = useI18n();
 
 
   const [surah, setSurah] = useState<Surah | null>(null);
@@ -339,7 +341,7 @@ export default function QuranReader() {
     return (
       <PageTransition>
         <div className="min-h-screen bg-background">
-          <AppBar title="Quran Reader" showBack />
+          <AppBar title={ti18n('quranReader')} showBack />
           <div className="flex items-center justify-center h-96">
             <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
           </div>
@@ -352,9 +354,9 @@ export default function QuranReader() {
     return (
       <PageTransition>
         <div className="min-h-screen bg-background">
-          <AppBar title="Quran Reader" showBack />
+          <AppBar title={ti18n('quranReader')} showBack />
           <div className="flex items-center justify-center h-96">
-            <p className="text-muted-foreground">Surah not found</p>
+            <p className="text-muted-foreground">{ti18n('surahNotFound')}</p>
           </div>
         </div>
       </PageTransition>
@@ -383,7 +385,7 @@ export default function QuranReader() {
                       className="gap-1"
                     >
                       <Settings className="w-4 h-4" />
-                      Settings
+                      {ti18n('quranSettingsButton')}
                     </Button>
                   </div>
                 </div>
@@ -400,7 +402,7 @@ export default function QuranReader() {
             {progress && (
               <CardContent className="space-y-2">
                 <div className="flex justify-between text-sm">
-                  <span>Progress</span>
+                  <span>{ti18n('progress')}</span>
                   <span>{progress.completedAyahs}/{progress.totalAyahs} ayahs</span>
                 </div>
                 <Progress value={progressPercentage} className="h-2 quran-progress-bar" />
@@ -415,12 +417,12 @@ export default function QuranReader() {
           {showSettings && (
             <Card className="animate-in slide-in-from-top duration-300">
               <CardHeader>
-                <CardTitle className="text-base">Quran Settings</CardTitle>
+                <CardTitle className="text-base">{ti18n('quranSettings')}</CardTitle>
               </CardHeader>
               <CardContent className="space-y-4">
                 <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Font</label>
+                    <label className="text-sm font-medium">{ti18n('font')}</label>
                     <Select value={currentQuranFont} onValueChange={handleFontChange}>
                       <SelectTrigger>
                         <SelectValue />
@@ -433,7 +435,7 @@ export default function QuranReader() {
                     </Select>
                   </div>
                   <div className="space-y-2">
-                    <label className="text-sm font-medium">Translation</label>
+                    <label className="text-sm font-medium">{ti18n('translation')}</label>
                     <Select value={selectedTranslation.id} onValueChange={handleTranslationChange}>
                       <SelectTrigger>
                         <SelectValue />
@@ -447,7 +449,7 @@ export default function QuranReader() {
                   </div>
                 </div>
                 <div className="space-y-2">
-                  <label className="text-sm font-medium">Font Size: {fontSize}px</label>
+                  <label className="text-sm font-medium">{ti18n('fontSize')}: {fontSize}px</label>
                   <div className="flex items-center gap-3">
                     <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFontSizeChange(Math.max(16, fontSize - 2))}>-</Button>
                     <div className="flex-1 h-1 bg-secondary rounded-full overflow-hidden">
@@ -456,7 +458,7 @@ export default function QuranReader() {
                     <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFontSizeChange(Math.min(42, fontSize + 2))}>+</Button>
                   </div>
                 </div>
-                <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowSettings(false)}>Close Settings</Button>
+                <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowSettings(false)}>{ti18n('closeSettings')}</Button>
               </CardContent>
             </Card>
           )}
@@ -526,7 +528,7 @@ export default function QuranReader() {
                                     Cancel
                                   </Button>
                                   <Button onClick={saveNote}>
-                                    <Save className="w-4 h-4 mr-2" />
+                                    <Save className="w-4 h-4 ms-2" />
                                     Save
                                   </Button>
                                 </div>

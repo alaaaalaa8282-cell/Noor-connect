@@ -7,6 +7,7 @@ import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { TrendingUp, Calendar } from "lucide-react";
 import { getPrayerHistory, type DailyPrayers } from "@/lib/salah-tracker";
 import { Skeleton } from "@/components/LoadingSkeleton";
+import { useI18n } from "@/hooks/useI18n";
 // Import Recharts components directly instead of lazy loading
 import { BarChart, Bar, XAxis, YAxis, ResponsiveContainer, Cell } from 'recharts';
 
@@ -18,6 +19,7 @@ interface ChartData {
 }
 
 export function WeeklySalahChart() {
+  const { t: ti18n } = useI18n();
   const [chartData, setChartData] = useState<ChartData[]>([]);
   const [weeklyStats, setWeeklyStats] = useState({ completed: 0, total: 0, percentage: 0 });
 
@@ -76,7 +78,7 @@ export function WeeklySalahChart() {
         <div className="flex items-center justify-between">
           <CardTitle className="text-sm font-semibold text-foreground flex items-center gap-2">
             <Calendar className="w-4 h-4" />
-            Weekly Progress
+            {ti18n('weeklyProgress')}
           </CardTitle>
           <div className="flex items-center gap-1.5 text-xs">
             <TrendingUp className="w-3 h-3 text-primary" />
@@ -88,7 +90,7 @@ export function WeeklySalahChart() {
         {/* Stats Summary */}
         <div className="flex items-center justify-between mb-3 text-xs">
           <span className="text-muted-foreground">
-            {weeklyStats.completed} / {weeklyStats.total} prayers this week
+            {weeklyStats.completed} / {weeklyStats.total} {ti18n('prayersThisWeek')}
           </span>
         </div>
 
@@ -118,8 +120,8 @@ export function WeeklySalahChart() {
           ) : (
             <div className="h-full w-full flex flex-col items-center justify-center text-muted-foreground text-xs">
               <Calendar className="w-8 h-8 mb-2 opacity-50" />
-              <p>No prayer data yet</p>
-              <p className="text-[10px] mt-1">Check in prayers to see your progress</p>
+              <p>{ti18n('noPrayerDataYet')}</p>
+              <p className="text-[10px] mt-1">{ti18n('checkInPrayersToSeeProgress')}</p>
             </div>
           )}
         </div>

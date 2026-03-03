@@ -86,8 +86,7 @@ const Hadith = () => {
         book: fallback.book,
         number: fallback.number,
       };
-      console.log('Using emergency fallback hadith');
-      
+            
       setHadith(finalData);
       localStorage.setItem("lastHadithDate", today);
       localStorage.setItem("lastHadithData", JSON.stringify(finalData));
@@ -157,7 +156,7 @@ const Hadith = () => {
             <div className="flex flex-col items-center justify-center space-y-4">
               <div className="relative">
                 <div className="w-16 h-16 rounded-full bg-gradient-gold animate-pulse" />
-                <Loader2 className="w-8 h-8 animate-spin text-primary absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2" />
+                <Loader2 className="w-8 h-8 animate-spin text-primary absolute top-1/2 inset-inline-start-1/2 -translate-x-1/2 -translate-y-1/2" />
               </div>
               <p className="text-sm text-muted-foreground">Loading Hadith...</p>
             </div>
@@ -212,7 +211,7 @@ const Hadith = () => {
                 className="flex-1 backdrop-blur-sm bg-card/80 text-foreground hover:bg-card border border-border/50"
                 variant="outline"
               >
-                <Share2 className="w-4 h-4 mr-2" />
+                <Share2 className="w-4 h-4 me-2" />
                 Share Hadith
               </Button>
               <Button

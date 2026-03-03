@@ -11,13 +11,14 @@ import {
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
+import { useI18n } from "@/hooks/useI18n";
 
 type CompassState = "idle" | "activating" | "active" | "permission-required" | "denied" | "unsupported" | "no-data";
 
 interface CompassStateMeta {
   badgeVariant: "default" | "secondary" | "destructive" | "outline";
-  label: string;
-  help: string;
+  label: string; // translation key
+  help: string; // translation key
 }
 
 const ALIGNMENT_THRESHOLD_DEG = 7;
@@ -27,38 +28,38 @@ const SENSOR_TIMEOUT_MS = 6500;
 const COMPASS_STATE_META: Record<CompassState, CompassStateMeta> = {
   idle: {
     badgeVariant: "secondary",
-    label: "Compass idle",
-    help: "Sensor is not active yet.",
+    label: "compassIdle",
+    help: "sensorNotActiveYet",
   },
   activating: {
     badgeVariant: "outline",
-    label: "Starting compass",
-    help: "Hold your phone steady while sensor data is initializing.",
+    label: "startingCompass",
+    help: "holdPhoneSteady",
   },
   active: {
     badgeVariant: "default",
-    label: "Live compass active",
-    help: "Live heading is detected and updating.",
+    label: "liveCompassActive",
+    help: "liveHeadingDetected",
   },
   "permission-required": {
     badgeVariant: "outline",
-    label: "Permission required",
-    help: "Tap Enable Compass to request motion sensor permission.",
+    label: "permissionRequired",
+    help: "tapEnableCompass",
   },
   denied: {
     badgeVariant: "destructive",
-    label: "Permission denied",
-    help: "Allow motion/orientation access in browser or app settings.",
+    label: "compassPermissionDenied",
+    help: "allowMotionAccess",
   },
   unsupported: {
     badgeVariant: "secondary",
-    label: "Sensor unsupported",
-    help: "This device does not expose a compass sensor in this environment.",
+    label: "sensorUnsupported",
+    help: "deviceNoCompassSensor",
   },
   "no-data": {
     badgeVariant: "secondary",
-    label: "No sensor data",
-    help: "No orientation events were received. Use manual mode below.",
+    label: "noSensorData",
+    help: "noOrientationEvents",
   },
 };
 
@@ -74,6 +75,7 @@ const CARDINAL_POINTS = [
 ];
 
 const QiblaCompassModern = () => {
+  const { t: ti18n } = useI18n();
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
   const [isRefreshingLocation, setIsRefreshingLocation] = useState(false);
   const [locationError, setLocationError] = useState<string | null>(null);
@@ -252,15 +254,15 @@ const QiblaCompassModern = () => {
 
   const turnInstruction = useMemo(() => {
     if (turnDelta === null) {
-      return "Use a physical compass and face the manual Qibla bearing.";
+      return ti18n('usePhysicalCompass');
     }
 
     const amount = Math.round(Math.abs(turnDelta));
     if (amount <= ALIGNMENT_THRESHOLD_DEG) {
-      return "Aligned with Qibla";
+      return ti18n('alignedWithQibla');
     }
 
-    return turnDelta > 0 ? `Turn right ${amount} deg` : `Turn left ${amount} deg`;
+    return turnDelta > 0 ? `${ti18n('turnRight')} ${amount} ${ti18n('deg')}` : `${ti18n('turnLeft')} ${amount} ${ti18n('deg')}`;
   }, [turnDelta]);
 
   const dialRotation = heading === null ? 0 : -heading;
@@ -275,7 +277,7 @@ const QiblaCompassModern = () => {
         <Card className="mx-auto w-full max-w-md border-border/60 bg-card/80">
           <CardContent className="flex flex-col items-center justify-center gap-3 py-12">
             <Loader2 className="h-10 w-10 animate-spin text-primary" />
-            <p className="text-sm text-muted-foreground">Detecting location and Qibla direction...</p>
+            <p className="text-sm text-muted-foreground">{ti18n('detectingLocationQibla')}</p>
           </CardContent>
         </Card>
       </div>
@@ -289,12 +291,12 @@ const QiblaCompassModern = () => {
           <CardContent className="flex flex-col items-center gap-4 py-8 text-center">
             <TriangleAlert className="h-10 w-10 text-destructive" />
             <div className="space-y-1">
-              <h2 className="text-lg font-semibold">Unable to start Qibla</h2>
-              <p className="text-sm text-muted-foreground">{locationError ?? "Please try again."}</p>
+              <h2 className="text-lg font-semibold">{ti18n('unableToStartQibla')}</h2>
+              <p className="text-sm text-muted-foreground">{locationError ?? ti18n('pleaseTryAgain')}</p>
             </div>
             <Button onClick={() => void refreshLocation("manual")} disabled={isRefreshingLocation}>
               {isRefreshingLocation ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <RefreshCw className="mr-2 h-4 w-4" />}
-              Retry
+              {ti18n('retry')}
             </Button>
           </CardContent>
         </Card>
@@ -341,14 +343,14 @@ const QiblaCompassModern = () => {
                   <Compass className="h-4 w-4 text-primary" />
                   <span>Compass Status</span>
                 </div>
-                <p className="text-xs text-muted-foreground">{compassMeta.help}</p>
+                <p className="text-xs text-muted-foreground">{ti18n(compassMeta.help)}</p>
                 {!isLiveCompass && compassState !== "unsupported" && compassState !== "denied" && (
                   <p className="text-xs text-amber-600 dark:text-amber-400 mt-1">
                     💡 Click "Enable Compass" to activate live tracking
                   </p>
                 )}
               </div>
-              <Badge variant={compassMeta.badgeVariant} className="px-3 py-1">{compassMeta.label}</Badge>
+              <Badge variant={compassMeta.badgeVariant} className="px-3 py-1">{ti18n(compassMeta.label)}</Badge>
             </div>
 
             <div className="mt-4 grid grid-cols-2 gap-3">
@@ -391,12 +393,12 @@ const QiblaCompassModern = () => {
                       style={{ transform: `rotate(${angle}deg)` }}
                     >
                       <div
-                        className={`absolute left-1/2 top-1 -translate-x-1/2 rounded-full ${
+                        className={`absolute inset-x-1/2 top-1 -translate-x-1/2 rounded-full ${
                           cardinal ? "h-3 w-[3px] bg-primary" : major ? "h-2 w-[2px] bg-primary/70" : "h-1 w-px bg-border/70"
                         }`}
                       />
                       {cardinal && (
-                        <span className="absolute left-1/2 top-5 -translate-x-1/2 text-xs font-bold text-primary">
+                        <span className="absolute inset-x-1/2 top-5 -translate-x-1/2 text-xs font-bold text-primary">
                           {angle === 0 ? "N" : angle === 90 ? "E" : angle === 180 ? "S" : "W"}
                         </span>
                       )}
@@ -406,29 +408,29 @@ const QiblaCompassModern = () => {
                 
                 {/* Qibla direction marker on compass dial */}
                 <div className="absolute inset-0" style={{ transform: `rotate(${qiblaBearing}deg)` }}>
-                  <div className="absolute left-1/2 top-2 -translate-x-1/2">
+                  <div className="absolute inset-x-1/2 top-2 -translate-x-1/2">
                     <div className="h-0 w-0 border-x-[6px] border-x-transparent border-b-[8px] border-b-emerald-400/60" />
                   </div>
                 </div>
               </div>
 
               <div className="absolute inset-0">
-                <div className="absolute left-1/2 top-3 -translate-x-1/2">
+                <div className="absolute inset-x-1/2 top-3 -translate-x-1/2">
                   <div className="relative">
                     <div className="h-0 w-0 border-x-[12px] border-x-transparent border-b-[20px] border-b-emerald-500 drop-shadow-[0_0_15px_rgba(16,185,129,0.8)]" />
-                    <div className="absolute left-1/2 top-2 -translate-x-1/2 h-0 w-0 border-x-[8px] border-x-transparent border-b-[12px] border-b-emerald-400" />
+                    <div className="absolute inset-x-1/2 top-2 -translate-x-1/2 h-0 w-0 border-x-[8px] border-x-transparent border-b-[12px] border-b-emerald-400" />
                   </div>
                 </div>
               </div>
 
               {isLiveCompass && (
-                <div className="absolute left-1/2 top-2 -translate-x-1/2 text-center">
+                <div className="absolute inset-x-1/2 top-2 -translate-x-1/2 text-center">
                   <div className="h-0 w-0 border-x-[8px] border-x-transparent border-b-[14px] border-b-primary" />
                   <p className="mt-1 text-[10px] font-semibold text-primary">PHONE FRONT</p>
                 </div>
               )}
 
-              <div className="absolute left-1/2 top-1/2 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-4 border-background bg-gradient-to-b from-card to-muted/50 shadow-xl">
+              <div className="absolute inset-x-1/2 top-1/2 flex h-24 w-24 -translate-x-1/2 -translate-y-1/2 flex-col items-center justify-center rounded-full border-4 border-background bg-gradient-to-b from-card to-muted/50 shadow-xl">
                 <img src="/qibla3.png" alt="Qibla marker" className="h-10 w-10" />
                 <p className="mt-1 text-[10px] font-bold text-muted-foreground">QIBLA</p>
               </div>
@@ -460,7 +462,7 @@ const QiblaCompassModern = () => {
                 title={compassState === "active" ? "Recalibrate compass sensor for better accuracy" : "Enable device compass for live Qibla tracking"}
               >
                 {compassState === "activating" ? <Loader2 className="mr-2 h-4 w-4 animate-spin" /> : <Compass className="mr-2 h-4 w-4" />}
-                {isLiveCompass ? "Recalibrate" : "Enable Compass"}
+                {isLiveCompass ? ti18n('recalibrate') : ti18n('enableCompass')}
               </Button>
               <Button
                 variant="outline"

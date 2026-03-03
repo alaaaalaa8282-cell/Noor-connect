@@ -135,16 +135,6 @@ class MinimalPerformanceMonitor {
     if (process.env.NODE_ENV === 'development') {
       console.log(`🚀 ${name}: ${value.toFixed(2)}ms (${rating})`);
     }
-
-    // Store in localStorage for debugging (only keep last 10 measurements)
-    try {
-      const existing = JSON.parse(localStorage.getItem('performance-metrics') || '[]');
-      existing.push({ name, value, rating, timestamp: Date.now() });
-      const recent = existing.slice(-10);
-      localStorage.setItem('performance-metrics', JSON.stringify(recent));
-    } catch (e) {
-      // Ignore localStorage errors
-    }
   }
 
   public getMetrics(): PerformanceMetrics {

@@ -31,7 +31,7 @@ export function AppBar({ title, showBack = false, actions }: AppBarProps) {
               variant="ghost"
               size="icon"
               onClick={() => navigate(-1)}
-              className="mr-2 -ml-2 text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105 rounded-xl"
+              className="ms-2 -me-2 text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105 rounded-xl nav-back"
             >
               <ArrowLeft className="w-5 h-5" />
             </Button>

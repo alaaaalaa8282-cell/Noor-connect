@@ -19,7 +19,8 @@ const IslamicEventsWidget = lazy(() => import("@/components/IslamicEventsWidget"
 const QuranProgressWidget = lazy(() => import("@/components/QuranProgressWidget").then(module => ({ default: module.QuranProgressWidget })));
 import { LocationSearch } from "@/components/LocationSearch";
 import { LayoutManager } from "@/components/LayoutManager";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext-new";
+import { useI18n } from "@/hooks/useI18n";
 import { shouldShowMenstrualFeatures } from "@/lib/gender-settings";
 import { isMenstrualModeActive, getMenstrualModeData, activateMenstrualMode, deactivateMenstrualMode } from "@/lib/menstrual-mode";
 
@@ -50,6 +51,7 @@ const prayerIcons: Record<string, React.ReactNode> = {
 export default function Dashboard() {
   const navigate = useNavigate();
   const { t } = useLanguage();
+  const { t: ti18n } = useI18n();
   const [currentTime, setCurrentTime] = useState(new Date());
   const [greeting, setGreeting] = useState("");
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
@@ -84,43 +86,6 @@ export default function Dashboard() {
   const locationLabel = prayerLocation?.city && prayerLocation?.country
     ? `${prayerLocation.city}, ${prayerLocation.country}`
     : location.locationName;
-
-  useEffect(() => {
-    if (!prayerLocation) return;
-
-    // #region agent log
-    fetch('http://127.0.0.1:7242/ingest/8477e0e0-47e5-465e-a357-0ba401b2356d', {
-      method: 'POST',
-      headers: { 'Content-Type': 'application/json' },
-      body: JSON.stringify({
-        id: `log_${Date.now()}_dashboard_location`,
-        timestamp: Date.now(),
-        runId: 'location-debug',
-        hypothesisId: 'H2',
-        location: 'Dashboard.tsx:locationSummary',
-        message: 'Dashboard location/time summary',
-        data: {
-          headerLabel: locationLabel,
-          globalLocation: {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            locationName: location.locationName,
-            timeZone: location.timeZone ?? null,
-          },
-          prayerLocation: {
-            source: prayerLocation.source,
-            city: prayerLocation.city ?? null,
-            country: prayerLocation.country ?? null,
-            latitude: prayerLocation.latitude,
-            longitude: prayerLocation.longitude,
-            timeZone: prayerLocation.timeZone ?? null,
-          },
-          clockTimeZone: location.timeZone ?? null,
-        },
-      }),
-    }).catch(() => {});
-    // #endregion agent log
-  }, [location.latitude, location.longitude, location.locationName, location.timeZone, locationLabel, prayerLocation]);
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
@@ -222,8 +187,7 @@ export default function Dashboard() {
 
     // Add online listener to refresh prayer times as soon as internet is back
     const handleOnline = () => {
-      console.log('Internet back, refreshing Dashboard prayer times...');
-      loadPrayerTimes();
+            loadPrayerTimes();
     };
 
     window.addEventListener('online', handleOnline);
@@ -243,33 +207,13 @@ export default function Dashboard() {
   const handleDetectLocation = async () => {
     const success = await location.detectLocation();
     if (success) {
-      toast({ title: "Location detected", description: `Updated to ${location.locationName}` });
+      toast({ title: ti18n('locationDetected'), description: `Updated to ${location.locationName}` });
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/8477e0e0-47e5-465e-a357-0ba401b2356d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `log_${Date.now()}_dashboard_detect`,
-          timestamp: Date.now(),
-          runId: 'location-debug',
-          hypothesisId: 'H3',
-          location: 'Dashboard.tsx:handleDetectLocation',
-          message: 'Global location detected via GeolocationService',
-          data: {
-            latitude: location.latitude,
-            longitude: location.longitude,
-            locationName: location.locationName,
-            timeZone: location.timeZone ?? null,
-          },
-        }),
-      }).catch(() => {});
-      // #endregion agent log
-
+      
       // Reload prayer times with new location
       await loadPrayerTimes();
     } else {
-      toast({ title: "Location detection failed", description: "Please enable location permissions", variant: "destructive" });
+      toast({ title: ti18n('locationDetectionFailed'), description: ti18n('pleaseEnableLocationPermissions'), variant: "destructive" });
     }
   };
 
@@ -279,8 +223,8 @@ export default function Dashboard() {
       const updated = deactivateMenstrualMode(new Date());
       setMenstrualModeData(updated);
       toast({
-        title: "Menstrual Mode ended",
-        description: "Prayer reminder scheduling has resumed.",
+        title: ti18n('menstrualModeEnded'),
+        description: ti18n('prayerReminderSchedulingResumed'),
       });
     } else {
       const updated = activateMenstrualMode(new Date());
@@ -300,13 +244,13 @@ export default function Dashboard() {
           const { localNotifications } = await import("@/lib/local-notifications");
           await localNotifications.clearPrayerNotifications();
         } catch (error) {
-          console.error("Failed to clear prayer notifications:", error);
+          console.error(ti18n('failedToClearPrayerNotifications'), error);
         }
       }
 
       toast({
-        title: "Menstrual Mode enabled",
-        description: "Prayer reminders and auto Qaza sync are paused while this mode is active.",
+        title: ti18n('menstrualModeEnabled'),
+        description: ti18n('prayerRemindersPaused'),
       });
     }
   };
@@ -425,7 +369,7 @@ export default function Dashboard() {
                     hour12: timeFormat === '12',
                     timeZone: location.timeZone || undefined
                   }).replace(/\s+[APap][Mm]/, '')}
-                  <span className="text-xl sm:text-2xl ml-2 font-light text-white/60 tracking-normal font-sans">
+                  <span className="text-xl sm:text-2xl ms-2 font-light text-white/60 tracking-normal font-sans">
                     {timeFormat === '12' ? currentTime.toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: location.timeZone }).split(' ')[1] : ''}
                   </span>
                 </h1>
@@ -567,12 +511,12 @@ export default function Dashboard() {
                 >
                   {menstrualModeData.isActive ? (
                     <>
-                      <ToggleLeft className="w-4 h-4 mr-2" />
+                      <ToggleLeft className="w-4 h-4 me-2" />
                       End
                     </>
                   ) : (
                     <>
-                      <ToggleRight className="w-4 h-4 mr-2" />
+                      <ToggleRight className="w-4 h-4 me-2" />
                       Start
                     </>
                   )}
@@ -739,8 +683,7 @@ export default function Dashboard() {
 
                         const fetchedTimezone = result.timezone;
 
-                        console.log(`[Dashboard] Selected ${city}, fetched timezone: ${fetchedTimezone}`);
-
+                        
                         // Step 3: Set state synchronously
                         location.setLocation(
                           coords.latitude,

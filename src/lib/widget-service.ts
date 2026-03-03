@@ -44,7 +44,6 @@ export class WidgetService {
                 location: locationName
             });
 
-            console.log('Widget updated successfully:', next.name);
         } catch (error) {
             console.error('Failed to update widget:', error);
         }

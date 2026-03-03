@@ -1,7 +1,7 @@
 import { useNavigate } from "react-router-dom";
 import { AppBar } from "@/components/AppBar";
 import { PageTransition } from "@/components/PageTransition";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext-new";
 import {
     MessageCircle, Radio, Target, Heart, Calculator,
     Star, Trophy, Coins, Calendar, Library, Tv, Sparkles
@@ -34,7 +34,7 @@ export default function Services() {
                 {/* Featured Header Card - More Compact */}
                 <div className="px-5 pt-4 mb-4">
                     <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-primary p-5 shadow-lg shadow-primary/10 group">
-                        <div className="absolute -right-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700" />
+                        <div className="absolute -end-4 -top-4 w-24 h-24 bg-white/10 rounded-full blur-2xl group-hover:scale-125 transition-transform duration-700" />
                         <div className="relative z-10">
                             <div className="flex items-center gap-1.5 mb-1.5">
                                 <Sparkles className="w-3.5 h-3.5 text-primary" />
@@ -70,7 +70,7 @@ export default function Services() {
                                 </div>
 
                                 {/* Bottom Accent */}
-                                <div className={`absolute bottom-0 left-1/2 -translate-x-1/2 w-4 h-[2px] ${item.color.replace('text', 'bg')} opacity-0 group-hover:opacity-60 transition-all duration-300 rounded-full`} />
+                                <div className={`absolute bottom-0 inset-inline-start-1/2 -translate-x-1/2 w-4 h-[2px] ${item.color.replace('text', 'bg')} opacity-0 group-hover:opacity-60 transition-all duration-300 rounded-full`} />
                             </motion.button>
                         ))}
                     </div>

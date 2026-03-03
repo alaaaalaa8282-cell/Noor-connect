@@ -43,37 +43,20 @@ class PermissionManager {
   }
 
   private detectPlatform(): PlatformType {
-    // Check if running in Capacitor (mobile app)
     const capacitor = (window as unknown as { Capacitor?: unknown }).Capacitor;
     
-    // Debug logging to help identify issues
-    console.log('Platform Detection Debug:', {
-      capacitor: !!capacitor,
-      userAgent: window.navigator.userAgent,
-      protocol: window.location.protocol,
-      cordova: !!(window as any).cordova,
-      devicePlatform: (window as any).device?.platform,
-      hasCapacitorInUA: window.navigator.userAgent.includes('Capacitor')
-    });
-    
-    // More robust platform detection
     if (capacitor) {
-      // Additional check to ensure we're actually in a native app
       const isNativeApp = !!(window as unknown as { 
         cordova?: unknown;
-        // Check for mobile-specific indicators
         device?: { platform?: string };
       }).cordova || 
       (window as any).device?.platform ||
-      // Check if we're in a standalone mobile app context
       window.location.protocol === 'file:' ||
       window.navigator.userAgent.includes('Capacitor');
       
-      console.log('Detected platform:', isNativeApp ? 'mobile' : 'web');
       return isNativeApp ? 'mobile' : 'web';
     }
     
-    console.log('Detected platform: web (no Capacitor)');
     return 'web';
   }
 
@@ -136,13 +119,9 @@ class PermissionManager {
     return { type, ...permissionMap[type] };
   }
 
-  // Get current permission status
   async getPermissionStatus(type: PermissionType): Promise<PermissionStatus> {
-    // Check cache first
-    if (this.permissionCache.has(type)) {
-      const cached = this.permissionCache.get(type);
-      if (cached !== 'prompt') return cached;
-    }
+    const cached = this.permissionCache.get(type);
+    if (cached && cached !== 'prompt') return cached;
 
     try {
       let status: PermissionStatus;
@@ -158,19 +137,16 @@ class PermissionManager {
       this.updateCache(type, status);
       return status;
     } catch (error) {
-      console.error(`Failed to check ${type} permission:`, error);
       this.updateCache(type, 'denied');
       return 'denied';
     }
   }
 
-  // Request permission
   async requestPermission(options: PermissionRequestOptions): Promise<boolean> {
     const { type, rationale, onSuccess, onError } = options;
     const permissionInfo = this.getPermissionInfo(type);
 
     try {
-      // Show rationale if provided
       if (rationale) {
         const confirmed = confirm(permissionInfo.rationale + '\n\n' + rationale);
         if (!confirmed) return false;
@@ -196,7 +172,6 @@ class PermissionManager {
 
       return granted;
     } catch (error) {
-      console.error(`Failed to request ${type} permission:`, error);
       this.updateCache(type, 'denied');
       onError?.(error as Error);
       return false;

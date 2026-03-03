@@ -15,6 +15,7 @@ import {
   type DailyPrayers
 } from "@/lib/salah-tracker";
 import { syncMissedPrayersToQaza } from "@/lib/qaza-tracker";
+import { useI18n } from "@/hooks/useI18n";
 
 const prayerNames: { id: PrayerName; label: string }[] = [
   { id: "fajr", label: "Fajr" },
@@ -25,6 +26,7 @@ const prayerNames: { id: PrayerName; label: string }[] = [
 ];
 
 export function SalahTracker() {
+  const { t: ti18n } = useI18n();
   const [prayers, setPrayers] = useState<DailyPrayers | null>(null);
   const [stats, setStats] = useState({ currentStreak: 0, longestStreak: 0, totalPrayers: 0, todayCompleted: 0 });
   const [message, setMessage] = useState<{ type: 'success' | 'error'; text: string } | null>(null);
@@ -110,11 +112,11 @@ export function SalahTracker() {
     <Card className="bg-card border-border overflow-hidden">
       <CardHeader className="pb-2 pt-4">
         <div className="flex items-center justify-between">
-          <CardTitle className="text-sm font-semibold text-foreground">Today's Salah</CardTitle>
+          <CardTitle className="text-sm font-semibold text-foreground">{ti18n('todaysSalah')}</CardTitle>
           {stats.currentStreak > 0 && (
             <div className="flex items-center gap-1 text-xs bg-primary/10 text-primary px-2 py-1 rounded-full">
               <Flame className="w-3 h-3" />
-              <span className="font-semibold">{stats.currentStreak} Day Streak</span>
+              <span className="font-semibold">{stats.currentStreak} {ti18n('dayStreak')}</span>
             </div>
           )}
         </div>
@@ -185,7 +187,7 @@ export function SalahTracker() {
 
         {allComplete && (
           <p className="text-center text-xs text-primary mt-3 font-medium">
-            ✨ MashaAllah! All prayers completed today!
+            ✨ {ti18n('allPrayersCompletedToday')}
           </p>
         )}
       </CardContent>

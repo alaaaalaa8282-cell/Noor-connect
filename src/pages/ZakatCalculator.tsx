@@ -389,7 +389,7 @@ export default function ZakatCalculator() {
                   size="sm"
                   onClick={refreshPrices}
                   disabled={isLoadingPrices}
-                  className="ml-auto h-6 w-6 p-0"
+                  className="ms-auto h-6 w-6 p-0"
                 >
                   <RefreshCw className={`h-3 w-3 ${isLoadingPrices ? 'animate-spin' : ''}`} />
                 </Button>

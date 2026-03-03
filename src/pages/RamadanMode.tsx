@@ -450,16 +450,7 @@ export default function RamadanMode() {
             <>
               <Card className={`p-4 ${isRamadan ? 'bg-gradient-to-br from-green-500/20 to-green-600/5 border-green-500/20' : 'bg-muted/30'}`}>
                 <div className="text-center space-y-2">
-                  {/* Debug Info */}
-                  {process.env.NODE_ENV === 'development' && islamicInfo && (
-                    <div className="text-xs text-left bg-black/10 p-2 rounded">
-                      <p className="font-mono">Debug Info:</p>
-                      <p className="font-mono">Hijri: {islamicInfo.currentDate.hijri.day} {islamicInfo.currentDate.hijri.month.en} {islamicInfo.currentDate.hijri.year}</p>
-                      <p className="font-mono">Month: {islamicInfo.hijriMonth} (Ramadan: {islamicInfo.hijriMonth === 9 ? 'YES' : 'NO'})</p>
-                      <p className="font-mono">API Ramadan: {isRamadan ? 'YES' : 'NO'}</p>
-                    </div>
-                  )}
-                  
+                                    
                   {isRamadan ? (
                     <>
                       <div className="flex items-center justify-center gap-2">
@@ -646,12 +637,12 @@ export default function RamadanMode() {
             >
               {loadingTimes ? (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                  <RefreshCw className="w-4 h-4 ms-2 animate-spin" />
                   Updating Times...
                 </>
               ) : (
                 <>
-                  <RefreshCw className="w-4 h-4 mr-2" />
+                  <RefreshCw className="w-4 h-4 ms-2" />
                   Refresh Ramadan Times
                 </>
               )}
@@ -700,7 +691,7 @@ export default function RamadanMode() {
             >
               {todayFasted ? (
                 <>
-                  <Check className="w-4 h-4 mr-2" />
+                  <Check className="w-4 h-4 ms-2" />
                   Today Fasted ✓
                 </>
               ) : (
@@ -798,12 +789,12 @@ export default function RamadanMode() {
             >
               {data.tarawihPrayers.includes(new Date().toDateString()) ? (
                 <>
-                  <Check className="w-4 h-4 mr-2" />
+                  <Check className="w-4 h-4 ms-2" />
                   Tonight Tarawih ✓
                 </>
               ) : (
                 <>
-                  <Star className="w-4 h-4 mr-2" />
+                  <Star className="w-4 h-4 ms-2" />
                   Mark Tonight Tarawih
                 </>
               )}
@@ -825,7 +816,7 @@ export default function RamadanMode() {
             
             <div className="text-sm text-muted-foreground space-y-2">
               <p>💧 <strong>After Iftar:</strong></p>
-              <ul className="ml-4 space-y-1 text-xs">
+              <ul className="ms-4 space-y-1 text-xs">
                 <li>• 15 min - First glass of water</li>
                 <li>• 30 min - Stay hydrated</li>
                 <li>• 45 min - Keep drinking water</li>
@@ -837,7 +828,7 @@ export default function RamadanMode() {
               </ul>
               
               <p className="mt-3">🌙 <strong>Before Suhoor:</strong></p>
-              <ul className="ml-4 space-y-1 text-xs">
+              <ul className="ms-4 space-y-1 text-xs">
                 <li>• 20 min after Suhoor starts - Final hydration before fasting</li>
               </ul>
               

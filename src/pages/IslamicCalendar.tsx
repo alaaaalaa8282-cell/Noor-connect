@@ -406,7 +406,7 @@ export default function IslamicCalendar() {
                     </h4>
                     <div className="space-y-1">
                       {selectedDate.holidays.map((holiday, idx) => (
-                        <Badge key={idx} variant="secondary" className="mr-1 mb-1">
+                        <Badge key={idx} variant="secondary" className="me-1 mb-1">
                           {holiday}
                         </Badge>
                       ))}

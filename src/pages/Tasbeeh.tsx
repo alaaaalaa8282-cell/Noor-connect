@@ -8,6 +8,7 @@ import { getTasbeehTotal, getTasbeehHistory, addTasbeehEntry, setTasbeehTotal } 
 import { motion, AnimatePresence } from "framer-motion";
 import { PageTransition } from "@/components/PageTransition";
 import { AppBar } from "@/components/AppBar";
+import { useLanguage } from "@/contexts/LanguageContext-new";
 
 const DHIKR_OPTIONS = [
   { value: "subhanallah", label: "سُبْحَانَ اللَّهِ", transliteration: "SubhanAllah", translation: "Glory be to Allah" },
@@ -19,6 +20,7 @@ const DHIKR_OPTIONS = [
 
 const Tasbeeh = () => {
   const navigate = useNavigate();
+  const { t } = useLanguage();
   const [count, setCount] = useState(0);
   const [totalCount, setTotalCount] = useState(0);
   const [selectedDhikr, setSelectedDhikr] = useState(DHIKR_OPTIONS[0].value);
@@ -50,7 +52,7 @@ const Tasbeeh = () => {
   };
 
   const handleReset = () => {
-    if (confirm("Reset current counter to 0?")) {
+    if (confirm(t('resetCurrentCounter'))) {
       setCount(0);
     }
   };
@@ -61,7 +63,7 @@ const Tasbeeh = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-background pb-20">
-        <AppBar title="Digital Tasbeeh" showBack />
+        <AppBar title={t('digitalTasbeeh')} showBack />
 
         <div className="max-w-lg mx-auto px-5 pt-4 space-y-6">
 
@@ -73,11 +75,11 @@ const Tasbeeh = () => {
                   <div className="p-1.5 bg-primary/10 rounded-lg">
                     <Sparkles className="w-3.5 h-3.5 text-primary" />
                   </div>
-                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">Select Dhikr</span>
+                  <span className="text-[10px] font-bold uppercase tracking-widest text-muted-foreground">{t('selectDhikr')}</span>
                 </div>
                 <div className="flex items-center gap-1.5 px-2 py-0.5 bg-primary/10 rounded-full text-[10px] font-bold text-primary">
                   <History className="w-3 h-3" />
-                  Total: {totalCount.toLocaleString()}
+                  {t('total')}: {totalCount.toLocaleString()}
                 </div>
               </div>
 
@@ -145,7 +147,7 @@ const Tasbeeh = () => {
                 {/* Background reflection */}
                 <div className="absolute inset-4 border border-white/5 rounded-full" />
 
-                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">Count</span>
+                <span className="text-xs font-bold text-muted-foreground uppercase tracking-widest mb-1">{t('count')}</span>
                 <motion.span
                   key={count}
                   initial={{ scale: 0.8 }}
@@ -157,7 +159,7 @@ const Tasbeeh = () => {
 
                 <div className="absolute bottom-10 flex items-center gap-1">
                   <Volume2 className="w-3 h-3 text-muted-foreground opacity-50" />
-                  <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter">Tap to Dhikr</span>
+                  <span className="text-[10px] font-bold text-muted-foreground/60 uppercase tracking-tighter">{t('tapToDhikr')}</span>
                 </div>
               </button>
             </div>
@@ -170,11 +172,11 @@ const Tasbeeh = () => {
                 onClick={handleReset}
               >
                 <RotateCcw className="w-4 h-4" />
-                Reset Count
+                {t('resetCount')}
               </Button>
 
               <div className="flex-1 h-14 bg-muted/20 border border-border/20 rounded-2xl flex flex-col items-center justify-center px-4">
-                <span className="text-[9px] font-black uppercase text-muted-foreground/50 tracking-widest">Next Goal</span>
+                <span className="text-[9px] font-black uppercase text-muted-foreground/50 tracking-widest">{t('nextGoal')}</span>
                 <span className="text-sm font-bold text-primary">{nextMilestone}</span>
               </div>
             </div>
@@ -182,7 +184,7 @@ const Tasbeeh = () => {
 
           {/* Translation Card */}
           <Card className="p-6 bg-primary/5 border-primary/20 rounded-3xl relative overflow-hidden">
-            <div className="absolute -right-4 -bottom-4 opacity-5">
+            <div className="absolute -end-4 -bottom-4 opacity-5">
               <Sparkles className="w-24 h-24 text-primary" />
             </div>
             <p className="text-center text-sm font-medium italic text-primary leading-relaxed">
@@ -192,7 +194,7 @@ const Tasbeeh = () => {
 
           {/* Today's History Tab */}
           <div className="space-y-3">
-            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground ml-2">Today's Progress</h3>
+            <h3 className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground ms-2">Today's Progress</h3>
             <Card className="p-4 border-border/30 bg-card/30">
               <div className="flex items-center justify-between">
                 <div className="flex items-center gap-3">

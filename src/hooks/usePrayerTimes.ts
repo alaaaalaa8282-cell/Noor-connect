@@ -140,7 +140,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Get location from IP-based service (CORS-safe alternative)
   const getLocationFromIP = useCallback(async (): Promise<LocationData> => {
     try {
-      console.log('Getting location from IP...');
 
       // Try multiple IP services with CORS-safe approach
       const ipServices = [
@@ -181,8 +180,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
       for (const service of ipServices) {
         try {
-          console.log(`Trying ${service.name}...`);
-          const response = await fetch(service.url, {
+            const response = await fetch(service.url, {
             method: 'GET',
             mode: 'cors',
             cache: 'no-cache'
@@ -207,7 +205,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
             source: 'ip'
           };
 
-          console.log('Location from IP:', result);
           return result;
         } catch (error) {
           console.warn(`${service.name} failed:`, error);
@@ -225,11 +222,9 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Get location from geolocation API
   const getLocationFromGeolocation = useCallback(async (): Promise<LocationData> => {
     try {
-      console.log('Getting location from geolocation...');
 
       // Check permissions first
       const permissions = await GeolocationService.checkPermissions();
-      console.log('Geolocation permissions:', permissions);
 
       if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
         // Request permissions
@@ -251,7 +246,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         source: 'geolocation'
       };
 
-      console.log('Location from geolocation:', locationData);
       return locationData;
     } catch (error) {
       console.warn('Geolocation failed:', error);
@@ -278,8 +272,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       const userLocation = localStorage.getItem(USER_LOCATION_KEY);
       if (userLocation) {
         const locationData = JSON.parse(userLocation);
-        console.log('Using user location:', locationData);
-        return locationData;
+          return locationData;
       }
     } catch (error) {
       console.warn('Failed to parse user location:', error);
@@ -299,7 +292,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         const hoursDiff = (now.getTime() - storedTime.getTime()) / (1000 * 60 * 60);
 
         if (hoursDiff < 24) {
-          console.log('Using stored location:', locationData);
           return locationData;
         }
       }
@@ -317,7 +309,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         timestamp: new Date().toISOString()
       };
       localStorage.setItem(LOCATION_STORAGE_KEY, JSON.stringify(dataToStore));
-      console.log('Location saved to localStorage:', dataToStore);
     } catch (error) {
       console.warn('Failed to save location to localStorage:', error);
     }
@@ -328,7 +319,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
     try {
       // Prevent multiple simultaneous calculations or rapid re-calculations
       if (isCalculatingRef.current) {
-        console.log('Already calculating prayer times, skipping...');
         return;
       }
 
@@ -338,12 +328,10 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       if (previousPrayerTimesRef.current === locationKey && prayerTimes) {
         // If we have data and the location is effectively the same, only recalculate if it's been > 1 hour
         // This prevents the "4x on load" issue if multiple components request data
-        console.log('Using cached prayer times for this session');
         return;
       }
 
       isCalculatingRef.current = true;
-      console.log('Fetching/Calculating prayer times for location:', locationData);
 
       // Try to get times from API (handles caching and online refresh)
       // Get calculation method preference
@@ -435,29 +423,7 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       setPrayerTimesWithEnd(withEnd);
       const finalLocation: LocationData = { ...locationData, timeZone };
 
-      // #region agent log
-      fetch('http://127.0.0.1:7242/ingest/8477e0e0-47e5-465e-a357-0ba401b2356d', {
-        method: 'POST',
-        headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({
-          id: `log_${Date.now()}_prayer_location`,
-          timestamp: Date.now(),
-          runId: 'location-debug',
-          hypothesisId: 'H1',
-          location: 'usePrayerTimes.ts:fetchPrayerTimesWithCoordinates',
-          message: 'PrayerTimes location resolved',
-          data: {
-            source: finalLocation.source,
-            city: finalLocation.city ?? null,
-            country: finalLocation.country ?? null,
-            latitude: finalLocation.latitude,
-            longitude: finalLocation.longitude,
-            timeZone: finalLocation.timeZone ?? null,
-          },
-        }),
-      }).catch(() => {});
-      // #endregion agent log
-
+      
       setLocation(finalLocation);
       setError(null);
 
@@ -492,7 +458,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
           remaining: 'Next prayer',
           location: location
         }).catch(error => {
-          console.log('Widget update failed:', error);
         });
       }
 
@@ -543,7 +508,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   const fetchPrayerTimes = useCallback(async () => {
     // Prevent multiple simultaneous fetches
     if (isFetchingRef.current) {
-      console.log('Already fetching, skipping...');
       return;
     }
 
@@ -579,7 +543,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
       }
 
       // All auto-detection failed - use Karachi default
-      console.log('Using default location (Karachi)');
       const defaultLocation = getDefaultLocation();
       saveLocation(defaultLocation);
       await fetchPrayerTimesWithCoordinates(defaultLocation);
@@ -620,7 +583,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Network listener - refresh as soon as we get internet
   useEffect(() => {
     const handleOnline = () => {
-      console.log('Internet connection restored, updating prayer times...');
       if (location) {
         fetchPrayerTimesWithCoordinates(location);
       } else {
@@ -684,7 +646,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
   // Listen for prayer method changes
   useEffect(() => {
     const handleMethodChange = () => {
-      console.log('Prayer method changed, refreshing times...');
       // Reset cache key to force update
       previousPrayerTimesRef.current = null;
       if (location) {

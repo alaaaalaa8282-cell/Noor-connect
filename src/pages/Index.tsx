@@ -18,16 +18,14 @@ const Index = () => {
     const fetchPrayerTimes = async () => {
       try {
         if (!GeolocationService.isSupported()) {
-          console.log('Geolocation not supported, skipping prayer times fetch');
-          return;
+                    return;
         }
 
         // Try to get location without prompting for permissions
         // This will only work if permissions are already granted
         const permissions = await GeolocationService.checkPermissions();
         if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
-          console.log('Location permissions not granted, skipping prayer times fetch');
-          return;
+                    return;
         }
 
         const pos = await GeolocationService.getCurrentPosition({

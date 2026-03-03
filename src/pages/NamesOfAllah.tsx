@@ -158,8 +158,8 @@ export default function NamesOfAllah() {
         <div className="max-w-lg mx-auto px-5 pt-4 space-y-6">
           {/* Premium Hero Card */}
           <div className="relative overflow-hidden rounded-[32px] bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-primary/80 p-8 text-white shadow-xl shadow-primary/10">
-            <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+            <div className="absolute top-0 end-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+            <div className="absolute bottom-0 start-0 w-24 h-24 bg-black/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
 
             <div className="relative z-10 text-center space-y-3">
               <div className="inline-flex items-center gap-2 px-3 py-1 bg-white/10 backdrop-blur-md rounded-full text-[10px] font-bold uppercase tracking-widest border border-white/10">
@@ -176,14 +176,14 @@ export default function NamesOfAllah() {
           {/* Search & Filter Bar */}
           <div className="flex gap-3 sticky top-[4.5rem] z-30 bg-background/80 backdrop-blur-xl py-2 -mx-5 px-5">
             <div className="relative flex-1 group">
-              <div className="absolute left-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
+              <div className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-primary transition-colors">
                 <Search className="w-4 h-4" />
               </div>
               <Input
                 placeholder="Search by name or meaning..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="pl-11 h-12 bg-card/50 border-border/40 rounded-2xl focus:ring-primary/20 transition-all"
+                className="ps-11 h-12 bg-card/50 border-border/40 rounded-2xl focus:ring-primary/20 transition-all"
               />
             </div>
             <Button
@@ -229,7 +229,7 @@ export default function NamesOfAllah() {
 
                         {/* Right Arabic Section */}
                         <div className="w-[120px] bg-muted/20 flex flex-col items-center justify-center p-4 relative overflow-hidden group-hover:bg-primary/5 transition-colors">
-                          <div className="absolute top-2 right-2 z-20">
+                          <div className="absolute top-2 end-2 z-20">
                             <Button
                               variant="ghost"
                               size="icon"
@@ -239,7 +239,7 @@ export default function NamesOfAllah() {
                               <Heart className={`w-4 h-4 transition-all ${favorites.includes(name.number) ? 'fill-primary text-primary scale-110' : 'text-muted-foreground'}`} />
                             </Button>
                           </div>
-                          <div className="absolute -left-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
+                          <div className="absolute -start-4 -bottom-4 opacity-5 group-hover:opacity-10 transition-opacity">
                             <Sparkles className="w-16 h-16 text-primary" />
                           </div>
                           <span className="text-3xl font-arabic text-primary drop-shadow-sm" dir="rtl">

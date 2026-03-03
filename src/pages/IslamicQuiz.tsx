@@ -305,10 +305,10 @@ export default function IslamicQuiz() {
                         </span>
                         <span>{option}</span>
                         {showResult && index === question.correctAnswer && (
-                          <CheckCircle className="w-4 h-4 ml-auto text-primary" />
+                          <CheckCircle className="w-4 h-4 ms-auto text-primary" />
                         )}
                         {showResult && index === selectedAnswer && index !== question.correctAnswer && (
-                          <XCircle className="w-4 h-4 ml-auto text-destructive" />
+                          <XCircle className="w-4 h-4 ms-auto text-destructive" />
                         )}
                       </div>
                     </Button>

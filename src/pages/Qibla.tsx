@@ -1,7 +1,7 @@
 import { AppBar } from "@/components/AppBar";
 import QiblaCompassModern from "@/components/QiblaCompassModern";
 import { PageTransition } from "@/components/PageTransition";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext-new";
 
 const Qibla = () => {
   const { t } = useLanguage();

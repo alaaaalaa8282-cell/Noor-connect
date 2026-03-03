@@ -2,6 +2,7 @@ import { createRoot } from "react-dom/client";
 import App from "./App.tsx";
 import "./index.css";
 import { localNotifications } from "@/lib/local-notifications";
+import './lib/i18n-new'; // Initialize new offline-first i18n
 
 // Initialize local notifications
 localNotifications.initialize().then(success => {
@@ -10,7 +11,7 @@ localNotifications.initialize().then(success => {
   }
 });
 
-import { LanguageProvider } from "@/contexts/LanguageContext";
+import { LanguageProvider } from "@/contexts/LanguageContext-new";
 
 const rootElement = document.getElementById("root");
 if (rootElement) {

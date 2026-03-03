@@ -1,0 +1,20 @@
+<?xml version='1.0' encoding='utf-8'?>
+<resources>
+    <string name="app_name">Noor Connect</string>
+    <string name="title_activity_main">Noor Connect</string>
+    
+    <string name="widget_tap_to_setup">Ketuk untuk membuka Aplikasi</string>
+    <string name="widget_no_data">Tidak ada waktu shalat tersedia</string>
+    <string name="widget_loading">Memuat…</string>
+    <string name="widget_next_prayer">Shalat Berikutnya</string>
+    <string name="widget_location_default">Jakarta, Indonesia</string>
+    <string name="widget_time_default">18:45</string>
+    <string name="widget_time_remaining_default">dalam 45 menit</string>
+    
+    <string name="prayer_fajr">Subuh</string>
+    <string name="prayer_sunrise">Terbit</string>
+    <string name="prayer_dhuhr">Dzuhur</string>
+    <string name="prayer_asr">Ashar</string>
+    <string name="prayer_maghrib">Maghrib</string>
+    <string name="prayer_isha">Isya</string>
+</resources>

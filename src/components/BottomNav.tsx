@@ -1,6 +1,6 @@
 import { NavLink } from "react-router-dom";
 import { Home, BookOpen, Settings, Compass, LayoutGrid } from "lucide-react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext-new";
 import { memo } from "react";
 import { motion } from "framer-motion";
 
@@ -20,7 +20,7 @@ export const BottomNav = memo(function BottomNav() {
     { title: t('home'), path: "/", icon: Home },
     { title: t('quran'), path: "/quran", icon: BookOpen },
     { title: t('qibla'), path: "/qibla", icon: Compass },
-    { title: "Services", path: "/services", icon: LayoutGrid },
+    { title: t('services'), path: "/services", icon: LayoutGrid },
     { title: t('settings'), path: "/profile", icon: Settings },
   ];
 

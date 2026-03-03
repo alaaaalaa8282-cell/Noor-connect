@@ -173,13 +173,13 @@ const StationCard: React.FC<StationCardProps> = ({ station, isPlaying, onSelect 
         {/* Play Overlay */}
         <div className="absolute inset-0 bg-black/40 opacity-0 group-hover:opacity-100 transition-opacity duration-300 flex items-center justify-center">
           <div className="w-12 h-12 bg-white/90 rounded-full flex items-center justify-center">
-            <Play className="w-6 h-6 text-primary ml-0.5" />
+            <Play className="w-6 h-6 text-primary ms-0.5" />
           </div>
         </div>
 
         {/* Now Playing Indicator */}
         {isPlaying && (
-          <div className="absolute top-2 right-2">
+          <div className="absolute top-2 end-2">
             <div className="flex items-center gap-1 bg-primary text-primary-foreground px-2 py-1 rounded-full text-xs font-medium">
               <div className="flex gap-0.5">
                 <div className="w-1 h-3 bg-current animate-pulse"></div>

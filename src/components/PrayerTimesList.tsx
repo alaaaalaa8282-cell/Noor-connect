@@ -1,5 +1,6 @@
 import { useState, useEffect, memo } from "react";
-import { useLanguage } from "@/contexts/LanguageContext";
+import { useLanguage } from "@/contexts/LanguageContext-new";
+import { useI18n } from "@/hooks/useI18n";
 import { Clock, Moon, Sun, Cloud, Sunset, CloudMoon, AlertTriangle, Loader2 } from "lucide-react";
 import { motion } from "framer-motion";
 import { Card, CardContent } from "@/components/ui/card";
@@ -131,6 +132,7 @@ const item = {
 
 const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesListProps) {
   const { t } = useLanguage();
+  const { t: ti18n } = useI18n();
   const prayerTimesHook = usePrayerTimes();
   const prayerTimesWithEnd = props.timings ?? prayerTimesHook.prayerTimesWithEnd;
   const location = props.location ?? prayerTimesHook.location;
@@ -268,7 +270,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
             <div className="text-xs text-muted-foreground">
               📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
               <span className="ml-2 px-2 py-1 bg-muted rounded">
-                {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
+                {location.source === 'geolocation' ? `🛰️ ${ti18n('gps')}` : location.source === 'default' ? `🏛️ ${ti18n('defaultLocation')}` : `🔍 ${ti18n('manualLocation')}`}
               </span>
             </div>
           )}
@@ -326,7 +328,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
             <div className="text-xs text-muted-foreground">
               📍 {location.city && location.country ? `${location.city}, ${location.country}` : `${location.latitude.toFixed(2)}, ${location.longitude.toFixed(2)}`}
               <span className="ml-2 px-2 py-1 bg-muted rounded">
-                {location.source === 'geolocation' ? '🛰️ GPS' : location.source === 'default' ? '🏛️ Default' : '🔍 Manual'}
+                {location.source === 'geolocation' ? `🛰️ ${ti18n('gps')}` : location.source === 'default' ? `🏛️ ${ti18n('defaultLocation')}` : `🔍 ${ti18n('manualLocation')}`}
               </span>
             </div>
           )}
@@ -336,20 +338,20 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
             <div className="flex items-center gap-3 text-red-600">
               <AlertTriangle className="w-5 h-5" />
               <div className="flex-1">
-                <p className="font-medium">Failed to load prayer times</p>
+                <p className="font-medium">{ti18n('failedToLoadPrayerTimes')}</p>
                 <p className="text-sm">{error}</p>
                 <div className="flex gap-2 mt-2">
                   <button
                     onClick={refresh}
                     className="text-sm underline hover:no-underline"
                   >
-                    Try again
+                    {ti18n('tryAgain')}
                   </button>
                   <button
                     onClick={() => setManualLocation("Mecca", "Saudi Arabia")}
                     className="text-sm underline hover:no-underline"
                   >
-                    Use Mecca
+                    {ti18n('useMecca')}
                   </button>
                 </div>
               </div>
@@ -389,7 +391,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
             <Label htmlFor="extra-prayers" className="text-sm font-medium cursor-pointer">
               {t('showExtraPrayers')}
             </Label>
-            <span className="text-[10px] text-muted-foreground">Ishraq, Duha, Tahajjud...</span>
+            <span className="text-[10px] text-muted-foreground">{ti18n('ishraqDuhaTahajjud')}</span>
           </div>
           <Switch
             id="extra-prayers"

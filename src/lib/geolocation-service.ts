@@ -38,33 +38,25 @@ export class GeolocationService {
     }
   }
 
-  /**
-   * Request location permissions
-   */
   static async requestPermissions(): Promise<boolean> {
     if (Capacitor.isNativePlatform()) {
       try {
         const permissions = await Geolocation.requestPermissions();
         return permissions.location === 'granted' || permissions.coarseLocation === 'granted';
       } catch (error) {
-        console.error('Failed to request location permissions:', error);
         return false;
       }
     } else {
-      // Web - use browser geolocation API
       return new Promise((resolve) => {
         navigator.geolocation.getCurrentPosition(
           () => resolve(true),
           () => resolve(false),
-          { timeout: 10000 }
+          { timeout: 15000 }
         );
       });
     }
   }
 
-  /**
-   * Get current position
-   */
   static async getCurrentPosition(options?: {
     enableHighAccuracy?: boolean;
     timeout?: number;
@@ -72,8 +64,8 @@ export class GeolocationService {
   }): Promise<LocationCoordinates> {
     const defaultOptions = {
       enableHighAccuracy: true,
-      timeout: 10000,
-      maximumAge: 300000, // 5 minutes
+      timeout: 15000,
+      maximumAge: 300000,
       ...options
     };
 
@@ -86,11 +78,9 @@ export class GeolocationService {
           accuracy: position.coords.accuracy
         };
       } catch (error) {
-        console.error('Native geolocation failed:', error);
         throw new Error('Failed to get location. Please check your location permissions.');
       }
     } else {
-      // Web fallback
       return new Promise((resolve, reject) => {
         if (!navigator.geolocation) {
           reject(new Error('Geolocation is not supported by your browser'));
@@ -106,7 +96,6 @@ export class GeolocationService {
             });
           },
           (error) => {
-            console.error('Web geolocation failed:', error);
             switch (error.code) {
               case error.PERMISSION_DENIED:
                 reject(new Error('Location access denied. Please enable location permissions.'));
@@ -128,9 +117,6 @@ export class GeolocationService {
     }
   }
 
-  /**
-   * Watch position changes
-   */
   static async watchPosition(
     callback: (position: LocationCoordinates) => void,
     options?: {
@@ -141,7 +127,7 @@ export class GeolocationService {
   ): Promise<string> {
     const defaultOptions = {
       enableHighAccuracy: true,
-      timeout: 10000,
+      timeout: 15000,
       maximumAge: 300000,
       ...options
     };
@@ -149,7 +135,6 @@ export class GeolocationService {
     if (Capacitor.isNativePlatform()) {
       return await Geolocation.watchPosition(defaultOptions, (position, err) => {
         if (err) {
-          console.error('Geolocation watch error:', err);
           return;
         }
         callback({
@@ -159,7 +144,6 @@ export class GeolocationService {
         });
       });
     } else {
-      // Web fallback
       const watchId = navigator.geolocation.watchPosition(
         (position) => {
           callback({
@@ -169,7 +153,7 @@ export class GeolocationService {
           });
         },
         (error) => {
-          console.error('Web geolocation watch error:', error);
+          // Silently handle watch errors to avoid spam
         },
         defaultOptions
       );

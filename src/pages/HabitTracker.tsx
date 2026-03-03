@@ -215,7 +215,7 @@ const HabitTracker = () => {
               size="sm"
               onClick={() => setShowStats(!showStats)}
             >
-              <BarChart3 className="w-4 h-4 mr-2" />
+              <BarChart3 className="w-4 h-4 me-2" />
               Stats
             </Button>
             <Dialog open={showAddHabit} onOpenChange={setShowAddHabit}>
@@ -225,7 +225,7 @@ const HabitTracker = () => {
                   size="sm"
                   className="bg-primary"
                 >
-                  <Plus className="w-4 h-4 mr-2" />
+                  <Plus className="w-4 h-4 me-2" />
                   Add Habit
                 </Button>
               </DialogTrigger>
@@ -274,11 +274,11 @@ const HabitTracker = () => {
 
                   <div className="flex gap-2">
                     <Button onClick={addCustomHabit} className="flex-1">
-                      <Save className="w-4 h-4 mr-2" />
+                      <Save className="w-4 h-4 me-2" />
                       Add Habit
                     </Button>
                     <Button variant="outline" onClick={() => setShowAddHabit(false)}>
-                      <X className="w-4 h-4 mr-2" />
+                      <X className="w-4 h-4 me-2" />
                       Cancel
                     </Button>
                   </div>
@@ -469,11 +469,11 @@ const HabitTracker = () => {
 
                 <div className="flex gap-2">
                   <Button onClick={updateCustomHabit} className="flex-1">
-                    <Save className="w-4 h-4 mr-2" />
+                    <Save className="w-4 h-4 me-2" />
                     Update Habit
                   </Button>
                   <Button variant="outline" onClick={() => setEditingHabit(null)}>
-                    <X className="w-4 h-4 mr-2" />
+                    <X className="w-4 h-4 me-2" />
                     Cancel
                   </Button>
                 </div>

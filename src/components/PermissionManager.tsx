@@ -5,7 +5,7 @@ import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
 import { permissionManager, type PermissionType, type PermissionInfo } from '@/lib/permission-manager';
 import { useToast } from '@/hooks/use-toast';
-import { useLanguage } from '@/contexts/LanguageContext';
+import { useLanguage } from '@/contexts/LanguageContext-new';
 
 interface PermissionManagerProps {
   className?: string;
@@ -227,12 +227,12 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                 >
                   {loading === 'location' ? (
                     <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      <RefreshCw className="w-4 h-4 me-2 animate-spin" />
                       Requesting...
                     </>
                   ) : (
                     <>
-                      <MapPin className="w-4 h-4 mr-2" />
+                      <MapPin className="w-4 h-4 me-2" />
                       Enable Location
                     </>
                   )}
@@ -286,7 +286,7 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                     }}
                     className="w-full"
                   >
-                    <Settings className="w-4 h-4 mr-2" />
+                    <Settings className="w-4 h-4 me-2" />
                     Open Chrome Settings
                   </Button>
                   <Button
@@ -313,7 +313,7 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                     }}
                     className="w-full"
                   >
-                    <MapPin className="w-4 h-4 mr-2" />
+                    <MapPin className="w-4 h-4 me-2" />
                     Request Location Again
                   </Button>
                 </>
@@ -324,7 +324,7 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                 onClick={() => handleOpenSettings('location')}
                 className="w-full"
               >
-                <Settings className="w-4 h-4 mr-2" />
+                <Settings className="w-4 h-4 me-2" />
                 Open {platform === 'mobile' ? 'App Settings' : 'Browser Settings'}
               </Button>
             </div>
@@ -388,12 +388,12 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                 >
                   {loading === 'notifications' ? (
                     <>
-                      <RefreshCw className="w-4 h-4 mr-2 animate-spin" />
+                      <RefreshCw className="w-4 h-4 me-2 animate-spin" />
                       Requesting...
                     </>
                   ) : (
                     <>
-                      <Bell className="w-4 h-4 mr-2" />
+                      <Bell className="w-4 h-4 me-2" />
                       Enable Notifications
                     </>
                   )}
@@ -466,7 +466,7 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
                     }}
                     className="w-full"
                   >
-                    <Settings className="w-4 h-4 mr-2" />
+                    <Settings className="w-4 h-4 me-2" />
                     Open Browser Settings
                   </Button>
                   <Button

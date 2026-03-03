@@ -272,7 +272,7 @@ export function GlobalQuranPlayer() {
                             <label className="text-xs font-medium text-muted-foreground uppercase tracking-wider">Reciter</label>
                             <Select value={reciter?.id} onValueChange={handleReciterChange}>
                                 <SelectTrigger className="h-12">
-                                    <User className="w-4 h-4 mr-2 text-primary" />
+                                    <User className="w-4 h-4 me-2 text-primary" />
                                     <SelectValue placeholder="Select Reciter" />
                                 </SelectTrigger>
                                 <SelectContent className="max-h-[200px] z-[200]">

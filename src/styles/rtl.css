@@ -1,0 +1,120 @@
+/* RTL Icon Inversion Utilities */
+
+/* Base RTL icon flipping */
+.rtl-icon {
+    transition: transform 0.2s ease;
+}
+
+[dir="rtl"] .rtl-icon {
+    transform: scaleX(-1);
+}
+
+/* Specific icon rotations for RTL */
+[dir="rtl"] .rtl-rotate-180 {
+    transform: rotate(180deg);
+}
+
+[dir="rtl"] .rtl-flip-horizontal {
+    transform: scaleX(-1);
+}
+
+/* Arrow icons that should flip in RTL */
+[dir="rtl"] .arrow-left {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .arrow-right {
+    transform: scaleX(-1);
+}
+
+/* Chevron icons */
+[dir="rtl"] .chevron-left {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .chevron-right {
+    transform: scaleX(-1);
+}
+
+/* Navigation arrows */
+[dir="rtl"] .nav-back {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .nav-forward {
+    transform: scaleX(-1);
+}
+
+/* Sidebar positioning */
+[dir="rtl"] .sidebar-left {
+    right: 0;
+    left: auto;
+}
+
+[dir="rtl"] .sidebar-right {
+    left: 0;
+    right: auto;
+}
+
+/* Skip links and accessibility */
+[dir="rtl"] .skip-link {
+    right: 1rem;
+    left: auto;
+}
+
+/* Progress indicators */
+[dir="rtl"] .progress-bar {
+    direction: ltr; /* Keep progress LTR for consistency */
+}
+
+[dir="rtl"] .progress-text {
+    text-align: right;
+}
+
+/* Table layouts */
+[dir="rtl"] table {
+    direction: rtl;
+}
+
+[dir="rtl"] th {
+    text-align: right;
+}
+
+[dir="rtl"] td {
+    text-align: right;
+}
+
+/* Lists with icons */
+[dir="rtl"] .list-item-icon {
+    margin-left: 0.5rem;
+    margin-right: 0;
+}
+
+/* Breadcrumb navigation */
+[dir="rtl"] .breadcrumb-separator {
+    transform: scaleX(-1);
+    margin: 0 0.5rem;
+}
+
+/* Pagination */
+[dir="rtl"] .pagination-prev {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .pagination-next {
+    transform: scaleX(-1);
+}
+
+/* Tooltips and popovers */
+[dir="rtl"] .tooltip-arrow {
+    transform: scaleX(-1);
+}
+
+/* Carousel indicators */
+[dir="rtl"] .carousel-prev {
+    transform: scaleX(-1);
+}
+
+[dir="rtl"] .carousel-next {
+    transform: scaleX(-1);
+}

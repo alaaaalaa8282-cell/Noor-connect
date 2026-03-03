@@ -37,8 +37,7 @@ const Duas = () => {
       try {
         await navigator.share({ title: `Dua - ${dua.category}`, text: shareText });
       } catch (error) {
-        console.log('Share cancelled or failed:', error);
-      }
+              }
     } else {
       navigator.clipboard.writeText(shareText);
       toast({ title: "Copied to clipboard" });
