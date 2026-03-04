@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 import { useI18n } from "@/hooks/useI18n";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -26,6 +26,7 @@ import { unifiedNotifications } from "@/lib/unified-notifications";
 import { getGenderSettings, setGender, type Gender } from "@/lib/gender-settings";
 import { usePrayerAlarm } from "@/hooks/usePrayerAlarm";
 import PermissionManager from "@/components/PermissionManager";
+import VoiceSettings from "@/components/VoiceSettings";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -78,6 +79,9 @@ const Profile = () => {
   const [prayerNotificationsEnabled, setPrayerNotificationsEnabled] = useState(false);
   const [prayerNotificationsLoading, setPrayerNotificationsLoading] = useState(true);
   const [scheduledPrayerCount, setScheduledPrayerCount] = useState(0);
+  
+  // Voice Settings state
+  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
 
   const refreshPermissionStatus = useCallback(async () => {
     const status = await unifiedNotifications.getPermissionStatus();
@@ -737,6 +741,32 @@ const Profile = () => {
           </div>
         </Card>
 
+        {/* Voice Settings */}
+        <Card className="p-4 space-y-4">
+          <h3 className="font-semibold text-sm flex items-center gap-2">
+            <Headphones className="w-4 h-4" /> {t('voiceSettings') || 'Voice Settings'}
+          </h3>
+          <div className="space-y-3">
+            <div className="flex items-center justify-between">
+              <div>
+                <Label>{t('textToSpeech') || 'Text-to-Speech'}</Label>
+                <p className="text-xs text-muted-foreground">
+                  {t('textToSpeechDescription') || 'Manage voice settings and download language packs'}
+                </p>
+              </div>
+              <Button
+                variant="outline"
+                size="sm"
+                onClick={() => setShowVoiceSettings(true)}
+                className="flex items-center gap-2"
+              >
+                <Settings className="w-4 h-4" />
+                {t('configure') || 'Configure'}
+              </Button>
+            </div>
+          </div>
+        </Card>
+
         {/* Storage & Backup */}
         <Card className="p-4 space-y-4">
           <h3 className="font-semibold text-sm flex items-center gap-2">
@@ -1090,6 +1120,12 @@ const Profile = () => {
           </div>
         </Card>
       </div>
+      
+      {/* Voice Settings Dialog */}
+      <VoiceSettings
+        isOpen={showVoiceSettings}
+        onClose={() => setShowVoiceSettings(false)}
+      />
     </div>
   );
 };

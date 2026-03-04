@@ -284,6 +284,9 @@ export default function Ebooks() {
   const [bookmarks, setBookmarks] = useState<EbookBookmark[]>([]);
   const [lastReadBookKey, setLastReadBookKey] = useState<string | null>(null);
   const [activeTab, setActiveTab] = useState("browse");
+  const [showCollectionDialog, setShowCollectionDialog] = useState(false);
+  const [selectedBookForCollection, setSelectedBookForCollection] = useState<LibraryBook | null>(null);
+  const [selectedCollectionId, setSelectedCollectionId] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const { toast } = useToast();
 
@@ -305,6 +308,7 @@ export default function Ebooks() {
       setReadingStats(getReadingStats());
       setBookmarks(getBookBookmarks());
       setLastReadBookKey(getLastReadBook());
+      setCollections(getCollections());
       
       // Generate recommendations based on reading history
       const recommendations = generateRecommendations(getRecentlyRead(10), books);
@@ -522,6 +526,60 @@ export default function Ebooks() {
     if (fileInputRef.current) fileInputRef.current.value = '';
   };
 
+  // --- Collection Management Handlers ---
+  const handleAddToCollection = (book: LibraryBook) => {
+    setSelectedBookForCollection(book);
+    setShowCollectionDialog(true);
+  };
+
+  const handleConfirmAddToCollection = () => {
+    if (selectedBookForCollection && selectedCollectionId) {
+      addBookToCollection(selectedCollectionId, ensureHttps(selectedBookForCollection.url));
+      const updated = getCollections();
+      setCollections(updated);
+      toast({
+        title: "Added to collection",
+        description: `${cleanTitle(selectedBookForCollection.title)} added to collection`
+      });
+    }
+    setShowCollectionDialog(false);
+    setSelectedBookForCollection(null);
+    setSelectedCollectionId(null);
+  };
+
+  const handleRemoveFromCollection = (collectionId: string, bookUrl: string) => {
+    removeBookFromCollection(collectionId, bookUrl);
+    const updated = getCollections();
+    setCollections(updated);
+    toast({
+      title: "Removed from collection",
+      description: "Book removed from collection"
+    });
+  };
+
+  const handleDeleteCollection = (collectionId: string) => {
+    const updated = collections.filter(c => c.id !== collectionId);
+    setCollections(updated);
+    saveCollections(updated);
+    toast({
+      title: "Collection deleted",
+      description: "Collection has been removed"
+    });
+  };
+
+  const getBooksInCollection = (collectionId: string): LibraryBook[] => {
+    const collection = collections.find(c => c.id === collectionId);
+    if (!collection) return [];
+    return collection.books
+      .map(bookUrl => books.find(b => ensureHttps(b.url) === bookUrl))
+      .filter((book): book is LibraryBook => book !== undefined);
+  };
+
+  const isBookInCollection = (collectionId: string, bookUrl: string): boolean => {
+    const collection = collections.find(c => c.id === collectionId);
+    return collection ? collection.books.includes(bookUrl) : false;
+  };
+
   // --- Reading Goals System ---
   const updateReadingGoal = (goalType: 'daily' | 'weekly', pages: number) => {
     setReadingGoals(prev => ({
@@ -573,6 +631,7 @@ export default function Ebooks() {
     const size = formatSize(book.size);
     const category = detectCategory(title);
     const catConfig = CATEGORY_CONFIG[category];
+    const [showCollectionMenu, setShowCollectionMenu] = useState(false);
 
     return (
       <Card className="p-3 hover:bg-accent/50 transition-colors cursor-pointer group"
@@ -620,6 +679,48 @@ export default function Ebooks() {
                     ? <BookmarkCheck className="w-3.5 h-3.5 text-amber-500" />
                     : <Bookmark className="w-3.5 h-3.5 text-muted-foreground" />}
                 </Button>
+                <div className="relative">
+                  <Button size="icon" variant="ghost" className="h-6 w-6"
+                          onClick={(e) => { e.stopPropagation(); setShowCollectionMenu(!showCollectionMenu); }}>
+                    <LibraryBig className="w-3.5 h-3.5 text-muted-foreground" />
+                  </Button>
+                  {showCollectionMenu && collections.length > 0 && (
+                    <div className="absolute right-0 top-8 bg-card border border-border rounded-lg shadow-xl z-50 py-1 w-40">
+                      {collections.map(collection => (
+                        <button key={collection.id}
+                          className={`w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors ${
+                            isBookInCollection(collection.id, bookKey) ? 'text-primary font-medium bg-primary/5' : ''
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isBookInCollection(collection.id, bookKey)) {
+                              handleRemoveFromCollection(collection.id, bookKey);
+                            } else {
+                              addBookToCollection(collection.id, bookKey);
+                              const updated = getCollections();
+                              setCollections(updated);
+                              toast({
+                                title: "Added to collection",
+                                description: `${title} added to ${collection.name}`
+                              });
+                            }
+                            setShowCollectionMenu(false);
+                          }}>
+                          {collection.icon} {collection.name}
+                          {isBookInCollection(collection.id, bookKey) && ' ✓'}
+                        </button>
+                      ))}
+                      <button className="w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors border-t border-border/50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddToCollection(book);
+                                setShowCollectionMenu(false);
+                              }}>
+                        <Plus className="w-3 h-3 inline mr-1" /> New Collection
+                      </button>
+                    </div>
+                  )}
+                </div>
                 {!downloaded && (
                   <Button size="sm" className="h-6 px-2 text-xs"
                           onClick={(e) => { e.stopPropagation(); handleDownload(book); }}>
@@ -672,6 +773,7 @@ export default function Ebooks() {
     const size = formatSize(book.size);
     const category = detectCategory(title);
     const catConfig = CATEGORY_CONFIG[category];
+    const [showCollectionMenu, setShowCollectionMenu] = useState(false);
 
     return (
       <div className="group relative flex flex-col gap-2 cursor-pointer" onClick={() => openBook(book)}>
@@ -692,14 +794,60 @@ export default function Ebooks() {
           <div className="absolute inset-0 p-3 flex flex-col justify-between text-white">
             <div className="flex items-start justify-between">
               <div className="text-[9px] opacity-60 font-medium tracking-wider uppercase">{category}</div>
-              <Button variant="secondary" size="icon"
-                className="h-6 w-6 bg-black/25 hover:bg-black/45 border-0"
-                onClick={(e) => { e.stopPropagation(); handleToggleBookmark(book); }}
-              >
-                {isBookmarked
-                  ? <BookmarkCheck className="w-3.5 h-3.5 text-emerald-300" />
-                  : <Bookmark className="w-3.5 h-3.5 text-white/70" />}
-              </Button>
+              <div className="flex items-center gap-1">
+                <Button variant="secondary" size="icon"
+                  className="h-6 w-6 bg-black/25 hover:bg-black/45 border-0"
+                  onClick={(e) => { e.stopPropagation(); handleToggleBookmark(book); }}
+                >
+                  {isBookmarked
+                    ? <BookmarkCheck className="w-3.5 h-3.5 text-emerald-300" />
+                    : <Bookmark className="w-3.5 h-3.5 text-white/70" />}
+                </Button>
+                <div className="relative">
+                  <Button variant="secondary" size="icon"
+                    className="h-6 w-6 bg-black/25 hover:bg-black/45 border-0"
+                    onClick={(e) => { e.stopPropagation(); setShowCollectionMenu(!showCollectionMenu); }}
+                  >
+                    <LibraryBig className="w-3.5 h-3.5 text-white/70" />
+                  </Button>
+                  {showCollectionMenu && collections.length > 0 && (
+                    <div className="absolute right-0 top-8 bg-card border border-border rounded-lg shadow-xl z-50 py-1 w-40">
+                      {collections.map(collection => (
+                        <button key={collection.id}
+                          className={`w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors ${
+                            isBookInCollection(collection.id, bookKey) ? 'text-primary font-medium bg-primary/5' : ''
+                          }`}
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            if (isBookInCollection(collection.id, bookKey)) {
+                              handleRemoveFromCollection(collection.id, bookKey);
+                            } else {
+                              addBookToCollection(collection.id, bookKey);
+                              const updated = getCollections();
+                              setCollections(updated);
+                              toast({
+                                title: "Added to collection",
+                                description: `${title} added to ${collection.name}`
+                              });
+                            }
+                            setShowCollectionMenu(false);
+                          }}>
+                          {collection.icon} {collection.name}
+                          {isBookInCollection(collection.id, bookKey) && ' ✓'}
+                        </button>
+                      ))}
+                      <button className="w-full text-left px-3 py-2 text-xs hover:bg-accent transition-colors border-t border-border/50"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleAddToCollection(book);
+                                setShowCollectionMenu(false);
+                              }}>
+                        <Plus className="w-3 h-3 inline mr-1" /> New Collection
+                      </button>
+                    </div>
+                  )}
+                </div>
+              </div>
             </div>
 
             <div className="text-center flex-1 flex flex-col items-center justify-center px-1">
@@ -943,35 +1091,82 @@ export default function Ebooks() {
               <Button variant="outline" className="mt-4" onClick={() => setActiveTab("browse")}>Browse Books</Button>
             </div>
           ) : (
-            <div className="space-y-3">
-              {collections.map((collection) => (
-                <Card key={collection.id} className="p-4">
-                  <div className="flex items-start gap-3">
-                    <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${collection.color} flex items-center justify-center shrink-0`}>
-                      <span className="text-lg">{collection.icon}</span>
-                    </div>
-                    <div className="flex-1 min-w-0">
-                      <div className="flex items-start justify-between">
-                        <div>
-                          <h4 className="font-semibold text-sm">{collection.name}</h4>
-                          <p className="text-xs text-muted-foreground mt-1">{collection.description}</p>
+            <div className="space-y-4">
+              {collections.map((collection) => {
+                const booksInCollection = getBooksInCollection(collection.id);
+                return (
+                  <Card key={collection.id} className="p-4">
+                    <div className="flex items-start gap-3">
+                      <div className={`w-12 h-12 rounded-lg bg-gradient-to-br ${collection.color} flex items-center justify-center shrink-0`}>
+                        <span className="text-lg">{collection.icon}</span>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-start justify-between">
+                          <div>
+                            <h4 className="font-semibold text-sm">{collection.name}</h4>
+                            <p className="text-xs text-muted-foreground mt-1">{collection.description}</p>
+                          </div>
+                          <div className="flex items-center gap-2">
+                            <span className="text-xs text-muted-foreground">{booksInCollection.length} books</span>
+                            <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive"
+                              onClick={() => handleDeleteCollection(collection.id)}>
+                              <Trash2 className="w-4 h-4" />
+                            </Button>
+                          </div>
                         </div>
-                        <div className="flex items-center gap-2">
-                          <span className="text-xs text-muted-foreground">{collection.books.length} books</span>
-                          <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive"
-                            onClick={() => {
-                              const updated = collections.filter(c => c.id !== collection.id);
-                              setCollections(updated);
-                              saveCollections(updated);
-                            }}>
-                            <Trash2 className="w-4 h-4" />
-                          </Button>
-                        </div>
+                        
+                        {booksInCollection.length > 0 && (
+                          <div className="mt-3 space-y-2">
+                            <div className="grid grid-cols-1 sm:grid-cols-2 gap-2">
+                              {booksInCollection.map((book) => {
+                                const bookKey = ensureHttps(book.url);
+                                const isBookmarked = bookmarkedSet.has(bookKey);
+                                const title = cleanTitle(book.title);
+                                const category = detectCategory(title);
+                                const catConfig = CATEGORY_CONFIG[category];
+                                
+                                return (
+                                  <div key={book.url} className="flex items-center gap-2 p-2 bg-muted/30 rounded-lg">
+                                    <div className="w-8 h-10 rounded bg-gradient-to-br flex-shrink-0 relative overflow-hidden"
+                                         style={{ background: `linear-gradient(135deg, ${catConfig.color.split(' ')[0]}, ${catConfig.color.split(' ')[2]})` }}>
+                                      <div className="absolute inset-0 flex items-center justify-center text-white text-xs">
+                                        {catConfig.icon}
+                                      </div>
+                                    </div>
+                                    <div className="flex-1 min-w-0">
+                                      <p className="text-xs font-medium truncate">{title}</p>
+                                      <p className="text-[9px] text-muted-foreground">{category}</p>
+                                    </div>
+                                    <div className="flex items-center gap-1">
+                                      <Button size="icon" variant="ghost" className="h-6 w-6"
+                                              onClick={() => openBook(book)}>
+                                        <BookOpen className="w-3 h-3" />
+                                      </Button>
+                                      <Button size="icon" variant="ghost" className="h-6 w-6 text-destructive"
+                                              onClick={() => handleRemoveFromCollection(collection.id, ensureHttps(book.url))}>
+                                        <X className="w-3 h-3" />
+                                      </Button>
+                                    </div>
+                                  </div>
+                                );
+                              })}
+                            </div>
+                          </div>
+                        )}
+                        
+                        {booksInCollection.length === 0 && (
+                          <div className="mt-3 text-center py-4 bg-muted/20 rounded-lg">
+                            <p className="text-xs text-muted-foreground">No books in this collection yet</p>
+                            <Button variant="outline" size="sm" className="mt-2" onClick={() => setActiveTab("browse")}>
+                              Browse Books to Add
+                            </Button>
+                          </div>
+                        )}
                       </div>
                     </div>
-                  </div>
-                </Card>
-              ))}
+                  </Card>
+                );
+              })}
             </div>
           )}
         </TabsContent>
@@ -1355,6 +1550,79 @@ export default function Ebooks() {
           </div>
         </TabsContent>
       </Tabs>
+
+      {/* Collection Dialog */}
+      {showCollectionDialog && selectedBookForCollection && (
+        <div className="fixed inset-0 bg-black/50 z-[200] flex items-center justify-center p-4">
+          <div className="bg-background rounded-lg max-w-md w-full max-h-[80vh] overflow-auto">
+            <div className="p-6">
+              <div className="flex items-center justify-between mb-4">
+                <h3 className="text-lg font-semibold">Add to Collection</h3>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => {
+                    setShowCollectionDialog(false);
+                    setSelectedBookForCollection(null);
+                    setSelectedCollectionId(null);
+                  }}
+                >
+                  ×
+                </Button>
+              </div>
+              
+              <div className="mb-4">
+                <p className="text-sm text-muted-foreground mb-2">
+                  Add "{cleanTitle(selectedBookForCollection.title)}" to:
+                </p>
+                <div className="space-y-2">
+                  {collections.map(collection => (
+                    <label key={collection.id} className="flex items-center gap-3 p-3 rounded-lg border border-border/50 cursor-pointer hover:bg-accent/50 transition-colors">
+                      <input
+                        type="radio"
+                        name="collection"
+                        value={collection.id}
+                        checked={selectedCollectionId === collection.id}
+                        onChange={(e) => setSelectedCollectionId(e.target.value)}
+                        className="w-4 h-4"
+                      />
+                      <div className={`w-8 h-8 rounded-lg bg-gradient-to-br ${collection.color} flex items-center justify-center text-sm`}>
+                        {collection.icon}
+                      </div>
+                      <div className="flex-1">
+                        <p className="font-medium text-sm">{collection.name}</p>
+                        <p className="text-xs text-muted-foreground">{collection.description}</p>
+                      </div>
+                      <span className="text-xs text-muted-foreground">{collection.books.length} books</span>
+                    </label>
+                  ))}
+                </div>
+              </div>
+              
+              <div className="flex gap-2">
+                <Button
+                  variant="outline"
+                  className="flex-1"
+                  onClick={() => {
+                    setShowCollectionDialog(false);
+                    setSelectedBookForCollection(null);
+                    setSelectedCollectionId(null);
+                  }}
+                >
+                  Cancel
+                </Button>
+                <Button
+                  className="flex-1"
+                  onClick={handleConfirmAddToCollection}
+                  disabled={!selectedCollectionId}
+                >
+                  Add to Collection
+                </Button>
+              </div>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }

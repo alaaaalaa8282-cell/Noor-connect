@@ -4,7 +4,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 import {
     MessageCircle, Radio, Target, Heart, Calculator,
-    Star, Trophy, Coins, Calendar, Library, Tv, Sparkles
+    Star, Trophy, Coins, Calendar, Library, Tv, Sparkles, HeartHandshake, BookOpen
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -18,18 +18,20 @@ export default function Services() {
         { title: "Radio", path: "/quran-radio", icon: Radio, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
         { title: "Habits", path: "/habit-tracker", icon: Target, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
         { title: "Duas", path: "/duas", icon: Heart, color: 'text-pink-500', bgColor: 'bg-pink-500/10' },
+        { title: "Remedies", path: "/islamic-remedies", icon: HeartHandshake, color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
         { title: t('tasbih'), path: "/tasbeeh", icon: Calculator, color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
         { title: "Names", path: "/names-of-allah", icon: Star, color: 'text-yellow-500', bgColor: 'bg-yellow-500/10' },
         { title: "Quiz", path: "/quiz", icon: Trophy, color: 'text-amber-500', bgColor: 'bg-amber-500/10' },
         { title: "Zakat", path: "/zakat", icon: Coins, color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
         { title: "Calendar", path: "/calendar", icon: Calendar, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
         { title: "E-Books", path: "/ebooks", icon: Library, color: 'text-violet-500', bgColor: 'bg-violet-500/10' },
+        { title: "Tafsir", path: "/tafsir", icon: BookOpen, color: 'text-emerald-600', bgColor: 'bg-emerald-600/10' },
     ];
 
     return (
         <PageTransition>
             <div className="min-h-screen bg-background pb-32">
-                <AppBar title="Islamic Services" />
+                <AppBar title="Islamic Services" showBack={true} />
 
                 {/* Featured Header Card - More Compact */}
                 <div className="px-5 pt-4 mb-4">
@@ -61,8 +63,8 @@ export default function Services() {
                                 {/* Subtle Hover Glow */}
                                 <div className={`absolute inset-0 bg-gradient-to-br ${item.bgColor} opacity-0 group-hover:opacity-100 transition-opacity`} />
 
-                                <div className={`p-2.5 rounded-xl ${item.bgColor} ${item.color} group-hover:scale-110 transition-transform duration-300 mb-2.5 shadow-sm`}>
-                                    <item.icon className="w-5 h-5" strokeWidth={2.5} />
+                                <div className={`p-3 rounded-xl ${item.bgColor} ${item.color} group-hover:scale-110 transition-transform duration-300 mb-2.5 shadow-sm border border-white/20`}>
+                                    <item.icon className="w-6 h-6" strokeWidth={2.5} />
                                 </div>
 
                                 <div className="text-center px-1">

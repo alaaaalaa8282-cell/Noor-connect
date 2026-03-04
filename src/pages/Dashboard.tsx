@@ -1,4 +1,4 @@
-import { useState, useEffect, useCallback, Suspense, lazy, type MouseEvent } from "react";
+import { useState, useEffect, useCallback, useMemo, Suspense, lazy, type MouseEvent } from "react";
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
@@ -6,7 +6,6 @@ import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Naviga
 import { AppBar } from "@/components/AppBar";
 const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
 const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
-const MoodSelector = lazy(() => import("@/components/MoodSelector").then(module => ({ default: module.MoodSelector })));
 const DailyAyah = lazy(() => import("@/components/DailyAyah").then(module => ({ default: module.DailyAyah })));
 const DailyHadith = lazy(() => import("@/components/DailyHadith").then(module => ({ default: module.DailyHadith })));
 const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
@@ -14,7 +13,6 @@ const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(m
 const QazaTracker = lazy(() => import("@/components/QazaTracker").then(module => ({ default: module.QazaTracker })));
 const DhikrReminder = lazy(() => import("@/components/DhikrReminder").then(module => ({ default: module.DhikrReminder })));
 const IslamicGreeting = lazy(() => import("@/components/IslamicGreeting").then(module => ({ default: module.IslamicGreeting })));
-const IslamicDateHeader = lazy(() => import("@/components/IslamicDateHeader").then(module => ({ default: module.IslamicDateHeader })));
 const IslamicEventsWidget = lazy(() => import("@/components/IslamicEventsWidget").then(module => ({ default: module.IslamicEventsWidget })));
 const QuranProgressWidget = lazy(() => import("@/components/QuranProgressWidget").then(module => ({ default: module.QuranProgressWidget })));
 import { LocationSearch } from "@/components/LocationSearch";
@@ -83,9 +81,44 @@ export default function Dashboard() {
   const prayerTimesHook = usePrayerTimes();
 
   const prayerLocation = prayerTimesHook.location;
-  const locationLabel = prayerLocation?.city && prayerLocation?.country
-    ? `${prayerLocation.city}, ${prayerLocation.country}`
-    : location.locationName;
+  
+  // Priority: GPS location > VPN/API location
+  // If GPS location is available and different from VPN location, use GPS
+  const locationLabel = useMemo(() => {
+    // If GPS location is set and not the default Karachi location, use it
+    if (location.latitude && location.longitude && 
+        !(location.latitude === 24.8607 && location.longitude === 67.0011) &&
+        location.locationName !== 'Karachi, Pakistan') {
+      return location.locationName;
+    }
+    
+    // Otherwise, use VPN/API location if available
+    if (prayerLocation?.city && prayerLocation?.country) {
+      return `${prayerLocation.city}, ${prayerLocation.country}`;
+    }
+    
+    // Fallback to default location
+    return location.locationName;
+  }, [location, prayerLocation]);
+
+  // Similar priority for timezone
+  const timezoneLabel = useMemo(() => {
+    // If GPS location is set and not the default Karachi location, use it
+    if (location.latitude && location.longitude && 
+        !(location.latitude === 24.8607 && location.longitude === 67.0011) &&
+        location.locationName !== 'Karachi, Pakistan' &&
+        location.timeZone) {
+      return location.timeZone;
+    }
+    
+    // Otherwise, use VPN/API location if available
+    if (prayerLocation?.timezone) {
+      return prayerLocation.timezone;
+    }
+    
+    // Fallback to default location timezone
+    return location.timeZone;
+  }, [location, prayerLocation]);
 
   useEffect(() => {
     setTimeFormat(getTimeFormat());
@@ -367,17 +400,17 @@ export default function Dashboard() {
                     hour: timeFormat === '12' ? 'numeric' : '2-digit',
                     minute: "2-digit",
                     hour12: timeFormat === '12',
-                    timeZone: location.timeZone || undefined
+                    timeZone: timezoneLabel || undefined
                   }).replace(/\s+[APap][Mm]/, '')}
                   <span className="text-xl sm:text-2xl ms-2 font-light text-white/60 tracking-normal font-sans">
-                    {timeFormat === '12' ? currentTime.toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: location.timeZone }).split(' ')[1] : ''}
+                    {timeFormat === '12' ? currentTime.toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezoneLabel }).split(' ')[1] : ''}
                   </span>
                 </h1>
 
                 <p className="text-xs text-white/60 font-medium tracking-wide uppercase flex items-center gap-1.5 mt-1 glass-card px-3 py-1">
                   <MapPin className="w-3 h-3" />
                   {locationLabel}
-                  {location.timeZone && <span className="text-white/40">• {location.timeZone.split('/')[1]?.replace('_', ' ')}</span>}
+                  {timezoneLabel && <span className="text-white/40">• {timezoneLabel.split('/')[1]?.replace('_', ' ')}</span>}
                 </p>
               </div>
 
@@ -393,23 +426,8 @@ export default function Dashboard() {
             <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/20 rounded-br-lg"></div>
           </div>
 
-          {/* Mood Based Remedies */}
-          <Suspense fallback={<div className="h-[220px] rounded-2xl bg-muted/20 animate-pulse" />}>
-            <MoodSelector />
-          </Suspense>
-
-          {/* Hijri Date */}
-          {hijriDate && (
-            <Card className="p-3 bg-primary text-primary-foreground border-0">
-              <p className="text-center font-arabic text-lg">{hijriDate}</p>
-            </Card>
-          )}
-
-          {/* Islamic Date Header - always visible */}
-          <Suspense fallback={<div className="h-10 bg-muted/20 animate-pulse rounded-lg" />}>
-            <IslamicDateHeader />
-          </Suspense>
-
+          
+          
           {/* Islamic Greeting (shows on special days) */}
           <Suspense fallback={null}>
             <IslamicGreeting />
@@ -431,7 +449,7 @@ export default function Dashboard() {
                 needsManualLocation={prayerTimesHook.needsManualLocation}
                 refresh={prayerTimesHook.refresh}
                 setManualLocation={prayerTimesHook.setManualLocation}
-                timeZone={location.timeZone}
+                timeZone={timezoneLabel}
               />
             </Suspense>
           </ErrorBoundary>
@@ -452,7 +470,7 @@ export default function Dashboard() {
                 needsManualLocation={prayerTimesHook.needsManualLocation}
                 refresh={prayerTimesHook.refresh}
                 setManualLocation={prayerTimesHook.setManualLocation}
-                timeZone={location.timeZone}
+                timeZone={timezoneLabel}
               />
             </Suspense>
           </ErrorBoundary>

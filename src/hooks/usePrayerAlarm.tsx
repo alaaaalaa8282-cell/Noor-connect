@@ -1,6 +1,6 @@
 import { useEffect, useState, useCallback } from 'react';
 import { toast } from 'sonner';
-import { getAdhanUrlForPrayer } from '@/lib/adhan-preferences';
+import { getAdhanUrlForPrayer, type PrayerName } from '@/lib/adhan-preferences';
 import { nativeAdhan } from '@/lib/native-adhan';
 import {
   PRAYER_ALARM_CONTROL_EVENT,
@@ -110,11 +110,23 @@ export const usePrayerAlarm = () => {
   }, [stopAdhan]);
 
   const testAdhan = useCallback(() => {
-    dispatchControlEvent({ action: 'test', prayerName: 'Dhuhr' });
+    // Cycle through different prayers for testing
+    const prayers: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
+    const currentHour = new Date().getHours();
+    
+    // Select a prayer based on current time to make testing more realistic
+    let selectedPrayer: PrayerName;
+    if (currentHour >= 5 && currentHour < 9) selectedPrayer = 'Fajr';
+    else if (currentHour >= 9 && currentHour < 13) selectedPrayer = 'Dhuhr';
+    else if (currentHour >= 13 && currentHour < 17) selectedPrayer = 'Asr';
+    else if (currentHour >= 17 && currentHour < 20) selectedPrayer = 'Maghrib';
+    else selectedPrayer = 'Isha';
+    
+    dispatchControlEvent({ action: 'test', prayerName: selectedPrayer });
 
     window.setTimeout(() => {
       dispatchControlEvent({ action: 'stop' });
-    }, 6000);
+    }, 8000); // Slightly longer for different adhan lengths
   }, []);
 
   return {

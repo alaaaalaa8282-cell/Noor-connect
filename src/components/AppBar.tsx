@@ -5,10 +5,11 @@ import { Button } from "./ui/button";
 interface AppBarProps {
   title: string;
   showBack?: boolean;
+  onBack?: () => void;
   actions?: React.ReactNode;
 }
 
-export function AppBar({ title, showBack = false, actions }: AppBarProps) {
+export function AppBar({ title, showBack = false, onBack, actions }: AppBarProps) {
   const navigate = useNavigate();
 
   return (
@@ -30,7 +31,13 @@ export function AppBar({ title, showBack = false, actions }: AppBarProps) {
             <Button
               variant="ghost"
               size="icon"
-              onClick={() => navigate(-1)}
+              onClick={() => {
+                if (onBack) {
+                  onBack();
+                } else {
+                  navigate(-1);
+                }
+              }}
               className="ms-2 -me-2 text-white/90 hover:bg-white/10 hover:text-white transition-all duration-200 hover:scale-105 rounded-xl nav-back"
             >
               <ArrowLeft className="w-5 h-5" />

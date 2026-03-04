@@ -161,10 +161,32 @@ class IslamicEventsService {
     try {
       const calendarInfo = await islamicCalendarService.getIslamicCalendarInfo();
       
-      return importantIslamicDates.find(event => 
+      // Check for specific events first
+      const specificEvent = importantIslamicDates.find(event => 
         event.hijriMonth === calendarInfo.hijriMonth && 
         event.hijriDay === calendarInfo.hijriDay
-      ) || null;
+      );
+      
+      if (specificEvent) {
+        return specificEvent;
+      }
+      
+      // Check if we're in Ramadan (month 9) but not on a specific event day
+      if (calendarInfo.hijriMonth === 9) {
+        // Return a general Ramadan event for ongoing Ramadan
+        return {
+          id: 'ramadan-ongoing',
+          name: 'Ramadan - Month of Fasting',
+          arabicName: 'شهر رمضان',
+          hijriMonth: 9,
+          hijriDay: calendarInfo.hijriDay,
+          description: `Day ${calendarInfo.hijriDay} of Ramadan - Continue your spiritual journey`,
+          type: 'ramadan',
+          notificationMessage: 'Continue your Ramadan journey with prayer, fasting, and reflection.'
+        };
+      }
+      
+      return null;
     } catch (error) {
       console.error('Error getting today\'s Islamic event:', error);
       return null;

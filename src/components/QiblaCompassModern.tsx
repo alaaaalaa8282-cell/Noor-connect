@@ -175,27 +175,33 @@ const QiblaCompassModern = () => {
   }, [attachCompassTracking]);
 
   const enableCompass = useCallback(async () => {
-    if (typeof window === "undefined" || typeof window.DeviceOrientationEvent === "undefined") {
-      setCompassState("unsupported");
-      return;
-    }
-
-    const orientationConstructor = window.DeviceOrientationEvent as DeviceOrientationConstructorWithPermission;
-    if (typeof orientationConstructor.requestPermission === "function") {
-      setCompassState("activating");
-      try {
-        const permissionState = await orientationConstructor.requestPermission();
-        if (permissionState !== "granted") {
-          setCompassState("denied");
-          return;
-        }
-      } catch {
-        setCompassState("permission-required");
+    try {
+      if (typeof window === "undefined" || typeof window.DeviceOrientationEvent === "undefined") {
+        setCompassState("unsupported");
         return;
       }
-    }
 
-    attachCompassTracking();
+      const orientationConstructor = window.DeviceOrientationEvent as DeviceOrientationConstructorWithPermission;
+      if (typeof orientationConstructor.requestPermission === "function") {
+        setCompassState("activating");
+        try {
+          const permissionState = await orientationConstructor.requestPermission();
+          if (permissionState !== "granted") {
+            setCompassState("denied");
+            return;
+          }
+        } catch (error) {
+          console.error("Compass permission error:", error);
+          setCompassState("permission-required");
+          return;
+        }
+      }
+
+      attachCompassTracking();
+    } catch (error) {
+      console.error("Enable compass error:", error);
+      setCompassState("permission-required");
+    }
   }, [attachCompassTracking]);
 
   const refreshLocation = useCallback(
@@ -222,6 +228,7 @@ const QiblaCompassModern = () => {
         setQiblaBearing(bearing);
         setDistanceKm(distance);
       } catch (error) {
+        console.error("Location refresh error:", error);
         const message = error instanceof Error ? error.message : "Unable to detect location.";
         setLocationError(message);
       } finally {
@@ -313,23 +320,23 @@ const QiblaCompassModern = () => {
             <div className="absolute -bottom-10 -left-10 h-28 w-28 rounded-full bg-[#a2f5d3]/15 blur-2xl" />
 
             <div className="relative flex items-center justify-between">
-              <div>
+              <div className="flex-1 min-w-0">
                 <p className="text-xs uppercase tracking-wide text-white/75">Qibla direction</p>
-                <p className="text-3xl font-bold">{formattedQibla}</p>
-                <p className="text-sm text-white/75">{getCardinalDirection(qiblaBearing)} • {formattedDistance}</p>
+                <p className="text-2xl sm:text-3xl font-bold truncate">{formattedQibla}</p>
+                <p className="text-sm text-white/75 truncate">{getCardinalDirection(qiblaBearing)} • {formattedDistance}</p>
               </div>
-              <Badge className={`${isAligned ? "bg-emerald-500 text-white" : "bg-white/15 text-white hover:bg-white/15"} px-3 py-1`}>
+              <Badge className={`${isAligned ? "bg-emerald-500 text-white" : "bg-white/15 text-white hover:bg-white/15"} px-3 py-1 flex-shrink-0`}>
                 {isAligned ? "✓ Aligned" : "Adjust"}
               </Badge>
             </div>
 
             <div className="relative mt-4 overflow-hidden rounded-xl border border-white/20 bg-white/10 p-4 backdrop-blur-sm">
               <div className="flex items-center justify-between">
-                <div className="flex items-center gap-2">
-                  <div className={`h-2 w-2 rounded-full ${isAligned ? "bg-emerald-400" : "bg-amber-400"}`} />
-                  <span className="text-sm text-white/90">{turnInstruction}</span>
+                <div className="flex items-center gap-2 min-w-0 flex-1">
+                  <div className={`h-2 w-2 rounded-full flex-shrink-0 ${isAligned ? "bg-emerald-400" : "bg-amber-400"}`} />
+                  <span className="text-sm text-white/90 truncate">{turnInstruction}</span>
                 </div>
-                <span className="text-xs text-white/80">{formattedDistance}</span>
+                <span className="text-xs text-white/80 flex-shrink-0">{formattedDistance}</span>
               </div>
             </div>
           </CardContent>
@@ -370,7 +377,7 @@ const QiblaCompassModern = () => {
               </div>
             </div>
 
-            <div className="relative mx-auto h-80 w-80 max-w-full">
+            <div className="relative mx-auto h-72 w-72 max-w-full sm:h-80 sm:w-80">
               <div className={`absolute inset-0 rounded-full border ${isAligned && isLiveCompass ? "border-emerald-500/70 shadow-lg shadow-emerald-500/30" : "border-primary/25 shadow-inner"} bg-gradient-to-b from-card to-muted/25`}>
                 {/* Subtle pulsing ring when aligned */}
                 {isAligned && isLiveCompass && (
@@ -436,7 +443,7 @@ const QiblaCompassModern = () => {
               </div>
             </div>
 
-            <div className="mt-4 grid grid-cols-3 gap-3">
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-3">
               <div className="rounded-lg border border-border/60 bg-gradient-to-b from-muted/50 to-muted/25 p-3 text-center shadow-sm">
                 <p className="text-[10px] uppercase tracking-wide text-muted-foreground">Qibla</p>
                 <p className="text-lg font-bold text-primary">{formattedQibla}</p>
@@ -454,9 +461,9 @@ const QiblaCompassModern = () => {
               </div>
             </div>
 
-            <div className="mt-4 flex gap-2">
+            <div className="mt-4 grid grid-cols-1 gap-3 sm:grid-cols-2">
               <Button 
-                className="flex-1" 
+                className="w-full min-w-0" 
                 onClick={() => void enableCompass()} 
                 disabled={compassState === "activating"}
                 title={compassState === "active" ? "Recalibrate compass sensor for better accuracy" : "Enable device compass for live Qibla tracking"}
@@ -466,7 +473,7 @@ const QiblaCompassModern = () => {
               </Button>
               <Button
                 variant="outline"
-                className="flex-1"
+                className="w-full min-w-0"
                 onClick={() => void refreshLocation("manual")}
                 disabled={isRefreshingLocation}
                 title="Get fresh GPS coordinates for accurate Qibla direction"

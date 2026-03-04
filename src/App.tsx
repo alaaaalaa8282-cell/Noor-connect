@@ -18,13 +18,9 @@ const SalamGreeting = lazy(() => import("@/components/SalamGreeting").then(modul
 const FestivePopup = lazy(() => import("@/components/FestivePopup").then(module => ({ default: module.FestivePopup })));
 const PWAInstallPrompt = lazy(() => import("@/components/PWAInstallPrompt").then(module => ({ default: module.PWAInstallPrompt })));
 
-// Dynamic imports for heavy components - only load when needed
-const GlobalRadioPlayer = lazy(() => import("@/components/lazy/RadioComponents").then(module => ({ 
-  default: module.GlobalRadioPlayer 
-})));
-const GlobalQuranPlayer = lazy(() => import("@/components/lazy/RadioComponents").then(module => ({ 
-  default: module.GlobalQuranPlayer 
-})));
+// Global Radio and Quran Players - imported directly (not lazy loaded to avoid double wrapping)
+import { GlobalRadioPlayer } from "@/components/GlobalRadioPlayer";
+import { GlobalQuranPlayer } from "@/components/GlobalQuranPlayer";
 
 // Set default theme to light if no preference saved
 if (!localStorage.getItem("theme")) {
@@ -44,34 +40,32 @@ const Duas = lazy(() => import("./pages/Duas"));
 const Hadith = lazy(() => import("./pages/Hadith"));
 const Profile = lazy(() => import("./pages/Profile"));
 const IslamicCalendar = lazy(() => import("./pages/IslamicCalendar"));
-const Ebooks = lazy(() => import("./pages/EbooksOptimized"));
+const Ebooks = lazy(() => import("./pages/EbooksModern"));
 const QazaPage = lazy(() => import("./pages/QazaPage"));
 const RamadanMode = lazy(() => import("./pages/RamadanMode"));
 const MenstrualMode = lazy(() => import("./pages/MenstrualMode"));
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
 const ZakatCalculator = lazy(() => import("./pages/ZakatCalculator"));
 const NamesOfAllah = lazy(() => import("./pages/NamesOfAllah"));
-const IslamicQuiz = lazy(() => import("./pages/IslamicQuiz"));
+const IslamicQuiz = lazy(() => import("./pages/EnhancedIslamicQuiz"));
 const PrayerStats = lazy(() => import("./pages/PrayerStats"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const QuranRadio = lazy(() => import("./pages/QuranRadio"));
 const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const Services = lazy(() => import("./pages/Services"));
+const IslamicRemedies = lazy(() => import("./pages/IslamicRemedies"));
+const RemedyFavorites = lazy(() => import("./pages/RemedyFavorites"));
+const Tafsir = lazy(() => import("./pages/Tafsir"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 import { prefetchCriticalChunks } from "@/lib/build-optimization";
+import { AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
 
 // Prefetch critical route chunks after initial load
 const prefetchRoutes = () => {
-  // Use requestIdleCallback to prefetch during browser idle time
-  const prefetch = typeof requestIdleCallback !== 'undefined' ? requestIdleCallback : (cb: () => void) => setTimeout(cb, 2000);
-  prefetch(() => {
-    import("./pages/Quran");
-    import("./pages/Tasbeeh");
-    import("./pages/Duas");
-    import("./pages/Profile");
-  });
+  // Use optimized prefetch strategy
+  prefetchCriticalChunks();
 };
 
 // Start prefetching once the page is loaded
@@ -154,6 +148,9 @@ function AppRoutes() {
         <Route path="/quran-radio" element={<QuranRadio />} />
         <Route path="/live" element={<LiveStreams />} />
         <Route path="/services" element={<Services />} />
+        <Route path="/islamic-remedies" element={<IslamicRemedies />} />
+        <Route path="/remedy-favorites" element={<RemedyFavorites />} />
+        <Route path="/tafsir" element={<Tafsir />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
@@ -292,11 +289,9 @@ const App = () => {
         {/* Bottom Navigation */}
         <BottomNav />
 
-        {/* Global Players - Only render when needed with Suspense */}
-        <Suspense fallback={null}>
-          <GlobalRadioPlayer />
-          <GlobalQuranPlayer />
-        </Suspense>
+        {/* Global Players - Only render when needed */}
+        <GlobalRadioPlayer />
+        <GlobalQuranPlayer />
       </BrowserRouter>
     </TooltipProvider>
   );

@@ -1,9 +1,10 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2, ExternalLink, Scroll } from 'lucide-react';
+import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2, ExternalLink, Scroll, Headphones } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { getPdfBlobUrl } from '@/lib/ebooks-storage';
 import { getReadingProgress, saveReadingProgress } from '@/lib/reading-progress';
+import PdfAudioPlayer from '@/components/PdfAudioPlayer';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -103,23 +104,35 @@ function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; sca
 
 export default function NativePdfViewer({ url, title, localKey, progressKey, onClose }: NativePdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const objectUrlRef = useRef<string | null>(null);
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
   const [scale, setScale] = useState(1.0);
   const [viewerMode, setViewerMode] = useState<ViewerMode>('loading');
   const [error, setError] = useState<string | null>(null);
-  const [isVertical, setIsVertical] = useState(false); // New state for vertical scroll mode
+  const [isVertical, setIsVertical] = useState(false);
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false); // New state for vertical scroll mode
+  const [resolvedPdfSource, setResolvedPdfSource] = useState(url);
   const effectiveProgressKey = progressKey || (localKey ? `local:${localKey}` : url);
 
   useEffect(() => {
-    loadPdf();
+    void loadPdf();
   }, [url, localKey]);
 
   useEffect(() => {
     if (!effectiveProgressKey || totalPages <= 0) return;
     saveReadingProgress(effectiveProgressKey, currentPage, totalPages);
   }, [effectiveProgressKey, currentPage, totalPages]);
+
+  useEffect(() => {
+    return () => {
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+    };
+  }, []);
 
 
   const loadPdf = async () => {
@@ -129,12 +142,18 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
 
       let pdfUrl = url;
 
+      if (objectUrlRef.current) {
+        URL.revokeObjectURL(objectUrlRef.current);
+        objectUrlRef.current = null;
+      }
+
       // If we have a localKey, get the blob URL from storage
       if (localKey) {
         console.log('Loading local PDF from storage:', localKey);
         const blobUrl = await getPdfBlobUrl(localKey);
         if (blobUrl) {
           pdfUrl = blobUrl;
+          objectUrlRef.current = blobUrl;
         } else if (!url) {
           throw new Error('Local PDF not found in storage');
         }
@@ -145,6 +164,7 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
       }
 
       console.log('Loading PDF from:', pdfUrl);
+      setResolvedPdfSource(pdfUrl);
 
       // Configure PDF.js with proper settings
       const loadingTask = pdfjsLib.getDocument({
@@ -250,7 +270,10 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
   };
 
   const downloadPdf = () => {
-    window.open(url, '_blank');
+    const source = resolvedPdfSource || url;
+    if (source) {
+      window.open(source, '_blank');
+    }
   };
 
   const toggleLayout = () => {
@@ -382,6 +405,14 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
         <div className="flex items-center gap-1">
           <Button
             size="icon"
+            variant={showAudioPlayer ? "secondary" : "ghost"}
+            onClick={() => setShowAudioPlayer(!showAudioPlayer)}
+            title={showAudioPlayer ? "Hide Audio Player" : "Listen to Audiobook"}
+          >
+            <Headphones className="w-4 h-4" />
+          </Button>
+          <Button
+            size="icon"
             variant={isVertical ? "secondary" : "ghost"}
             onClick={toggleLayout}
             title={isVertical ? "Switch to Page View" : "Switch to Vertical Scroll"}
@@ -468,6 +499,23 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
           )}
         </div>
       </div>
+
+      {/* Audio Player */}
+      {showAudioPlayer && viewerMode === 'pdfjs' && totalPages > 0 && (
+        <PdfAudioPlayer
+          pdfSource={resolvedPdfSource || url}
+          cacheKey={effectiveProgressKey}
+          currentPage={currentPage}
+          totalPages={totalPages}
+          onPageChange={(page) => {
+            setCurrentPage(page);
+            if (!isVertical && pdfDocument) {
+              renderPage(pdfDocument, page, scale);
+            }
+          }}
+          onClose={() => setShowAudioPlayer(false)}
+        />
+      )}
     </div>
   );
 }

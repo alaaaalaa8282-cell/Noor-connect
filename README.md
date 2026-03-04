@@ -1,6 +1,6 @@
 # 🌙 Noor Connect - Your Ultimate Islamic Companion
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/darkmaster0345/Noor-connect) [![Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/darkmaster0345/Noor-connect)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/darkmaster0345/Noor-connect) [![Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/darkmaster0345/Noor-connect)
 
 **Noor Connect** is a comprehensive, beautiful, and privacy-focused Islamic application designed to help you stay connected with your faith. Built with modern web technologies and optimized for mobile experiences via Capacitor, it serves as your digital companion for daily spiritual growth.
 
@@ -49,6 +49,7 @@
 - **Menstrual Mode**: Personalized tracking for women
 
 ### 📚 Knowledge & Wisdom
+- **Islamic Remedies**: Mood-based Quran verses, Hadith, and Duas for emotional support
 - **Duas & Hadith**: Authentic supplications and traditions
 - **99 Names of Allah**: Reflect on divine attributes
 - **Islamic Quiz**: Test and expand knowledge
@@ -137,6 +138,12 @@ Noor Connect is built with "Privacy First" principles:
 - Offline Quran access
 - Works without internet connection
 
+### Islamic Remedies System
+- **Mood-Based Guidance**: 12 emotional states with personalized Quran verses and Hadith
+- **Gamification Features**: Level progression, XP system, achievements, and favorites
+- **Rich Content Library**: 80+ authentic Islamic references across all moods
+- **Modern Interface**: Beautiful card-based design with smooth animations
+
 ### Enhanced Audio Experience
 - **Robust Error Handling**: Automatic format detection and fallback
 - **Stream Reliability**: Retry mechanisms for failed connections
@@ -145,19 +152,25 @@ Noor Connect is built with "Privacy First" principles:
 
 ---
 
-## 🆕 Recent Updates (v1.1.0)
+## 🆕 Recent Updates (v1.2.0)
 
-### 🐛 Bug Fixes
-- **Radio Player**: Fixed MediaError code 4 (format error) with automatic format fallback
-- **Chrome Extension**: Suppressed extension-related console errors
-- **Audio Streaming**: Enhanced CORS handling and retry logic
-- **Qibla Compass**: Improved sensor detection and calibration
+### ✨ New Features
+- **Islamic Remedies**: Complete redesign with modern UI/UX and mood-based spiritual guidance
+- **Expanded Content**: Added 50+ new Quran verses and Hadith across all mood categories
+- **Enhanced Gamification**: Improved stats tracking with level progression and achievements
+- **Better User Experience**: Smooth animations, improved mobile layout, and intuitive navigation
+
+### 🎨 UI/UX Improvements
+- **Remedies Interface**: Complete redesign with card-based layout and visual hierarchy
+- **Mood Selection**: Enhanced buttons with gradients, animations, and usage indicators
+- **Stats Dashboard**: Modern stats panel with progress bars and achievement notifications
+- **Responsive Design**: Better mobile experience with improved touch targets and spacing
 
 ### 🔧 Technical Improvements
-- Added intelligent audio format detection (MP3, AAC, M3U8, OGG)
-- Implemented progressive retry mechanisms with cache-busting
-- Enhanced error suppression for browser extensions
-- Improved cross-origin resource sharing for radio streams
+- **Component Architecture**: Refactored remedies feature for better performance and maintainability
+- **Content Expansion**: Systematic addition of authentic Islamic references across all moods
+- **Animation System**: Implemented smooth transitions and hover effects throughout the app
+- **Data Structure**: Enhanced mood data with comprehensive categorization and metadata
 
 ---
 
