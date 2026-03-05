@@ -1,0 +1,595 @@
+{
+  "name": "bukhari",
+  "title": "Sahih al-Bukhari",
+  "author": "Imam Muhammad ibn Ismail al-Bukhari",
+  "death": "256 AH",
+  "authenticity": "Sahih",
+  "arabicTitle": "صحيح البخاري",
+  "totalHadith": 7277,
+  "totalBooks": 97,
+  "books": [
+    {
+      "number": "1",
+      "name": "How the Divine Revelation started being revealed to Allah's Messenger",
+      "arabicName": "باب كَيْفَ كَانَ بَدْءُ الْوَحْىِ إِلَى رَسُولِ اللَّهِ صلى الله عليه وسلم",
+      "hadithCount": 7
+    },
+    {
+      "number": "2",
+      "name": "The statement of the Prophet (saws) \"Islam is based on five principles\"",
+      "arabicName": "بَابُ الإِيمَانِ وَقَوْلِ النَّبِيِّ صَلَّى اللَّهُ عَلَيْهِ وَسَلَّمَ: «بُنِيَ الإِسْلاَمُ عَلَى خَمْسٍ»",
+      "hadithCount": 51
+    },
+    {
+      "number": "3",
+      "name": "The superiority of knowledge",
+      "arabicName": "بَابُ فَضْلِ الْعِلْمِ",
+      "hadithCount": 76
+    },
+    {
+      "number": "4",
+      "name": "What has been revealed regarding ablution?",
+      "arabicName": "بَابُ مَا جَاءَ فِي الْوُضُوءِ",
+      "hadithCount": 113
+    },
+    {
+      "number": "5",
+      "name": "The performance of ablution before taking a bath",
+      "arabicName": "باب الْوُضُوءِ قَبْلَ الْغُسْلِ",
+      "hadithCount": 45
+    },
+    {
+      "number": "6",
+      "name": "How the menses started",
+      "arabicName": "باب كَيْفَ كَانَ بَدْءُ الْحَيْضِ",
+      "hadithCount": 37
+    },
+    {
+      "number": "7",
+      "name": "Chapter",
+      "arabicName": "باب",
+      "hadithCount": 15
+    },
+    {
+      "number": "8",
+      "name": "How As-Salat (the Prayer) was prescribed on the night of Al-Isra (miraculous night journey) of the Prophet (pbuh) to Jerusalem (and then to the heavens)",
+      "arabicName": "باب كَيْفَ فُرِضَتِ الصَّلاَةُ فِي الإِسْرَاءِ",
+      "hadithCount": 167
+    },
+    {
+      "number": "9",
+      "name": "The times of As-Salat (the prayers) and the superiority of offering Salat (prayers) in time",
+      "arabicName": "باب مَوَاقِيتِ الصَّلاَةِ وَفَضْلِهَا",
+      "hadithCount": 77
+    },
+    {
+      "number": "10",
+      "name": "How the Adhan for Salat (Prayer) was started",
+      "arabicName": "باب بَدْءُ الأَذَانِ",
+      "hadithCount": 266
+    },
+    {
+      "number": "11",
+      "name": "The prescription of Friday [Salat-ul-Jumu'ah (Jumu'ah prayer)] and Khutba (religious talk) according to the Statement of Allah تعالى: \"When the call is proclaimed for the Salat (prayer) of Friday (Jumu'ah prayer) come to the remembrance of Allah [Jumu'ah religious talk (Khutba) and Salat (prayer)] and leave off business (and every other thing).\" (V.62:9)",
+      "arabicName": "باب فَرْضِ الْجُمُعَةِ لِقَوْلِ اللَّهِ تَعَالَى: {إِذَا نُودِيَ لِلصَّلاَةِ مِنْ يَوْمِ الْجُمُعَةِ فَاسْعَوْا إِلَى ذِكْرِ اللَّهِ وَذَرُوا الْبَيْعَ ذَلِكُمْ خَيْرٌ لَكُمْ إِنْ كُنْتُمْ تَعْلَمُونَ}.",
+      "hadithCount": 65
+    },
+    {
+      "number": "12",
+      "name": "The Salat-ul-Khauf",
+      "arabicName": "باب صَلاَةِ الْخَوْفِ",
+      "hadithCount": 6
+    },
+    {
+      "number": "13",
+      "name": "The two Eid and sprucing oneself up on them",
+      "arabicName": "باب فِي الْعِيدَيْنِ وَالتَّجَمُّلِ فِيهِ",
+      "hadithCount": 37
+    },
+    {
+      "number": "14",
+      "name": "What is said regarding the Witr prayer",
+      "arabicName": "باب مَا جَاءَ فِي الْوِتْرِ",
+      "hadithCount": 15
+    },
+    {
+      "number": "15",
+      "name": "Going out of the Prophet (pbuh) to offer Istisqa' prayer",
+      "arabicName": "باب الاِسْتِسْقَاءِ وَخُرُوجِ النَّبِيِّ صلى الله عليه وسلم فِي الاِسْتِسْقَاءِ",
+      "hadithCount": 34
+    },
+    {
+      "number": "16",
+      "name": "As-Salat (the prayer) during a solar eclipse",
+      "arabicName": "باب الصَّلاَةِ فِي كُسُوفِ الشَّمْسِ",
+      "hadithCount": 24
+    },
+    {
+      "number": "17",
+      "name": "Prostrations during the recitation of the Qur'an",
+      "arabicName": "باب مَا جَاءَ فِي سُجُودِ الْقُرْآنِ وَسُنَّتِهَا",
+      "hadithCount": 13
+    },
+    {
+      "number": "18",
+      "name": "For what period of stay one should offer shortened prayers",
+      "arabicName": "باب مَا جَاءَ فِي التَّقْصِيرِ وَكَمْ يُقِيمُ حَتَّى يَقْصُرَ",
+      "hadithCount": 39
+    },
+    {
+      "number": "19",
+      "name": "The Tahajjud Prayer at night",
+      "arabicName": "باب التَّهَجُّدِ بِاللَّيْلِ",
+      "hadithCount": 63
+    },
+    {
+      "number": "20",
+      "name": "The superiority of offering As-Salat in the Mosque of Makkah and Al-Madina",
+      "arabicName": "باب فَضْلِ الصَّلاَةِ فِي مَسْجِدِ مَكَّةَ وَالْمَدِينَةِ",
+      "hadithCount": 9
+    },
+    {
+      "number": "21",
+      "name": "To take the help of the hands while offering Salat",
+      "arabicName": "باب اسْتِعَانَةِ الْيَدِ فِي الصَّلاَةِ إِذَا كَانَ مِنْ أَمْرِ الصَّلاَةِ",
+      "hadithCount": 27
+    },
+    {
+      "number": "22",
+      "name": "What is said regarding the Sahw: If someone gets up (for the third rak'a without sitting) after the second rak'a of a compulsory salat (prayer)",
+      "arabicName": "باب مَا جَاءَ فِي السَّهْوِ إِذَا قَامَ مِنْ رَكْعَتَىِ الْفَرِيضَةِ",
+      "hadithCount": 14
+    },
+    {
+      "number": "23",
+      "name": "What is said about funerals, and those whose last words were: La ilãha ilallãh (none has the right to be worshipped but Allah)",
+      "arabicName": "باب فِي الْجَنَائِزِ وَمَنْ كَانَ آخِرُ كَلاَمِهِ لاَ إِلَهَ إِلاَّ اللَّهُ",
+      "hadithCount": 148
+    },
+    {
+      "number": "24",
+      "name": "The obligation of Zakat",
+      "arabicName": "باب وُجُوبِ الزَّكَاةِ",
+      "hadithCount": 112
+    },
+    {
+      "number": "25",
+      "name": "It is obligatory to perform Hajj (once in a life time) and its superiority",
+      "arabicName": "باب وُجُوبِ الْحَجِّ وَفَضْلِهِ",
+      "hadithCount": 247
+    },
+    {
+      "number": "26",
+      "name": "'Umra and its superiority",
+      "arabicName": "باب وُجُوبِ الْعُمْرَةِ وَفَضْلِهَا",
+      "hadithCount": 30
+    },
+    {
+      "number": "27",
+      "name": "If one is prevented from 'Umra",
+      "arabicName": "باب إِذَا أُحْصِرَ الْمُعْتَمِرُ",
+      "hadithCount": 15
+    },
+    {
+      "number": "28",
+      "name": "The penalty for hunting (by a Muhrim). And the Statement of Allah تعالى: \"...Kill not game while you are in the state of Ihram for Hajj or Umra (pilgrimage), and whosoever of you kills it intentionally, the penalty is an offering, brought to the Ka'bah, of an eatable animal (i.e., sheep, goat, cow, etc.) brought to the Ka'bah, equivalent to the one he killed... to the end of the Verse... And fear Allah to Whom you shall be gathered back.\" (V.5:95-96).",
+      "arabicName": "بَابُ قَوْلِ اللَّهِ تَعَالَى: {لاَ تَقْتُلُوا الصَّيْدَ وَأَنْتُمْ حُرُمٌ وَمَنْ قَتَلَهُ مِنْكُمْ مُتَعَمِّدًا فَجَزَاءٌ مِثْلُ مَا قَتَلَ مِنَ النَّعَمِ يَحْكُمُ بِهِ ذَوَا عَدْلٍ مِنْكُمْ هَدْيًا بَالِغَ الْكَعْبَةِ أَوْ كَفَّارَةٌ طَعَامُ مَسَاكِينَ أَوْ عَدْلُ ذَلِكَ صِيَامًا لِيَذُوقَ وَبَالَ أَمْرِهِ عَفَا اللَّهُ عَمَّا سَلَفَ وَمَنْ عَادَ فَيَنْتَقِمُ اللَّهُ مِنْهُ وَاللَّهُ عَزِيزٌ ذُو انْتِقَامٍ أُحِلَّ لَكُمْ صَيْدُ الْبَحْرِ وَطَعَامُهُ مَتَاعًا لَكُمْ وَلِلسَّيَّارَةِ وَحُرِّمَ عَلَيْكُمْ صَيْدُ الْبَرِّ مَا دُمْتُمْ حُرُمًا وَاتَّقُوا اللَّهَ الَّذِي إِلَيْهِ تُحْشَرُونَ}",
+      "hadithCount": 46
+    },
+    {
+      "number": "29",
+      "name": "Haram (sanctuary) of Al-Madina",
+      "arabicName": "باب حَرَمِ الْمَدِينَةِ",
+      "hadithCount": 24
+    },
+    {
+      "number": "30",
+      "name": "Fasting is obligatory in (the month of) Ramadan",
+      "arabicName": "باب وُجُوبِ صَوْمِ رَمَضَانَ",
+      "hadithCount": 112
+    },
+    {
+      "number": "31",
+      "name": "The superiority of Nawafil at night in Ramadan",
+      "arabicName": "باب فَضْلِ مَنْ قَامَ رَمَضَانَ",
+      "hadithCount": 6
+    },
+    {
+      "number": "32",
+      "name": "The superiority of the night of Qadr",
+      "arabicName": "باب فَضْلِ لَيْلَةِ الْقَدْرِ",
+      "hadithCount": 11
+    },
+    {
+      "number": "33",
+      "name": "The I'tikaf in the last ten days of Ramadan.",
+      "arabicName": "باب الاِعْتِكَافِ فِي الْعَشْرِ الأَوَاخِرِ",
+      "hadithCount": 21
+    },
+    {
+      "number": "34",
+      "name": "What has come in the Statement of Allah تعالى: “Then when the (Jumu‘ah) Salat is ended, you may disperse through the land, and seek of the Bounty of Allah.... And Allah is the Best of Providers.” (V.62:10,11)",
+      "arabicName": "بَابُ مَا جَاءَ فِي قَوْلِ اللَّهِ تَعَالَى: {فَإِذَا قُضِيَتِ الصَّلاَةُ فَانْتَشِرُوا فِي الأَرْضِ وَابْتَغُوا مِنْ فَضْلِ اللَّهِ وَاذْكُرُوا اللَّهَ كَثِيرًا لَعَلَّكُمْ تُفْلِحُونَ وَإِذَا رَأَوْا تِجَارَةً أَوْ لَهْوًا انْفَضُّوا إِلَيْهَا وَتَرَكُوكَ قَائِمًا قُلْ مَا عِنْدَ اللَّهِ خَيْرٌ مِنَ اللَّهْوِ وَمِنَ التِّجَارَةِ وَاللَّهُ خَيْرُ الرَّازِقِينَ}",
+      "hadithCount": 184
+    },
+    {
+      "number": "35",
+      "name": "As-Salam by a definite known specified measure",
+      "arabicName": "باب السَّلَمِ فِي كَيْلٍ مَعْلُومٍ",
+      "hadithCount": 16
+    },
+    {
+      "number": "36",
+      "name": "Shuf'a is valid if the property is undivided",
+      "arabicName": "باب الشُّفْعَةُ مَا لَمْ يُقْسَمْ، فَإِذَا وَقَعَتِ الْحُدُودُ فَلاَ شُفْعَةَ",
+      "hadithCount": 3
+    },
+    {
+      "number": "37",
+      "name": "To hire a pious man",
+      "arabicName": "باب اسْتِئْجَارِ الرَّجُلِ الصَّالِحِ",
+      "hadithCount": 25
+    },
+    {
+      "number": "38",
+      "name": "Al-Hawala (the transference of a debt from one person to another. It is an agreement whereby a debtor is released from a debt by another becoming responsible for it). Can Hawala be rejected by the creditors after accepting it?",
+      "arabicName": "باب فِي الْحَوَالَةِ، وَهَلْ يَرْجِعُ فِي الْحَوَالَةِ",
+      "hadithCount": 3
+    },
+    {
+      "number": "39",
+      "name": "Al-Kafala (i.e., the pledge given by somebody to the creditor to guarantee that the debtor will be present at a certain specific place to pay his debt or fine, or to undergo a punishment, etc.) in loans and debts with oneself or other things (e.g., one’s money)",
+      "arabicName": "باب الْكَفَالَةِ فِي الْقَرْضِ وَالدُّيُونِ بِالأَبْدَانِ وَغَيْرِهَا",
+      "hadithCount": 9
+    },
+    {
+      "number": "40",
+      "name": "A partner can deputize for another",
+      "arabicName": "باب وَكَالَةُ الشَّرِيكِ الشَّرِيكَ فِي الْقِسْمَةِ وَغَيْرِهَا",
+      "hadithCount": 18
+    },
+    {
+      "number": "41",
+      "name": "Sowing seeds and planting trees",
+      "arabicName": "باب فَضْلِ الزَّرْعِ وَالْغَرْسِ إِذَا أُكِلَ مِنْهُ",
+      "hadithCount": 28
+    },
+    {
+      "number": "42",
+      "name": "The Statement of Allāh تعالى: “… And We have made from water every living thing. Will they not then believe.” (V.21:30)",
+      "arabicName": "بَابٌ في الشُّرْبِ وَقَوْلِ اللَّهِ تَعَالَى: {وَجَعَلْنَا مِنَ الْمَاءِ كُلَّ شَيْءٍ حَيٍّ أَفَلاَ يُؤْمِنُونَ}",
+      "hadithCount": 31
+    },
+    {
+      "number": "43",
+      "name": "Whoever buys a thing on credit",
+      "arabicName": "باب مَنِ اشْتَرَى بِالدَّيْنِ وَلَيْسَ عِنْدَهُ ثَمَنُهُ، أَوْ لَيْسَ بِحَضْرَتِهِ",
+      "hadithCount": 24
+    },
+    {
+      "number": "44",
+      "name": "About the people and quarrels",
+      "arabicName": "باب مَا يُذْكَرُ فِي الإِشْخَاصِ وَالْخُصُومَةِ بَيْنَ الْمُسْلِمِ وَالْيَهُودِ",
+      "hadithCount": 15
+    },
+    {
+      "number": "45",
+      "name": "Owner's proof",
+      "arabicName": "باب إِذَا أَخْبَرَهُ رَبُّ اللُّقَطَةِ، بِالْعَلاَمَةِ دَفَعَ إِلَيْهِ",
+      "hadithCount": 15
+    },
+    {
+      "number": "46",
+      "name": "Retaliation (on the Day of Judgement)",
+      "arabicName": "باب قِصَاصِ الْمَظَالِمِ",
+      "hadithCount": 43
+    },
+    {
+      "number": "47",
+      "name": "About (sharing) meals and the Nahd and Urud",
+      "arabicName": "باب الشَّرِكَةِ فِي الطَّعَامِ وَالنَّهْدِ وَالْعُرُوضِ",
+      "hadithCount": 22
+    },
+    {
+      "number": "48",
+      "name": "The mortgaging in places occupied by settled population and the Statement of Allah تعالى: \"And if you are on a journey and cannot find a scribe, then let there be a pledge taken (i.e., mortgaging)...\" (V.2:283)",
+      "arabicName": "باب فِي الرَّهْنِ فِي الْحَضَرِ وَقَوْلِهِ تَعَالَى: {وَإِنْ كُنْتُمْ عَلَى سَفَرٍ وَلَمْ تَجِدُوا كَاتِبًا فَرِهَانٌ مَقْبُوضَةٌ}",
+      "hadithCount": 8
+    },
+    {
+      "number": "49",
+      "name": "The manumission and its superiority",
+      "arabicName": "باب مَا جَاءَ فِي الْعِتْقِ وَفَضْلِهِ",
+      "hadithCount": 41
+    },
+    {
+      "number": "50",
+      "name": "The sin of one who falsely accuses his slave of illegal sexual intercourse",
+      "arabicName": "باب إِثْمِ مَنْ قَذَفَ مَمْلُوكَهُ الْمُكَاتَبِ",
+      "hadithCount": 6
+    },
+    {
+      "number": "51",
+      "name": "Superiority of giving gifts",
+      "arabicName": "باب",
+      "hadithCount": 68
+    },
+    {
+      "number": "52",
+      "name": "What is said regarding the rule that the plaintiff has to produce a proof",
+      "arabicName": "بَابُ مَا جَاءَ فِي الْبَيِّنَةِ عَلَى الْمُدَّعِي",
+      "hadithCount": 50
+    },
+    {
+      "number": "53",
+      "name": "What has been said regarding (re)conciliation between the people",
+      "arabicName": "باب مَا جَاءَ فِي الإِصْلاَحِ بَيْنَ النَّاسِ",
+      "hadithCount": 20
+    },
+    {
+      "number": "54",
+      "name": "The conditions permissible on embracing Islam, and in contracts and transactions",
+      "arabicName": "باب مَا يَجُوزُ مِنَ الشُّرُوطِ فِي الإِسْلاَمِ وَالأَحْكَامِ وَالْمُبَايَعَةِ",
+      "hadithCount": 24
+    },
+    {
+      "number": "55",
+      "name": "Al-Wasaya",
+      "arabicName": "باب الْوَصَايَا",
+      "hadithCount": 44
+    },
+    {
+      "number": "56",
+      "name": "The superiority of Jihad",
+      "arabicName": "باب فَضْلُ الْجِهَادِ وَالسِّيَرِ",
+      "hadithCount": 294
+    },
+    {
+      "number": "57",
+      "name": "The obligations of Khumus",
+      "arabicName": "باب فَرْضِ الْخُمُسِ",
+      "hadithCount": 63
+    },
+    {
+      "number": "58",
+      "name": "Al-Jizya taken from the Dhimmi",
+      "arabicName": "باب الْجِزْيَةِ وَالْمُوَادَعَةِ مَعَ أَهْلِ الْحَرْبِ",
+      "hadithCount": 30
+    },
+    {
+      "number": "59",
+      "name": "The Statement of Allah Taa'la: \"And He it is Who originates the creation; then will repeat it and this is easier for Him...\"",
+      "arabicName": "بَابُ مَا جَاءَ فِي قَوْلِ اللَّهِ تَعَالَى: {وَهُوَ الَّذِي يَبْدَأُ الْخَلْقَ ثُمَّ يُعِيدُهُ}",
+      "hadithCount": 131
+    },
+    {
+      "number": "60",
+      "name": "The creation of Adam and his offspring",
+      "arabicName": "بَابُ خَلْقِ آدَمَ صَلَوَاتُ اللَّهِ عَلَيْهِ وَذُرِّيَّتِهِ",
+      "hadithCount": 154
+    },
+    {
+      "number": "61",
+      "name": "The Statement of Allah Ta'ala: \"O mankind! We have created you from a male and female.\"",
+      "arabicName": "بَابُ قَوْلُ اللَّهِ تَعَالَى: {يَا أَيُّهَا النَّاسُ إِنَّا خَلَقْنَاكُمْ مِنْ ذَكَرٍ وَأُنْثَى وَجَعَلْنَاكُمْ شُعُوبًا وَقَبَائِلَ لِتَعَارَفُوا إِنَّ أَكْرَمَكُمْ عِنْدَ اللَّهِ أَتْقَاكُمْ}",
+      "hadithCount": 151
+    },
+    {
+      "number": "62",
+      "name": "The virtues of the Companions of the Prophet ﷺ",
+      "arabicName": "باب فَضَائِلِ أَصْحَابِ النَّبِيِّ صلى الله عليه وسلم",
+      "hadithCount": 120
+    },
+    {
+      "number": "63",
+      "name": "The merits of Al-Ansar",
+      "arabicName": "باب مَنَاقِبُ الأَنْصَارِ",
+      "hadithCount": 172
+    },
+    {
+      "number": "64",
+      "name": "The Ghazwa of Al-‘Ushaira or Al-usaira",
+      "arabicName": "باب غَزْوَةِ الْعُشَيْرَةِ أَوِ الْعُسَيْرَةِ",
+      "hadithCount": 488
+    },
+    {
+      "number": "65",
+      "name": "What has been said about Fãtihat al-Kitab (i.e., the Opening of the Book)",
+      "arabicName": "باب مَا جَاءَ فِي فَاتِحَةِ الْكِتَابِ",
+      "hadithCount": 499
+    },
+    {
+      "number": "66",
+      "name": "How the Divine Revelation used to be revealed and what was the first thing revealed",
+      "arabicName": "باب كَيْفَ نُزُولُ الْوَحْىِ وَأَوَّلُ مَا نَزَلَ",
+      "hadithCount": 87
+    },
+    {
+      "number": "67",
+      "name": "Awakening the desire for marriage",
+      "arabicName": "باب التَّرْغِيبُ فِي النِّكَاحِ",
+      "hadithCount": 183
+    },
+    {
+      "number": "68",
+      "name": "\"O Prophet! When you divorce women, divorce them at their 'Idda and count their 'Idda.\"",
+      "arabicName": "بَابُ قَوْلُ اللَّهِ تَعَالَى: {يَا أَيُّهَا النَّبِيُّ إِذَا طَلَّقْتُمُ النِّسَاءَ فَطَلِّقُوهُنَّ لِعِدَّتِهِنَّ وَأَحْصُوا الْعِدَّةَ}",
+      "hadithCount": 95
+    },
+    {
+      "number": "69",
+      "name": "The superiority of providing for one's family",
+      "arabicName": "باب فَضْلِ النَّفَقَةِ عَلَى الأَهْلِ",
+      "hadithCount": 22
+    },
+    {
+      "number": "70",
+      "name": "Eat of the lawful things that We have provided you with...\"",
+      "arabicName": "بَابُ وَقَوْلِ اللَّهِ تَعَالَى: {كُلُوا مِنْ طَيِّبَاتِ مَا رَزَقْنَاكُمْ}",
+      "hadithCount": 95
+    },
+    {
+      "number": "71",
+      "name": "The naming of a newly born child, Al-'Al-'Aqiqa and its Tahnik",
+      "arabicName": "باب تَسْمِيَةِ الْمَوْلُودِ غَدَاةَ يُولَدُ، لِمَنْ لَمْ يَعُقَّ عَنْهُ، وَتَحْنِيكِهِ",
+      "hadithCount": 9
+    },
+    {
+      "number": "72",
+      "name": "The mentioning of Allah's Name while hunting",
+      "arabicName": "باب التَّسْمِيَةِ عَلَى الصَّيْدِ",
+      "hadithCount": 69
+    },
+    {
+      "number": "73",
+      "name": "The legal way of Al-Udhiya",
+      "arabicName": "باب سُنَّةِ الأُضْحِيَّةِ",
+      "hadithCount": 30
+    },
+    {
+      "number": "74",
+      "name": "\"Intoxicants, gambling, Al-Ansab and Al-Azlam are an abomination of Shaitan's handiwork ...\"",
+      "arabicName": "بَابُ وَقَوْلُ اللَّهِ تَعَالَى: {إِنَّمَا الْخَمْرُ وَالْمَيْسِرُ وَالأَنْصَابُ وَالأَزْلاَمُ رِجْسٌ مِنْ عَمَلِ الشَّيْطَانِ فَاجْتَنِبُوهُ لَعَلَّكُمْ تُفْلِحُونَ}",
+      "hadithCount": 65
+    },
+    {
+      "number": "75",
+      "name": "Sickness is expiation for sins",
+      "arabicName": "بَابُ مَا جَاءَ فِي كَفَّارَةِ الْمَرَضِ",
+      "hadithCount": 37
+    },
+    {
+      "number": "76",
+      "name": "There is no disease except its treatment",
+      "arabicName": "باب مَا أَنْزَلَ اللَّهُ دَاءً إِلاَّ أَنْزَلَ لَهُ شِفَاءً",
+      "hadithCount": 93
+    },
+    {
+      "number": "77",
+      "name": "\"Say: Who has forbidden the adornment with clothes given by Allah which He has produced for His slaves?\"",
+      "arabicName": "بَابُ قَوْلِ اللَّهِ تَعَالَى: {قُلْ مَنْ حَرَّمَ زِينَةَ اللَّهِ الَّتِي أَخْرَجَ لِعِبَادِهِ}",
+      "hadithCount": 185
+    },
+    {
+      "number": "78",
+      "name": "Al-Birr and As-Sila",
+      "arabicName": "باب قَوْلِ اللَّهِ تَعَالَى ‏{‏وَوَصَّيْنَا الإِنْسَانَ بِوَالِدَيْهِ‏}",
+      "hadithCount": 250
+    },
+    {
+      "number": "79",
+      "name": "How the Salam began",
+      "arabicName": "باب بَدْءِ السَّلاَمِ",
+      "hadithCount": 75
+    },
+    {
+      "number": "80",
+      "name": "For every Prophet  there is one invocation surely granted",
+      "arabicName": "باب وَلِكُلِّ نَبِيٍّ دَعْوَةٌ مُسْتَجَابَةٌ",
+      "hadithCount": 106
+    },
+    {
+      "number": "81",
+      "name": "Health and leisure",
+      "arabicName": "باب مَا جَاءَ فِي الرِّقَاقِ وَأَنْ لاَ عَيْشَ إِلاَّ عَيْشُ الآخِرَةِ",
+      "hadithCount": 181
+    },
+    {
+      "number": "82",
+      "name": "Chapter",
+      "arabicName": "باب فِي الْقَدَرِ",
+      "hadithCount": 26
+    },
+    {
+      "number": "83",
+      "name": "\"Allah will not punish you for what is unintentional in your oaths, but He will punish you for your deliberate oaths ...\"",
+      "arabicName": "بَابُ قَوْلُ اللَّهِ تَعَالَى: {لاَ يُؤَاخِذُكُمُ اللَّهُ بِاللَّغْوِ فِي أَيْمَانِكُمْ وَلَكِنْ يُؤَاخِذُكُمْ بِمَا عَقَّدْتُمُ الأَيْمَانَ فَكَفَّارَتُهُ إِطْعَامُ عَشَرَةِ مَسَاكِينَ مِنْ أَوْسَطِ مَا تُطْعِمُونَ أَهْلِيكُمْ أَوْ كِسْوَتُهُمْ أَوْ تَحْرِيرُ رَقَبَةٍ فَمَنْ لَمْ يَجِدْ فَصِيَامُ ثَلاَثَةِ أَيَّامٍ ذَلِكَ كَفَّارَةُ أَيْمَانِكُمْ إِذَا حَلَفْتُمْ وَاحْفَظُوا أَيْمَانَكُمْ كَذَلِكَ يُبَيِّنُ اللَّهُ لَكُمْ آيَاتِهِ لَعَلَّكُمْ تَشْكُرُونَ}",
+      "hadithCount": 84
+    },
+    {
+      "number": "84",
+      "name": "“(Then for the) expiation feed ten Masakin…”",
+      "arabicName": "بَابُ كَفَّارَاتِ الأَيْمَانِ",
+      "hadithCount": 15
+    },
+    {
+      "number": "85",
+      "name": "“Allah commands you as regards your children’s (inheritance)…”",
+      "arabicName": "بَابُ قَوْلِ اللَّهِ تَعَالَى: {يُوصِيكُمُ اللَّهُ فِي أَوْلاَدِكُمْ لِلذَّكَرِ مِثْلُ حَظِّ الأُنْثَيَيْنِ فَإِنْ كُنَّ نِسَاءً فَوْقَ اثْنَتَيْنِ فَلَهُنَّ ثُلُثَا مَا تَرَكَ وَإِنْ كَانَتْ وَاحِدَةً فَلَهَا النِّصْفُ وَلأَبَوَيْهِ لِكُلِّ وَاحِدٍ مِنْهُمَا السُّدُسُ مِمَّا تَرَكَ إِنْ كَانَ لَهُ وَلَدٌ فَإِنْ لَمْ يَكُنْ لَهُ وَلَدٌ وَوَرِثَهُ أَبَوَاهُ فَلأُمِّهِ الثُّلُثُ فَإِنْ كَانَ لَهُ إِخْوَةٌ فَلأُمِّهِ السُّدُسُ مِنْ بَعْدِ وَصِيَّةٍ يُوصِي بِهَا أَوْ دَيْنٍ آبَاؤُكُمْ وَأَبْنَاؤُكُمْ لاَ تَدْرُونَ أَيُّهُمْ أَقْرَبُ لَكُمْ نَفْعًا فَرِيضَةً مِنَ اللَّهِ إِنَّ اللَّهَ كَانَ عَلِيمًا حَكِيمًا وَلَكُمْ نِصْفُ مَا تَرَكَ أَزْوَاجُكُمْ إِنْ لَمْ يَكُنْ لَهُنَّ وَلَدٌ فَإِنْ كَانَ لَهُنَّ وَلَدٌ فَلَكُمُ الرُّبُعُ مِمَّا تَرَكْنَ مِنْ بَعْدِ وَصِيَّةٍ يُوصِينَ بِهَا أَوْ دَيْنٍ وَلَهُنَّ الرُّبُعُ مِمَّا تَرَكْتُمْ إِنْ لَمْ يَكُنْ لَكُمْ وَلَدٌ فَإِنْ كَانَ لَكُمْ وَلَدٌ فَلَهُنَّ الثُّمُنُ مِمَّا تَرَكْتُمْ مِنْ بَعْدِ وَصِيَّةٍ تُوصُونَ بِهَا أَوْ دَيْنٍ وَإِنْ كَانَ رَجُلٌ يُورَثُ كَلاَلَةً أَوِ امْرَأَةٌ وَلَهُ أَخٌ أَوْ أُخْتٌ فَلِكُلِّ وَاحِدٍ مِنْهُمَا السُّدُسُ فَإِنْ كَانُوا أَكْثَرَ مِنْ ذَلِكَ فَهُمْ شُرَكَاءُ فِي الثُّلُثِ مِنْ بَعْدِ وَصِيَّةٍ يُوصَى بِهَا أَوْ دَيْنٍ غَيْرَ مُضَارٍّ وَصِيَّةً مِنَ اللَّهِ وَاللَّهُ عَلِيمٌ حَلِيمٌ}",
+      "hadithCount": 47
+    },
+    {
+      "number": "86",
+      "name": "What Hudud one should beware of",
+      "arabicName": "بَابُ مَا يُحْذَرُ مِنَ الْحُدُودِ",
+      "hadithCount": 81
+    },
+    {
+      "number": "87",
+      "name": "“… And whoever kills a believer intentionally, his recompense is Hell …”",
+      "arabicName": "باب قَوْلِ اللَّهِ تَعَالَى ‏{‏وَمَنْ يَقْتُلْ مُؤْمِنًا مُتَعَمِّدًا جَزَاؤُهُ  فَجَهَنَّمُ}",
+      "hadithCount": 55
+    },
+    {
+      "number": "88",
+      "name": "The sin of the person who ascribes partners in worship to Allah",
+      "arabicName": "باب إِثْمِ مَنْ أَشْرَكَ بِاللَّهِ وَعُقُوبَتِهِ فِي الدُّنْيَا وَالآخِرَةِ",
+      "hadithCount": 21
+    },
+    {
+      "number": "89",
+      "name": "Whoever preferred to be beaten killed and humiliated rather than to revert to Kufr",
+      "arabicName": "باب مَنِ اخْتَارَ الضَّرْبَ وَالْقَتْلَ وَالْهَوَانَ عَلَى الْكُفْرِ",
+      "hadithCount": 13
+    },
+    {
+      "number": "90",
+      "name": "Avoiding the use of tricks",
+      "arabicName": "باب فِي تَرْكِ الْحِيَلِ وَأَنَّ لِكُلِّ امْرِئٍ مَا نَوَى فِي الأَيْمَانِ وَغَيْرِهَا",
+      "hadithCount": 28
+    },
+    {
+      "number": "91",
+      "name": "Commencement of the Divine Revelation to Allah’s Messenger (saws)  was in the form of good dreams",
+      "arabicName": "باب أَوَّلُ مَا بُدِئَ بِهِ رَسُولُ اللَّهِ صلى الله عليه وسلم مِنَ الْوَحْىِ الرُّؤْيَا الصَّالِحَةُ",
+      "hadithCount": 61
+    },
+    {
+      "number": "92",
+      "name": "“And fear the Fitnah which affects not in particular those among you who do wrong….”",
+      "arabicName": "بَابُ مَا جَاءَ فِي قَوْلِ اللَّهِ تَعَالَى: {وَاتَّقُوا فِتْنَةً لاَ تُصِيبَنَّ الَّذِينَ ظَلَمُوا مِنْكُمْ خَاصَّةً}",
+      "hadithCount": 83
+    },
+    {
+      "number": "93",
+      "name": "“Obey Allah and obey  the Messenger and those of you who are in authority…”",
+      "arabicName": "بَابُ قَوْلِ اللَّهِ تَعَالَى: {أَطِيعُوا اللَّهَ وَأَطِيعُوا الرَّسُولَ وَأُولِي الأَمْرِ مِنْكُمْ}",
+      "hadithCount": 84
+    },
+    {
+      "number": "94",
+      "name": "Wishes for martyrdom",
+      "arabicName": "باب مَا جَاءَ فِي التَّمَنِّي وَمَنْ تَمَنَّى الشَّهَادَةَ",
+      "hadithCount": 20
+    },
+    {
+      "number": "95",
+      "name": "Acceptance of the information given by one truthful person in about all matters",
+      "arabicName": "بَابُ مَا جَاءَ فِي إِجَازَةِ خَبَرِ الْوَاحِدِ الصَّدُوقِ فِي الأَذَانِ وَالصَّلاَةِ وَالصَّوْمِ وَالْفَرَائِضِ وَالأَحْكَامِ",
+      "hadithCount": 21
+    },
+    {
+      "number": "96",
+      "name": "Book 96",
+      "arabicName": "باب",
+      "hadithCount": 97
+    },
+    {
+      "number": "97",
+      "name": "The Prophet (saws) inviting his followers to Tauhid of Allah",
+      "arabicName": "باب مَا جَاءَ فِي دُعَاءِ النَّبِيِّ صلى الله عليه وسلم أُمَّتَهُ إِلَى تَوْحِيدِ اللَّهِ تَبَارَكَ وَتَعَلَى",
+      "hadithCount": 188
+    }
+  ],
+  "dataFile": "hadiths.json"
+}

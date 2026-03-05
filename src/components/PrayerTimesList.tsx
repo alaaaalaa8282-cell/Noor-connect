@@ -50,52 +50,62 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
 
   // Premium Styles
   const containerClasses = isCurrent
-    ? "bg-gradient-to-r from-primary/15 to-transparent border-primary/40 shadow-[0_0_15px_-3px_rgba(212,175,55,0.3)] ring-1 ring-primary/20 dark:shadow-[0_0_20px_-5px_rgba(212,175,55,0.2)]"
+    ? "bg-primary/10 border-primary shadow-[0_8px_32px_rgba(var(--primary),0.15)] ring-1 ring-primary/20 scale-[1.02] z-10"
     : isNext
-      ? "bg-secondary/30 border-secondary/50 shadow-sm"
-      : "bg-card/50 border-transparent hover:bg-accent/30 hover:border-border/50";
+      ? "bg-secondary/20 border-border/60 shadow-sm"
+      : "bg-card border-border/40 hover:border-primary/30 transition-all duration-300";
 
   return (
-    <div className={`relative overflow-hidden rounded-xl border p-3.5 transition-all duration-300 group ${containerClasses}`}>
-      {/* Active Indicator Bar */}
+    <div className={`relative overflow-hidden rounded-2xl border p-4 transition-all duration-500 group ${containerClasses}`}>
+      {/* Active Glow Effect */}
       {isCurrent && (
-        <div className="absolute left-0 top-0 bottom-0 w-1 bg-primary"></div>
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-transparent animate-pulse"></div>
       )}
 
-      <div className="flex items-center justify-between">
-        <div className="flex items-center gap-3.5">
-          <div className={`w-8 h-8 rounded-lg flex items-center justify-center transition-colors
-                ${isCurrent ? 'bg-primary text-primary-foreground' : 'bg-muted text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'}
+      <div className="relative z-10 flex items-center justify-between">
+        <div className="flex items-center gap-4">
+          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500
+                ${isCurrent ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-110' : 'bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'}
              `}>
-            {prayerIcons[prayer.name] || <Clock className="w-4 h-4" />}
+            {prayerIcons[prayer.name] || <Clock className="w-5 h-5" />}
           </div>
 
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <h3 className={`font-semibold text-sm ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+              <h3 className={`font-bold text-sm sm:text-base tracking-tight ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
                 {t(prayer.name.toLowerCase() as any)}
               </h3>
               {isCurrent && (
-                <span className={`flex h-1.5 w-1.5 rounded-full animate-pulse ${isEndingSoon ? 'bg-red-500 shadow-[0_0_8px_rgba(239,68,68,0.6)]' : 'bg-primary shadow-[0_0_8px_rgba(212,175,55,0.6)]'}`} />
+                <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/20 border border-primary/20">
+                  <span className={`h-1.5 w-1.5 rounded-full ${isEndingSoon ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-bounce'}`} />
+                  <span className="text-[9px] font-black uppercase tracking-tighter text-primary">Active</span>
+                </div>
               )}
             </div>
-            {isNext && !isCurrent && <span className="text-[10px] font-medium text-blue-500">{t('upcoming')}</span>}
+            {isNext && !isCurrent && (
+              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-0.5">{t('upcoming')}</span>
+            )}
+            {!isCurrent && !isNext && (
+              <span className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-widest mt-0.5">
+                {prayer.name === 'Sunrise' ? 'Nature' : 'Prayer'}
+              </span>
+            )}
           </div>
         </div>
 
         <div className="text-right">
-          <div className={`font-mono font-medium text-sm ${isCurrent ? 'text-primary font-bold' : ''}`}>
+          <div className={`font-mono font-black text-base sm:text-lg tracking-tighter tabular-nums ${isCurrent ? 'text-primary' : 'text-foreground/90'}`}>
             {formatPrayerTime(prayer.datetime, timeFormat, timeZone)}
           </div>
 
-          {/* Countdown for current prayer */}
+          {/* Countdown or End Time */}
           {isCurrent && countdown ? (
-            <div className="text-[10px] font-medium text-red-500 tabular-nums">
-              - {countdown.formattedTime}
+            <div className={`text-[10px] font-bold uppercase tracking-widest ${isEndingSoon ? 'text-red-500 animate-pulse' : 'text-primary/70'}`}>
+              Ends in {countdown.formattedTime}
             </div>
           ) : (
-            <div className="text-[10px] text-muted-foreground opacity-70">
-              {formatPrayerTime(prayer.endTime, timeFormat, timeZone)} {t('end')}
+            <div className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-widest">
+              {t('end')} {formatPrayerTime(prayer.endTime, timeFormat, timeZone)}
             </div>
           )}
         </div>

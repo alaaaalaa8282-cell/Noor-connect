@@ -26,49 +26,49 @@ export const BottomNav = memo(function BottomNav() {
 
   return (
     <nav
-      className="w-full fixed bottom-0 left-0 right-0 z-[100] pointer-events-none pb-4 px-4 pb-safe flex justify-center"
+      className="w-full fixed bottom-0 left-0 right-0 z-[100] pointer-events-none pb-6 px-4 pb-safe flex justify-center"
       style={{
         willChange: 'transform, opacity',
         transform: 'translateZ(0)'
       }}
     >
-      {/* Floating Island Base matching the user's screenshot exactly */}
-      <div className="w-full max-w-screen-md bg-background/98 border border-white/10 shadow-[0_12px_40px_rgba(0,0,0,0.3)] pointer-events-auto rounded-[28px] overflow-hidden">
-        <div className="flex flex-row items-center justify-between h-[72px] px-2 sm:px-4">
-          {navItems.map((item, index) => (
+      {/* Floating Island Base with refined glassmorphism and shadow */}
+      <div className="w-full max-w-md bg-background/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.4)] pointer-events-auto rounded-[32px] overflow-hidden">
+        <div className="flex flex-row items-center justify-around h-[76px] px-2">
+          {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               end={item.path === "/"}
               onClick={triggerHapticFeedback}
-              className="group flex-1 flex flex-col items-center justify-center h-full relative"
+              className="group flex flex-col items-center justify-center h-full relative px-2"
             >
               {({ isActive }) => (
-                <div className="flex flex-col items-center justify-center w-full h-full gap-1 transition-all duration-300 relative z-10">
+                <div className="flex flex-col items-center justify-center gap-1 transition-all duration-300 relative z-10">
 
-                  {/* Active Background Tile (Animated Sliding Movement) */}
-                  <div className="relative flex items-center justify-center w-[52px] h-[38px] rounded-[18px]">
+                  {/* Refined Active Indicator */}
+                  <div className="relative flex items-center justify-center w-[56px] h-[36px] rounded-2xl">
                     {isActive && (
                       <motion.div
                         layoutId="nav-bg-glow"
-                        className="absolute inset-0 bg-primary/20 border border-primary/30 rounded-[18px] shadow-[inset_0_2px_8px_rgba(var(--primary),0.1)]"
+                        className="absolute inset-0 bg-primary/15 border border-primary/20 rounded-2xl shadow-[0_4px_12px_rgba(var(--primary),0.1)]"
                         initial={false}
                         transition={{ type: "spring", stiffness: 400, damping: 32 }}
                       />
                     )}
 
                     <item.icon
-                      className={`w-[22px] h-[22px] transition-all duration-300 ${isActive
-                        ? "text-primary scale-110 drop-shadow-[0_0_8px_hsl(var(--primary)/0.6)]"
+                      className={`w-[22px] h-[22px] transition-all duration-500 ${isActive
+                        ? "text-primary scale-110 drop-shadow-[0_0_8px_rgba(var(--primary),0.4)]"
                         : "text-muted-foreground group-hover:text-foreground"
                         }`}
                       strokeWidth={isActive ? 2.5 : 2}
                     />
                   </div>
 
-                  <span className={`text-[10px] uppercase tracking-tighter transition-all duration-300 whitespace-nowrap ${isActive
-                    ? "font-bold text-primary scale-105"
-                    : "font-semibold text-muted-foreground group-hover:text-foreground"
+                  <span className={`text-[9px] font-black uppercase tracking-widest transition-all duration-300 ${isActive
+                    ? "text-primary scale-105"
+                    : "text-muted-foreground/60 group-hover:text-foreground"
                     }`}>
                     {item.title}
                   </span>
@@ -79,8 +79,8 @@ export const BottomNav = memo(function BottomNav() {
           ))}
         </div>
 
-        {/* iOS styled home indicator (only visible on mobile) */}
-        <div className="h-[4px] w-24 bg-border/40 mx-auto rounded-full mb-2 block md:hidden opacity-30" />
+        {/* iOS styled home indicator */}
+        <div className="h-[4px] w-20 bg-primary/20 mx-auto rounded-full mb-2 opacity-50" />
       </div>
     </nav>
   );

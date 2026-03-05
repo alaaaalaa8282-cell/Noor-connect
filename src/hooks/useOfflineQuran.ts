@@ -279,10 +279,11 @@ export function useOfflineContentAvailability() {
       let available = false;
       
       switch (contentType) {
-        case 'verses':
+        case 'verses': {
           const verses = await offlineQuranStorage.getCachedVerses();
           available = verses.length > 0;
           break;
+        }
           
         case 'surahs':
           if (identifier) {

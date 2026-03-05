@@ -1,0 +1,349 @@
+{
+  "name": "shamail",
+  "totalHadith": 402,
+  "totalBooks": 57,
+  "books": [
+    {
+      "number": "1",
+      "name": "The Noble Features Of Rasoolullah باب ما جاء في خلق رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 14
+    },
+    {
+      "number": "2",
+      "name": "Seal Of Nubuwwah (Prophethood) Of Rasoolullah باب ما جاء في خاتم النبوة",
+      "arabicName": "",
+      "hadithCount": 8
+    },
+    {
+      "number": "3",
+      "name": "The Mubarak Hair Of Rasoolullah -باب ما جاء في شعر رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 8
+    },
+    {
+      "number": "4",
+      "name": "The Combing Of The Hair Of Rasoolullah باب ما جاء في ترجل رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 5
+    },
+    {
+      "number": "5",
+      "name": "Appearing Of The White Hair Of Rasoolullah باب ما جاء في شيب رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 8
+    },
+    {
+      "number": "6",
+      "name": "Rasoolullah Using a Dye باب ما جاء في خضاب رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 5
+    },
+    {
+      "number": "7",
+      "name": "Kuhl Of Rasoolullah باب ما جاء في كُحل رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 5
+    },
+    {
+      "number": "8",
+      "name": "The Dressing Of Rasoolullah باب ما جاء في لباس رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 16
+    },
+    {
+      "number": "9",
+      "name": "The Khuff (Leather Socks) Of Rasoolullah باب ما جاء في خف رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "10",
+      "name": "The Shoes Of Rasoolullah باب ماجاء في نعل رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 11
+    },
+    {
+      "number": "11",
+      "name": "The Mubarak Ring Of Rasoolullah باب ما جاء في ذكر خاتم رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 8
+    },
+    {
+      "number": "12",
+      "name": "Stating That Rasoolullah Wore The Ring On His Right Hand باب ماجاء في تختم رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 9
+    },
+    {
+      "number": "13",
+      "name": "The Sword Of Rasoolullah باب ماجاء في صفة سَيْفِ رَسُولِ اللهِ صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 4
+    },
+    {
+      "number": "14",
+      "name": "The Armor Of Rasoolullah باب ماجاء في صفة درع رَسُولِ اللهِصلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "15",
+      "name": "The Helmet Of Rasoolullah باب ما جاء في صفة مغفر رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "16",
+      "name": "The Turban Of Rasoolullah باب ما جاء في عمامة رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 5
+    },
+    {
+      "number": "17",
+      "name": "The Lungi Of Rasoolullah باب ما جاء في صفة إزار رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 4
+    },
+    {
+      "number": "18",
+      "name": "The Walking Of Rasoolullah باب ما جاء في مشية رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 3
+    },
+    {
+      "number": "19",
+      "name": "The Qinaa Of Rasoolullah باب ما جاء في تقنع رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 1
+    },
+    {
+      "number": "20",
+      "name": "The Sitting Of Rasoolullah باب ما جاء في جلسته صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 3
+    },
+    {
+      "number": "21",
+      "name": "The Pillow Of Rasoolullah باب ما جاء في تكأة رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 5
+    },
+    {
+      "number": "22",
+      "name": "Rasoolullah Leaning On Something Other Than a Pillow باب ما جاء في اتكاء رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "23",
+      "name": "Description Of The Eating Of Rasoolullah باب ما جاء في أكل رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 5
+    },
+    {
+      "number": "24",
+      "name": "The Bread Of Rasoolullah باب ما جاء في صفة خبز رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 8
+    },
+    {
+      "number": "25",
+      "name": "What Rasoolullah Would Eat with Bread ما جاء في إدام رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 34
+    },
+    {
+      "number": "26",
+      "name": "Rasoolullah Performing Wudu At The Time Of Eating باب ما جاء في صفة وضوء رسول الله صلى الله عليه وسلم عند الطعام",
+      "arabicName": "",
+      "hadithCount": 3
+    },
+    {
+      "number": "27",
+      "name": "The Words That Of Rasoolullah Said Before and After Eating باب ما جاء في قول رسول الله صلى الله عليه وسلم قبل الطعام وعند الفراغ منه",
+      "arabicName": "",
+      "hadithCount": 7
+    },
+    {
+      "number": "28",
+      "name": "The Cup Of Rasoolullah باب ما جاء في قدح رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "29",
+      "name": "The Fruits Eaten By Rasoolullah باب ما جاء في صفة فاكهة رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 7
+    },
+    {
+      "number": "30",
+      "name": "Description Of The Things Rasoolullah Drank باب ما جاء في صفة شراب رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "31",
+      "name": "Hadith Describing The Manner Rasoolullah Drank باب ما جاء في شرب رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 10
+    },
+    {
+      "number": "32",
+      "name": "Rasoolullah Using 'Itr باب ما جاء في تعطررسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 6
+    },
+    {
+      "number": "33",
+      "name": "The Speech Of rasoolullah باب كيف كان كلام رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 3
+    },
+    {
+      "number": "34",
+      "name": "The Laughing Of Rasoolullah باب ما جاء في ضحك رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 9
+    },
+    {
+      "number": "35",
+      "name": "Description Of The Joking Of Rasoolullah باب ما جاء في صفة مزاح رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 6
+    },
+    {
+      "number": "36",
+      "name": "Description Of The Saying Of Rasoolullah On Poetry باب ما جاء في صفة كلام رسول الله صلى الله عليه وسلم في الشعر",
+      "arabicName": "",
+      "hadithCount": 9
+    },
+    {
+      "number": "37",
+      "name": "Story Telling Of Rasoolullah At Night باب ما جاء في كلام رسول الله صلى الله عليه وسلم في السمر",
+      "arabicName": "",
+      "hadithCount": 1
+    },
+    {
+      "number": "38",
+      "name": "Hadith of Umm Zar` حديث أم زرع",
+      "arabicName": "",
+      "hadithCount": 1
+    },
+    {
+      "number": "39",
+      "name": "The Sleeping Of Rasoolullah باب في صفة نوم رسول الله صلى الله عليه وسلم في السمر",
+      "arabicName": "",
+      "hadithCount": 6
+    },
+    {
+      "number": "40",
+      "name": "Worship And Devotion Of Rasoolullah باب ما جاء في عبادة النبي صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 25
+    },
+    {
+      "number": "41",
+      "name": "Salaatut Duha (Chaast Prayers) باب صلاة الضحى",
+      "arabicName": "",
+      "hadithCount": 8
+    },
+    {
+      "number": "42",
+      "name": "Sayyidina Rasoolullah Performing Nawaafil At Home باب صلاة التطوع في البيت",
+      "arabicName": "",
+      "hadithCount": 1
+    },
+    {
+      "number": "43",
+      "name": "The Fasting Of Sayyidina Rasoolullah باب ماجاء في صوم رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 16
+    },
+    {
+      "number": "44",
+      "name": "The Recital Of Sayyidina Rasoolullah باب ماجاء في قراءة رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 8
+    },
+    {
+      "number": "45",
+      "name": "The Weeping Of Sayyidina Rasoolullah باب ماجاء في بكاء رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 6
+    },
+    {
+      "number": "46",
+      "name": "Narrations Of The Bed Of Sayyidina Rasoolullah باب ماجاء في فراش رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "47",
+      "name": "The Humbleness Of Sayyidina Rasoolullah باب ماجاء في تواضع رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 13
+    },
+    {
+      "number": "48",
+      "name": "Noble Character And Habits Of Sayyidina Rasoolullah باب ماجاء في خلق رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 15
+    },
+    {
+      "number": "49",
+      "name": "Modesty Of Sayyidina Rasoolullah باب ماجاء في حياء رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "50",
+      "name": "Hajaamah (Cupping-Cautering) Of Sayyidina Rasoolullah باب ماجاء في حجامة رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 6
+    },
+    {
+      "number": "51",
+      "name": "The Names Of Sayyidina Rasoolullah باب ماجاء في أسماء رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    },
+    {
+      "number": "52",
+      "name": "The Living Of Sayyidina Rasoolullah باب ماجاء في عيش رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 9
+    },
+    {
+      "number": "53",
+      "name": "The Noble Age Of Sayyidina Rasoolullah باب ماجاء في سن رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 6
+    },
+    {
+      "number": "54",
+      "name": "The Death Of Sayyidina Rasoolullah باب ماجاء في وفاة رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 14
+    },
+    {
+      "number": "55",
+      "name": "The Legacy Of Sayyidina Rasoolullah باب ماجاء في ميراث رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 7
+    },
+    {
+      "number": "56",
+      "name": "The Seeing Of Rasoolullah In a Dream باب ماجاء في رؤية رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 11
+    },
+    {
+      "number": "8b",
+      "name": "The Standard of Living of Rasoolullah باب ماجاء في عيش رسول الله صلى الله عليه وسلم",
+      "arabicName": "",
+      "hadithCount": 2
+    }
+  ]
+}

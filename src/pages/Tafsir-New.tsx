@@ -314,10 +314,11 @@ const Tafsir = () => {
   };
 
   const getFilteredTafsirs = () => {
-    if (!currentSurahTafsir || !searchTafsirQuery) return currentSurahTafsir.tafsirs;
+    if (!currentSurahTafsir?.tafsirs) return [];
+    if (!searchTafsirQuery) return currentSurahTafsir.tafsirs;
     
     return currentSurahTafsir.tafsirs.filter(tafsir =>
-      tafsir.text.toLowerCase().includes(searchTafsirQuery.toLowerCase())
+      tafsir.text?.toLowerCase().includes(searchTafsirQuery.toLowerCase())
     );
   };
 
@@ -357,11 +358,15 @@ const Tafsir = () => {
     if (!selectedSurah) return;
     
     setComparisonLoading(true);
+    setShowComparison(true); // Show dialog immediately to provide feedback
     try {
-      const editions = [selectedEdition, ...TAFSIR_EDITIONS.filter(e => e.id !== selectedEdition).slice(0, 2).map(e => e.id)];
+      const editions = [
+        selectedEdition, 
+        ...TAFSIR_EDITIONS.filter(e => e.id !== selectedEdition).slice(0, 2).map(e => e.id)
+      ];
       const data = await getComparisonTafsirs(selectedSurah, editions);
       setComparisonData(data);
-      setExpandedComparisonAyahs(new Set()); // Reset expanded ayahs
+      setExpandedComparisonAyahs(new Set([1])); // Expand first ayah by default
     } catch (error) {
       console.error("Error loading comparison:", error);
       toast({
@@ -369,6 +374,7 @@ const Tafsir = () => {
         description: "Failed to load comparison data",
         variant: "destructive"
       });
+      setShowComparison(false);
     } finally {
       setComparisonLoading(false);
     }
@@ -385,43 +391,46 @@ const Tafsir = () => {
   };
 
   const handleAudioTTS = (text: string, ayah: number) => {
+    if (!text) {
+      toast({
+        title: "No text",
+        description: "No tafsir text available to read.",
+        variant: "destructive"
+      });
+      return;
+    }
+    
+    // Cancel any existing speech
+    if ('speechSynthesis' in window) {
+      speechSynthesis.cancel();
+    }
+    
     setCurrentTTSText(text);
     setShowAudioTTS(true);
     
-    // Use Web Speech API for TTS
-    if ('speechSynthesis' in window) {
-      const utterance = new SpeechSynthesisUtterance(text);
-      utterance.rate = speechRate;
-      utterance.pitch = speechPitch;
-      utterance.volume = 1;
-      utterance.voice = speechVoice || undefined;
-      
-      utterance.onstart = () => {
-        setIsSpeaking(true);
-      };
-      
-      utterance.onend = () => {
-        setIsSpeaking(false);
-      };
-      
-      utterance.onerror = (event) => {
-        console.error('Speech synthesis error:', event);
-        setIsSpeaking(false);
-        toast({
-          title: "Speech Error",
-          description: "Failed to play audio. Please try again.",
-          variant: "destructive"
-        });
-      };
-      
-      speechSynthesis.speak(utterance);
-    } else {
-      toast({
-        title: "Not Supported",
-        description: "Text-to-speech is not supported in your browser",
-        variant: "destructive"
-      });
-    }
+    // Start speech after a short delay to ensure UI is ready
+    setTimeout(() => {
+      if ('speechSynthesis' in window) {
+        const utterance = new SpeechSynthesisUtterance(text);
+        utterance.rate = speechRate;
+        utterance.pitch = speechPitch;
+        utterance.volume = 1;
+        
+        // Find a suitable voice
+        const voices = speechSynthesis.getVoices();
+        const preferredVoice = speechVoice || voices.find(v => v.lang.startsWith('en')) || voices[0];
+        if (preferredVoice) utterance.voice = preferredVoice;
+        
+        utterance.onstart = () => setIsSpeaking(true);
+        utterance.onend = () => setIsSpeaking(false);
+        utterance.onerror = (event) => {
+          console.error('Speech synthesis error:', event);
+          setIsSpeaking(false);
+        };
+        
+        speechSynthesis.speak(utterance);
+      }
+    }, 100);
   };
 
   const isBookmarked = selectedSurah && 
@@ -443,58 +452,61 @@ const Tafsir = () => {
           showBack={true}
           onBack={goBack}
           rightElement={
-            currentSurahTafsir && (
-              <div className="flex items-center gap-1">
-                <DropdownMenu>
-                  <DropdownMenuTrigger asChild>
-                    <Button variant="ghost" size="icon" className="text-emerald-700">
-                      <Settings className="w-5 h-5" />
-                    </Button>
-                  </DropdownMenuTrigger>
-                  <DropdownMenuContent align="end" className="w-56">
-                    <div className="p-2">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Appearance</p>
-                      <div className="flex items-center justify-between px-2 py-1">
-                        <span className="text-sm">Font Size</span>
-                        <div className="flex gap-1">
-                          {(['sm', 'base', 'lg', 'xl'] as const).map((size) => (
-                            <button
-                              key={size}
-                              onClick={() => setFontSize(size)}
-                              className={cn(
-                                "w-8 h-8 rounded flex items-center justify-center text-xs font-bold border transition-all",
-                                fontSize === size 
-                                  ? "bg-emerald-600 text-white border-emerald-600" 
-                                  : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300"
-                              )}
-                            >
-                              {size.toUpperCase()}
-                            </button>
-                          ))}
-                        </div>
+            <div className="flex items-center gap-1">
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="ghost" size="icon" className="text-emerald-700">
+                    <Settings className="w-5 h-5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-72">
+                  <div className="p-2">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Appearance</p>
+                    <div className="flex items-center justify-between px-2 py-1">
+                      <span className="text-sm">Font Size</span>
+                      <div className="flex gap-1">
+                        {(['sm', 'base', 'lg', 'xl'] as const).map((size) => (
+                          <button
+                            key={size}
+                            onClick={() => setFontSize(size)}
+                            className={cn(
+                              "w-8 h-8 rounded flex items-center justify-center text-xs font-bold border transition-all",
+                              fontSize === size 
+                                ? "bg-emerald-600 text-white border-emerald-600" 
+                                : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300"
+                            )}
+                          >
+                            {size.toUpperCase()}
+                          </button>
+                        ))}
                       </div>
                     </div>
-                    <DropdownMenuSeparator />
-                    <div className="p-2">
-                      <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Tafsir Edition</p>
-                      {TAFSIR_EDITIONS.map((edition) => (
-                        <DropdownMenuItem 
-                          key={edition.id}
-                          onClick={() => {
-                            setSelectedEdition(edition.id);
-                            if (selectedSurah) handleSurahSelect(selectedSurah);
-                          }}
-                          className={cn("flex items-center justify-between", selectedEdition === edition.id && "bg-emerald-50 text-emerald-700")}
-                        >
+                  </div>
+                  <DropdownMenuSeparator />
+                  <div className="p-2">
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Tafsir Edition</p>
+                    {TAFSIR_EDITIONS.map((edition) => (
+                      <DropdownMenuItem 
+                        key={edition.id}
+                        onClick={() => {
+                          setSelectedEdition(edition.id);
+                          if (selectedSurah) handleSurahSelect(selectedSurah);
+                        }}
+                        className={cn("flex items-center justify-between", selectedEdition === edition.id && "bg-emerald-50 text-emerald-700")}
+                      >
+                        <div className="flex flex-col">
                           <span>{edition.name}</span>
-                          <span className="text-[10px] opacity-50">{edition.language}</span>
-                        </DropdownMenuItem>
-                      ))}
-                    </div>
-                  </DropdownMenuContent>
-                </DropdownMenu>
-              </div>
-            )
+                          {edition.author && (
+                            <span className="text-[10px] opacity-70">by {edition.author}</span>
+                          )}
+                        </div>
+                        <span className="text-[10px] opacity-50">{edition.language}</span>
+                      </DropdownMenuItem>
+                    ))}
+                  </div>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           }
         />
 
@@ -897,6 +909,12 @@ const Tafsir = () => {
                     </div>
                   ) : (
                     <div className="space-y-6">
+                      <div className="mb-6 p-4 bg-orange-100/50 rounded-2xl border border-orange-200">
+                        <h4 className="text-sm font-bold text-orange-800 uppercase tracking-widest mb-1">Surah context</h4>
+                        <p className="text-lg font-bold text-slate-800">{selectedSurah?.englishName} ({selectedSurah?.name})</p>
+                        <p className="text-xs text-slate-500">{selectedSurah?.englishNameTranslation} • {selectedSurah?.numberOfAyahs} Ayahs</p>
+                      </div>
+
                       {comparisonData[0]?.tafsirs.map((tafsir, ayahIdx) => (
                         <div key={ayahIdx} className="space-y-3">
                           <div className="flex items-center gap-2 px-2">
@@ -928,136 +946,84 @@ const Tafsir = () => {
             </DialogContent>
           </Dialog>
 
-        </div>
-      </div>
-    </PageTransition>
-  );
-
-          {!loading && filteredSurahs.length === 0 && !selectedSurah && (
-            <div className="text-center py-20">
-              <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-4">
-                <Search className="w-8 h-8 text-muted-foreground" />
-              </div>
-              <p className="text-muted-foreground">{ti18n('noSurahsFound')}</p>
-            </div>
-          )}
-        </div>
-      </div>
-
-      {/* TTS Dialog */}
-      <Dialog open={showAudioTTS} onOpenChange={setShowAudioTTS}>
-        <DialogContent className="max-w-2xl">
-          <DialogHeader>
-            <DialogTitle>{ti18n('audioTafsir')} - {ti18n('textToSpeech')}</DialogTitle>
-          </DialogHeader>
-          <div className="space-y-4">
-            <div className="bg-emerald-50 border border-emerald-200 rounded-lg p-4">
-              <p className="text-sm text-emerald-800 font-medium mb-2">{ti18n('currentlyPlaying')}:</p>
-              <p className="text-sm text-emerald-700 leading-relaxed mb-4">{currentTTSText}</p>
-              
-              {/* Voice Controls */}
-              <div className="space-y-3">
-                <div className="flex items-center gap-4">
-                  <label className="text-sm font-medium text-gray-700 w-20">{ti18n('voice')}:</label>
-                  <Select value={speechVoice?.name || ""} onValueChange={(value) => {
-                    const voice = speechSynthesis.getVoices().find(v => v.name === value);
-                    setSpeechVoice(voice || null);
-                  }}>
-                    <SelectTrigger className="flex-1">
-                      <SelectValue />
-                    </SelectTrigger>
-                    <SelectContent>
-                      {speechSynthesis.getVoices().map((voice, index) => (
-                        <SelectItem key={index} value={voice.name}>
-                          {voice.name} ({voice.lang})
-                        </SelectItem>
-                      ))}
-                    </SelectContent>
-                  </Select>
+          {/* TTS Player Dialog */}
+          <Dialog open={showAudioTTS} onOpenChange={setShowAudioTTS}>
+            <DialogContent className="sm:max-w-[500px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
+              <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 text-white relative">
+                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
+                <div className="relative z-10 flex flex-col items-center text-center space-y-4">
+                  <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-xl">
+                    <Headphones className="w-10 h-10 text-white animate-pulse" />
+                  </div>
+                  <div>
+                    <h3 className="text-xl font-bold">Audio Tafsir</h3>
+                    <p className="text-emerald-100/70 text-sm font-medium">Listening to Ayah {currentTTSText ? "Reflection" : "..."}</p>
+                  </div>
                 </div>
               </div>
-              
-              <div className="flex items-center gap-4">
-                <label className="text-sm font-medium text-gray-700 w-20">{ti18n('speed')}:</label>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="2"
-                  step="0.1"
-                  value={speechRate}
-                  onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
-                  className="flex-1"
-                />
-                <span className="text-sm text-gray-600 w-12">{speechRate.toFixed(1)}x</span>
-              </div>
-              
-              <div className="flex items-center gap-4">
-                <label className="text-sm font-medium text-gray-700 w-20">{ti18n('pitch')}:</label>
-                <input
-                  type="range"
-                  min="0.5"
-                  max="2"
-                  step="0.1"
-                  value={speechPitch}
-                  onChange={(e) => setSpeechPitch(parseFloat(e.target.value))}
-                  className="flex-1"
-                />
-                <span className="text-sm text-gray-600 w-12">{speechPitch.toFixed(1)}</span>
-              </div>
-            </div>
-            
-            <div className="flex gap-2 mt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => {
-                  if ('speechSynthesis' in window) {
-                    speechSynthesis.cancel();
-                    setIsSpeaking(false);
-                    setShowAudioTTS(false);
-                  }
-                }}
-                disabled={!isSpeaking}
-              >
-                {isSpeaking ? <Pause className="w-4 h-4" /> : <Play className="w-4 h-4" />}
-                {isSpeaking ? ti18n('pause') : ti18n('play')}
-              </Button>
-              <Button 
-                onClick={() => {
-                  if (currentTTSText && 'speechSynthesis' in window) {
-                    const utterance = new SpeechSynthesisUtterance(currentTTSText);
-                    utterance.rate = speechRate;
-                    utterance.pitch = speechPitch;
-                    utterance.voice = speechVoice || undefined;
-                    
-                    utterance.onstart = () => setIsSpeaking(true);
-                    utterance.onend = () => setIsSpeaking(false);
-                    utterance.onerror = () => {
-                      setIsSpeaking(false);
-                      toast({
-                        title: ti18n('speechError'),
-                        description: ti18n('failedToPlayAudio'),
-                        variant: "destructive"
-                      });
-                    };
-                    
-                    speechSynthesis.speak(utterance);
-                  }
-                }}
-                disabled={isSpeaking}
-              >
-                {isSpeaking ? ti18n('speaking') + '...' : ti18n('play')}
-              </Button>
-              <Button variant="outline" onClick={() => setShowAudioTTS(false)}>
-                {ti18n('close')}
-              </Button>
-            </div>
-          </DialogContent>
-        </Dialog>
 
-        <div className="px-8 mt-12 text-center opacity-40">
-          <p className="text-[10px] font-medium uppercase tracking-[0.2em]">
-            Noor Connect • {ti18n('spiritualCompanion')}
-          </p>
+              <div className="p-8 bg-white space-y-6">
+                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto">
+                  <p className="text-sm text-slate-600 leading-relaxed italic">
+                    "{currentTTSText}"
+                  </p>
+                </div>
+
+                <div className="space-y-4">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Playback Speed</span>
+                    <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">{speechRate}x</span>
+                  </div>
+                  <input
+                    type="range"
+                    min="0.5"
+                    max="2"
+                    step="0.1"
+                    value={speechRate}
+                    onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
+                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
+                  />
+                </div>
+
+                <div className="flex gap-3">
+                  <Button 
+                    variant="outline" 
+                    className="flex-1 h-14 rounded-2xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
+                    onClick={() => {
+                      if ('speechSynthesis' in window) {
+                        if (isSpeaking) {
+                          speechSynthesis.pause();
+                          setIsSpeaking(false);
+                        } else {
+                          speechSynthesis.resume();
+                          setIsSpeaking(true);
+                        }
+                      }
+                    }}
+                  >
+                    {isSpeaking ? (
+                      <><Pause className="w-5 h-5 mr-2" /> Pause</>
+                    ) : (
+                      <><Play className="w-5 h-5 mr-2" /> Resume</>
+                    )}
+                  </Button>
+                  <Button 
+                    className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20"
+                    onClick={() => {
+                      if ('speechSynthesis' in window) {
+                        speechSynthesis.cancel();
+                        setIsSpeaking(false);
+                        setShowAudioTTS(false);
+                      }
+                    }}
+                  >
+                    Stop
+                  </Button>
+                </div>
+              </div>
+            </DialogContent>
+          </Dialog>
+
         </div>
       </div>
     </PageTransition>

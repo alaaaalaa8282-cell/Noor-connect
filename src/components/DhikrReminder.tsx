@@ -155,3 +155,5 @@ export function DhikrReminder() {
     </Card>
   );
 }
+
+export default DhikrReminder;

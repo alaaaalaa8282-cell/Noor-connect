@@ -1,0 +1,235 @@
+{
+  "name": "ibnmajah",
+  "title": "Sunan Ibn Majah",
+  "author": "Imam Ibn Majah",
+  "death": "273 AH",
+  "authenticity": "Hasan",
+  "arabicTitle": "سنن ابن ماجه",
+  "totalHadith": 4079,
+  "totalBooks": 37,
+  "books": [
+    {
+      "number": "1",
+      "name": "The quantity of water required for ablution and bathing from a state of sexual impurity",
+      "arabicName": "باب مَا جَاءَ فِي مِقْدَارِ الْمَاءِ لِلْوُضُوءِ وَالْغُسْلِ مِنَ الْجَنَابَةِ",
+      "hadithCount": 400
+    },
+    {
+      "number": "2",
+      "name": "The Chapters On The Time Of Prayer",
+      "arabicName": "باب أَبْوَابِ مَوَاقِيتِ الصَّلاَةِ",
+      "hadithCount": 39
+    },
+    {
+      "number": "3",
+      "name": "How The Adhan Began",
+      "arabicName": "باب بَدْءِ الأَذَانِ",
+      "hadithCount": 29
+    },
+    {
+      "number": "4",
+      "name": "One Who Builds A Mosque For The Sake Of Allah",
+      "arabicName": "باب مَنْ بَنَى لِلَّهِ مَسْجِدًا",
+      "hadithCount": 68
+    },
+    {
+      "number": "5",
+      "name": "The opening of the Prayer",
+      "arabicName": "باب افْتِتَاحِ الصَّلاَةِ",
+      "hadithCount": 630
+    },
+    {
+      "number": "6",
+      "name": "What was narrated concerning visiting the sick",
+      "arabicName": "باب مَا جَاءَ فِي عِيَادَةِ الْمَرِيضِ",
+      "hadithCount": 205
+    },
+    {
+      "number": "7",
+      "name": "What was narrated concerning the virtues of fasting",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ الصِّيَامِ",
+      "hadithCount": 145
+    },
+    {
+      "number": "8",
+      "name": "The obligation of Zakat",
+      "arabicName": "باب فَرْضِ الزَّكَاةِ",
+      "hadithCount": 62
+    },
+    {
+      "number": "9",
+      "name": "What was narrated concerning the virtue of marriage",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ النِّكَاحِ",
+      "hadithCount": 171
+    },
+    {
+      "number": "10",
+      "name": "Divorce",
+      "arabicName": "باب الطَّلاَقِ",
+      "hadithCount": 74
+    },
+    {
+      "number": "11",
+      "name": "The swearing of the Messenger of Allah (saws) by which he would take an oath",
+      "arabicName": "باب يَمِينِ رَسُولِ اللَّهِ ـ صلى الله عليه وسلم ـ الَّتِي كَانَ يَحْلِفُ بِهَا",
+      "hadithCount": 47
+    },
+    {
+      "number": "12",
+      "name": "Encouragement To Earn A Living",
+      "arabicName": "باب الْحَثِّ عَلَى الْمَكَاسِبِ",
+      "hadithCount": 171
+    },
+    {
+      "number": "13",
+      "name": "Mention Of Judges",
+      "arabicName": "باب ذِكْرِ الْقُضَاةِ",
+      "hadithCount": 67
+    },
+    {
+      "number": "14",
+      "name": "A Man Giving A Gift To His Son",
+      "arabicName": "باب الرَّجُلِ يَنْحَلُ وَلَدَهُ",
+      "hadithCount": 15
+    },
+    {
+      "number": "15",
+      "name": "Taking Back One's Charity",
+      "arabicName": "باب الرُّجُوعِ فِي الصَّدَقَةِ",
+      "hadithCount": 46
+    },
+    {
+      "number": "16",
+      "name": "[Abu Bakr Bin Abi Shaibah Narrated To Us]",
+      "arabicName": "باب الرَّهْنِ",
+      "hadithCount": 57
+    },
+    {
+      "number": "17",
+      "name": "One Who Sells A Property Should Notify His Partner (Of His Intention)",
+      "arabicName": "باب مَنْ بَاعَ رِبَاعًا فَلْيُؤْذِنْ شَرِيكَهُ",
+      "hadithCount": 11
+    },
+    {
+      "number": "18",
+      "name": "Lost, Camels, Cattle And Sheep",
+      "arabicName": "باب ضَالَّةِ الإِبِلِ وَالْبَقَرِ وَالْغَنَمِ",
+      "hadithCount": 10
+    },
+    {
+      "number": "19",
+      "name": "The Mudabbar",
+      "arabicName": "باب الْمُدَبَّرِ",
+      "hadithCount": 21
+    },
+    {
+      "number": "20",
+      "name": "It Is Not Lawful To Shed The Blood Of A Muslim Except In Three Cases",
+      "arabicName": "باب لاَ يَحِلُّ دَمُ امْرِئٍ مُسْلِمٍ إِلاَّ فِي ثَلاَثٍ",
+      "hadithCount": 82
+    },
+    {
+      "number": "21",
+      "name": "The Severity Of Killing A Muslim",
+      "arabicName": "باب التَّغْلِيظِ فِي قَتْلِ مُسْلِمٍ ظُلْمًا",
+      "hadithCount": 80
+    },
+    {
+      "number": "22",
+      "name": "Did The Messenger of Allah (SAW) Make A Will?",
+      "arabicName": "باب هَلْ أَوْصَى رَسُولُ اللَّهِ صلى الله عليه وسلم",
+      "hadithCount": 24
+    },
+    {
+      "number": "23",
+      "name": "Encouragement to learn about inheritance",
+      "arabicName": "باب الْحَثِّ عَلَى تَعْلِيمِ الْفَرَائِضِ",
+      "hadithCount": 34
+    },
+    {
+      "number": "24",
+      "name": "The virtue of Jihad in the cause of Allah",
+      "arabicName": "باب فَضْلِ الْجِهَادِ فِي سَبِيلِ اللَّهِ",
+      "hadithCount": 129
+    },
+    {
+      "number": "25",
+      "name": "Going out for Hajj",
+      "arabicName": "باب الْخُرُوجِ إِلَى الْحَجِّ",
+      "hadithCount": 238
+    },
+    {
+      "number": "26",
+      "name": "The sacrifices of the Messenger of Allah (saws)",
+      "arabicName": "باب أَضَاحِيِّ رَسُولِ اللَّهِ ـ صلى الله عليه وسلم ـ",
+      "hadithCount": 42
+    },
+    {
+      "number": "27",
+      "name": "`Aqiqah",
+      "arabicName": "باب الْعَقِيقَةِ",
+      "hadithCount": 38
+    },
+    {
+      "number": "28",
+      "name": "Killing dogs except dogs used for hunting or farming",
+      "arabicName": "باب قَتْلِ الْكِلاَبِ إِلاَّ كَلْبَ صَيْدٍ أَوْ زَرْعٍ",
+      "hadithCount": 51
+    },
+    {
+      "number": "29",
+      "name": "Feeding others",
+      "arabicName": "باب إِطْعَامِ الطَّعَامِ",
+      "hadithCount": 120
+    },
+    {
+      "number": "30",
+      "name": "Wine is the key to all evils",
+      "arabicName": "باب الْخَمْرُ مِفْتَاحُ كُلِّ شَرٍّ",
+      "hadithCount": 65
+    },
+    {
+      "number": "31",
+      "name": "Allah has not sent down any disease except that He has also sent down the cure for it",
+      "arabicName": "باب مَا أَنْزَلَ اللَّهُ دَاءً إِلاَّ أَنْزَلَ لَهُ شِفَاءً",
+      "hadithCount": 114
+    },
+    {
+      "number": "32",
+      "name": "The clothing of the Messenger of Allah (saws)",
+      "arabicName": "باب لِبَاسِ رَسُولِ اللَّهِ ـ صلى الله عليه وسلم ـ",
+      "hadithCount": 107
+    },
+    {
+      "number": "33",
+      "name": "Honoring One's Parents",
+      "arabicName": "باب بِرِّ الْوَالِدَيْنِ",
+      "hadithCount": 170
+    },
+    {
+      "number": "34",
+      "name": "The Virtue of Supplication",
+      "arabicName": "باب فَضْلِ الدُّعَاءِ",
+      "hadithCount": 66
+    },
+    {
+      "number": "35",
+      "name": "A Good Dream That Is Seen By The Muslim, Or Is Seen About Him",
+      "arabicName": "باب الرُّؤْيَا الصَّالِحَةِ يَرَاهَا الْمُسْلِمُ أَوْ تُرَى لَهُ",
+      "hadithCount": 34
+    },
+    {
+      "number": "36",
+      "name": "Refraining from harming one who says: La Ilaha Illallah",
+      "arabicName": "باب الْكَفِّ عَمَّنْ قَالَ لاَ إِلَهَ إِلاَّ اللَّهُ",
+      "hadithCount": 175
+    },
+    {
+      "number": "37",
+      "name": "Indifference towards this world",
+      "arabicName": "باب الزُّهْدِ فِي الدُّنْيَا ‏.‏",
+      "hadithCount": 242
+    }
+  ],
+  "dataFile": "hadiths.json"
+}

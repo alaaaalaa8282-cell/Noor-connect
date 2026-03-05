@@ -220,7 +220,7 @@ export default function EnhancedIslamicQuiz() {
     }
   }, [gameState, stats]);
 
-  const usePowerUp = useCallback((powerUpId: string) => {
+  const handleUsePowerUp = useCallback((powerUpId: string) => {
     if (gameState.usedPowerUps.includes(powerUpId)) return;
     
     const success = quizManager.usePowerUp(powerUpId);
@@ -361,7 +361,7 @@ export default function EnhancedIslamicQuiz() {
                         key={powerUp.id}
                         size="sm"
                         variant="outline"
-                        onClick={() => usePowerUp(powerUp.id)}
+                        onClick={() => handleUsePowerUp(powerUp.id)}
                         className="flex items-center gap-1 text-xs"
                       >
                         <span>{powerUp.icon}</span>

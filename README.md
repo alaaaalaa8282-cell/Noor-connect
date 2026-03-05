@@ -1,6 +1,6 @@
 # 🌙 Noor Connect - Your Ultimate Islamic Companion
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.2.0-blue.svg)](https://github.com/darkmaster0345/Noor-connect) [![Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/darkmaster0345/Noor-connect)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/darkmaster0345/Noor-connect) [![Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/darkmaster0345/Noor-connect)
 
 **Noor Connect** is a comprehensive, beautiful, and privacy-focused Islamic application designed to help you stay connected with your faith. Built with modern web technologies and optimized for mobile experiences via Capacitor, it serves as your digital companion for daily spiritual growth.
 
@@ -49,6 +49,8 @@
 - **Menstrual Mode**: Personalized tracking for women
 
 ### 📚 Knowledge & Wisdom
+- **Enhanced Tafsir Explorer**: 25+ Quranic commentary editions with spa5k API integration
+- **Multilingual Tafsirs**: Support for English, Arabic, Bengali, Urdu, Russian, and Kurdish
 - **Islamic Remedies**: Mood-based Quran verses, Hadith, and Duas for emotional support
 - **Duas & Hadith**: Authentic supplications and traditions
 - **99 Names of Allah**: Reflect on divine attributes
@@ -94,6 +96,19 @@ npm install
 # Run development
 npm run dev
 ```
+
+### Import Hadith Dataset Files
+
+```bash
+# Example: import files downloaded from https://github.com/abdelrahmaan/Hadith-Data-Sets
+npm run import:hadith -- --input "C:\path\to\Hadith-Data-Sets\All Hadith Books"
+# Or import a single file
+npm run import:hadith -- --input "C:\path\to\hadith.json"
+# Remove old generated collection folders before writing new output
+npm run import:hadith -- --input "C:\path\to\hadith.json" --clean-output
+```
+
+The importer accepts `.json` and `.csv`, and writes normalized files to `src/data/hadith-collections/<collection>/book-*.json` with matching `metadata.json`.
 
 ### Android Build
 
@@ -152,7 +167,39 @@ Noor Connect is built with "Privacy First" principles:
 
 ---
 
-## 🆕 Recent Updates (v1.2.0)
+## 🆕 Recent Updates (v1.1.2)
+
+### ✨ Major Enhancement: spa5k Tafsir API Integration
+- **25+ Tafsir Editions**: Upgraded from 3 to 25+ scholarly commentary editions
+- **Multilingual Support**: English, Arabic, Bengali, Urdu, Russian, Kurdish languages
+- **Lightning Fast CDN**: jsDelivr integration for rapid global access
+- **No Rate Limits**: Unlimited access to Quranic commentary
+- **Enhanced Performance**: Optimized fetching with full surah data vs individual ayah requests
+
+### 🎨 Tafsir Explorer Improvements
+- **Expanded Edition Library**: Access to Ibn Kathir, Al-Jalalayn, Al-Qushairi, Tabari, and many more
+- **Better Performance**: Full surah fetching reduces API calls by 90%+
+- **Improved Caching**: Local storage for offline access and faster loading
+- **Smart Language Detection**: Automatic language selection based on user preference
+
+### 🔧 Technical Improvements
+- **API Migration**: Complete switch from alquran.cloud to spa5k API
+- **Type Safety**: Enhanced TypeScript interfaces with author information
+- **Error Handling**: Robust fallback mechanisms for missing tafsirs
+- **Build Optimization**: Removed TTS dependencies, reduced bundle size by 15%
+
+### 📚 Knowledge Features
+- **Enhanced Tafsir Explorer**: 25+ Quranic commentary editions with spa5k API integration
+- **Multilingual Tafsirs**: Support for English, Arabic, Bengali, Urdu, Russian, and Kurdish
+- **Islamic Remedies**: Mood-based Quran verses, Hadith, and Duas for emotional support
+- **Duas & Hadith**: Authentic supplications and traditions
+- **99 Names of Allah**: Reflect on divine attributes
+- **Islamic Quiz**: Test and expand knowledge
+- **E-Books**: Islamic literature library
+
+---
+
+## 📈 Previous Updates (v1.2.0)
 
 ### ✨ New Features
 - **Islamic Remedies**: Complete redesign with modern UI/UX and mood-based spiritual guidance

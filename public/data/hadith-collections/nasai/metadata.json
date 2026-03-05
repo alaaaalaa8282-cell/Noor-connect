@@ -1,0 +1,319 @@
+{
+  "name": "nasai",
+  "title": "Sunan al-Nasa'i",
+  "author": "Imam al-Nasa'i",
+  "death": "303 AH",
+  "authenticity": "Hasan",
+  "arabicTitle": "سنن النسائي",
+  "totalHadith": 5685,
+  "totalBooks": 51,
+  "books": [
+    {
+      "number": "1",
+      "name": "Interpreting The Saying Of Allah, The Mighty And Sublime: When You Intend To Offer Salah (The Prayer), wash your faces and your hands (forearms) up to your elbows",
+      "arabicName": "باب تَأْوِيلِ قَوْلِهِ عَزَّ وَجَلَّ ‏{‏ إِذَا قُمْتُمْ إِلَى الصَّلاَةِ فَاغْسِلُوا وُجُوهَكُمْ وَأَيْدِيَكُمْ إِلَى الْمَرَافِقِ ‏}‏ ‏‏",
+      "hadithCount": 325
+    },
+    {
+      "number": "2",
+      "name": "Allah, The Mighty and Sublime, says: And We sent down pure water from the sky. [1] And He, the Mighty and Sublime, says: And He caused water to descend on you from the sky, to clean you thereby. [2] And He, the Most High, says: And you find no water, then perform Tayammum with clean earth [3]",
+      "arabicName": "باب  قَالَ اللَّهُ عَزَّ وَجَلَّ ‏{‏ وَأَنْزَلْنَا مِنَ السَّمَاءِ مَاءً طَهُورًا ‏}‏ وَقَالَ تَعَالَى ‏{‏ فَلَمْ تَجِدُوا مَاءً فَتَيَمَّمُوا صَعِيدًا طَيِّبًا ‏}‏",
+      "hadithCount": 23
+    },
+    {
+      "number": "3",
+      "name": "The Beginning Of Menstruation, And Can Menstruation Be Called Nifas?",
+      "arabicName": "باب بَدْءُ الْحِيضِ وَهَلْ يُسَمَّى الْحِيضُ نِفَاسًا",
+      "hadithCount": 48
+    },
+    {
+      "number": "4",
+      "name": "Mentioning The Prohibition Of One Who Is Junub Performing Ghusl In Standing Water",
+      "arabicName": "باب ذِكْرِ نَهْىِ الْجُنُبِ عَنْ الاِغْتِسَالِ، فِي الْمَاءِ الدَّائِمِ",
+      "hadithCount": 53
+    },
+    {
+      "number": "5",
+      "name": "Enjoining As-Salah And Mentioning The Differences Reported by The Narrators In The Chain Of The Hadith Of Anas Bin Malik (May Allah Be Pleased With Him), And The Different Wordings In It",
+      "arabicName": "باب فَرْضِ الصَّلاَةِ وَذِكْرِ اخْتِلاَفِ النَّاقِلِينَ فِي إِسْنَادِ حَدِيثِ أَنَسِ بْنِ مَالِكٍ - رضى الله عنه - وَاخْتِلاَفِ أَلْفَاظِهِمْ فِيهِ ‏.‏",
+      "hadithCount": 46
+    },
+    {
+      "number": "6",
+      "name": "How Jibril Led The Prayer And The Definition Of The Times Of The Five Daily Prayers",
+      "arabicName": "باب ‏.‏",
+      "hadithCount": 132
+    },
+    {
+      "number": "7",
+      "name": "How The Adhan Began",
+      "arabicName": "باب بَدْءِ الأَذَانِ",
+      "hadithCount": 62
+    },
+    {
+      "number": "8",
+      "name": "The Virtue Of Building Masjids",
+      "arabicName": "باب الْفَضْلِ فِي بِنَاءِ الْمَسَاجِدِ",
+      "hadithCount": 54
+    },
+    {
+      "number": "9",
+      "name": "Facing the Qibla",
+      "arabicName": "باب اسْتِقْبَالِ الْقِبْلَةِ",
+      "hadithCount": 35
+    },
+    {
+      "number": "10",
+      "name": "Mention of Al-Imamah and the congregation",
+      "arabicName": "باب ذِكْرِ الإِمَامَةِ وَالْجَمَاعَةِ إِمَامَةِ أَهْلِ الْعِلْمِ وَالْفَضْلِ",
+      "hadithCount": 99
+    },
+    {
+      "number": "11",
+      "name": "What is done at the beginning of the prayer",
+      "arabicName": "باب الْعَمَلِ فِي افْتِتَاحِ الصَّلاَةِ",
+      "hadithCount": 153
+    },
+    {
+      "number": "12",
+      "name": "Clasping one's hands together",
+      "arabicName": "باب التطبيق",
+      "hadithCount": 150
+    },
+    {
+      "number": "13",
+      "name": "The takbir when standing up following two rakahs",
+      "arabicName": "باب التَّكْبِيرِ إِذَا قَامَ مِنَ الرَّكْعَتَيْنِ",
+      "hadithCount": 188
+    },
+    {
+      "number": "14",
+      "name": "The Obligation of Jumu'ah",
+      "arabicName": "إِيجَابُ الْجُمُعَةِ",
+      "hadithCount": 69
+    },
+    {
+      "number": "15",
+      "name": "Book 15",
+      "arabicName": "باب",
+      "hadithCount": 26
+    },
+    {
+      "number": "16",
+      "name": "Eclipse of the sun and moon",
+      "arabicName": "باب كُسُوفِ الشَّمْسِ وَالْقَمَرِ",
+      "hadithCount": 45
+    },
+    {
+      "number": "17",
+      "name": "When should the imam pray for rain",
+      "arabicName": "باب مَتَى يَسْتَسْقِي الإِمَامُ‏",
+      "hadithCount": 25
+    },
+    {
+      "number": "18",
+      "name": "The narrations mentioned for the Fear Prayer",
+      "arabicName": "باب",
+      "hadithCount": 27
+    },
+    {
+      "number": "19",
+      "name": "Book 19",
+      "arabicName": "باب",
+      "hadithCount": 42
+    },
+    {
+      "number": "20",
+      "name": "Encouragement to pray in houses and the virtue of doing so",
+      "arabicName": "باب الْحَثِّ عَلَى الصَّلاَةِ فِي الْبُيُوتِ وَالْفَضْلِ فِي ذَلِكَ",
+      "hadithCount": 220
+    },
+    {
+      "number": "21",
+      "name": "Wishing For Death",
+      "arabicName": "باب تَمَنِّي الْمَوْتِ ‏",
+      "hadithCount": 272
+    },
+    {
+      "number": "22",
+      "name": "The Obligation of Fasting",
+      "arabicName": "باب وُجُوبِ الصِّيَامِ ‏‏",
+      "hadithCount": 345
+    },
+    {
+      "number": "23",
+      "name": "The Obligation of Zakah",
+      "arabicName": "باب وُجُوبِ الزَّكَاةِ ‏‏",
+      "hadithCount": 184
+    },
+    {
+      "number": "24",
+      "name": "The Obligation Of Hajj",
+      "arabicName": "باب وُجُوبِ الْحَجِّ ‏‏",
+      "hadithCount": 467
+    },
+    {
+      "number": "25",
+      "name": "The Obligation Of Jihad",
+      "arabicName": "باب وُجُوبِ الْجِهَادِ ‏.‏",
+      "hadithCount": 111
+    },
+    {
+      "number": "26",
+      "name": "Mentioning the Command of the Messenger of Allah Concerning Marriage, His Wives and what Allah, The Mighty And Sublime, Permitted To His Prophet When It Is Forbidden To Other People, Because Of His Virtue And High Status",
+      "arabicName": "باب ذِكْرِ أَمْرِ رَسُولِ اللَّهِ صلى الله عليه وسلم فِي النِّكَاحِ وَأَزْوَاجِهِ وَمَا أَبَاحَ اللَّهُ عَزَّ وَجَلَّ لِنَبِيِّهِ صلى الله عليه وسلم وَحَظَرَهُ عَلَى خَلْقِهِ زِيَادَةً فِي كَرَامَتِهِ وَتَنْبِيهًا لِفَضِيلَتِهِ ‏.‏",
+      "hadithCount": 193
+    },
+    {
+      "number": "27",
+      "name": "Divorce At The Time When Allah Has Stated That Women May Be Divorced",
+      "arabicName": "باب وَقْتِ الطَّلاَقِ لِلْعِدَّةِ الَّتِي أَمَرَ اللَّهُ عَزَّ وَجَلَّ أَنْ تُطَلَّقَ لَهَا النِّسَاءُ ‏‏",
+      "hadithCount": 174
+    },
+    {
+      "number": "28",
+      "name": "\"Goodness Is Tied To The Forelocks Of Horses Until The Day of Judgment",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 33
+    },
+    {
+      "number": "29",
+      "name": "What The Messenger Of Allah Left Behind When He Died",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 17
+    },
+    {
+      "number": "30",
+      "name": "It Is Disliked To Delay Making A Will",
+      "arabicName": "باب الْكَرَاهِيَةِ فِي تَأْخِيرِ الْوَصِيَّةِ",
+      "hadithCount": 61
+    },
+    {
+      "number": "31",
+      "name": "Different Versions Of The Report Of Nu'man Bin Bashir Concerning Presents",
+      "arabicName": "باب ذِكْرِ اخْتِلاَفِ أَلْفَاظِ النَّاقِلِينَ لِخَبَرِ النُّعْمَانِ بْنِ بَشِيرٍ فِي النُّحْلِ",
+      "hadithCount": 16
+    },
+    {
+      "number": "32",
+      "name": "A Gift Given To Everyone",
+      "arabicName": "باب هِبَةِ الْمَشَاعِ ‏‏",
+      "hadithCount": 18
+    },
+    {
+      "number": "33",
+      "name": "Mentioning The Different Reports From Ibn Abi Najih Concerning The Narration Of Zaid Bin Thabit",
+      "arabicName": "باب ذِكْرِ الاِخْتِلاَفِ عَلَى ابْنِ أَبِي نَجِيحٍ فِي خَبَرِ زَيْدِ بْنِ ثَابِتٍ فِيهِ ‏‏",
+      "hadithCount": 14
+    },
+    {
+      "number": "34",
+      "name": "\"'Umra (A Gift Given For Life) Belongs To The Heir\"",
+      "arabicName": "باب ‏{‏ ‏.‏..}‏",
+      "hadithCount": 42
+    },
+    {
+      "number": "35",
+      "name": "(The Oath Of The Prophet)",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 96
+    },
+    {
+      "number": "36",
+      "name": "Love of Women",
+      "arabicName": "باب حُبِّ النِّسَاءِ ‏‏",
+      "hadithCount": 27
+    },
+    {
+      "number": "37",
+      "name": "The Prohibition of Bloodshed",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 167
+    },
+    {
+      "number": "38",
+      "name": "The Book Of The Distribution Of Al-Fay'",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 16
+    },
+    {
+      "number": "39",
+      "name": "Pledging To Hear And Obey",
+      "arabicName": "باب الْبَيْعَةِ عَلَى السَّمْعِ وَالطَّاعَةِ ‏‏",
+      "hadithCount": 63
+    },
+    {
+      "number": "40",
+      "name": "For a boy, two sheep",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 10
+    },
+    {
+      "number": "41",
+      "name": "There Is No Fara ' And No  'Atirah",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 41
+    },
+    {
+      "number": "42",
+      "name": "The Command To Mention The Name Of Allah When Hunting",
+      "arabicName": "باب الأَمْرِ بِالتَّسْمِيَةِ عِنْدَ الصَّيْدِ ‏‏",
+      "hadithCount": 98
+    },
+    {
+      "number": "43",
+      "name": "The One Who Wishes To Offer A Sacrifice Should Not Remove Any Of His Hair",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 88
+    },
+    {
+      "number": "44",
+      "name": "Encouragement to Earn A Living",
+      "arabicName": "باب الْحَثِّ عَلَى الْكَسْبِ ‏‏",
+      "hadithCount": 257
+    },
+    {
+      "number": "45",
+      "name": "Qasamah During The Jahiliyyah",
+      "arabicName": "باب ذِكْرِ الْقَسَامَةِ الَّتِي كَانَتْ فِي الْجَاهِلِيَّةِ ‏‏",
+      "hadithCount": 164
+    },
+    {
+      "number": "46",
+      "name": "The Seriousness of Theft",
+      "arabicName": "باب تَعْظِيمِ السَّرِقَةِ ‏‏",
+      "hadithCount": 114
+    },
+    {
+      "number": "47",
+      "name": "Mentioning the Best of Deeds",
+      "arabicName": "باب ذِكْرِ أَفْضَلِ الأَعْمَالِ ‏‏",
+      "hadithCount": 55
+    },
+    {
+      "number": "48",
+      "name": "The Fitrah",
+      "arabicName": "باب الْفِطْرَةِ ‏‏",
+      "hadithCount": 339
+    },
+    {
+      "number": "49",
+      "name": "Virtue of the Judge Who is Just in Passing Judgement",
+      "arabicName": "باب فَضْلِ الْحَاكِمِ الْعَادِلِ فِي حُكْمِهِ",
+      "hadithCount": 49
+    },
+    {
+      "number": "50",
+      "name": "What was Narrated Concerning Al-Mu'awwidhatain (Two Surahs Seeking Refuge with Allah)",
+      "arabicName": "باب ‏‏",
+      "hadithCount": 112
+    },
+    {
+      "number": "51",
+      "name": "Prohibition of Khamr",
+      "arabicName": "باب تَحْرِيمِ الْخَمْرِ",
+      "hadithCount": 220
+    }
+  ],
+  "dataFile": "hadiths.json"
+}

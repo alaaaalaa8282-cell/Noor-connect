@@ -1,0 +1,21 @@
+{
+  "name": "ibn-majah",
+  "title": "Sunan Ibn Majah",
+  "arabicTitle": "",
+  "author": "Imam Ibn Majah",
+  "death": "273 AH / 887 CE",
+  "description": "Imported from external hadith dataset.",
+  "totalHadith": 4,
+  "totalBooks": 1,
+  "authenticity": "Hasan (Good)",
+  "compilerPeriod": "",
+  "books": [
+    {
+      "number": "1",
+      "name": "Book 1",
+      "arabicName": "",
+      "hadithCount": 4,
+      "description": ""
+    }
+  ]
+}

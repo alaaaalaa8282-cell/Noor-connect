@@ -196,12 +196,14 @@ function getProgressText(achievement: Achievement): string {
       return `${stats.totalCorrect}/${achievement.requirement.value} correct`;
     case 'streak':
       return `${stats.bestStreak}/${achievement.requirement.value} streak`;
-    case 'category':
+    case 'category': {
       const categoryCorrect = stats.categoryMastery[achievement.requirement.category!] || 0;
       return `${categoryCorrect}/${achievement.requirement.value} correct`;
-    case 'accuracy':
+    }
+    case 'accuracy': {
       const accuracy = stats.totalQuestions > 0 ? (stats.totalCorrect / stats.totalQuestions) * 100 : 0;
       return `${Math.round(accuracy)}%/${achievement.requirement.value}%`;
+    }
     case 'level':
       return `Level ${stats.level}/${achievement.requirement.value}`;
     default:

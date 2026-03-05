@@ -77,36 +77,44 @@ const Quran = () => {
         <div className="max-w-lg mx-auto px-5 py-4 space-y-6">
 
           {/* Premium Hero Section */}
-          <div className="relative overflow-hidden rounded-[32px] bg-[#1a4a4a] p-8 shadow-xl shadow-emerald-500/10">
-            {/* Background elements */}
-            <div className="absolute top-0 end-0 w-40 h-40 bg-emerald-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-            <div className="absolute bottom-0 start-0 w-32 h-32 bg-primary/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
+          <div className="relative overflow-hidden rounded-[32px] shadow-2xl shadow-emerald-900/20 group">
+            {/* Animated Mesh Gradient Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1a4a4a] via-[#245a5a] to-[#2c6e6e]"></div>
+            
+            {/* Decorative Patterns */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-emerald-400/10 rounded-full blur-[80px] -translate-y-1/2 translate-x-1/2 animate-pulse" />
+            <div className="absolute bottom-0 left-0 w-48 h-48 bg-primary/10 rounded-full blur-[60px] translate-y-1/2 -translate-x-1/2" />
 
-            <div className="relative z-10">
-              <div className="flex items-center gap-2 mb-4">
-                <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md">
-                  <BookOpen className="w-5 h-5 text-white" />
-                </div>
-                <span className="text-white/80 text-[10px] font-bold uppercase tracking-widest">{ti18n('alQuranAlKareem')}</span>
+            {/* Glassmorphism Overlay */}
+            <div className="absolute inset-0 bg-white/[0.02] backdrop-blur-[1px]" />
+
+            <div className="relative z-10 p-8 flex flex-col items-center text-center">
+              <div className="inline-flex items-center gap-2 px-3 py-1 rounded-full bg-white/10 border border-white/10 mb-6">
+                <Sparkles className="w-3.5 h-3.5 text-[#e0c097]" />
+                <span className="text-[10px] font-black uppercase tracking-[0.2em] text-white/90">
+                  {ti18n('alQuranAlKareem')}
+                </span>
               </div>
 
-              <h1 className="text-3xl font-black text-white mb-2 font-arabic tracking-tight">{ti18n('theNobleQuran')}</h1>
-              <p className="text-white/60 text-xs font-medium max-w-[200px]">{ti18n('readListenContemplate')}</p>
+              <h1 className="text-4xl sm:text-5xl font-arabic font-bold text-white mb-4 drop-shadow-lg">
+                {ti18n('theNobleQuran')}
+              </h1>
+              <p className="text-white/60 text-xs font-medium max-w-[240px] leading-relaxed mb-8">
+                {ti18n('readListenContemplate')}
+              </p>
 
-              {/* Quick Stats Grid */}
-              <div className="grid grid-cols-3 gap-2 mt-6">
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
-                  <p className="text-primary text-sm font-black">114</p>
-                  <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('surahs')}</p>
-                </div>
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
-                  <p className="text-primary text-sm font-black">6236</p>
-                  <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('ayahs')}</p>
-                </div>
-                <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
-                  <p className="text-primary text-sm font-black">30</p>
-                  <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('juz')}</p>
-                </div>
+              {/* Quick Stats Grid with Glassmorphism */}
+              <div className="grid grid-cols-3 gap-3 w-full max-w-sm">
+                {[
+                  { label: ti18n('surahs'), value: '114' },
+                  { label: ti18n('ayahs'), value: '6,236' },
+                  { label: ti18n('juz'), value: '30' }
+                ].map((stat, idx) => (
+                  <div key={idx} className="bg-black/20 backdrop-blur-md rounded-2xl p-4 border border-white/5 group-hover:bg-black/30 transition-colors">
+                    <p className="text-primary text-lg font-black tracking-tighter">{stat.value}</p>
+                    <p className="text-white/40 text-[9px] uppercase font-black tracking-widest mt-1">{stat.label}</p>
+                  </div>
+                ))}
               </div>
             </div>
           </div>
@@ -160,24 +168,31 @@ const Quran = () => {
                   >
                     <button
                       onClick={() => navigate(`/quran-reader/${surah.number}`)}
-                      className="w-full flex items-center p-4 bg-card border border-border/40 rounded-2xl hover:bg-muted/30 transition-all group active:scale-[0.99] text-left"
+                      className="w-full flex items-center p-5 bg-card border border-border/40 rounded-[24px] hover:bg-primary/5 hover:border-primary/20 transition-all duration-300 group active:scale-[0.98] text-left shadow-sm hover:shadow-md"
                     >
-                      {/* Number Plate */}
-                      <div className="relative w-11 h-11 flex items-center justify-center shrink-0">
-                        <div className="absolute inset-0 bg-primary/10 rotate-45 rounded-xl group-hover:rotate-[135deg] transition-transform duration-500" />
-                        <span className="relative z-10 font-black text-primary text-xs">{surah.number}</span>
+                      {/* Number Plate - Premium Octagonal Style */}
+                      <div className="relative w-12 h-12 flex items-center justify-center shrink-0">
+                        <div className="absolute inset-0 bg-primary/10 rotate-45 rounded-xl group-hover:rotate-[135deg] transition-transform duration-700" />
+                        <div className="absolute inset-1 bg-primary/5 rotate-12 rounded-lg" />
+                        <span className="relative z-10 font-black text-primary text-xs tracking-tighter">{surah.number}</span>
                       </div>
 
-                      <div className="ms-4 flex-1">
-                        <div className="flex items-center justify-between">
-                          <div>
-                            <h3 className="font-bold text-[15px] group-hover:text-primary transition-colors">{surah.englishName}</h3>
-                            <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-wider mt-0.5">
-                              {surah.revelationType} • {surah.numberOfAyahs} Ayahs
-                            </p>
+                      <div className="ms-5 flex-1">
+                        <div className="flex items-center justify-between gap-4">
+                          <div className="space-y-1">
+                            <h3 className="font-black text-base tracking-tight group-hover:text-primary transition-colors">{surah.englishName}</h3>
+                            <div className="flex items-center gap-2">
+                              <span className="px-2 py-0.5 rounded-full bg-muted text-[9px] font-bold uppercase tracking-widest text-muted-foreground">
+                                {surah.revelationType}
+                              </span>
+                              <span className="text-[10px] text-muted-foreground/60 font-bold uppercase tracking-widest">
+                                {surah.numberOfAyahs} Ayahs
+                              </span>
+                            </div>
                           </div>
                           <div className="text-right">
-                            <p className="font-arabic text-xl text-primary drop-shadow-sm">{surah.name}</p>
+                            <p className="font-arabic text-2xl text-primary drop-shadow-sm leading-none group-hover:scale-110 transition-transform duration-500">{surah.name}</p>
+                            <p className="text-[9px] text-muted-foreground/40 font-bold uppercase tracking-tighter mt-1">{surah.englishNameTranslation}</p>
                           </div>
                         </div>
                       </div>

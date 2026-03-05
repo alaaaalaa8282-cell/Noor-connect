@@ -1,0 +1,181 @@
+{
+  "name": "mishkat",
+  "totalHadith": 5319,
+  "totalBooks": 29,
+  "books": [
+    {
+      "number": "1",
+      "name": "Faith",
+      "arabicName": "",
+      "hadithCount": 188
+    },
+    {
+      "number": "2",
+      "name": "Knowledge",
+      "arabicName": "",
+      "hadithCount": 75
+    },
+    {
+      "number": "3",
+      "name": "Purification",
+      "arabicName": "",
+      "hadithCount": 258
+    },
+    {
+      "number": "4",
+      "name": "Prayer",
+      "arabicName": "",
+      "hadithCount": 921
+    },
+    {
+      "number": "5",
+      "name": "Funerals",
+      "arabicName": "",
+      "hadithCount": 243
+    },
+    {
+      "number": "6",
+      "name": "Zakat",
+      "arabicName": "",
+      "hadithCount": 180
+    },
+    {
+      "number": "7",
+      "name": "Fasting",
+      "arabicName": "",
+      "hadithCount": 148
+    },
+    {
+      "number": "8",
+      "name": "The Excellent Qualities of the Qur'an",
+      "arabicName": "",
+      "hadithCount": 112
+    },
+    {
+      "number": "9",
+      "name": "Supplications",
+      "arabicName": "",
+      "hadithCount": 272
+    },
+    {
+      "number": "10",
+      "name": "The Rites of Pilgrimage",
+      "arabicName": "",
+      "hadithCount": 246
+    },
+    {
+      "number": "11",
+      "name": "Business Transactions",
+      "arabicName": "",
+      "hadithCount": 274
+    },
+    {
+      "number": "12",
+      "name": "Inheritance and Wills",
+      "arabicName": "",
+      "hadithCount": 37
+    },
+    {
+      "number": "13",
+      "name": "Marriage",
+      "arabicName": "",
+      "hadithCount": 293
+    },
+    {
+      "number": "14",
+      "name": "Emancipation",
+      "arabicName": "",
+      "hadithCount": 24
+    },
+    {
+      "number": "15",
+      "name": "Oaths and Vows",
+      "arabicName": "",
+      "hadithCount": 39
+    },
+    {
+      "number": "16",
+      "name": "Retaliation",
+      "arabicName": "",
+      "hadithCount": 100
+    },
+    {
+      "number": "17",
+      "name": "Prescribed Punishments",
+      "arabicName": "",
+      "hadithCount": 94
+    },
+    {
+      "number": "18",
+      "name": "The Offices of Commander and Qadi",
+      "arabicName": "",
+      "hadithCount": 121
+    },
+    {
+      "number": "19",
+      "name": "Jihad",
+      "arabicName": "",
+      "hadithCount": 273
+    },
+    {
+      "number": "20",
+      "name": "Game and Animals Which May Be Slaughtered",
+      "arabicName": "",
+      "hadithCount": 93
+    },
+    {
+      "number": "21",
+      "name": "Foods",
+      "arabicName": "",
+      "hadithCount": 135
+    },
+    {
+      "number": "22",
+      "name": "Clothing",
+      "arabicName": "",
+      "hadithCount": 198
+    },
+    {
+      "number": "23",
+      "name": "Medicine and Spells",
+      "arabicName": "",
+      "hadithCount": 88
+    },
+    {
+      "number": "24",
+      "name": "Visions",
+      "arabicName": "",
+      "hadithCount": 20
+    },
+    {
+      "number": "27",
+      "name": "Fitan",
+      "arabicName": "",
+      "hadithCount": 141
+    },
+    {
+      "number": "28",
+      "name": "Events of the Day of Resurrection and the Beginning of Creation",
+      "arabicName": "",
+      "hadithCount": 207
+    },
+    {
+      "number": "29",
+      "name": "Excellent Qualities and Description of the Prophet",
+      "arabicName": "",
+      "hadithCount": 234
+    },
+    {
+      "number": "30",
+      "name": "Fine Qualities",
+      "arabicName": "",
+      "hadithCount": 304
+    },
+    {
+      "number": "Author's",
+      "name": "Introduction مقدمة المؤلف",
+      "arabicName": "",
+      "hadithCount": 1
+    }
+  ]
+}

@@ -194,3 +194,5 @@ export function SalahTracker() {
     </Card>
   );
 }
+
+export default SalahTracker;

@@ -2,19 +2,21 @@ import { useState, useEffect, useCallback, useMemo, Suspense, lazy, type MouseEv
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight, Sparkles, MessageCircle, Settings } from "lucide-react";
 import { AppBar } from "@/components/AppBar";
 const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
 const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
-const DailyAyah = lazy(() => import("@/components/DailyAyah").then(module => ({ default: module.DailyAyah })));
-const DailyHadith = lazy(() => import("@/components/DailyHadith").then(module => ({ default: module.DailyHadith })));
-const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
+const DailyAyah = lazy(() => import("@/components/EnhancedDailyAyah").then(module => ({ default: module.EnhancedDailyAyah })));
+const DailyHadith = lazy(() => import("@/components/EnhancedDailyHadith").then(module => ({ default: module.EnhancedDailyHadith })));
+const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown"));
 const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
 const QazaTracker = lazy(() => import("@/components/QazaTracker").then(module => ({ default: module.QazaTracker })));
 const DhikrReminder = lazy(() => import("@/components/DhikrReminder").then(module => ({ default: module.DhikrReminder })));
 const IslamicGreeting = lazy(() => import("@/components/IslamicGreeting").then(module => ({ default: module.IslamicGreeting })));
 const IslamicEventsWidget = lazy(() => import("@/components/IslamicEventsWidget").then(module => ({ default: module.IslamicEventsWidget })));
 const QuranProgressWidget = lazy(() => import("@/components/QuranProgressWidget").then(module => ({ default: module.QuranProgressWidget })));
+const WeatherWidget = lazy(() => import("@/components/WeatherWidget").then(module => ({ default: module.WeatherWidget })));
+const PrayerStatsWidget = lazy(() => import("@/components/PrayerStatsWidget").then(module => ({ default: module.PrayerStatsWidget })));
 import { LocationSearch } from "@/components/LocationSearch";
 import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext-new";
@@ -24,9 +26,6 @@ import { isMenstrualModeActive, getMenstrualModeData, activateMenstrualMode, dea
 
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
-// Dynamic imports for code splitting
-// const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown").then(module => ({ default: module.PrayerCountdown })));
-// const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
 import { getTimeFormat, formatTime } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
@@ -37,6 +36,7 @@ import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GeocodingService } from "@/lib/geocoding";
 import { PRAYER_ALARM_CONTROL_EVENT, PRAYER_ALARM_TOGGLE_EVENT } from "@/lib/prayer-alarm-events";
 import { PageTransition } from "@/components/PageTransition";
+import { widgetRefreshManager } from "@/lib/widget-refresh";
 
 const prayerIcons: Record<string, React.ReactNode> = {
   Fajr: <Moon className="w-5 h-5" />,
@@ -83,12 +83,10 @@ export default function Dashboard() {
   const prayerLocation = prayerTimesHook.location;
   
   // Priority: GPS location > VPN/API location
-  // If GPS location is available and different from VPN location, use GPS
+  // If GPS location is set, use it regardless of whether it's default
   const locationLabel = useMemo(() => {
-    // If GPS location is set and not the default Karachi location, use it
-    if (location.latitude && location.longitude && 
-        !(location.latitude === 24.8607 && location.longitude === 67.0011) &&
-        location.locationName !== 'Karachi, Pakistan') {
+    // If GPS location has coordinates, use it (even if default Karachi)
+    if (location.latitude && location.longitude) {
       return location.locationName;
     }
     
@@ -103,17 +101,14 @@ export default function Dashboard() {
 
   // Similar priority for timezone
   const timezoneLabel = useMemo(() => {
-    // If GPS location is set and not the default Karachi location, use it
-    if (location.latitude && location.longitude && 
-        !(location.latitude === 24.8607 && location.longitude === 67.0011) &&
-        location.locationName !== 'Karachi, Pakistan' &&
-        location.timeZone) {
+    // If GPS location is set, use it (even if default Karachi)
+    if (location.latitude && location.longitude && location.timeZone) {
       return location.timeZone;
     }
     
     // Otherwise, use VPN/API location if available
-    if (prayerLocation?.timezone) {
-      return prayerLocation.timezone;
+    if (prayerLocation?.timeZone) {
+      return prayerLocation.timeZone;
     }
     
     // Fallback to default location timezone
@@ -121,7 +116,8 @@ export default function Dashboard() {
   }, [location, prayerLocation]);
 
   useEffect(() => {
-    setTimeFormat(getTimeFormat());
+    const currentFormat = getTimeFormat();
+    setTimeFormat(currentFormat);
   }, [setTimeFormat]);
 
   // Helper function to format time from API using global formatter
@@ -213,7 +209,7 @@ export default function Dashboard() {
       setLoadingAPI(false);
       setInitialLoad(false);
     }
-  }, [location.latitude, location.longitude, location.timeZone, location.locationName, location.setLocation, formatTimeFromAPI, parseTimeToDate]);
+  }, [location.latitude, location.longitude, location.timeZone, location.locationName, location.setLocation, formatTimeFromAPI, parseTimeToDate, timeFormat]);
 
   useEffect(() => {
     const timer = setInterval(() => setCurrentTime(new Date()), 1000);
@@ -221,6 +217,7 @@ export default function Dashboard() {
     // Add online listener to refresh prayer times as soon as internet is back
     const handleOnline = () => {
             loadPrayerTimes();
+            widgetRefreshManager.refreshAll(); // Refresh all widgets when online
     };
 
     window.addEventListener('online', handleOnline);
@@ -250,6 +247,7 @@ export default function Dashboard() {
     }
   };
 
+  
   // Handle menstrual mode toggle
   const handleMenstrualModeToggle = async () => {
     if (menstrualModeData.isActive) {
@@ -306,6 +304,70 @@ export default function Dashboard() {
       loadPrayerTimes();
     }
   }, [location.latitude, location.longitude, timeFormat, loadPrayerTimes]); // Add loadPrayerTimes to dependencies
+
+  // Listen for time format changes from settings
+  useEffect(() => {
+    const handleStorageChange = (e: StorageEvent) => {
+      if (e.key === 'time-format' && e.newValue) {
+        setTimeFormat(e.newValue as '12' | '24');
+        // Reload prayer times to apply new format
+        if (location.latitude && location.longitude) {
+          loadPrayerTimes();
+        }
+      }
+    };
+
+    const handleCustomTimeFormatChange = (e: CustomEvent) => {
+      if (e.detail?.format) {
+        setTimeFormat(e.detail.format as '12' | '24');
+        // Reload prayer times to apply new format
+        if (location.latitude && location.longitude) {
+          loadPrayerTimes();
+        }
+      }
+    };
+
+    window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('time-format-changed', handleCustomTimeFormatChange as EventListener);
+    
+    return () => {
+      window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('time-format-changed', handleCustomTimeFormatChange as EventListener);
+    };
+  }, [setTimeFormat, location.latitude, location.longitude, loadPrayerTimes]);
+
+  // Clear stale location data on mount to prevent ISTRES issue
+  useEffect(() => {
+    // Clear any stale IP-based location that might show wrong city
+    const staleKeys = ['user-location-data', 'location-storage'];
+    staleKeys.forEach(key => {
+      try {
+        const data = localStorage.getItem(key);
+        if (data) {
+          const parsed = JSON.parse(data);
+          // Clear if it contains ISTRES or other problematic location data
+          if (parsed.city === 'Istres' || parsed.locationName?.includes('Istres') || 
+              parsed.city === 'ISTRES' || parsed.locationName?.includes('ISTRES')) {
+            localStorage.removeItem(key);
+            console.log('Cleared stale location data containing ISTRES');
+            // Force reload page to refresh location
+            window.location.reload();
+          }
+        }
+      } catch (error) {
+        console.warn('Failed to check location data:', error);
+      }
+    });
+
+    // Also force clear any problematic data if location is showing ISTRES
+    if (location.locationName?.includes('Istres') || location.locationName?.includes('ISTRES')) {
+      localStorage.removeItem('user-location-data');
+      localStorage.removeItem('location-storage');
+      console.log('Cleared location data due to ISTRES detection');
+      // Force reload to get fresh location
+      window.location.reload();
+    }
+  }, []);
 
 
 
@@ -366,52 +428,69 @@ export default function Dashboard() {
             <div className="absolute inset-0 bg-gradient-to-b from-white/5 to-transparent"></div>
 
             {/* Content Container */}
-            <div className="relative z-10 p-6 sm:p-8 flex flex-col items-center text-white space-y-5">
+            <div className="relative z-10 p-6 sm:p-8 flex flex-col text-white space-y-6">
 
               {/* Top Row: Date & Hijri with premium badges */}
-              <div className="w-full flex justify-between items-center text-xs sm:text-sm font-medium">
-                <div className="flex items-center gap-2 glass-card px-3 py-1.5 text-white/90">
-                  <Calendar className="w-3.5 h-3.5 text-[#e0c097]" />
-                  <span>
-                    {currentTime.toLocaleDateString("en-US", {
-                      weekday: "short",
-                      day: "numeric",
-                      month: "short"
-                    })}
-                  </span>
-                </div>
-                {hijriDate && (
-                  <div className="glass-card px-3 py-1.5 font-arabic tracking-wide text-[#e0c097]">
-                    {hijriDate}
+              <div className="w-full flex justify-between items-center">
+                <div className="flex flex-col gap-1">
+                  <div className="flex items-center gap-2 glass-card px-3 py-1.5 text-white/90 w-fit">
+                    <Calendar className="w-3.5 h-3.5 text-[#e0c097]" />
+                    <span className="text-xs font-medium">
+                      {currentTime.toLocaleDateString("en-US", {
+                        weekday: "long",
+                        day: "numeric",
+                        month: "short"
+                      })}
+                    </span>
                   </div>
-                )}
+                  {hijriDate && (
+                    <div className="text-[10px] text-[#e0c097]/80 font-arabic tracking-wide ps-1">
+                      {hijriDate}
+                    </div>
+                  )}
+                </div>
+                
+                <div className="flex flex-col items-end gap-1">
+                  <p className="text-[10px] text-white/60 font-medium tracking-wide uppercase flex items-center gap-1.5 glass-card px-3 py-1">
+                    <MapPin className="w-3 h-3 text-[#e0c097]" />
+                    {locationLabel.split(',')[0]}
+                  </p>
+                </div>
               </div>
 
               {/* Center: Greeting & Time with premium typography */}
-              <div className="flex flex-col items-center space-y-2 py-3">
-                <div className="flex items-center gap-2 mb-1">
-                  <span className="text-sm font-medium tracking-[0.2em] uppercase text-[#e0c097]/90">
+              <div className="flex flex-col items-center justify-center space-y-1 py-4">
+                <div className="inline-flex items-center gap-2 px-4 py-1 rounded-full bg-white/10 backdrop-blur-md border border-white/10 mb-2">
+                  <Sparkles className="w-3.5 h-3.5 text-[#e0c097]" />
+                  <span className="text-xs font-semibold tracking-[0.1em] uppercase text-white">
                     {greeting}
                   </span>
                 </div>
 
-                <h1 className="text-6xl sm:text-7xl font-bold tracking-tighter text-transparent bg-clip-text bg-gradient-to-b from-white via-white/90 to-white/70 drop-shadow-sm font-mono">
-                  {currentTime.toLocaleTimeString("en-US", {
-                    hour: timeFormat === '12' ? 'numeric' : '2-digit',
-                    minute: "2-digit",
-                    hour12: timeFormat === '12',
-                    timeZone: timezoneLabel || undefined
-                  }).replace(/\s+[APap][Mm]/, '')}
-                  <span className="text-xl sm:text-2xl ms-2 font-light text-white/60 tracking-normal font-sans">
-                    {timeFormat === '12' ? currentTime.toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezoneLabel }).split(' ')[1] : ''}
-                  </span>
-                </h1>
+                <div className="relative flex items-baseline">
+                  <h1 className="text-7xl sm:text-8xl font-bold tracking-tighter text-white drop-shadow-2xl font-mono">
+                    {currentTime.toLocaleTimeString("en-US", {
+                      hour: timeFormat === '12' ? 'numeric' : '2-digit',
+                      minute: "2-digit",
+                      hour12: timeFormat === '12',
+                      timeZone: timezoneLabel || undefined
+                    }).replace(/\s+[APap][Mm]/, '')}
+                  </h1>
+                  {timeFormat === '12' && (
+                    <span className="text-xl sm:text-2xl ms-2 font-bold text-[#e0c097] tracking-tight uppercase">
+                      {currentTime.toLocaleTimeString("en-US", { hour: 'numeric', minute: '2-digit', hour12: true, timeZone: timezoneLabel }).split(' ')[1]}
+                    </span>
+                  )}
+                </div>
 
-                <p className="text-xs text-white/60 font-medium tracking-wide uppercase flex items-center gap-1.5 mt-1 glass-card px-3 py-1">
-                  <MapPin className="w-3 h-3" />
-                  {locationLabel}
-                  {timezoneLabel && <span className="text-white/40">• {timezoneLabel.split('/')[1]?.replace('_', ' ')}</span>}
-                </p>
+                {nextEventCountdown && (
+                  <div className="mt-4 flex items-center gap-2 px-4 py-2 rounded-2xl bg-black/20 backdrop-blur-sm border border-white/5 group-hover:bg-black/30 transition-colors">
+                    <div className="w-2 h-2 rounded-full bg-[#e0c097] animate-pulse" />
+                    <span className="text-xs font-medium text-white/90">
+                      {nextEventCountdown.name}: <span className="text-[#e0c097]">{nextEventCountdown.countdown}</span>
+                    </span>
+                  </div>
+                )}
               </div>
 
             </div>
@@ -478,6 +557,16 @@ export default function Dashboard() {
           {/* Daily Ayah */}
           <Suspense fallback={<div className="h-52 rounded-xl bg-muted/20 animate-pulse" />}>
             <DailyAyah />
+          </Suspense>
+
+          {/* Weather Widget */}
+          <Suspense fallback={<div className="h-48 rounded-xl bg-muted/20 animate-pulse" />}>
+            <WeatherWidget />
+          </Suspense>
+
+          {/* Prayer Stats Widget */}
+          <Suspense fallback={<div className="h-64 rounded-xl bg-muted/20 animate-pulse" />}>
+            <PrayerStatsWidget />
           </Suspense>
 
           {/* Quran Progress Widget */}
@@ -549,47 +638,46 @@ export default function Dashboard() {
             </div>
           )}
 
+          {/* AI Reciter Recognition Feature - REMOVED */}
+
           {/* Quick Access Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
             {[
               { icon: Compass, label: t('qibla'), sub: t('direction'), link: '/qibla', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
               { icon: Calendar, label: t('qazaTracker'), sub: t('tracker'), link: '/qaza', color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
               { icon: BookOpen, label: t('ramadanMode'), sub: t('mode'), link: '/ramadan', color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
+              { icon: MessageCircle, label: 'Hadith Collections', sub: 'Browse', link: '/hadith/collections', color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
               ...(shouldShowMenstrualFeatures() ? [
                 { icon: Heart, label: t('menstrualMode'), sub: t('mode'), link: '/menstrual-mode', color: 'text-rose-500', bgColor: 'bg-rose-500/10' }
               ] : []),
               { icon: Calculator, label: t('zakatCalculator'), sub: t('calc'), link: '/zakat', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
               { icon: Trophy, label: t('islamicQuiz'), sub: t('islamic'), link: '/quiz', color: 'text-yellow-500', bgColor: 'bg-yellow-500/10' },
               { icon: Star, label: t('namesOfAllah'), sub: t('ofAllah'), link: '/names-of-allah', color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
+              { icon: Settings, label: 'Customize', sub: 'Widgets', link: '/widget-customizer', color: 'text-gray-500', bgColor: 'bg-gray-500/10' },
             ].map((item, idx) => (
               <div
                 key={idx}
-                className="group relative overflow-hidden rounded-[20px] bg-card border border-border/50 p-4 cursor-pointer transition-all duration-200 hover:scale-[1.02] hover:-translate-y-0.5 active:scale-[0.98] touch-feedback"
+                className="group relative overflow-hidden rounded-3xl bg-card border border-border/40 p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 active:scale-95 touch-feedback"
                 onClick={(event) => handleCardClick(event, item.link)}
               >
-                {/* Hover Gradient Background */}
-                <div className="absolute inset-0 bg-gradient-to-br from-primary/5 via-transparent to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                {/* Subtle Gradient Overlay */}
+                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                {/* Shine Effect */}
-                <div className="absolute inset-0 opacity-0 group-hover:opacity-100 transition-opacity duration-700">
-                  <div className="absolute inset-0 -translate-x-full group-hover:translate-x-full transition-transform duration-1000 bg-gradient-to-r from-transparent via-white/10 to-transparent" />
-                </div>
-
-                <div className="relative z-10 flex flex-col items-center text-center gap-2">
-                  {/* Icon Container with Premium Styling */}
-                  <div className={`p-3 rounded-2xl ${item.bgColor} shadow-sm group-hover:shadow-md transition-all duration-300 group-hover:scale-110`}>
-                    <item.icon className={`w-6 h-6 ${item.color}`} strokeWidth={2} />
+                <div className="relative z-10 flex flex-col items-center text-center gap-3">
+                  {/* Icon Container */}
+                  <div className={`p-4 rounded-2xl ${item.bgColor} shadow-sm group-hover:shadow-md transition-all duration-500 group-hover:scale-110 group-active:scale-90`}>
+                    <item.icon className={`w-6 h-6 ${item.color}`} strokeWidth={2.5} />
                   </div>
 
                   {/* Text Content */}
-                  <div className="space-y-0.5">
-                    <h3 className="font-semibold text-sm group-hover:text-primary transition-colors duration-300">{item.label}</h3>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">{item.sub}</p>
+                  <div className="space-y-1">
+                    <h3 className="font-bold text-xs sm:text-sm tracking-tight group-hover:text-primary transition-colors">{item.label}</h3>
+                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest opacity-60">{item.sub}</p>
                   </div>
                 </div>
 
-                {/* Corner Accent */}
-                <div className="absolute top-3 right-3 w-2 h-2 rounded-full bg-primary/20 group-hover:bg-primary/40 transition-colors duration-300" />
+                {/* Status Dot */}
+                <div className="absolute top-4 right-4 w-1.5 h-1.5 rounded-full bg-border group-hover:bg-primary/50 transition-colors" />
               </div>
             ))}
           </div>

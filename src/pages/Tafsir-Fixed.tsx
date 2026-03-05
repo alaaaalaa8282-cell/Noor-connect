@@ -747,10 +747,10 @@ const Tafsir = () => {
                       <div className="space-y-4">
                         <Textarea
                           placeholder={ti18n('enterPersonalNote')}
-                          defaultValue={() => {
+                          defaultValue={(() => {
                             const noteKey = currentAyahForNote ? `${currentAyahForNote.surah}:${currentAyahForNote.ayah}` : '';
                             return personalNotes[noteKey] || '';
-                          })()}
+                          })}
                           className="min-h-32"
                         />
                         <div className="flex gap-2">
@@ -767,6 +767,7 @@ const Tafsir = () => {
                       </div>
                     </DialogContent>
                   </Dialog>
+                </div>
                 </div>
 
                 <Card className="p-6 border-emerald-200 bg-emerald-50/50">
@@ -840,9 +841,8 @@ const Tafsir = () => {
                         </div>
                       );
                     })}
-                  )}
-                </div>
-              </Card>
+                  </div>
+                </Card>
             </motion.div>
           )}
 

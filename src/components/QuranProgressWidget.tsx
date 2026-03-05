@@ -29,24 +29,35 @@ export function QuranProgressWidget({ className }: QuranProgressWidgetProps) {
   const [loading, setLoading] = useState(true);
   const { toast } = useToast();
 
+  const loadProgress = async () => {
+    try {
+      const progressData = await quranFeaturesService.getOverallProgress();
+      setProgress(progressData);
+    } catch (error) {
+      console.error('Error loading Quran progress:', error);
+      toast({
+        title: 'Error',
+        description: 'Failed to load Quran progress',
+        variant: 'destructive'
+      });
+    } finally {
+      setLoading(false);
+    }
+  };
+
   useEffect(() => {
-    const loadProgress = async () => {
-      try {
-        const progressData = await quranFeaturesService.getOverallProgress();
-        setProgress(progressData);
-      } catch (error) {
-        console.error('Error loading Quran progress:', error);
-        toast({
-          title: 'Error',
-          description: 'Failed to load Quran progress',
-          variant: 'destructive'
-        });
-      } finally {
-        setLoading(false);
-      }
+    loadProgress();
+
+    // Listen for widget refresh events
+    const handleRefresh = () => {
+      loadProgress();
     };
 
-    loadProgress();
+    window.addEventListener('widget-refresh', handleRefresh);
+
+    return () => {
+      window.removeEventListener('widget-refresh', handleRefresh);
+    };
   }, []);
 
   const getAchievementBadge = (percentage: number) => {
@@ -210,3 +221,5 @@ export function QuranProgressWidget({ className }: QuranProgressWidgetProps) {
     </Card>
   );
 }
+
+export default QuranProgressWidget;

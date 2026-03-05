@@ -65,3 +65,5 @@ export function IslamicGreeting() {
     </div>
   );
 }
+
+export default IslamicGreeting;

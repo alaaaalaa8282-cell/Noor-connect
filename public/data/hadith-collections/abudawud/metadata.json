@@ -1,0 +1,271 @@
+{
+  "name": "abudawud",
+  "title": "Sunan Abu Dawud",
+  "author": "Imam Abu Dawud al-Sijistani",
+  "death": "275 AH",
+  "authenticity": "Hasan",
+  "arabicTitle": "سنن أبي داود",
+  "totalHadith": 5276,
+  "totalBooks": 43,
+  "books": [
+    {
+      "number": "1",
+      "name": "Seclusion While Relieving Oneself",
+      "arabicName": "باب التَّخَلِّي عِنْدَ قَضَاءِ الْحَاجَةِ",
+      "hadithCount": 390
+    },
+    {
+      "number": "2",
+      "name": "The Obligation To Perform The Salat (Prayers)",
+      "arabicName": "باب الصَّلاَةِ مِنَ الإِسْلاَمِ",
+      "hadithCount": 771
+    },
+    {
+      "number": "3",
+      "name": "Collection Of Chapters Regarding Salat Al-Istisqa'",
+      "arabicName": "باب",
+      "hadithCount": 37
+    },
+    {
+      "number": "4",
+      "name": "The Prayer Of The Traveler",
+      "arabicName": "باب صَلاَةِ الْمُسَافِرِ",
+      "hadithCount": 52
+    },
+    {
+      "number": "5",
+      "name": "Chapters Regarding The Voluntary And Sunnah Prayers",
+      "arabicName": "باب التَّطَوُّعِ وَرَكَعَاتِ السُّنَّةِ",
+      "hadithCount": 121
+    },
+    {
+      "number": "6",
+      "name": "Regarding Standing (In Voluntary Night Prayer) During The Month Of Ramadan",
+      "arabicName": "باب فِي قِيَامِ شَهْرِ رَمَضَانَ",
+      "hadithCount": 30
+    },
+    {
+      "number": "7",
+      "name": "How Many Places Are There In The Qur'an Where Prostration Is Required",
+      "arabicName": "باب تَفْرِيعِ أَبْوَابِ السُّجُودِ وَكَمْ سَجْدَةٍ فِي الْقُرْآنِ",
+      "hadithCount": 15
+    },
+    {
+      "number": "8",
+      "name": "The Recommendation To Pray Witr",
+      "arabicName": "باب اسْتِحْبَابِ الْوِتْرِ",
+      "hadithCount": 140
+    },
+    {
+      "number": "9",
+      "name": "Zakat",
+      "arabicName": "باب وُجُوبِ الزَّكَاةِ",
+      "hadithCount": 145
+    },
+    {
+      "number": "10",
+      "name": "Finds",
+      "arabicName": "باب",
+      "hadithCount": 20
+    },
+    {
+      "number": "11",
+      "name": "The Obligation of Hajj",
+      "arabicName": "باب فَرْضِ الْحَجِّ",
+      "hadithCount": 325
+    },
+    {
+      "number": "12",
+      "name": "The Encouragement To Marry",
+      "arabicName": "باب التَّحْرِيضِ عَلَى النِّكَاحِ",
+      "hadithCount": 129
+    },
+    {
+      "number": "13",
+      "name": "Regarding Someone Who Ruins A Wife For Her Husband",
+      "arabicName": "باب فِيمَنْ خَبَّبَ امْرَأَةً عَلَى زَوْجِهَا",
+      "hadithCount": 138
+    },
+    {
+      "number": "14",
+      "name": "The Beginning Of The Ordainment Of Fasting",
+      "arabicName": "باب مَبْدَإِ فَرْضِ الصِّيَامِ",
+      "hadithCount": 164
+    },
+    {
+      "number": "15",
+      "name": "What Has Been Reported About Hijrah (Emigration) And Living In The Desert Areas",
+      "arabicName": "باب مَا جَاءَ فِي الْهِجْرَةِ وَسُكْنَى الْبَدْوِ",
+      "hadithCount": 311
+    },
+    {
+      "number": "16",
+      "name": "What Has Been Reported Regarding The Obligation Of The Sacrifices",
+      "arabicName": "باب مَا جَاءَ فِي إِيجَابِ الأَضَاحِي",
+      "hadithCount": 56
+    },
+    {
+      "number": "17",
+      "name": "Using A Dog For Hunting And Other Than That",
+      "arabicName": "باب فِي اتِّخَاذِ الْكَلْبِ لِلصَّيْدِ وَغَيْرِهِ",
+      "hadithCount": 18
+    },
+    {
+      "number": "18",
+      "name": "What Has Been Related About What Is Commanded About The Will",
+      "arabicName": "باب مَا جَاءَ فِيمَا يُؤْمَرُ بِهِ مِنَ الْوَصِيَّةِ",
+      "hadithCount": 23
+    },
+    {
+      "number": "19",
+      "name": "What Has Been Related About Teaching The Knowledge Of Inheritance",
+      "arabicName": "باب مَا جَاءَ فِي تَعْلِيمِ الْفَرَائِضِ",
+      "hadithCount": 43
+    },
+    {
+      "number": "20",
+      "name": "What Is Required Upon The Imam In The Case Of Those Under Him",
+      "arabicName": "باب مَا يَلْزَمُ الإِمَامَ مِنْ حَقِّ الرَّعِيَّةِ",
+      "hadithCount": 161
+    },
+    {
+      "number": "21",
+      "name": "Sickness Which Expiate For Sins",
+      "arabicName": "باب الأَمْرَاضِ الْمُكَفِّرَةِ لِلذُّنُوبِ",
+      "hadithCount": 153
+    },
+    {
+      "number": "22",
+      "name": "Stern Warning Against False Oaths",
+      "arabicName": "باب التَّغْلِيظِ فِي الأَيْمَانِ الْفَاجِرَةِ",
+      "hadithCount": 84
+    },
+    {
+      "number": "23",
+      "name": "Regarding Trade That Is Mixed With Swearing And Idle Talk",
+      "arabicName": "باب فِي التِّجَارَةِ يُخَالِطُهَا الْحَلِفُ وَاللَّغْوُ",
+      "hadithCount": 90
+    },
+    {
+      "number": "24",
+      "name": "Regarding The Earnings Of A Teacher",
+      "arabicName": "باب فِي كَسْبِ الْمُعَلِّمِ",
+      "hadithCount": 155
+    },
+    {
+      "number": "25",
+      "name": "Regarding Seeking Appointment As A Judge",
+      "arabicName": "باب فِي طَلَبِ الْقَضَاءِ",
+      "hadithCount": 70
+    },
+    {
+      "number": "26",
+      "name": "Regarding the virtue of knowledge",
+      "arabicName": "باب الْحَثِّ عَلَى طَلَبِ الْعِلْمِ",
+      "hadithCount": 28
+    },
+    {
+      "number": "27",
+      "name": "The prohibition of Khamr",
+      "arabicName": "باب فِي تَحْرِيمِ الْخَمْرِ",
+      "hadithCount": 67
+    },
+    {
+      "number": "28",
+      "name": "What has been reported about accepting invitations",
+      "arabicName": "باب مَا جَاءَ فِي إِجَابَةِ الدَّعْوَةِ",
+      "hadithCount": 119
+    },
+    {
+      "number": "29",
+      "name": "A man should seek a remedy",
+      "arabicName": "باب فِي الرَّجُلِ يَتَدَاوَى",
+      "hadithCount": 49
+    },
+    {
+      "number": "30",
+      "name": "Regarding Fortunetellers",
+      "arabicName": "باب فِي الْكَاهِنِ",
+      "hadithCount": 22
+    },
+    {
+      "number": "31",
+      "name": "If A Mukathib Pays Part Of His Contract Of Manumission Then Becomes Incapacitated Or Dies",
+      "arabicName": "باب فِي الْمُكَاتَبِ يُؤَدِّي بَعْضَ كِتَابَتِهِ فَيَعْجِزُ أَوْ يَمُوتُ",
+      "hadithCount": 43
+    },
+    {
+      "number": "32",
+      "name": "Book 32",
+      "arabicName": "باب",
+      "hadithCount": 40
+    },
+    {
+      "number": "33",
+      "name": "Entering bathhouses",
+      "arabicName": "باب الدُّخُولِ فِي الْحَمَّامِ",
+      "hadithCount": 11
+    },
+    {
+      "number": "34",
+      "name": "What Is To Be Said When Putting On A New Garment",
+      "arabicName": "باب مَا يَقُولُ إِذَا لَبِسَ ثَوْبًا جَدِيدًا",
+      "hadithCount": 139
+    },
+    {
+      "number": "35",
+      "name": "The Prohibition Of Combing Often (Al-Irfah)",
+      "arabicName": "باب النَّهْىِ عَنْ كَثِيرٍ، مِنَ الإِرْفَاهِ",
+      "hadithCount": 55
+    },
+    {
+      "number": "36",
+      "name": "What Has Been Reported About Using A Ring",
+      "arabicName": "باب مَا جَاءَ فِي اتِّخَاذِ الْخَاتَمِ",
+      "hadithCount": 26
+    },
+    {
+      "number": "37",
+      "name": "Mention Of Tribulations And Their Signs",
+      "arabicName": "باب ذِكْرِ الْفِتَنِ وَدَلاَئِلِهَا",
+      "hadithCount": 39
+    },
+    {
+      "number": "38",
+      "name": "Book 38",
+      "arabicName": "باب",
+      "hadithCount": 13
+    },
+    {
+      "number": "39",
+      "name": "Description Of Happenings In Every Century",
+      "arabicName": "باب مَا يُذْكَرُ فِي قَرْنِ الْمِائَةِ",
+      "hadithCount": 60
+    },
+    {
+      "number": "40",
+      "name": "Ruling on one who apostatizes",
+      "arabicName": "باب الْحُكْمِ فِيمَنِ ارْتَدَّ",
+      "hadithCount": 143
+    },
+    {
+      "number": "41",
+      "name": "A Life For A Life",
+      "arabicName": "باب النَّفْسِ بِالنَّفْسِ",
+      "hadithCount": 102
+    },
+    {
+      "number": "42",
+      "name": "Explanation of the Sunnah",
+      "arabicName": "باب شَرْحِ السُّنَّةِ",
+      "hadithCount": 177
+    },
+    {
+      "number": "43",
+      "name": "Regarding forbearance and the character of the Prophet(pbuh)",
+      "arabicName": "باب فِي الْحِلْمِ وَأَخْلاَقِ النَّبِيِّ صلى الله عليه وسلم",
+      "hadithCount": 502
+    }
+  ],
+  "dataFile": "hadiths.json"
+}

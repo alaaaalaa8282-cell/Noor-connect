@@ -263,3 +263,5 @@ export function QazaTracker({ compact = false }: QazaTrackerProps) {
     </Card>
   );
 }
+
+export default QazaTracker;

@@ -1084,16 +1084,16 @@ export default function EbooksModern() {
     }
   }, [viewingBook]);
   
-  // If viewing PDF, show viewer
-  if (viewingBook) {
-    return <PdfViewer url={viewingBook.url} title={viewingBook.title} localKey={viewingBook.localKey} onClose={() => window.history.back()} />;
-  }
-  
-  // Storage used
+  // Storage used (moved before early return to follow hooks rules)
   const storageUsed = useMemo(() => {
     const total = downloadedBooks.reduce((sum, b) => sum + b.fileSize, 0) + userBooks.reduce((sum, b) => sum + b.fileSize, 0);
     return formatFileSize(total);
   }, [downloadedBooks, userBooks]);
+  
+  // If viewing PDF, show viewer
+  if (viewingBook) {
+    return <PdfViewer url={viewingBook.url} title={viewingBook.title} localKey={viewingBook.localKey} onClose={() => window.history.back()} />;
+  }
   
   return (
     <div className="min-h-screen bg-background">

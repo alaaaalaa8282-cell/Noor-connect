@@ -4,8 +4,8 @@ import { ArrowLeft, BookOpen, Share2, Loader2, RefreshCw } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { useToast } from "@/hooks/use-toast";
-import { hadithApiResponseSchema, safeParseApiResponse } from "@/lib/api-schemas";
 import hadithData from "../data/hadith.json";
+import { getDailyHadith as getDailyHadithFromCollections } from "@/lib/hadith";
 
 interface HadithData {
   hadith: string;
@@ -62,15 +62,26 @@ const Hadith = () => {
     setLoading(true);
     
     try {
-      const randomIdx = Math.floor(Math.random() * hadithData.length);
-      const item = hadithData[randomIdx];
-      
-      const finalData = {
-        hadith: item.text || 'No hadith text available',
-        translation: item.translation || '',
-        book: item.source || 'Unknown',
-        number: String(item.number || randomIdx + 1),
-      };
+      const importedHadith = await getDailyHadithFromCollections();
+      let finalData: HadithData;
+
+      if (importedHadith) {
+        finalData = {
+          hadith: importedHadith.arabic || importedHadith.arabicPlain || "No hadith text available",
+          translation: importedHadith.englishTranslation || "",
+          book: importedHadith.collection.replace(/[-_]/g, " "),
+          number: String(importedHadith.hadithNumber || importedHadith.id),
+        };
+      } else {
+        const randomIdx = Math.floor(Math.random() * hadithData.length);
+        const item = hadithData[randomIdx];
+        finalData = {
+          hadith: item.text || 'No hadith text available',
+          translation: item.translation || '',
+          book: item.source || 'Unknown',
+          number: String(item.number || randomIdx + 1),
+        };
+      }
       
       setHadith(finalData);
       localStorage.setItem("lastHadithDate", today);

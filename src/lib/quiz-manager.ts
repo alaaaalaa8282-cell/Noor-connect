@@ -182,10 +182,11 @@ export class QuizManager {
           unlocked = stats.bestStreak >= achievement.requirement.value;
           break;
           
-        case 'category':
+        case 'category': {
           const categoryCorrect = stats.categoryMastery[achievement.requirement.category!] || 0;
           unlocked = categoryCorrect >= achievement.requirement.value;
           break;
+        }
           
         case 'accuracy':
           if (stats.totalQuestions > 0) {

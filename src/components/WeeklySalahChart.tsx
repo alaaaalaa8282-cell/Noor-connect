@@ -149,3 +149,5 @@ export function WeeklySalahChart() {
     </Card>
   );
 }
+
+export default WeeklySalahChart;

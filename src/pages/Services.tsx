@@ -4,7 +4,7 @@ import { PageTransition } from "@/components/PageTransition";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 import {
     MessageCircle, Radio, Target, Heart, Calculator,
-    Star, Trophy, Coins, Calendar, Library, Tv, Sparkles, HeartHandshake, BookOpen
+    Star, Trophy, Coins, Calendar, Library, Tv, Sparkles, HeartHandshake, BookOpen, BookText
 } from "lucide-react";
 import { motion } from "framer-motion";
 
@@ -15,6 +15,7 @@ export default function Services() {
     const services = [
         { title: "Live", path: "/live", icon: Tv, color: 'text-rose-500', bgColor: 'bg-rose-500/10' },
         { title: "Hadith", path: "/hadith", icon: MessageCircle, color: 'text-sky-500', bgColor: 'bg-sky-500/10' },
+        { title: "Hadith Collections", path: "/hadith/collections", icon: BookText, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
         { title: "Radio", path: "/quran-radio", icon: Radio, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
         { title: "Habits", path: "/habit-tracker", icon: Target, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
         { title: "Duas", path: "/duas", icon: Heart, color: 'text-pink-500', bgColor: 'bg-pink-500/10' },

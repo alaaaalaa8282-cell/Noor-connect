@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 import { useI18n } from "@/hooks/useI18n";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones, Settings } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,6 @@ import { unifiedNotifications } from "@/lib/unified-notifications";
 import { getGenderSettings, setGender, type Gender } from "@/lib/gender-settings";
 import { usePrayerAlarm } from "@/hooks/usePrayerAlarm";
 import PermissionManager from "@/components/PermissionManager";
-import VoiceSettings from "@/components/VoiceSettings";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -80,8 +79,7 @@ const Profile = () => {
   const [prayerNotificationsLoading, setPrayerNotificationsLoading] = useState(true);
   const [scheduledPrayerCount, setScheduledPrayerCount] = useState(0);
   
-  // Voice Settings state
-  const [showVoiceSettings, setShowVoiceSettings] = useState(false);
+    
 
   const refreshPermissionStatus = useCallback(async () => {
     const status = await unifiedNotifications.getPermissionStatus();
@@ -306,9 +304,20 @@ const Profile = () => {
   };
 
   const handleFontSizeChange = (value: number[]) => {
+    console.log('handleFontSizeChange called with:', value);
+    if (!value || value.length === 0) return;
+    
     const size = value[0];
+    if (typeof size !== 'number' || size < 16 || size > 42) return;
+    
+    console.log('Setting font size to:', size);
     setQuranFontSizeState(size);
     setQuranFontSize(size);
+    
+    toast({
+      title: "Quran Font Size Updated",
+      description: `Quran text size set to ${size}px`,
+    });
   };
 
   const handleQuranFontChange = async (font: QuranFont) => {
@@ -458,6 +467,7 @@ const Profile = () => {
     localStorage.setItem('prayer-reminder-minutes', value);
   };
 
+  
   const handleHijriOffsetChange = (value: string) => {
     setHijriOffset(value);
     localStorage.setItem('hijri-date-offset', value);
@@ -473,182 +483,214 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
         {/* Header */}
-        <div className="flex items-center gap-3">
-          <Button variant="ghost" size="icon" onClick={() => navigate("/")} className="rounded-full">
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
+        <div className="flex items-center gap-4 mb-8">
           <div className="flex-1">
-            <h1 className="text-xl font-bold text-foreground">{t('settings')}</h1>
-            <p className="text-xs text-muted-foreground">{t('appTitle')}</p>
+            <h1 className="text-3xl font-black text-foreground tracking-tight">{t('settings')}</h1>
+            <p className="text-sm font-bold text-primary uppercase tracking-widest">{t('appTitle')}</p>
+          </div>
+          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
+            <Settings className="w-6 h-6 text-primary animate-spin-slow" />
           </div>
         </div>
 
-        {/* Appearance */}
-        <Card className="p-4 space-y-4">
-          <h3 className="font-semibold text-sm flex items-center gap-2">
-            <Sun className="w-4 h-4" /> {t('appearance')}
-          </h3>
+        <div className="grid gap-6">
+          {/* Appearance Section */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+              {t('appearance')}
+            </h3>
+            <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] divide-y divide-border/40">
+              <div className="p-5 space-y-4">
+                <div className="space-y-3">
+                  <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+                    <Globe className="w-3.5 h-3.5" />
+                    {t('language')}
+                  </Label>
+                  <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "ar" | "ur" | "id" | "tr")}>
+                    <SelectTrigger className="w-full h-12 rounded-xl bg-muted/30 border-none ring-0 focus:ring-primary/20">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl border-border/40 shadow-xl">
+                      <SelectItem value="en">English</SelectItem>
+                      <SelectItem value="ar">Arabic</SelectItem>
+                      <SelectItem value="ur">Urdu</SelectItem>
+                      <SelectItem value="id">Bahasa</SelectItem>
+                      <SelectItem value="tr">Turkish</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground flex items-center gap-2">
-              <Globe className="w-3 h-3" />
-              {t('language')}
-            </Label>
-            <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "ar" | "ur" | "id" | "tr")}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="en">English</SelectItem>
-                <SelectItem value="ar">Arabic</SelectItem>
-                <SelectItem value="ur">Urdu</SelectItem>
-                <SelectItem value="id">Bahasa</SelectItem>
-                <SelectItem value="tr">Turkish</SelectItem>
-              </SelectContent>
-            </Select>
-          </div>
-
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              {isDarkMode ? <Moon className="w-5 h-5 text-muted-foreground" /> : <Sun className="w-5 h-5 text-muted-foreground" />}
-              <Label>{t('darkMode')}</Label>
-            </div>
-            <Switch checked={isDarkMode} onCheckedChange={toggleTheme} />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">Quran Font Size: {quranFontSize}px</Label>
-            <Slider
-              value={[quranFontSize]}
-              onValueChange={handleFontSizeChange}
-              min={16}
-              max={42}
-              step={2}
-              className="w-full"
-            />
-          </div>
-
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground flex items-center gap-2">
-              <Type className="w-3 h-3" />
-              Quran Font
-            </Label>
-            <Select value={quranFont} onValueChange={handleQuranFontChange}>
-              <SelectTrigger className="w-full">
-                <SelectValue placeholder="Select Quran font" />
-              </SelectTrigger>
-              <SelectContent>
-                {quranFontManager.getAvailableFonts().map((font) => (
-                  <SelectItem key={font.id} value={font.id}>
-                    <div className="flex flex-col">
-                      <span className="font-medium">{font.name}</span>
-                      <span className="text-xs text-muted-foreground">{font.description}</span>
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2.5 rounded-xl ${isDarkMode ? 'bg-indigo-500/10 text-indigo-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                      {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
                     </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </Card>
-
-        {/* Gender Settings */}
-        <Card className="p-4 space-y-4">
-          <h3 className="font-semibold text-sm flex items-center gap-2">
-            <User className="w-4 h-4" /> {t('personalInformation')}
-          </h3>
-
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">{t('gender')}</Label>
-            <Select value={genderSettings.gender} onValueChange={(v: Gender) => handleGenderChange(v)}>
-              <SelectTrigger className="w-full">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="male">
-                  <div className="flex items-center gap-2">
-                    <User className="w-4 h-4" />
-                    <span>Man</span>
+                    <div>
+                      <Label className="text-sm font-bold">{t('darkMode')}</Label>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">System Theme</p>
+                    </div>
                   </div>
-                </SelectItem>
-                <SelectItem value="female">
-                  <div className="flex items-center gap-2">
-                    <UserCircle className="w-4 h-4" />
-                    <span>Woman</span>
-                  </div>
-                </SelectItem>
-                <SelectItem value="prefer-not-to-say">
-                  <div className="flex items-center gap-2">
-                    <UserX className="w-4 h-4" />
-                    <span>Prefer not to say</span>
-                  </div>
-                </SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-xs text-muted-foreground">
-              {genderSettings.gender === "female"
-                ? t('menstrualModeAvailable')
-                : t('thisHelpsPersonalizeExperience')}
-            </p>
-          </div>
-        </Card>
-
-        {/* Prayer Settings */}
-        <Card className="p-4 space-y-4">
-          <h3 className="font-semibold text-sm flex items-center gap-2">
-            <Calculator className="w-4 h-4" /> {t('prayerSettings')}
-          </h3>
-
-          {/* Prayer Method Selector */}
-          <PrayerMethodSelector />
-
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">{t('asrCalculationMadhab')}</Label>
-            <Select value={madhab} onValueChange={(v) => handleMadhabChange(v as "shafi" | "hanafi")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="shafi">Shafi'i / Maliki / Hanbali</SelectItem>
-                <SelectItem value="hanafi">Hanafi</SelectItem>
-              </SelectContent>
-            </Select>
+                  <Switch checked={isDarkMode} onCheckedChange={toggleTheme} className="data-[state=checked]:bg-primary" />
+                </div>
+              </div>
+            </Card>
           </div>
 
-          <div className="space-y-2">
-            <Label className="text-xs text-muted-foreground">{t('timeFormat')}</Label>
-            <Select value={timeFormat} onValueChange={(v) => handleTimeFormatChange(v as "12" | "24")}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="12">12-hour (AM/PM)</SelectItem>
-                <SelectItem value="24">24-hour</SelectItem>
-              </SelectContent>
-            </Select>
+          {/* Quran Display Section */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+              Quran Display Settings
+            </h3>
+            <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5 space-y-6">
+              <div className="space-y-4">
+                <div className="flex justify-between items-center">
+                   <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+                    <Type className="w-3.5 h-3.5" />
+                    Quran Font Size
+                  </Label>
+                  <span className="text-xs font-black text-primary font-mono bg-primary/10 px-2 py-1 rounded">{quranFontSize}px</span>
+                </div>
+                <Slider
+                  value={[quranFontSize]}
+                  onValueChange={(value) => {
+                    console.log('Slider value changed:', value);
+                    handleFontSizeChange(value);
+                  }}
+                  min={16}
+                  max={42}
+                  step={2}
+                  className="w-full data-[orientation=horizontal]:h-2"
+                />
+              </div>
+
+              <div className="space-y-3">
+                <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+                  <BookOpen className="w-3.5 h-3.5" />
+                  Arabic Script Style
+                </Label>
+                <Select value={quranFont} onValueChange={handleQuranFontChange}>
+                  <SelectTrigger className="w-full h-12 rounded-xl bg-muted/30 border-none ring-0 focus:ring-primary/20">
+                    <SelectValue placeholder="Select Quran font" />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/40 shadow-xl">
+                    {quranFontManager.getAvailableFonts().map((font) => (
+                      <SelectItem key={font.id} value={font.id}>
+                        <div className="flex flex-col py-1">
+                          <span className="font-bold text-sm">{font.name}</span>
+                          <span className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">{font.description}</span>
+                        </div>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
+            </Card>
           </div>
 
-          <div className="space-y-2 pt-2 border-t border-border/50">
-            <Label className="text-xs text-muted-foreground font-medium flex items-center gap-2">
-              <Moon className="w-3 h-3" />
-              Hijri Date Adjustment
-            </Label>
-            <Select value={hijriOffset} onValueChange={handleHijriOffsetChange}>
-              <SelectTrigger>
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="-2">-2 Days</SelectItem>
-                <SelectItem value="-1">-1 Day</SelectItem>
-                <SelectItem value="0">0 Days (Auto)</SelectItem>
-                <SelectItem value="1">+1 Day</SelectItem>
-                <SelectItem value="2">+2 Days</SelectItem>
-              </SelectContent>
-            </Select>
-            <p className="text-[10px] text-muted-foreground">
-              {t('hijriDateAdjustmentDescription')}
-            </p>
+          {/* Personal Section */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+              {t('personalInformation')}
+            </h3>
+            <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5">
+              <div className="space-y-3">
+                <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+                  <User className="w-3.5 h-3.5" />
+                  {t('gender')}
+                </Label>
+                <Select value={genderSettings.gender} onValueChange={(v: Gender) => handleGenderChange(v)}>
+                  <SelectTrigger className="w-full h-12 rounded-xl bg-muted/30 border-none ring-0 focus:ring-primary/20">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl border-border/40 shadow-xl">
+                    <SelectItem value="male">
+                      <div className="flex items-center gap-2">
+                        <User className="w-4 h-4 text-blue-500" />
+                        <span className="font-bold">Man</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="female">
+                      <div className="flex items-center gap-2">
+                        <UserCircle className="w-4 h-4 text-rose-500" />
+                        <span className="font-bold">Woman</span>
+                      </div>
+                    </SelectItem>
+                    <SelectItem value="prefer-not-to-say">
+                      <div className="flex items-center gap-2">
+                        <UserX className="w-4 h-4 text-muted-foreground" />
+                        <span className="font-bold">Prefer not to say</span>
+                      </div>
+                    </SelectItem>
+                  </SelectContent>
+                </Select>
+                <div className="flex items-start gap-2 pt-1">
+                  <ShieldCheck className="w-3.5 h-3.5 text-emerald-500 mt-0.5" />
+                  <p className="text-[10px] text-muted-foreground font-medium leading-relaxed">
+                    {genderSettings.gender === "female"
+                      ? t('menstrualModeAvailable')
+                      : t('thisHelpsPersonalizeExperience')}
+                  </p>
+                </div>
+              </div>
+            </Card>
           </div>
-        </Card>
+
+          {/* Prayer Calculation Section */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+              {t('prayerSettings')}
+            </h3>
+            <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5 space-y-5">
+              <PrayerMethodSelector />
+              
+              <div className="grid grid-cols-2 gap-4">
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ps-1">Madhab</Label>
+                  <Select value={madhab} onValueChange={(v) => handleMadhabChange(v as "shafi" | "hanafi")}>
+                    <SelectTrigger className="rounded-xl bg-muted/30 border-none h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl shadow-lg">
+                      <SelectItem value="shafi">Shafi'i/Other</SelectItem>
+                      <SelectItem value="hanafi">Hanafi</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+                <div className="space-y-2">
+                  <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ps-1">Time Format</Label>
+                  <Select value={timeFormat} onValueChange={(v) => handleTimeFormatChange(v as "12" | "24")}>
+                    <SelectTrigger className="rounded-xl bg-muted/30 border-none h-11">
+                      <SelectValue />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-xl shadow-lg">
+                      <SelectItem value="12">12H Format</SelectItem>
+                      <SelectItem value="24">24H Format</SelectItem>
+                    </SelectContent>
+                  </Select>
+                </div>
+              </div>
+
+              <div className="pt-4 border-t border-border/40 space-y-3">
+                <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+                  <Calendar className="w-3.5 h-3.5" />
+                  Hijri Adjustment
+                </Label>
+                <Select value={hijriOffset} onValueChange={handleHijriOffsetChange}>
+                  <SelectTrigger className="w-full h-11 rounded-xl bg-muted/30 border-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl shadow-lg">
+                    <SelectItem value="-2">-2 Days</SelectItem>
+                    <SelectItem value="-1">-1 Day</SelectItem>
+                    <SelectItem value="0">0 Days (Auto)</SelectItem>
+                    <SelectItem value="1">+1 Day</SelectItem>
+                    <SelectItem value="2">+2 Days</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </Card>
+          </div>
+        </div>
 
         {/* Adhan Settings */}
         <Card className="p-4 space-y-4">
@@ -741,31 +783,6 @@ const Profile = () => {
           </div>
         </Card>
 
-        {/* Voice Settings */}
-        <Card className="p-4 space-y-4">
-          <h3 className="font-semibold text-sm flex items-center gap-2">
-            <Headphones className="w-4 h-4" /> {t('voiceSettings') || 'Voice Settings'}
-          </h3>
-          <div className="space-y-3">
-            <div className="flex items-center justify-between">
-              <div>
-                <Label>{t('textToSpeech') || 'Text-to-Speech'}</Label>
-                <p className="text-xs text-muted-foreground">
-                  {t('textToSpeechDescription') || 'Manage voice settings and download language packs'}
-                </p>
-              </div>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={() => setShowVoiceSettings(true)}
-                className="flex items-center gap-2"
-              >
-                <Settings className="w-4 h-4" />
-                {t('configure') || 'Configure'}
-              </Button>
-            </div>
-          </div>
-        </Card>
 
         {/* Storage & Backup */}
         <Card className="p-4 space-y-4">
@@ -1053,6 +1070,7 @@ const Profile = () => {
           )}
         </Card>
 
+        
         {/* Notification History */}
         <Card className="p-4 bg-muted/30">
           <div className="flex items-center justify-between mb-3">
@@ -1119,13 +1137,31 @@ const Profile = () => {
             </Button>
           </div>
         </Card>
+
+        {/* Source Code */}
+        <Card className="p-4 bg-gradient-to-br from-emerald-50/50 to-blue-50/50 border-emerald-100">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-emerald-100 flex items-center justify-center">
+                <Globe className="w-5 h-5 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm text-emerald-700">Source Code</h3>
+                <p className="text-xs text-emerald-600">Open-source Islamic companion</p>
+              </div>
+            </div>
+            <Button
+              variant="outline"
+              className="bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700"
+              onClick={() => window.open('https://github.com/darkmaster0345/Noor-connect', '_blank')}
+            >
+              <MessageCircle className="w-4 h-4 mr-2" />
+              View on GitHub
+            </Button>
+          </div>
+        </Card>
       </div>
       
-      {/* Voice Settings Dialog */}
-      <VoiceSettings
-        isOpen={showVoiceSettings}
-        onClose={() => setShowVoiceSettings(false)}
-      />
     </div>
   );
 };

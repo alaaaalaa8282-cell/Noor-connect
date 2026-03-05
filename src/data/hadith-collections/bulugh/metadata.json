@@ -1,0 +1,103 @@
+{
+  "name": "bulugh",
+  "totalHadith": 1767,
+  "totalBooks": 16,
+  "books": [
+    {
+      "number": "1",
+      "name": "The Book of Purification",
+      "arabicName": "",
+      "hadithCount": 179
+    },
+    {
+      "number": "2",
+      "name": "The Book of Prayer",
+      "arabicName": "",
+      "hadithCount": 461
+    },
+    {
+      "number": "3",
+      "name": "Funerals",
+      "arabicName": "",
+      "hadithCount": 66
+    },
+    {
+      "number": "4",
+      "name": "The Book of Zakah",
+      "arabicName": "",
+      "hadithCount": 51
+    },
+    {
+      "number": "5",
+      "name": "Fasting",
+      "arabicName": "",
+      "hadithCount": 58
+    },
+    {
+      "number": "6",
+      "name": "Hajj",
+      "arabicName": "",
+      "hadithCount": 74
+    },
+    {
+      "number": "7",
+      "name": "Business Transactions",
+      "arabicName": "",
+      "hadithCount": 233
+    },
+    {
+      "number": "8",
+      "name": "Marriage",
+      "arabicName": "",
+      "hadithCount": 222
+    },
+    {
+      "number": "9",
+      "name": "Crimes (Qisas or Retaliation)",
+      "arabicName": "",
+      "hadithCount": 47
+    },
+    {
+      "number": "10",
+      "name": "Hudud",
+      "arabicName": "",
+      "hadithCount": 57
+    },
+    {
+      "number": "11",
+      "name": "Jihad",
+      "arabicName": "",
+      "hadithCount": 63
+    },
+    {
+      "number": "12",
+      "name": "Food",
+      "arabicName": "",
+      "hadithCount": 44
+    },
+    {
+      "number": "13",
+      "name": "Oaths and Vows",
+      "arabicName": "",
+      "hadithCount": 23
+    },
+    {
+      "number": "14",
+      "name": "Judgments",
+      "arabicName": "",
+      "hadithCount": 36
+    },
+    {
+      "number": "15",
+      "name": "Emancipation",
+      "arabicName": "",
+      "hadithCount": 20
+    },
+    {
+      "number": "16",
+      "name": "The Comprehensive Book",
+      "arabicName": "",
+      "hadithCount": 133
+    }
+  ]
+}

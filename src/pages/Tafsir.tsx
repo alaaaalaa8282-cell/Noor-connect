@@ -1,6 +1,7 @@
+// Tafsir Explorer - Version 2.0 - Updated with Download Feature
 import { useEffect, useState } from "react";
 import { useNavigate } from "react-router-dom";
-import { BookOpen, Search, ChevronRight, Bookmark, Edit3, History, FileText, Headphones, GitCompare, AlertCircle } from "lucide-react";
+import { BookOpen, Search, ChevronRight, Bookmark, Edit3, History, FileText, AlertCircle, Plus, Loader2, Download, FileText as FileIcon } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
@@ -12,10 +13,8 @@ import { useI18n } from "@/hooks/useI18n";
 import { PageTransition } from "@/components/PageTransition";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppBar } from "@/components/AppBar";
-import { fetchTafsir, TAFSIR_EDITIONS, type TafsirEdition } from "@/lib/tafsir";
+import { fetchTafsir, fetchSurahTafsir, TAFSIR_EDITIONS, type TafsirEdition } from "@/lib/tafsir";
 import { useToast } from "@/hooks/use-toast";
-import { TTSPlayer } from "@/components/TTSPlayer";
-import { VoiceCheckDialog } from "@/components/VoiceCheckDialog";
 
 interface Surah {
   number: number;
@@ -27,8 +26,8 @@ interface Surah {
 }
 
 interface TafsirData {
-  surah: number;
   ayah: number;
+  surah: number;
   text: string;
 }
 
@@ -36,11 +35,6 @@ interface SurahTafsir {
   surah: number;
   surahName: string;
   englishName: string;
-  tafsirs: TafsirData[];
-}
-
-interface ComparisonTafsir {
-  edition: TafsirEdition;
   tafsirs: TafsirData[];
 }
 
@@ -69,78 +63,242 @@ const Tafsir = () => {
   const [tafsirLoading, setTafsirLoading] = useState(false);
   const [bookmarks, setBookmarks] = useState<Array<{surah: number, surahName: string}>>([]);
   const [searchTafsirQuery, setSearchTafsirQuery] = useState("");
-  const [showComparison, setShowComparison] = useState(false);
-  const [expandedComparisonAyahs, setExpandedComparisonAyahs] = useState<Set<number>>(new Set());
   const [tafsirHistory, setTafsirHistory] = useState<Array<{surah: number, surahName: string, timestamp: number}>>([]);
   const [personalNotes, setPersonalNotes] = useState<Record<string, string>>({});
   const [showNotesEditor, setShowNotesEditor] = useState(false);
   const [currentAyahForNote, setCurrentAyahForNote] = useState<{surah: number, ayah: number} | null>(null);
-  const [showTTSPlayer, setShowTTSPlayer] = useState(false);
-  const [currentTTSText, setCurrentTTSText] = useState("");
-  const [currentTTSLabel, setCurrentTTSLabel] = useState("");
-  const [ttsAutoPlayToken, setTtsAutoPlayToken] = useState<number | undefined>(undefined);
-  const [comparisonData, setComparisonData] = useState<ComparisonTafsir[]>([]);
-  const [comparisonLoading, setComparisonLoading] = useState(false);
-  const [showVoiceCheck, setShowVoiceCheck] = useState(false);
+  const [expandedAyahs, setExpandedAyahs] = useState<Set<number>>(new Set());
 
-  useEffect(() => {
-    const saved = localStorage.getItem('tafsir-bookmarks');
-    if (saved) setBookmarks(JSON.parse(saved));
-
-    const savedHistory = localStorage.getItem('tafsir-history');
-    if (savedHistory) setTafsirHistory(JSON.parse(savedHistory));
-
-    const savedNotes = localStorage.getItem('tafsir-notes');
-    if (savedNotes) setPersonalNotes(JSON.parse(savedNotes));
-  }, []);
-
-  useEffect(() => {
-    if (surahs.length === 0) {
-      void fetchSurahs();
+  const toggleAyahExpansion = (ayahNumber: number) => {
+    const newExpanded = new Set(expandedAyahs);
+    if (newExpanded.has(ayahNumber)) {
+      newExpanded.delete(ayahNumber);
     } else {
-      setLoading(false);
+      newExpanded.add(ayahNumber);
     }
-  }, []);
+    setExpandedAyahs(newExpanded);
+  };
 
+  // Fetch surahs on mount
   useEffect(() => {
-    if (!searchQuery.trim()) {
-      setFilteredSurahs(surahs);
-      return;
-    }
+    const fetchSurahs = async () => {
+      try {
+        setLoading(true);
+        const response = await fetch('https://api.alquran.cloud/v1/surah');
+        const data = await response.json();
+        setSurahs(data.data);
+        try { localStorage.setItem('quran-surahs-cache', JSON.stringify(data.data)); } catch (error) { console.warn("localStorage cache save failed:", error); }
+        setLoading(false);
+      } catch (error) {
+        console.error("Error:", error);
+        setLoading(false);
+      }
+    };
 
-    const query = searchQuery.trim().toLowerCase();
-    const filtered = surahs.filter((surah) =>
-      surah.name.toLowerCase().includes(query) ||
-      surah.englishName.toLowerCase().includes(query) ||
-      surah.englishNameTranslation.toLowerCase().includes(query) ||
-      surah.number.toString() === query
+    if (surahs.length === 0) {
+      fetchSurahs();
+    }
+  }, [surahs.length]);
+
+  // Filter surahs based on search
+  useEffect(() => {
+    const filtered = surahs.filter(surah =>
+      surah.englishName.toLowerCase().includes(searchQuery.toLowerCase()) ||
+      surah.name.toLowerCase().includes(searchQuery.toLowerCase())
     );
     setFilteredSurahs(filtered);
-  }, [searchQuery, surahs]);
+  }, [surahs, searchQuery]);
 
-  const fetchSurahs = async () => {
-    try {
-      const response = await fetch("https://api.alquran.cloud/v1/surah");
-      const data = await response.json();
-      setSurahs(data.data);
-      try { localStorage.setItem('quran-surahs-cache', JSON.stringify(data.data)); } catch (error) { console.warn("localStorage cache save failed:", error); }
-      setLoading(false);
-    } catch (error) {
-      console.error("Error:", error);
-      setLoading(false);
+  const downloadTafsir = (format: 'txt' | 'json' | 'pdf') => {
+    if (!currentSurahTafsir || !selectedSurah) return;
+
+    const edition = TAFSIR_EDITIONS.find(e => e.id === selectedEdition);
+    const fileName = `${selectedSurah.englishName.replace(/\s+/g, '_')}_${edition?.name.replace(/\s+/g, '_')}`;
+
+    switch (format) {
+      case 'txt':
+        downloadAsText(fileName);
+        break;
+      case 'json':
+        downloadAsJSON(fileName);
+        break;
+      case 'pdf':
+        downloadAsPDF(fileName);
+        break;
     }
   };
 
-  const handleSurahSelect = async (
-    surah: Surah,
-    options?: { editionId?: string; addToHistory?: boolean }
-  ) => {
+  const downloadAsText = (fileName: string) => {
+    if (!currentSurahTafsir) return;
+
+    let content = `${currentSurahTafsir.englishName} - ${currentSurahTafsir.surahName}\n`;
+    content += `Tafsir Edition: ${TAFSIR_EDITIONS.find(e => e.id === selectedEdition)?.name}\n`;
+    content += `Total Ayahs: ${currentSurahTafsir.tafsirs.length}\n`;
+    content += `${'='.repeat(80)}\n\n`;
+
+    currentSurahTafsir.tafsirs.forEach((tafsir) => {
+      content += `Ayah ${tafsir.ayah}:\n`;
+      content += `${tafsir.text}\n`;
+      content += `${'-'.repeat(40)}\n\n`;
+    });
+
+    const blob = new Blob([content], { type: 'text/plain;charset=utf-8' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.txt`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Download Complete",
+      description: `Tafsir downloaded as ${fileName}.txt`,
+    });
+  };
+
+  const downloadAsJSON = (fileName: string) => {
+    if (!currentSurahTafsir) return;
+
+    const data = {
+      surah: {
+        number: currentSurahTafsir.surah,
+        name: currentSurahTafsir.surahName,
+        englishName: currentSurahTafsir.englishName,
+      },
+      edition: TAFSIR_EDITIONS.find(e => e.id === selectedEdition),
+      tafsirs: currentSurahTafsir.tafsirs,
+      downloadDate: new Date().toISOString(),
+    };
+
+    const blob = new Blob([JSON.stringify(data, null, 2)], { type: 'application/json' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.json`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Download Complete",
+      description: `Tafsir downloaded as ${fileName}.json`,
+    });
+  };
+
+  const downloadAsPDF = (fileName: string) => {
+    if (!currentSurahTafsir) return;
+
+    let content = `
+      <!DOCTYPE html>
+      <html>
+      <head>
+        <title>${currentSurahTafsir.englishName} - Tafsir</title>
+        <style>
+          body { font-family: Arial, sans-serif; margin: 20px; line-height: 1.6; }
+          h1 { color: #2c3e50; border-bottom: 2px solid #3498db; padding-bottom: 10px; }
+          h2 { color: #34495e; margin-top: 30px; }
+          .ayah-number { color: #e74c3c; font-weight: bold; }
+          .tafsir-text { background: #f8f9fa; padding: 15px; border-left: 4px solid #3498db; margin: 10px 0; }
+          .header-info { background: #ecf0f1; padding: 15px; border-radius: 5px; margin-bottom: 20px; }
+        </style>
+      </head>
+      <body>
+        <h1>${currentSurahTafsir.englishName} - ${currentSurahTafsir.surahName}</h1>
+        <div class="header-info">
+          <p><strong>Tafsir Edition:</strong> ${TAFSIR_EDITIONS.find(e => e.id === selectedEdition)?.name}</p>
+          <p><strong>Total Ayahs:</strong> ${currentSurahTafsir.tafsirs.length}</p>
+          <p><strong>Download Date:</strong> ${new Date().toLocaleDateString()}</p>
+        </div>
+    `;
+
+    currentSurahTafsir.tafsirs.forEach((tafsir) => {
+      content += `
+        <h2><span class="ayah-number">Ayah ${tafsir.ayah}:</span></h2>
+        <div class="tafsir-text">${tafsir.text}</div>
+      `;
+    });
+
+    content += `
+      </body>
+      </html>
+    `;
+
+    const blob = new Blob([content], { type: 'text/html' });
+    const url = URL.createObjectURL(blob);
+    const a = document.createElement('a');
+    a.href = url;
+    a.download = `${fileName}.html`;
+    document.body.appendChild(a);
+    a.click();
+    document.body.removeChild(a);
+    URL.revokeObjectURL(url);
+
+    toast({
+      title: "Download Complete",
+      description: `Tafsir downloaded as ${fileName}.html (open in browser and print to PDF)`,
+    });
+  };
+
+  const loadMoreTafsirs = async () => {
+    if (!selectedSurah || !currentSurahTafsir) return;
+    
+    setTafsirLoading(true);
+    
+    try {
+      const currentAyahCount = currentSurahTafsir.tafsirs.length;
+      const nextAyahs = Array.from({ length: Math.min(50, selectedSurah.numberOfAyahs - currentAyahCount) }, (_, index) => currentAyahCount + index + 1);
+      
+      const tafsirResults = await Promise.allSettled(
+        nextAyahs.map((ayah) => fetchTafsir(selectedSurah.number, ayah, selectedEdition))
+      );
+      
+      const newTafsirs: TafsirData[] = [];
+      tafsirResults.forEach((result, index) => {
+        if (result.status === 'fulfilled') {
+          newTafsirs.push({
+            ayah: nextAyahs[index],
+            surah: selectedSurah.number,
+            text: result.value.text
+          });
+        } else {
+          console.warn(`Failed to fetch tafsir for ${selectedSurah.number}:${nextAyahs[index]}`, result.reason);
+        }
+      });
+      
+      const updatedSurahTafsir: SurahTafsir = {
+        ...currentSurahTafsir,
+        tafsirs: [...currentSurahTafsir.tafsirs, ...newTafsirs]
+      };
+      
+      setCurrentSurahTafsir(updatedSurahTafsir);
+      
+      const cacheKey = `tafsir-surah-${selectedEdition}-${selectedSurah.number}`;
+      try {
+        localStorage.setItem(cacheKey, JSON.stringify(updatedSurahTafsir));
+      } catch (error) {
+        console.warn("Failed to cache updated surah tafsir:", error);
+      }
+      
+    } catch (error) {
+      console.error("Error loading more tafsirs:", error);
+      toast({
+        title: "Error",
+        description: "Failed to load more tafsirs",
+        variant: "destructive"
+      });
+    } finally {
+      setTafsirLoading(false);
+    }
+  };
+
+  const handleSurahSelect = async (surah: Surah, options: { editionId?: string, addToHistory?: boolean } = {}) => {
     const editionId = options?.editionId ?? selectedEdition;
     const addToHistory = options?.addToHistory ?? true;
     setSelectedSurah(surah);
     setTafsirLoading(true);
-    setShowComparison(false);
-    setComparisonData([]);
     
     if (addToHistory) {
       const historyEntry = {
@@ -160,33 +318,62 @@ const Tafsir = () => {
     }
     
     try {
-      // Check cache first
       const cacheKey = `tafsir-surah-${editionId}-${surah.number}`;
       const cached = localStorage.getItem(cacheKey);
       
       if (cached) {
-        setCurrentSurahTafsir(JSON.parse(cached));
+        const cachedTafsir = JSON.parse(cached);
+        setCurrentSurahTafsir(cachedTafsir);
         setTafsirLoading(false);
         return;
       }
       
-      // Fetch Tafsir for all ayahs in surah
-      const tafsirs: TafsirData[] = [];
+      console.log(`Fetching tafsir for surah ${surah.number}, edition ${editionId}`);
       
-      const ayahNumbers = Array.from({ length: surah.numberOfAyahs }, (_, index) => index + 1);
-      const tafsirResults = await Promise.allSettled(
-        ayahNumbers.map((ayah) => fetchTafsir(surah.number, ayah, editionId))
-      );
-
-      tafsirResults.forEach((result, index) => {
-        if (result.status === 'fulfilled') {
-          tafsirs.push(result.value);
-          return;
+      if (surah.numberOfAyahs > 100) {
+        console.log(`Large surah detected (${surah.numberOfAyahs} ayahs), fetching individual ayahs`);
+        const tafsirs: TafsirData[] = [];
+        
+        const initialAyahs = Array.from({ length: Math.min(50, surah.numberOfAyahs) }, (_, index) => index + 1);
+        const tafsirResults = await Promise.allSettled(
+          initialAyahs.map((ayah) => fetchTafsir(surah.number, ayah, editionId))
+        );
+        
+        tafsirResults.forEach((result, index) => {
+          if (result.status === 'fulfilled') {
+            tafsirs.push({
+              ayah: initialAyahs[index],
+              surah: surah.number,
+              text: result.value.text
+            });
+          } else {
+            console.warn(`Failed to fetch tafsir for ${surah.number}:${initialAyahs[index]}`, result.reason);
+          }
+        });
+        
+        console.log(`Successfully fetched initial ${tafsirs.length} tafsir entries for surah ${surah.number}`);
+        
+        const surahTafsir: SurahTafsir = {
+          surah: surah.number,
+          surahName: surah.name,
+          englishName: surah.englishName,
+          tafsirs: tafsirs
+        };
+        
+        setCurrentSurahTafsir(surahTafsir);
+        
+        try {
+          localStorage.setItem(cacheKey, JSON.stringify(surahTafsir));
+        } catch (error) {
+          console.warn("Failed to cache surah tafsir:", error);
         }
-
-        const ayah = ayahNumbers[index];
-        console.warn(`Failed to fetch tafsir for ${surah.number}:${ayah}`, result.reason);
-      });
+        
+        setTafsirLoading(false);
+        return;
+      }
+      
+      const tafsirs = await fetchSurahTafsir(surah.number, editionId);
+      console.log(`Successfully fetched ${tafsirs.length} tafsir entries for surah ${surah.number}`);
       
       const surahTafsir: SurahTafsir = {
         surah: surah.number,
@@ -197,7 +384,6 @@ const Tafsir = () => {
       
       setCurrentSurahTafsir(surahTafsir);
       
-      // Cache the result
       try {
         localStorage.setItem(cacheKey, JSON.stringify(surahTafsir));
       } catch (error) {
@@ -215,64 +401,6 @@ const Tafsir = () => {
     }
   };
 
-  const handleBookmark = () => {
-    if (!selectedSurah || !currentSurahTafsir) return;
-    
-    const bookmark = {
-      surah: selectedSurah.number,
-      surahName: selectedSurah.name
-    };
-    
-    const exists = bookmarks.some(b => b.surah === bookmark.surah);
-    
-    if (exists) {
-      setBookmarks(prev => prev.filter(b => b.surah !== bookmark.surah));
-      toast({
-        title: "Bookmark Removed",
-        description: "Surah Tafsir has been removed from bookmarks"
-      });
-    } else {
-      setBookmarks(prev => [...prev, bookmark]);
-      toast({
-        title: "Bookmarked",
-        description: "Surah Tafsir has been bookmarked"
-      });
-    }
-    
-    try {
-      const updated = exists ? bookmarks.filter(b => b.surah !== bookmark.surah) : [...bookmarks, bookmark];
-      localStorage.setItem('tafsir-bookmarks', JSON.stringify(updated));
-    } catch (error) {
-      console.warn("Failed to save bookmarks:", error);
-    }
-  };
-
-  const handleNote = (surah: number, ayah: number) => {
-    setCurrentAyahForNote({ surah, ayah });
-    setShowNotesEditor(true);
-  };
-
-  const saveNote = (note: string) => {
-    if (!currentAyahForNote) return;
-    
-    const key = `${currentAyahForNote.surah}:${currentAyahForNote.ayah}`;
-    const updatedNotes = { ...personalNotes, [key]: note };
-    setPersonalNotes(updatedNotes);
-    
-    try {
-      localStorage.setItem('tafsir-notes', JSON.stringify(updatedNotes));
-    } catch (error) {
-      console.warn("Failed to save notes:", error);
-    }
-    
-    setShowNotesEditor(false);
-    setCurrentAyahForNote(null);
-    toast({
-      title: "Note Saved",
-      description: "Personal note has been saved"
-    });
-  };
-
   const getFilteredTafsirs = () => {
     if (!currentSurahTafsir) return [];
     if (!searchTafsirQuery.trim()) return currentSurahTafsir.tafsirs;
@@ -282,144 +410,46 @@ const Tafsir = () => {
     );
   };
 
-  const getComparisonTafsirs = async (surah: Surah, editions: string[]): Promise<ComparisonTafsir[]> => {
-    const results: ComparisonTafsir[] = [];
-    
-    // Fetch all editions in parallel for better performance
-    const promises = editions.map(async (editionId) => {
-      const edition = TAFSIR_EDITIONS.find(e => e.id === editionId);
-      if (!edition) return null;
-      
-      try {
-        const tafsirs: TafsirData[] = [];
-        // Fetch first 20 ayahs for better performance
-        const ayahsToFetch = Math.min(surah.numberOfAyahs, 20);
-        
-        for (let ayah = 1; ayah <= ayahsToFetch; ayah++) {
-          try {
-            const tafsir = await fetchTafsir(surah.number, ayah, editionId);
-            tafsirs.push(tafsir);
-          } catch (error) {
-            console.warn(`Failed to fetch comparison tafsir for ${surah.number}:${ayah}`, error);
-          }
-        }
-        
-        return { edition, tafsirs };
-      } catch (error) {
-        console.warn(`Failed to load edition ${editionId}`, error);
-        return null;
-      }
-    });
-    
-    const resolvedResults = await Promise.all(promises);
-    return resolvedResults.filter((result): result is ComparisonTafsir => result !== null);
-  };
-
-  const handleComparison = async () => {
-    if (!selectedSurah) return;
-    
-    setComparisonLoading(true);
-    try {
-      // Get current edition + 2 more for comparison (total 3 editions)
-      const otherEditions = TAFSIR_EDITIONS.filter(e => e.id !== selectedEdition).slice(0, 2);
-      const editions = [selectedEdition, ...otherEditions.map(e => e.id)];
-      const data = await getComparisonTafsirs(selectedSurah, editions);
-      setComparisonData(data);
-      setExpandedComparisonAyahs(new Set());
-      setShowComparison(true);
-    } catch (error) {
-      console.error("Error loading comparison:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load comparison data",
-        variant: "destructive"
-      });
-    } finally {
-      setComparisonLoading(false);
-    }
-  };
-
-  const toggleComparisonAyah = (ayah: number) => {
-    const newExpanded = new Set(expandedComparisonAyahs);
-    if (newExpanded.has(ayah)) {
-      newExpanded.delete(ayah);
+  const goBack = () => {
+    if (currentSurahTafsir) {
+      setCurrentSurahTafsir(null);
+      setSelectedSurah(null);
     } else {
-      newExpanded.add(ayah);
+      navigate('/services');
     }
-    setExpandedComparisonAyahs(newExpanded);
-  };
-
-  const handleTTS = (text: string, label?: string) => {
-    if (!text.trim()) {
-      toast({
-        title: "No Text",
-        description: "No tafsir text is available for audio",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    setCurrentTTSText(text);
-    setCurrentTTSLabel(label || "Tafsir audio");
-    setShowTTSPlayer(true);
-    setTtsAutoPlayToken(Date.now());
-  };
-
-  const handlePlayVisibleTafsir = () => {
-    if (!currentSurahTafsir) {
-      return;
-    }
-
-    const tafsirsToPlay = getFilteredTafsirs();
-    if (tafsirsToPlay.length === 0) {
-      toast({
-        title: "No Results",
-        description: "No tafsir results found to play",
-        variant: "destructive"
-      });
-      return;
-    }
-
-    const composedText = tafsirsToPlay
-      .map((tafsir) => `Ayah ${tafsir.ayah}. ${tafsir.text}`)
-      .join(" ");
-
-    const maxLength = 12000;
-    const textToPlay = composedText.length > maxLength ? composedText.slice(0, maxLength) : composedText;
-    if (composedText.length > maxLength) {
-      toast({
-        title: "Long Tafsir",
-        description: "Playing the first part. Refine search to listen in smaller sections."
-      });
-    }
-
-    const label = searchTafsirQuery.trim()
-      ? `${currentSurahTafsir.englishName} - filtered tafsir`
-      : `${currentSurahTafsir.englishName} - full tafsir`;
-    handleTTS(textToPlay, label);
   };
 
   const isBookmarked = selectedSurah && 
     bookmarks.some(b => b.surah === selectedSurah.number);
 
-  const goBack = () => {
-    if (showComparison) {
-      setShowComparison(false);
-      return;
-    }
-    if (currentSurahTafsir) {
-      setCurrentSurahTafsir(null);
-      setSelectedSurah(null);
-      setSearchTafsirQuery("");
-      return;
-    }
-
-    if (selectedSurah) {
-      setSelectedSurah(null);
-      setSearchTafsirQuery("");
+  const handleBookmark = () => {
+    if (!selectedSurah || !currentSurahTafsir) return;
+    
+    const bookmark = {
+      surah: selectedSurah.number,
+      surahName: selectedSurah.name
+    };
+    
+    const isBookmarked = bookmarks.some(b => b.surah === selectedSurah.number);
+    
+    if (isBookmarked) {
+      setBookmarks(prev => prev.filter(b => b.surah !== selectedSurah.number));
+      toast({
+        title: "Bookmark Removed",
+        description: `${selectedSurah.englishName} removed from bookmarks`
+      });
     } else {
-      navigate('/services');
+      setBookmarks(prev => [...prev, bookmark]);
+      toast({
+        title: "Bookmark Added",
+        description: `${selectedSurah.englishName} added to bookmarks`
+      });
     }
+  };
+
+  const handleNote = (surah: number, ayah: number) => {
+    setCurrentAyahForNote({ surah, ayah });
+    setShowNotesEditor(true);
   };
 
   return (
@@ -432,214 +462,51 @@ const Tafsir = () => {
         />
 
         <div className="max-w-4xl mx-auto px-4 py-6 space-y-8">
-
-          {/* Tafsir Header */}
+          {/* Surah Selection */}
           {!selectedSurah && (
-            <div className="mb-8">
-              <div className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-600 via-teal-600 to-cyan-600 p-8 shadow-2xl shadow-emerald-500/20">
-              <div className="absolute top-0 end-0 w-40 h-40 bg-emerald-400/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-              <div className="absolute bottom-0 start-0 w-32 h-32 bg-white/20 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-
-              <div className="relative z-10">
-                <div className="flex items-center gap-2 mb-4">
-                  <div className="p-2 bg-white/10 rounded-xl backdrop-blur-md">
-                    <BookOpen className="w-5 h-5 text-white" />
-                  </div>
-                  <span className="text-white/80 text-[10px] font-bold uppercase tracking-widest">{ti18n('quranicCommentary')}</span>
-                </div>
-
-                <h1 className="text-3xl font-black text-white mb-2 font-arabic tracking-tight">{ti18n('tafsir')}</h1>
-                <p className="text-white/60 text-xs font-medium max-w-[200px]">{ti18n('exploreDeeperMeanings')}</p>
-
-                <div className="grid grid-cols-2 gap-2 mt-6">
-                  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
-                    <p className="text-white text-sm font-black">{TAFSIR_EDITIONS.length}</p>
-                    <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('editions')}</p>
-                  </div>
-                  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
-                    <p className="text-white text-sm font-black">{bookmarks.length}</p>
-                    <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('bookmarks')}</p>
-                  </div>
-                </div>
-                
-                <div className="grid grid-cols-2 gap-2 mt-2">
-                  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
-                    <p className="text-white text-sm font-black">{tafsirHistory.length}</p>
-                    <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('history')}</p>
-                  </div>
-                  <div className="bg-white/5 backdrop-blur-sm rounded-2xl p-3 border border-white/5">
-                    <p className="text-white text-sm font-black">{Object.keys(personalNotes).length}</p>
-                    <p className="text-white/40 text-[9px] uppercase font-bold">{ti18n('notes')}</p>
-                  </div>
-                </div>
+            <div className="space-y-6">
+              <div className="text-center">
+                <h1 className="text-3xl font-bold text-emerald-800 mb-2">Tafsir Explorer</h1>
+                <p className="text-muted-foreground">Read Quranic commentary from renowned scholars</p>
               </div>
-            </div>
-          </div>
-        )}
-
-          {/* Search Header */}
-          {!selectedSurah && (
-            <div className="sticky top-[4.5rem] z-30 bg-background/80 backdrop-blur-xl py-2 -mx-5 px-5">
-              <div className="relative group">
-                <div className="absolute start-4 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-emerald-600 transition-colors">
-                  <Search className="w-4 h-4" />
-                </div>
+              
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
                 <Input
-                  placeholder={ti18n('searchBySurahNameOrNumber')}
+                  placeholder="Search surahs..."
                   value={searchQuery}
                   onChange={(e) => setSearchQuery(e.target.value)}
-                  className="ps-11 h-12 bg-card/50 border-border/40 rounded-2xl focus:ring-emerald-600/20"
+                  className="pl-10 h-12 bg-card/50 border-border/40 rounded-xl text-base"
                 />
               </div>
-            </div>
-          )}
-
-          {/* Quick Actions */}
-          {!selectedSurah && tafsirHistory.length === 0 && bookmarks.length === 0 && (
-            <Card className="p-4 border-purple-200 bg-purple-50/50">
-              <h3 className="font-bold text-purple-800 mb-3">{ti18n('quickActions')}</h3>
-              <div className="grid grid-cols-2 gap-2">
-                <Button
-                  variant="outline"
-                  className="bg-white/60 hover:bg-white/80 border-purple-300 text-purple-700"
-                  onClick={() => {
-                    if (surahs.length === 0) {
-                      toast({
-                        title: "Loading",
-                        description: "Surah list is still loading"
-                      });
-                      return;
-                    }
-                    const randomSurah = surahs[Math.floor(Math.random() * surahs.length)];
-                    void handleSurahSelect(randomSurah);
-                  }}
-                >
-                  <FileText className="w-4 h-4 mr-2" />
-                  {ti18n('randomSurah')}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="bg-white/60 hover:bg-white/80 border-purple-300 text-purple-700"
-                  onClick={() => {
-                    handleTTS(
-                      "Select any surah and tap the headphone icon to listen to tafsir.",
-                      "How tafsir audio works"
-                    );
-                  }}
-                >
-                  <Headphones className="w-4 h-4 mr-2" />
-                  {ti18n('audioTafsir')}
-                </Button>
-                <Button
-                  variant="outline"
-                  className="bg-white/60 hover:bg-white/80 border-orange-300 text-orange-700"
-                  onClick={() => setShowVoiceCheck(true)}
-                >
-                  <AlertCircle className="w-4 h-4 mr-2" />
-                  Check Voice
-                </Button>
-                <Button
-                  variant="outline"
-                  className="bg-white/60 hover:bg-white/80 border-blue-300 text-blue-700"
-                  onClick={() => handleTTS(
-                    "This is the tafsir audio player. Open a surah and tap any headphone icon to start listening.",
-                    "TTS player preview"
-                  )}
-                >
-                  <Headphones className="w-4 h-4 mr-2" />
-                  Open Player
-                </Button>
-              </div>
-            </Card>
-          )}
-
-          {/* History & Bookmarks */}
-          {!selectedSurah && (tafsirHistory.length > 0 || bookmarks.length > 0) && (
-            <div className="space-y-4">
-              {tafsirHistory.length > 0 && (
-                <Card className="p-4 border-blue-200 bg-blue-50/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-blue-800 flex items-center gap-2">
-                      <History className="w-4 h-4" />
-                      {ti18n('recentlyViewed')}
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {tafsirHistory.slice(0, 3).map((item, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          const historySurah = surahs.find(s => s.number === item.surah);
-                          if (historySurah) {
-                            void handleSurahSelect(historySurah);
-                          }
-                        }}
-                        className="w-full flex items-center justify-between p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-colors text-left"
-                      >
-                        <span className="text-sm font-medium text-blue-700">{item.surahName}</span>
-                        <span className="text-xs text-blue-500">
-                          {new Date(item.timestamp).toLocaleDateString()}
-                        </span>
-                      </button>
-                    ))}
-                  </div>
-                </Card>
-              )}
-
-              {bookmarks.length > 0 && (
-                <Card className="p-4 border-emerald-200 bg-emerald-50/50">
-                  <div className="flex items-center justify-between mb-3">
-                    <h3 className="font-bold text-emerald-800 flex items-center gap-2">
-                      <Bookmark className="w-4 h-4" />
-                      {ti18n('bookmarkedSurahs')}
-                    </h3>
-                  </div>
-                  <div className="space-y-2">
-                    {bookmarks.slice(0, 3).map((bookmark, index) => (
-                      <button
-                        key={index}
-                        onClick={() => {
-                          const bookmarkedSurah = surahs.find(s => s.number === bookmark.surah);
-                          if (bookmarkedSurah) {
-                            void handleSurahSelect(bookmarkedSurah);
-                          }
-                        }}
-                        className="w-full p-2 bg-white/60 rounded-lg hover:bg-white/80 transition-colors text-left"
-                      >
-                        <span className="text-sm font-medium text-emerald-700">{bookmark.surahName}</span>
-                      </button>
-                    ))}
-                  </div>
-                </Card>
-              )}
-            </div>
-          )}
-
-          {/* Edition Selector */}
-          {selectedSurah && (
-            <div className="flex items-center gap-3">
-              <span className="text-sm font-medium text-muted-foreground">{ti18n('tafsirEdition')}:</span>
-              <Select
-                value={selectedEdition}
-                onValueChange={(value) => {
+              
+              <div className="flex flex-wrap gap-2">
+                <Select value={selectedEdition} onValueChange={(value) => {
                   setSelectedEdition(value);
                   if (selectedSurah) {
-                    setCurrentSurahTafsir(null);
                     void handleSurahSelect(selectedSurah, { editionId: value, addToHistory: false });
                   }
-                }}
-              >
-                <SelectTrigger className="flex-1">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  {TAFSIR_EDITIONS.map((edition) => (
-                    <SelectItem key={edition.id} value={edition.id}>
-                      {edition.name} ({edition.language})
-                    </SelectItem>
-                  ))}
-                </SelectContent>
-              </Select>
+                }}>
+                  <SelectTrigger className="flex-1">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent>
+                    {TAFSIR_EDITIONS.map((edition) => (
+                      <SelectItem key={edition.id} value={edition.id}>
+                        <div className="flex flex-col">
+                          <span className="font-medium">{edition.name}</span>
+                          {edition.author && (
+                            <span className="text-xs text-muted-foreground ml-1">
+                              by {edition.author}
+                            </span>
+                          )}
+                        </div>
+                        <span className="text-xs text-muted-foreground">({edition.language})</span>
+                      </SelectItem>
+                    ))}
+                  </SelectContent>
+                </Select>
+              </div>
             </div>
           )}
 
@@ -647,14 +514,13 @@ const Tafsir = () => {
           {selectedSurah && tafsirLoading && !currentSurahTafsir && (
             <div className="text-center py-8">
               <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-emerald-600 mx-auto"></div>
-              <p className="text-sm text-muted-foreground mt-2">{ti18n('loadingCompleteSurahTafsir')}</p>
-              <p className="text-xs text-muted-foreground mt-1">{ti18n('thisMayTakeMoment')}</p>
+              <p className="text-sm text-muted-foreground mt-2">Loading tafsir...</p>
             </div>
           )}
 
           {selectedSurah && !tafsirLoading && !currentSurahTafsir && (
             <Card className="p-4 border-amber-200 bg-amber-50/60">
-              <p className="text-sm text-amber-800 mb-3">Could not load tafsir for this surah yet.</p>
+              <p className="text-sm text-amber-800 mb-3">Could not load tafsir for this surah.</p>
               <Button
                 variant="outline"
                 size="sm"
@@ -665,245 +531,235 @@ const Tafsir = () => {
             </Card>
           )}
 
-          {/* Comparison View */}
-          {showComparison && comparisonData.length > 0 && (
+          {/* Tafsir Content */}
+          {currentSurahTafsir && (
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
               exit={{ opacity: 0, y: -20 }}
               className="space-y-6"
             >
-              <Card className="p-6 border-orange-200 bg-orange-50/50">
-                <div className="flex items-center justify-between mb-6">
-                  <h3 className="font-bold text-lg text-orange-800">
-                    {ti18n('tafsirComparison')} - {currentSurahTafsir?.englishName}
-                  </h3>
-                  <Button
-                    variant="outline"
-                    size="sm"
-                    onClick={() => setShowComparison(false)}
-                  >
-                    {ti18n('closeComparison')}
-                  </Button>
-                </div>
-                
-                <div className="space-y-4 max-h-96 overflow-y-auto pr-2">
-                  {comparisonData[0]?.tafsirs.map((tafsir, ayahIndex) => (
-                    <div key={ayahIndex} className="border border-orange-200 rounded-lg overflow-hidden bg-white shadow-sm">
-                      <div 
-                        className="bg-orange-100 p-4 cursor-pointer hover:bg-orange-200 transition-colors"
-                        onClick={() => toggleComparisonAyah(tafsir.ayah)}
-                      >
-                        <div className="flex items-center justify-between">
-                          <h4 className="font-semibold text-orange-800">
-                            {ti18n('ayah')} {tafsir.ayah}
-                          </h4>
-                          <div className="text-orange-600 font-mono">
-                            {expandedComparisonAyahs.has(tafsir.ayah) ? '−' : '+'}
-                          </div>
-                        </div>
-                      </div>
-                      
-                      <AnimatePresence>
-                        {expandedComparisonAyahs.has(tafsir.ayah) && (
-                          <motion.div
-                            initial={{ height: 0 }}
-                            animate={{ height: 'auto' }}
-                            exit={{ height: 0 }}
-                            className="overflow-hidden"
-                          >
-                            <div className="p-4 space-y-3 bg-gradient-to-br from-orange-50 to-white">
-                              {comparisonData.map((editionData, editionIndex) => {
-                                const editionTafsir = editionData.tafsirs.find(t => t.ayah === tafsir.ayah);
-                                if (!editionTafsir) return null;
-                                
-                                return (
-                                  <div key={editionIndex} className="border-l-4 border-orange-300 pl-4">
-                                    <h5 className="font-medium text-orange-600 mb-2">
-                                      {editionData.edition.name} ({editionData.edition.language})
-                                    </h5>
-                                    <p className="text-gray-700 leading-relaxed text-sm bg-white p-3 rounded shadow-sm">
-                                      {editionTafsir.text}
-                                    </p>
-                                  </div>
-                                );
-                              })}
-                            </div>
-                          </motion.div>
-                        )}
-                      </AnimatePresence>
+              <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white shadow-sm">
+                <CardHeader className="pb-4">
+                  <div className="flex items-center justify-between">
+                    <div>
+                      <CardTitle className="text-emerald-800 text-xl">
+                        {currentSurahTafsir.englishName}
+                      </CardTitle>
+                      <CardDescription className="text-emerald-600">
+                        {currentSurahTafsir.surahName} • {TAFSIR_EDITIONS.find(e => e.id === selectedEdition)?.name}
+                      </CardDescription>
                     </div>
-                  ))}
-                </div>
-              </Card>
-            </motion.div>
-          )}
-
-          {/* Tafsir Content */}
-          {currentSurahTafsir && !showComparison && (
-            <motion.div
-              initial={{ opacity: 0, y: 20 }}
-              animate={{ opacity: 1, y: 0 }}
-              className="space-y-4"
-            >
-              {/* Action Bar */}
-              <div className="flex flex-col gap-4 mb-6">
-                <div className="relative flex-1">
-                  <div className="absolute start-3 top-1/2 -translate-y-1/2 text-muted-foreground group-focus-within:text-emerald-600 transition-colors">
-                    <Search className="w-4 h-4" />
-                  </div>
-                  <Input
-                    placeholder={ti18n('searchWithinTafsir')}
-                    value={searchTafsirQuery}
-                    onChange={(e) => setSearchTafsirQuery(e.target.value)}
-                    className="ps-10 h-12 bg-card/50 border-border/40 rounded-xl text-base"
-                  />
-                </div>
-                
-                <div className="flex flex-wrap gap-2">
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={handleComparison}
-                    disabled={comparisonLoading}
-                    className={showComparison ? "bg-emerald-100 border-emerald-300" : ""}
-                  >
-                    {comparisonLoading ? (
-                      <div className="animate-spin rounded-full h-4 w-4 border-b-2 border-emerald-600" />
-                    ) : (
-                      <GitCompare className="w-4 h-4 mr-2" />
-                    )}
-                    {ti18n('compare')}
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={handlePlayVisibleTafsir}
-                    disabled={getFilteredTafsirs().length === 0}
-                  >
-                    <Headphones className="w-4 h-4 mr-2" />
-                    Listen
-                  </Button>
-
-                  <Button
-                    variant="outline"
-                    size="default"
-                    onClick={() => setShowVoiceCheck(true)}
-                  >
-                    <AlertCircle className="w-4 h-4 mr-2" />
-                    Voice
-                  </Button>
-                  
-                  <Dialog open={showNotesEditor} onOpenChange={setShowNotesEditor}>
-                    <DialogTrigger asChild>
-                      <Button variant="outline" size="default">
-                        <Edit3 className="w-4 h-4 mr-2" />
-                        {ti18n('notes')}
+                    <div className="flex items-center gap-2">
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={handleBookmark}
+                        className={isBookmarked ? "bg-emerald-100 border-emerald-300" : ""}
+                      >
+                        <Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-emerald-600" : ""}`} />
                       </Button>
-                    </DialogTrigger>
-                    <DialogContent>
-                      <DialogHeader>
-                        <DialogTitle>{ti18n('addPersonalNote')}</DialogTitle>
-                      </DialogHeader>
-                      <div className="space-y-4">
-                        <Textarea
-                          placeholder={ti18n('enterPersonalNote')}
-                          defaultValue={(() => {
-                            const noteKey = currentAyahForNote ? `${currentAyahForNote.surah}:${currentAyahForNote.ayah}` : '';
-                            return personalNotes[noteKey] || '';
-                          })()}
-                          className="min-h-32"
-                        />
-                        <div className="flex gap-2">
-                          <Button onClick={() => {
-                            const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
-                            if (textarea) saveNote(textarea.value);
-                          }}>
-                            {ti18n('saveNote')}
-                          </Button>
-                          <Button variant="outline" onClick={() => setShowNotesEditor(false)}>
-                            {ti18n('cancel')}
-                          </Button>
-                        </div>
-                      </div>
-                    </DialogContent>
-                  </Dialog>
-                </div>
-              </div>
-
-              <Card className="p-6 border-emerald-200 bg-emerald-50/50">
-                <div className="flex items-center justify-between mb-4">
-                  <div>
-                    <h3 className="font-bold text-lg text-emerald-800">
-                      {currentSurahTafsir.surahName} ({currentSurahTafsir.englishName})
-                    </h3>
-                    <p className="text-sm text-emerald-600">
-                      {ti18n('completeSurahTafsir')} {searchTafsirQuery && `(${getFilteredTafsirs().length} ${ti18n('results')})`}
-                    </p>
+                    </div>
                   </div>
-                  <div className="flex gap-2">
-                    <Button
-                      variant="outline"
-                      size="sm"
-                      onClick={handleBookmark}
-                      className={isBookmarked ? "bg-emerald-100 border-emerald-300" : ""}
-                    >
-                      <Bookmark className={`w-4 h-4 ${isBookmarked ? "fill-emerald-600 text-emerald-600" : ""}`} />
-                    </Button>
-                  </div>
-                </div>
+                </CardHeader>
                 
-                <div className="space-y-6 max-h-96 overflow-y-auto">
-                  {getFilteredTafsirs().map((tafsir, index) => {
-                    const noteKey = `${tafsir.surah}:${tafsir.ayah}`;
-                    const hasNote = personalNotes[noteKey];
-                    
-                    return (
-                      <div key={index} className="border-l-4 border-emerald-300 pl-4">
-                        <div className="flex items-center justify-between mb-2">
-                          <h4 className="font-semibold text-emerald-700">
-                            {ti18n('ayah')} {tafsir.ayah}
-                          </h4>
-                          <div className="flex gap-1">
-                            {hasNote && (
-                              <div className="w-2 h-2 bg-blue-500 rounded-full" title={ti18n('hasPersonalNote')} />
-                            )}
+                <CardContent className="space-y-4">
+                  <div className="relative">
+                    <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-muted-foreground w-4 h-4" />
+                    <Input
+                      placeholder="Search within tafsir..."
+                      value={searchTafsirQuery}
+                      onChange={(e) => setSearchTafsirQuery(e.target.value)}
+                      className="pl-10 h-12 bg-card/50 border-border/40 rounded-xl text-base"
+                    />
+                  </div>
+                  
+                  <div className="flex flex-wrap gap-2">
+                    <Dialog>
+                      <DialogTrigger asChild>
+                        <Button
+                          variant="outline"
+                          size="default"
+                          disabled={!currentSurahTafsir || currentSurahTafsir.tafsirs.length === 0}
+                        >
+                          <Download className="w-4 h-4 mr-2" />
+                          Download
+                        </Button>
+                      </DialogTrigger>
+                      <DialogContent className="sm:max-w-md">
+                        <DialogHeader>
+                          <DialogTitle>Download Tafsir</DialogTitle>
+                        </DialogHeader>
+                        <div className="space-y-4">
+                          <p className="text-sm text-muted-foreground">
+                            Choose format to download {currentSurahTafsir?.englishName} tafsir:
+                          </p>
+                          <div className="grid grid-cols-1 gap-2">
                             <Button
-                              variant="ghost"
-                              size="sm"
-                              onClick={() => handleNote(tafsir.surah, tafsir.ayah)}
-                              className="h-6 w-6 p-0"
+                              variant="outline"
+                              onClick={() => downloadTafsir('txt')}
+                              className="justify-start"
                             >
-                              <Edit3 className="w-3 h-3" />
+                              <FileText className="w-4 h-4 mr-2" />
+                              Text File (.txt)
                             </Button>
                             <Button
                               variant="outline"
-                              size="sm"
-                              onClick={() => handleTTS(
-                                tafsir.text,
-                                `${currentSurahTafsir.englishName} - Ayah ${tafsir.ayah}`
-                              )}
-                              className="h-6 w-6 p-0"
-                              title={ti18n('listenToTafsir')}
+                              onClick={() => downloadTafsir('json')}
+                              className="justify-start"
                             >
-                              <Headphones className="w-3 h-3" />
+                              <FileIcon className="w-4 h-4 mr-2" />
+                              JSON File (.json)
+                            </Button>
+                            <Button
+                              variant="outline"
+                              onClick={() => downloadTafsir('pdf')}
+                              className="justify-start"
+                            >
+                              <FileText className="w-4 h-4 mr-2" />
+                              HTML File (.html) - Print to PDF
                             </Button>
                           </div>
+                          <p className="text-xs text-muted-foreground">
+                            {currentSurahTafsir?.tafsirs.length || 0} ayahs will be downloaded
+                          </p>
                         </div>
-                        <p className="text-gray-700 leading-relaxed text-justify mb-2">
-                          {tafsir.text}
-                        </p>
-                        {hasNote && (
-                          <div className="bg-blue-50 border border-blue-200 rounded-lg p-3 mt-2">
-                            <p className="text-sm text-blue-800 font-medium mb-1">{ti18n('personalNote')}:</p>
-                            <p className="text-sm text-blue-700">{personalNotes[noteKey]}</p>
+                      </DialogContent>
+                    </Dialog>
+                  </div>
+                </CardContent>
+              </Card>
+
+              <Card className="border-emerald-200 bg-white shadow-sm overflow-hidden">
+                <div className="p-4 bg-emerald-50/30 border-b border-emerald-200">
+                  <div className="flex items-center justify-between">
+                    <h3 className="font-semibold text-emerald-800">
+                      Tafsir Content ({getFilteredTafsirs().length} ayahs)
+                    </h3>
+                    <span className="text-sm text-emerald-600">
+                      {currentSurahTafsir.tafsirs.length} total ayahs
+                    </span>
+                  </div>
+                </div>
+                
+                <div className="space-y-4">
+                  {getFilteredTafsirs().map((tafsir, index) => {
+                    const noteKey = `${tafsir.surah}:${tafsir.ayah}`;
+                    const hasNote = personalNotes[noteKey];
+                    const isExpanded = expandedAyahs.has(tafsir.ayah);
+                    
+                    return (
+                      <Card key={index} className="border border-emerald-200 bg-white shadow-sm overflow-hidden">
+                        <div 
+                          className="p-4 cursor-pointer hover:bg-emerald-50/50 transition-colors"
+                          onClick={() => toggleAyahExpansion(tafsir.ayah)}
+                        >
+                          <div className="flex items-center justify-between">
+                            <div className="flex items-center gap-3">
+                              <div className="w-8 h-8 bg-emerald-100 rounded-lg flex items-center justify-center">
+                                <span className="text-emerald-700 font-bold text-sm">{tafsir.ayah}</span>
+                              </div>
+                              <div className="text-left">
+                                <h4 className="font-semibold text-emerald-700">
+                                  Ayah {tafsir.ayah}
+                                </h4>
+                                <p className="text-xs text-gray-500">
+                                  {isExpanded ? 'Click to collapse' : 'Click to expand'}
+                                </p>
+                              </div>
+                            </div>
+                            <div className="flex items-center gap-2">
+                              {hasNote && (
+                                <div className="w-2 h-2 bg-blue-500 rounded-full" title="Has personal note" />
+                              )}
+                              <div className="text-emerald-600">
+                                {isExpanded ? (
+                                  <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                                    <span className="text-emerald-600 text-xs">−</span>
+                                  </div>
+                                ) : (
+                                  <div className="w-6 h-6 rounded-full bg-emerald-100 flex items-center justify-center">
+                                    <span className="text-emerald-600 text-xs">+</span>
+                                  </div>
+                                )}
+                              </div>
+                            </div>
                           </div>
-                        )}
-                      </div>
+                        </div>
+                        
+                        <AnimatePresence>
+                          {isExpanded && (
+                            <motion.div
+                              initial={{ height: 0 }}
+                              animate={{ height: 'auto' }}
+                              exit={{ height: 0 }}
+                              transition={{ duration: 0.2 }}
+                              className="overflow-hidden"
+                            >
+                              <div className="px-4 pb-4 space-y-3">
+                                <div className="bg-emerald-50/30 rounded-lg p-4">
+                                  <p className="text-gray-700 leading-relaxed text-justify text-sm">
+                                    {tafsir.text}
+                                  </p>
+                                </div>
+                                
+                                <div className="flex items-center justify-between pt-2 border-t border-emerald-100">
+                                  <div className="flex gap-2">
+                                    <Button
+                                      variant="outline"
+                                      size="sm"
+                                      onClick={(e) => {
+                                        e.stopPropagation();
+                                        handleNote(tafsir.surah, tafsir.ayah);
+                                      }}
+                                      className="h-8 px-3 text-xs"
+                                    >
+                                      <Edit3 className="w-3 h-3 mr-1" />
+                                      Note
+                                    </Button>
+                                  </div>
+                                </div>
+                                
+                                {hasNote && (
+                                  <div className="bg-blue-50 border border-blue-200 rounded-lg p-3">
+                                    <p className="text-sm text-blue-800 font-medium mb-1">Personal Note:</p>
+                                    <p className="text-sm text-blue-700">{personalNotes[noteKey]}</p>
+                                  </div>
+                                )}
+                              </div>
+                            </motion.div>
+                          )}
+                        </AnimatePresence>
+                      </Card>
                     );
                   })}
                 </div>
+                
+                {/* Load More button for large surahs */}
+                {selectedSurah && selectedSurah.numberOfAyahs > 100 && 
+                 currentSurahTafsir && 
+                 currentSurahTafsir.tafsirs.length < selectedSurah.numberOfAyahs && (
+                  <div className="flex justify-center mt-6">
+                    <Button
+                      variant="outline"
+                      onClick={() => loadMoreTafsirs()}
+                      disabled={tafsirLoading}
+                      className="px-6"
+                    >
+                      {tafsirLoading ? (
+                        <>
+                          <Loader2 className="w-4 h-4 mr-2 animate-spin" />
+                          Loading...
+                        </>
+                      ) : (
+                        <>
+                          <Plus className="w-4 h-4 mr-2" />
+                          Load More ({currentSurahTafsir.tafsirs.length} of {selectedSurah.numberOfAyahs})
+                        </>
+                      )}
+                    </Button>
+                  </div>
+                )}
               </Card>
             </motion.div>
           )}
@@ -922,21 +778,23 @@ const Tafsir = () => {
                   >
                     <button
                       onClick={() => void handleSurahSelect(surah)}
-                      className="w-full group"
+                      className="w-full text-left"
                     >
-                      <Card className="p-4 hover:shadow-lg hover:shadow-emerald-500/10 transition-all duration-300 border-emerald-100 hover:border-emerald-300">
-                        <div className="flex items-center justify-between">
-                          <div className="flex items-center gap-3">
-                            <div className="w-10 h-10 bg-emerald-100 rounded-xl flex items-center justify-center group-hover:bg-emerald-200 transition-colors">
-                              <span className="text-emerald-700 font-bold text-sm">{surah.number}</span>
+                      <Card className="border-emerald-200 bg-gradient-to-br from-emerald-50/50 to-white hover:shadow-lg hover:border-emerald-300 transition-all duration-200 cursor-pointer group">
+                        <CardContent className="p-4">
+                          <div className="flex items-center justify-between">
+                            <div>
+                              <h3 className="font-bold text-emerald-800 group-hover:text-emerald-700 transition-colors">
+                                {surah.englishName}
+                              </h3>
+                              <p className="text-sm text-emerald-600">{surah.name}</p>
+                              <p className="text-xs text-muted-foreground mt-1">
+                                Ayahs: {surah.numberOfAyahs} • {surah.revelationType}
+                              </p>
                             </div>
-                            <div className="text-left">
-                              <p className="font-arabic text-lg text-emerald-800 font-medium">{surah.name}</p>
-                              <p className="text-sm text-gray-600">{surah.englishName}</p>
-                            </div>
+                            <ChevronRight className="w-5 h-5 text-emerald-600 opacity-50 ml-2" />
                           </div>
-                          <ChevronRight className="w-5 h-5 text-emerald-600 opacity-50 ml-2" />
-                        </div>
+                        </CardContent>
                       </Card>
                     </button>
                   </motion.div>
@@ -950,7 +808,7 @@ const Tafsir = () => {
               <div className="w-16 h-16 bg-muted/30 rounded-full flex items-center justify-center mx-auto mb-4">
                 <Search className="w-8 h-8 text-muted-foreground" />
               </div>
-              <p className="text-muted-foreground">{ti18n('noSurahsFound')}</p>
+              <p className="text-muted-foreground">No surahs found</p>
             </div>
           )}
 
@@ -961,39 +819,6 @@ const Tafsir = () => {
             </div>
           )}
         </div>
-      </div>
-
-      {/* Global TTS Player */}
-      <TTSPlayer
-        text={currentTTSText}
-        title={currentTTSLabel}
-        isVisible={showTTSPlayer}
-        autoPlayToken={ttsAutoPlayToken}
-        onToggle={() => {
-          setShowTTSPlayer(false);
-          setCurrentTTSText("");
-          setCurrentTTSLabel("");
-          setTtsAutoPlayToken(undefined);
-        }}
-      />
-
-      {/* Voice Check Dialog */}
-      <VoiceCheckDialog
-        isOpen={showVoiceCheck}
-        onClose={() => setShowVoiceCheck(false)}
-        language={language}
-        onVoiceAvailable={() => {
-          toast({
-            title: "Voice Available",
-            description: "Voice is now available for TTS"
-          });
-        }}
-      />
-
-      <div className="px-8 mt-12 text-center opacity-40">
-        <p className="text-[10px] font-medium uppercase tracking-[0.2em]">
-          Noor Connect - {ti18n('spiritualCompanion')}
-        </p>
       </div>
     </PageTransition>
   );

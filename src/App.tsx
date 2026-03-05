@@ -38,6 +38,9 @@ const Tasbeeh = lazy(() => import("./pages/Tasbeeh"));
 const Qibla = lazy(() => import("./pages/Qibla"));
 const Duas = lazy(() => import("./pages/Duas"));
 const Hadith = lazy(() => import("./pages/Hadith"));
+const HadithCollections = lazy(() => import("./pages/HadithCollections"));
+const HadithBook = lazy(() => import("./pages/HadithBook"));
+const HadithBookContent = lazy(() => import("./pages/HadithBookContent"));
 const Profile = lazy(() => import("./pages/Profile"));
 const IslamicCalendar = lazy(() => import("./pages/IslamicCalendar"));
 const Ebooks = lazy(() => import("./pages/EbooksModern"));
@@ -55,7 +58,7 @@ const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const Services = lazy(() => import("./pages/Services"));
 const IslamicRemedies = lazy(() => import("./pages/IslamicRemedies"));
 const RemedyFavorites = lazy(() => import("./pages/RemedyFavorites"));
-const Tafsir = lazy(() => import("./pages/Tafsir"));
+const Tafsir = lazy(() => import("./pages/Tafsir-New"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 import { prefetchCriticalChunks } from "@/lib/build-optimization";
@@ -133,6 +136,9 @@ function AppRoutes() {
         <Route path="/qibla" element={<Qibla />} />
         <Route path="/duas" element={<Duas />} />
         <Route path="/hadith" element={<Hadith />} />
+        <Route path="/hadith/collections" element={<HadithCollections />} />
+        <Route path="/hadith/collections/:collection" element={<HadithBook />} />
+        <Route path="/hadith/collections/:collection/:book" element={<HadithBookContent />} />
         <Route path="/profile" element={<Profile />} />
         <Route path="/calendar" element={<IslamicCalendar />} />
         <Route path="/ebooks" element={<Ebooks />} />

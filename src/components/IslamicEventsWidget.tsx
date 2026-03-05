@@ -31,6 +31,17 @@ export function IslamicEventsWidget() {
 
   useEffect(() => {
     loadEvents();
+
+    // Listen for widget refresh events
+    const handleRefresh = () => {
+      loadEvents();
+    };
+
+    window.addEventListener('widget-refresh', handleRefresh);
+
+    return () => {
+      window.removeEventListener('widget-refresh', handleRefresh);
+    };
   }, []);
 
   const loadEvents = async () => {
@@ -210,3 +221,5 @@ export function IslamicEventsWidget() {
     </div>
   );
 }
+
+export default IslamicEventsWidget;

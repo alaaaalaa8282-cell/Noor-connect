@@ -1,0 +1,21 @@
+{
+  "name": "al-mu-jam-al-awsat",
+  "title": "Al Mu Jam Al Awsat",
+  "arabicTitle": "",
+  "author": "Unknown",
+  "death": "",
+  "description": "Imported from external hadith dataset.",
+  "totalHadith": 1,
+  "totalBooks": 1,
+  "authenticity": "",
+  "compilerPeriod": "",
+  "books": [
+    {
+      "number": "1",
+      "name": "Book 1",
+      "arabicName": "",
+      "hadithCount": 1,
+      "description": ""
+    }
+  ]
+}

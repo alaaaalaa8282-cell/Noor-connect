@@ -120,6 +120,11 @@ export default defineConfig(({ mode }) => ({
       },
       devOptions: {
         enabled: false // Disable SW in dev to prevent caching of Vite internal files
+      },
+      // Exclude large hadith data from PWA precaching
+      injectManifest: {
+        maximumFileSizeToCacheInBytes: 50 * 1024 * 1024,
+        globIgnores: ['**/*.map', '**/data/hadith-collections/**']
       }
     })
   ].filter(Boolean),

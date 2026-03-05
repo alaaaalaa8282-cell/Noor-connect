@@ -1,0 +1,35 @@
+[
+  {
+    "id": "musnad-ahmad-1-0-2869-82",
+    "collection": "musnad-ahmad",
+    "bookNumber": "1",
+    "bookName": "Book 1",
+    "hadithNumber": "2869",
+    "arabic": "حَجُّوا قَبْلَ أَنْ لاَ تَحُجُّوا",
+    "englishTranslation": "Perform Hajj before you cannot",
+    "category": "General",
+    "tags": []
+  },
+  {
+    "id": "musnad-ahmad-1-0-18534-80",
+    "collection": "musnad-ahmad",
+    "bookNumber": "1",
+    "bookName": "Book 1",
+    "hadithNumber": "18534",
+    "arabic": "اسْتَفْتِ قَلْبَكَ",
+    "englishTranslation": "Consult your heart",
+    "category": "General",
+    "tags": []
+  },
+  {
+    "id": "musnad-ahmad-1-0-21684-94",
+    "collection": "musnad-ahmad",
+    "bookNumber": "1",
+    "bookName": "Book 1",
+    "hadithNumber": "21684",
+    "arabic": "الْغَنِيمَةُ الْبَارِدَةُ الصَّوْمُ فِي الشِّتَاءِ",
+    "englishTranslation": "The cool booty is fasting in winter",
+    "category": "General",
+    "tags": []
+  }
+]

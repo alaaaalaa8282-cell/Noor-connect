@@ -1,0 +1,307 @@
+{
+  "name": "tirmidhi",
+  "title": "Sunan al-Tirmidhi",
+  "author": "Imam Abu Isa al-Tirmidhi",
+  "death": "279 AH",
+  "authenticity": "Hasan",
+  "arabicTitle": "سنن الترمذي",
+  "totalHadith": 4053,
+  "totalBooks": 49,
+  "books": [
+    {
+      "number": "1",
+      "name": "What Has Been Related That Salat Is Not Accepted Without Purification",
+      "arabicName": "باب مَا جَاءَ لاَ تُقْبَلُ صَلاَةٌ بِغَيْرِ طُهُورٍ  ‏",
+      "hadithCount": 148
+    },
+    {
+      "number": "2",
+      "name": "What Has Been Related About Prescribed Times for Salat From The Prophet",
+      "arabicName": "باب مَا جَاءَ فِي مَوَاقِيتِ الصَّلاَةِ عَنِ النَّبِيِّ صلى الله عليه وسلم ‏ ‏",
+      "hadithCount": 304
+    },
+    {
+      "number": "3",
+      "name": "What Has Been Related About The Virtue Of Al-Witr",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ الْوِتْرِ",
+      "hadithCount": 35
+    },
+    {
+      "number": "4",
+      "name": "[What Has Been Related] About The Virtue Of The Day Of Jumu'ah",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ يَوْمِ الْجُمُعَةِ",
+      "hadithCount": 42
+    },
+    {
+      "number": "5",
+      "name": "[What Has Been Related] About Walking On The Day Of Eid",
+      "arabicName": "باب مَا جَاءَ فِي الْمَشْىِ يَوْمَ الْعِيدِ",
+      "hadithCount": 14
+    },
+    {
+      "number": "6",
+      "name": "(What Has Been Related About) Shortening The Prayer During Travels",
+      "arabicName": "باب مَا جَاءَ فِي التَّقْصِيرِ فِي السَّفَرِ",
+      "hadithCount": 73
+    },
+    {
+      "number": "7",
+      "name": "What Has Been Related From The Messenger of Allah About The Severe Warning Against Withholding Zakat",
+      "arabicName": "باب مَا جَاءَ عَنْ رَسُولِ اللَّهِ صلى الله عليه وسلم فِي مَنْعِ الزَّكَاةِ مِنَ التَّشْدِيدِ ‏.‏",
+      "hadithCount": 65
+    },
+    {
+      "number": "8",
+      "name": "What Has Been Related About The Virtue Of The Month Of Ramadan",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ شَهْرِ رَمَضَانَ ‏‏",
+      "hadithCount": 127
+    },
+    {
+      "number": "9",
+      "name": "What Has Been Related About Makkah's Sanctity",
+      "arabicName": "باب مَا جَاءَ فِي حُرْمَةِ مَكَّةَ",
+      "hadithCount": 158
+    },
+    {
+      "number": "10",
+      "name": "What Has Been Related About Reward For The Sick",
+      "arabicName": "باب مَا جَاءَ فِي ثَوَابِ الْمَرِيضِ ‏",
+      "hadithCount": 115
+    },
+    {
+      "number": "11",
+      "name": "What Has Been Related About The Virtues Of Marriage And Encouraging It",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ التَّزْوِيجِ وَالْحَثِّ عَلَيْهِ",
+      "hadithCount": 67
+    },
+    {
+      "number": "12",
+      "name": "What has been related about: Suckling makes unlawful whatever lineage makes unlawful",
+      "arabicName": "باب مَا جَاءَ يُحَرَّمُ مِنَ الرَّضَاعِ مَا يُحَرَّمُ مِنَ النَّسَبِ ‏",
+      "hadithCount": 29
+    },
+    {
+      "number": "13",
+      "name": "What has been related about the Sunnah divorce",
+      "arabicName": "باب مَا جَاءَ فِي طَلاَقِ السُّنَّةِ ‏",
+      "hadithCount": 31
+    },
+    {
+      "number": "14",
+      "name": "What Has Been Related About Matters That Are Not Clear",
+      "arabicName": "باب مَا جَاءَ فِي تَرْكِ الشُّبُهَاتِ ‏‏",
+      "hadithCount": 125
+    },
+    {
+      "number": "15",
+      "name": "What Has Been Related From The Messenger of Allah About The Judge",
+      "arabicName": "باب مَا جَاءَ عَنْ رَسُولِ اللَّهِ صلى الله عليه وسلم فِي الْقَاضِي ‏",
+      "hadithCount": 66
+    },
+    {
+      "number": "16",
+      "name": "What Has Been Related About Blood Money, How Many Camels Is It?",
+      "arabicName": "باب مَا جَاءَ فِي الدِّيَةِ كَمْ هِيَ مِنَ الإِبِلِ",
+      "hadithCount": 39
+    },
+    {
+      "number": "17",
+      "name": "What Has Been Related About Those From Whom Punishment Is Not Required",
+      "arabicName": "باب مَا جَاءَ فِيمَنْ لاَ يَجِبُ عَلَيْهِ الْحَدُّ ‏.‏",
+      "hadithCount": 47
+    },
+    {
+      "number": "18",
+      "name": "What Has Been Related About What Is Eaten From The Game Caught By Dogs And What Is Not Eaten",
+      "arabicName": "باب مَا جَاءَ مَا يُؤْكَلُ مِنْ صَيْدِ الْكَلْبِ وَمَا لاَ يُؤْكَلُ ‏.‏",
+      "hadithCount": 36
+    },
+    {
+      "number": "19",
+      "name": "What Has Been Related About The Virtues Of Slaughtering",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ الأُضْحِيَةِ ‏‏",
+      "hadithCount": 36
+    },
+    {
+      "number": "20",
+      "name": "What Has Been Related From The Messenger Of Allah (saws) About 'There Is No Vowing For Disobedience'",
+      "arabicName": "باب مَا جَاءَ عَنْ رَسُولِ اللَّهِ صلى الله عليه وسلم أَنْ لاَ نَذْرَ فِي مَعْصِيَةٍ",
+      "hadithCount": 26
+    },
+    {
+      "number": "21",
+      "name": "What Has Been Related About Calling (To Islam) Before Fighting",
+      "arabicName": "باب مَا جَاءَ فِي الدَّعْوَةِ قَبْلَ الْقِتَالِ",
+      "hadithCount": 83
+    },
+    {
+      "number": "22",
+      "name": "What Has Been Related About The Virtue Of Jihad",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ الْجِهَادِ ‏‏",
+      "hadithCount": 52
+    },
+    {
+      "number": "23",
+      "name": "What Has Been Related About The People Who Have An Excuse Not To Participate",
+      "arabicName": "باب مَا جَاءَ فِي الرُّخْصَةِ لأَهْلِ الْعُذْرِ فِي الْقُعُودِ",
+      "hadithCount": 53
+    },
+    {
+      "number": "24",
+      "name": "What has Been Related About Silk And Gold",
+      "arabicName": "باب مَا جَاءَ فِي الْحَرِيرِ وَالذَّهَبِ‏",
+      "hadithCount": 76
+    },
+    {
+      "number": "25",
+      "name": "What Has Been Related About What The Prophet (saws) Ate Upon",
+      "arabicName": "باب مَا جَاءَ عَلَى مَا كَانَ يَأْكُلُ رَسُولُ اللَّهِ صلى الله عليه وسلم ‏‏",
+      "hadithCount": 78
+    },
+    {
+      "number": "26",
+      "name": "What Has Been Related About Drinking Khamr",
+      "arabicName": "باب مَا جَاءَ فِي شَارِبِ الْخَمْرِ ‏",
+      "hadithCount": 37
+    },
+    {
+      "number": "27",
+      "name": "What Has Been Related About Being Dutiful To Parents.",
+      "arabicName": "باب مَا جَاءَ فِي بِرِّ الْوَالِدَيْنِ ‏",
+      "hadithCount": 141
+    },
+    {
+      "number": "28",
+      "name": "What Has Been Related About Diet",
+      "arabicName": "باب مَا جَاءَ فِي الْحِمْيَةِ ‏‏",
+      "hadithCount": 53
+    },
+    {
+      "number": "29",
+      "name": "What has been Related About Whoever Leaves Wealth Then It Is For His Heirs",
+      "arabicName": "باب مَا جَاءَ مَنْ تَرَكَ مَالاً فَلِوَرَثَتِهِ ‏",
+      "hadithCount": 26
+    },
+    {
+      "number": "30",
+      "name": "What has been Related About Willing One Third",
+      "arabicName": "باب مَا جَاءَ فِي الْوَصِيَّةِ بِالثُّلُثِ ‏",
+      "hadithCount": 9
+    },
+    {
+      "number": "31",
+      "name": "What has been Related About The Wala' Is For The One Who Frees",
+      "arabicName": "باب مَا جَاءَ أَنَّ الْوَلاَءَ لِمَنْ أَعْتَقَ ‏",
+      "hadithCount": 9
+    },
+    {
+      "number": "32",
+      "name": "Book 32",
+      "arabicName": "باب مَا جَاءَ فِي التَّشْدِيدِ فِي الْخَوْضِ فِي الْقَدَرِ ‏",
+      "hadithCount": 25
+    },
+    {
+      "number": "33",
+      "name": "What has been Related About 'The Blood Of A Muslim is Not Lawful Except For One Of Three'",
+      "arabicName": "باب مَا جَاءَ لاَ يَحِلُّ دَمُ امْرِئٍ مُسْلِمٍ إِلاَّ بِإِحْدَى ثَلاَثٍ ‏‏",
+      "hadithCount": 112
+    },
+    {
+      "number": "34",
+      "name": "What has been Related About 'The Believer's Dreams Are A Portion Among The Forty-Six Portions Of Prophet-hood'",
+      "arabicName": "باب أَنَّ رُؤْيَا الْمُؤْمِنِ جُزْءٌ مِنْ سِتَّةٍ وَأَرْبَعِينَ جُزْءًا مِنَ النُّبُوَّةِ ‏",
+      "hadithCount": 25
+    },
+    {
+      "number": "35",
+      "name": "What Has Been Related About Witnesses And Which Of Them Are Best",
+      "arabicName": "باب مَا جَاءَ فِي الشُّهَدَاءِ أَيُّهُمْ خَيْرٌ ‏",
+      "hadithCount": 10
+    },
+    {
+      "number": "36",
+      "name": "Health And Free Time Are Two Favors Squandered By Many Of The People",
+      "arabicName": "باب مَا جَاءَ فِي أَنَّ الصِّحَّةَ وَالْفَرَاغَ نِعْمَتَانِ مَغْبُونٌ فِيهِمَا كَثِيرٌ مِنَ النَّاسِ ‏",
+      "hadithCount": 112
+    },
+    {
+      "number": "37",
+      "name": "On the Day of Judgement",
+      "arabicName": "باب فِي الْقِيَامَةِ",
+      "hadithCount": 108
+    },
+    {
+      "number": "38",
+      "name": "What Has Been Related About the Description of the Trees of Paradise",
+      "arabicName": "باب مَا جَاءَ فِي صِفَةِ شَجَرِ الْجَنَّةِ",
+      "hadithCount": 50
+    },
+    {
+      "number": "39",
+      "name": "What Has Been Related About the Description of the Fire",
+      "arabicName": "باب مَا جَاءَ فِي صِفَةِ النَّارِ ‏",
+      "hadithCount": 33
+    },
+    {
+      "number": "40",
+      "name": "What Has Been Related About \"I Have Been Ordered To Fight The People Until They Say: La Ilaha Illallah\"",
+      "arabicName": "باب مَا جَاءَ أُمِرْتُ أَنْ أُقَاتِلَ النَّاسَ حَتَّى يَقُولُوا لاَ إِلَهَ إِلاَّ اللَّهُ ‏",
+      "hadithCount": 39
+    },
+    {
+      "number": "41",
+      "name": "When Allah Wants Good For A Slave, He Gives Him Understanding In The Religion",
+      "arabicName": "باب مَا جَاءَ إِذَا أَرَادَ اللَّهُ بِعَبْدٍ خَيْرًا فَقَّهَهُ فِي الدِّينِ ‏",
+      "hadithCount": 43
+    },
+    {
+      "number": "42",
+      "name": "What Has Been Reported About Spreading The Salam",
+      "arabicName": "باب مَا جَاءَ فِي إِفْشَاءِ السَّلاَمِ ‏‏",
+      "hadithCount": 48
+    },
+    {
+      "number": "43",
+      "name": "What Has Been Related About Replying To The Sneezing Person",
+      "arabicName": "باب مَا جَاءَ فِي تَشْمِيتِ الْعَاطِسِ",
+      "hadithCount": 135
+    },
+    {
+      "number": "44",
+      "name": "What Has Been Related About Allah's Parable for His Slaves",
+      "arabicName": "باب مَا جَاءَ فِي مَثَلِ اللَّهِ لِعِبَادِهِ ‏",
+      "hadithCount": 17
+    },
+    {
+      "number": "45",
+      "name": "What Has Been Related About The Virtues Of Fatihatil-Kitab (Surat Al-Fatihah)",
+      "arabicName": "باب مَا جَاءَ فِي فَضْلِ فَاتِحَةِ الْكِتَابِ ‏‏",
+      "hadithCount": 52
+    },
+    {
+      "number": "46",
+      "name": "Regarding Fatihatil-Kitab",
+      "arabicName": "باب فِي فَاتِحَةِ الْكِتَابِ ‏",
+      "hadithCount": 23
+    },
+    {
+      "number": "47",
+      "name": "What Has Been Related About The One Who Interprets The Quran According To His Own Opinion",
+      "arabicName": "باب مَا جَاءَ فِي الَّذِي يُفَسِّرُ الْقُرْآنَ بِرَأْيِهِ ‏‏",
+      "hadithCount": 421
+    },
+    {
+      "number": "48",
+      "name": "What Has Been Related About The Virtue OF The Supplication",
+      "arabicName": "بَاب مَا جَاءَ فِي فَضْلِ الدُّعَاءِ",
+      "hadithCount": 244
+    },
+    {
+      "number": "49",
+      "name": "What Has Been Related About The Virtue Of The Prophet (SAW)",
+      "arabicName": "باب فِي فَضْلِ النَّبِيِّ صلى الله عليه وسلم",
+      "hadithCount": 356
+    }
+  ],
+  "dataFile": "hadiths.json"
+}

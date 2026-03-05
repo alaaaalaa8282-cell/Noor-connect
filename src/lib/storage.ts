@@ -81,6 +81,8 @@ export const getTimeFormat = (): '12' | '24' => {
 
 export const setTimeFormat = (format: '12' | '24'): void => {
   localStorage.setItem(STORAGE_KEYS.TIME_FORMAT, format);
+  // Dispatch custom event for immediate UI updates
+  window.dispatchEvent(new CustomEvent('time-format-changed', { detail: { format } }));
 };
 
 // Tasbeeh

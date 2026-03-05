@@ -183,7 +183,7 @@ export function extractAuthor(title: string): string | null {
   const scholars = ['Ibn', 'Imam', 'Shaykh', 'Dr.', 'Al-', 'Abu'];
   for (const scholar of scholars) {
     if (title.includes(scholar)) {
-      const parts = title.split(/[\-\–]/);
+      const parts = title.split(/[-–]/);
       if (parts.length > 1) {
         return parts[parts.length - 1].trim();
       }

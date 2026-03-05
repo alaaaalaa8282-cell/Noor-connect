@@ -1,0 +1,19 @@
+{
+  "name": "hisn",
+  "totalHadith": 2,
+  "totalBooks": 2,
+  "books": [
+    {
+      "number": "Merits",
+      "name": "of Dhikr",
+      "arabicName": "",
+      "hadithCount": 1
+    },
+    {
+      "number": "(more)",
+      "name": "(more)",
+      "arabicName": "",
+      "hadithCount": 1
+    }
+  ]
+}
