@@ -1,7 +1,3 @@
-<p align="center">
-  <img src="banner.png" alt="Noor Connect Banner" width="100%">
-</p>
-
 # 🌙 Noor Connect - Your Ultimate Islamic Companion
 
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/darkmaster0345/Noor-connect) [![Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/darkmaster0345/Noor-connect)
@@ -142,4 +138,5 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <p align="center">
   <i>"Indeed, in the remembrance of Allah do hearts find rest." (Ar-Ra'd 13:28)</i>
 </p>
-<img width="1264" height="847" alt="noor connect modified" src="https://github.com/user-attachments/assets/af7786cd-b1f0-4367-b6bc-97f7f4d2a9b3" />
+<img width="4096" height="2289" alt="noor connect modified(1)(1)" src="https://github.com/user-attachments/assets/4b7cd64b-416e-4447-8b6b-dd8e2a5fed3a" />
+
