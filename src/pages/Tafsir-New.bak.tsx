@@ -131,40 +131,19 @@ const Tafsir = () => {
 
     const savedNotes = localStorage.getItem('tafsir-notes');
     if (savedNotes) setPersonalNotes(JSON.parse(savedNotes));
-
-    fetchSurahs();
   }, []);
-
-  // Update filtered surahs whenever search query or surahs list changes
-  useEffect(() => {
-    if (!surahs.length) return;
-
-    const filtered = surahs.filter(
-      (surah) =>
-        surah.englishName.toLowerCase().includes(searchQuery.toLowerCase()) ||
-        surah.name.includes(searchQuery) ||
-        surah.number.toString().includes(searchQuery)
-    );
-    setFilteredSurahs(filtered);
-  }, [searchQuery, surahs]);
 
 
   const fetchSurahs = async () => {
-    setLoading(true);
     try {
       const response = await fetch("https://api.alquran.cloud/v1/surah");
       const data = await response.json();
       setSurahs(data.data);
-      // filteredSurahs will be updated by the useEffect above
+      setFilteredSurahs(prev => searchQuery ? prev : data.data);
       try { localStorage.setItem('quran-surahs-cache', JSON.stringify(data.data)); } catch (error) { console.warn("localStorage cache save failed:", error); }
+      setLoading(false);
     } catch (error) {
-      console.error("Error fetching surahs:", error);
-      toast({
-        title: "Connection Error",
-        description: "Failed to load Surah list. Please check your connection.",
-        variant: "destructive"
-      });
-    } finally {
+      console.error("Error:", error);
       setLoading(false);
     }
   };
@@ -498,41 +477,26 @@ const Tafsir = () => {
 
                 <TabsContent value="surahs" className="mt-6 space-y-3">
                   <div className="grid grid-cols-1 gap-3">
-                    {loading ? (
-                      // Skeleton loader
-                      Array.from({ length: 8 }).map((_, i) => (
-                        <div key={i} className="h-20 bg-slate-100 animate-pulse rounded-3xl border border-slate-50" />
-                      ))
-                    ) : filteredSurahs.length === 0 ? (
-                      <div className="text-center py-12 px-6 bg-white rounded-3xl border border-dashed border-slate-200">
-                        <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
-                          <Search className="w-8 h-8 text-slate-300" />
+                    {filteredSurahs.map((surah) => (
+                      <button
+                        key={surah.number}
+                        onClick={() => handleSurahSelect(surah)}
+                        className="group relative flex items-center p-4 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-100 transition-all text-left"
+                      >
+                        <div className="relative w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-black group-hover:bg-emerald-600 group-hover:text-white transition-all overflow-hidden">
+                          <span className="relative z-10">{surah.number}</span>
+                          <div className="absolute inset-0 opacity-10 font-arabic text-3xl flex items-center justify-center translate-x-2 translate-y-2 select-none">{surah.name}</div>
                         </div>
-                        <h3 className="font-bold text-slate-800">No Surahs found</h3>
-                        <p className="text-sm text-slate-500 mt-2">Try adjusting your search query.</p>
-                      </div>
-                    ) : (
-                      filteredSurahs.map((surah) => (
-                        <button
-                          key={surah.number}
-                          onClick={() => handleSurahSelect(surah)}
-                          className="group relative flex items-center p-4 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-100 transition-all text-left"
-                        >
-                          <div className="relative w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-black group-hover:bg-emerald-600 group-hover:text-white transition-all overflow-hidden">
-                            <span className="relative z-10">{surah.number}</span>
-                            <div className="absolute inset-0 opacity-10 font-arabic text-3xl flex items-center justify-center translate-x-2 translate-y-2 select-none">{surah.name}</div>
-                          </div>
-                          <div className="ml-4 flex-1">
-                            <h3 className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{surah.englishName}</h3>
-                            <p className="text-xs text-slate-400 font-medium">{surah.englishNameTranslation} • {surah.numberOfAyahs} Ayahs</p>
-                          </div>
-                          <div className="text-right flex flex-col items-end">
-                            <span className="font-arabic text-lg text-emerald-600 font-bold">{surah.name}</span>
-                            <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{surah.revelationType}</span>
-                          </div>
-                        </button>
-                      ))
-                    )}
+                        <div className="ml-4 flex-1">
+                          <h3 className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{surah.englishName}</h3>
+                          <p className="text-xs text-slate-400 font-medium">{surah.englishNameTranslation} • {surah.numberOfAyahs} Ayahs</p>
+                        </div>
+                        <div className="text-right flex flex-col items-end">
+                          <span className="font-arabic text-lg text-emerald-600 font-bold">{surah.name}</span>
+                          <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{surah.revelationType}</span>
+                        </div>
+                      </button>
+                    ))}
                   </div>
                 </TabsContent>
 
