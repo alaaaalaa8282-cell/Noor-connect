@@ -142,3 +142,4 @@ This project is licensed under the MIT License - see the [LICENSE](LICENSE) file
 <p align="center">
   <i>"Indeed, in the remembrance of Allah do hearts find rest." (Ar-Ra'd 13:28)</i>
 </p>
+<img width="1264" height="847" alt="noor connect modified" src="https://github.com/user-attachments/assets/af7786cd-b1f0-4367-b6bc-97f7f4d2a9b3" />
