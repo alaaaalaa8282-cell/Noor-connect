@@ -1,66 +1,53 @@
+<p align="center">
+  <img src="banner.png" alt="Noor Connect Banner" width="100%">
+</p>
+
 # 🌙 Noor Connect - Your Ultimate Islamic Companion
 
-[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.1.2-blue.svg)](https://github.com/darkmaster0345/Noor-connect) [![Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/darkmaster0345/Noor-connect)
+[![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT) [![Version](https://img.shields.io/badge/version-1.1.0-blue.svg)](https://github.com/darkmaster0345/Noor-connect) [![Status](https://img.shields.io/badge/status-stable-green.svg)](https://github.com/darkmaster0345/Noor-connect)
 
 **Noor Connect** is a comprehensive, beautiful, and privacy-focused Islamic application designed to help you stay connected with your faith. Built with modern web technologies and optimized for mobile experiences via Capacitor, it serves as your digital companion for daily spiritual growth.
 
 ---
 
-## ✨ Key Features
+## ✨ Key Features (v1.1)
 
-### 📖 Holy Quran
+### 📖 Holy Quran & Tafsir
 - Complete Quran with beautiful, readable interface
-- Detailed Surah information and recitations
+- **Enhanced Tafsir Explorer**: 25+ Quranic commentary editions via high-speed spa5k API integration
+- Multilingual Tafsirs: English, Arabic, Bengali, Urdu, Russian, and Kurdish
 - Audio playback with multiple reciters
 - Progress tracking and bookmarking
+- Highly customizable font styling (including Uthmani and Indo-Pak script support)
 
 ### ⏲️ Accurate Prayer Times & Adhan
-- Localization-based prayer timings worldwide
+- Localization-based prayer timings worldwide (offline fallback support)
 - Customizable Adhan notifications with multiple sounds
 - Global prayer alarm system
-- Prayer method selection (Hanafi, Shafi, Maliki, Hanbali)
+- Prayer method & Madhab calculation selection (Hanafi, Shafi'i)
 
 ### 🕋 Qibla Finder
-- High-precision compass for Kaaba direction
+- High-precision compass for Kaaba direction utilizing device sensors
 - Works from anywhere in the world
-- Visual guidance with distance indicators
-- Manual backup compass for devices without sensors
+- Manual backup compass mode for devices without native sensors
 
-### 📻 Quran Radio & Live Streams
-- 24/7 Quran recitations from global stations
+### 📻 Quran Radio & E-books
+- 24/7 Quran recitations from global stations via streaming
 - Live streams from Makkah and Madinah
-- Background playback support
-- Enhanced error handling with automatic format fallback
-- **NEW**: Improved audio streaming with retry mechanisms
+- Rich Islamic E-books library built with modern UI and PDF parsing
 
 ### 🌙 Ramadan Mode
 - Suhoor/Iftar timings with countdown
 - Fasting tracker with 30-day calendar
-- Tarawih prayer tracking
-- Quran reading progress (Juz by Juz)
-- Charity and good deeds tracker
-- Water reminders for hydration
+- Tarawih prayer tracking and daily charity log
+- Water reminders for healthy hydration
 
-### 📿 Spiritual Tools
-- **Digital Tasbeeh**: Interactive Dhikr counter
-- **Qaza Tracker**: Log and track missed prayers
+### 📿 Spiritual & Gamified Tracking
+- **Qaza Tracker**: Systematically log and track missed prayers
+- **Weekly Salah Chart**: Visual representation of your prayer consistency
+- **Digital Tasbeeh**: Interactive Dhikr counter with goals
 - **Habit Tracker**: Build consistent spiritual habits
-- **Prayer Stats**: Visualize prayer consistency
-- **Menstrual Mode**: Personalized tracking for women
-
-### 📚 Knowledge & Wisdom
-- **Enhanced Tafsir Explorer**: 25+ Quranic commentary editions with spa5k API integration
-- **Multilingual Tafsirs**: Support for English, Arabic, Bengali, Urdu, Russian, and Kurdish
-- **Islamic Remedies**: Mood-based Quran verses, Hadith, and Duas for emotional support
-- **Duas & Hadith**: Authentic supplications and traditions
-- **99 Names of Allah**: Reflect on divine attributes
-- **Islamic Quiz**: Test and expand knowledge
-- **E-Books**: Islamic literature library
-
-### 💰 Zakat Calculator
-- Quick and accurate Zakat calculations
-- Wealth distribution guidance
-- Multiple asset types supported
+- **Menstrual Mode**: Personalized tracking for women, seamlessly adapting prayer notifications
 
 ---
 
@@ -68,13 +55,11 @@
 
 - **Frontend**: React 18 + TypeScript + Vite
 - **Styling**: Tailwind CSS + shadcn/ui components
-- **Animations**: Framer Motion for smooth interactions
-- **Mobile**: Capacitor (Android) with native integrations
-- **Reliability**: PWA with Service Workers for offline access
-- **Calculations**: Adhan library for precise prayer times
-- **Performance**: Optimized with lazy loading and caching
-- **Audio**: Enhanced HLS.js integration with format detection
-- **Error Handling**: Robust fallback mechanisms and retry logic
+- **Animations**: Framer Motion for premium, glassmorphism interactions
+- **Mobile Native Bridge**: Capacitor for deep Android integrations (Widgets, Notifications, Geolocation)
+- **Internationalization (i18n)**: Fully resilient multilingual support (en, ar, ur, bn, ru) with strict RTL layout preservation
+- **Offline-First PWA**: Service Workers ensure the app functions even without an internet connection
+- **No Third-Party Analytics**: 100% private, your data stays entirely on your device
 
 ---
 
@@ -82,7 +67,6 @@
 
 ### Prerequisites
 - **Node.js**: v18+
-- **npm** or **bun**
 - **Android Studio**: For APK builds
 
 ### Local Development
@@ -93,131 +77,59 @@ git clone https://github.com/darkmaster0345/Noor-connect.git
 cd Noor-connect
 npm install
 
-# Run development
+# Run development server
 npm run dev
 ```
-
-### Import Hadith Dataset Files
-
-```bash
-# Example: import files downloaded from https://github.com/abdelrahmaan/Hadith-Data-Sets
-npm run import:hadith -- --input "C:\path\to\Hadith-Data-Sets\All Hadith Books"
-# Or import a single file
-npm run import:hadith -- --input "C:\path\to\hadith.json"
-# Remove old generated collection folders before writing new output
-npm run import:hadith -- --input "C:\path\to\hadith.json" --clean-output
-```
-
-The importer accepts `.json` and `.csv`, and writes normalized files to `src/data/hadith-collections/<collection>/book-*.json` with matching `metadata.json`.
 
 ### Android Build
 
 ```bash
-# Build web assets
+# Build web assets for production
 npm run build
 
-# Sync with Capacitor
+# Sync assets and capacitor plugins
 npx cap sync android
 
-# Open in Android Studio
+# Open in Android Studio to build APK
 npx cap open android
 ```
+
+---
+
+## 🆕 Recent Updates (v1.1.0)
+- **Tafsir & Hadith Capabilities**: Integrated a robust Tafsir Explorer and comprehensive new Hadith collection features.
+- **UI/UX Revolution**: Reordered the Dashboard for better user experience, optimized home-screen widgets with a premium glassmorphism design, and removed unnecessary splash screens.
+- **Notification & Interactivity Fixes**: Heavily improved the adhan and notification system for greater reliability, fixing background execution and alarm scheduling bugs.
+- **Data Protection**: Implemented a comprehensive Backup and Restore feature allowing users to export and import all settings, progress, and books to a single file.
+- **Performance & Cleanup**: Engineered a massive optimization to the Hadith UI to prevent lag with large books, pruned unused app code, and polished the translation architecture.
+
+---
+
+## 🔮 Planned for Version 1.2.0
+
+*Development for v1.2.0 will introduce highly-requested personal lifestyle implementations:*
+
+1. **Hifz (Memorization) Companion**
+   - A dedicated flashcard-style memorization mode utilizing Spaced Repetition System (SRS).
+   - Audio-syncing to allow recitation practice (pausing after Ayahs).
+2. **OpenStreetMap Halal & Mosque Radar**
+   - Integration with OSM's Overpass API to locate nearby mosques and halal dietary options natively.
+3. **Islamic Finance & Sadaqah Tracker**
+   - Advanced offline ledger for managing charitable giving and precise Zakat history over varying Hawl cycles.
+4. **"On This Day" in Islamic History**
+   - Enrich the dashboard with a daily educational widget surfacing historical events aligned with the current Hijri date.
+5. **Personal Privacy / Reflection Journal (Tafakkur)**
+   - Secure, on-device only encrypted spiritual notebook for Duas, Quranic reflections, and gratitude tracking.
 
 ---
 
 ## 🛡️ Privacy & Ethics
 
 Noor Connect is built with "Privacy First" principles:
-- **No tracking**: Your personal data and prayer habits are never tracked
-- **Local storage**: All data stored locally on your device
-- **No analytics**: No third-party analytics or data collection
-- **Open source**: Transparent code you can trust
-
----
-
-## 📱 Features Highlights
-
-### Gender-Based Personalization
-- First-time gender selection for tailored experience
-- Menstrual mode for women's health tracking
-- Privacy-focused with local storage only
-
-### Smart Notifications
-- Prayer time alerts with Adhan
-- Ramadan Suhoor/Iftar reminders
-- Hydration reminders during fasting
-- Quran reading and charity reminders
-
-### Offline Capabilities
-- Cached prayer times
-- Offline Quran access
-- Works without internet connection
-
-### Islamic Remedies System
-- **Mood-Based Guidance**: 12 emotional states with personalized Quran verses and Hadith
-- **Gamification Features**: Level progression, XP system, achievements, and favorites
-- **Rich Content Library**: 80+ authentic Islamic references across all moods
-- **Modern Interface**: Beautiful card-based design with smooth animations
-
-### Enhanced Audio Experience
-- **Robust Error Handling**: Automatic format detection and fallback
-- **Stream Reliability**: Retry mechanisms for failed connections
-- **Cross-Origin Support**: CORS handling for various radio streams
-- **Extension Compatibility**: Suppresses browser extension conflicts
-
----
-
-## 🆕 Recent Updates (v1.1.2)
-
-### ✨ Major Enhancement: spa5k Tafsir API Integration
-- **25+ Tafsir Editions**: Upgraded from 3 to 25+ scholarly commentary editions
-- **Multilingual Support**: English, Arabic, Bengali, Urdu, Russian, Kurdish languages
-- **Lightning Fast CDN**: jsDelivr integration for rapid global access
-- **No Rate Limits**: Unlimited access to Quranic commentary
-- **Enhanced Performance**: Optimized fetching with full surah data vs individual ayah requests
-
-### 🎨 Tafsir Explorer Improvements
-- **Expanded Edition Library**: Access to Ibn Kathir, Al-Jalalayn, Al-Qushairi, Tabari, and many more
-- **Better Performance**: Full surah fetching reduces API calls by 90%+
-- **Improved Caching**: Local storage for offline access and faster loading
-- **Smart Language Detection**: Automatic language selection based on user preference
-
-### 🔧 Technical Improvements
-- **API Migration**: Complete switch from alquran.cloud to spa5k API
-- **Type Safety**: Enhanced TypeScript interfaces with author information
-- **Error Handling**: Robust fallback mechanisms for missing tafsirs
-- **Build Optimization**: Removed TTS dependencies, reduced bundle size by 15%
-
-### 📚 Knowledge Features
-- **Enhanced Tafsir Explorer**: 25+ Quranic commentary editions with spa5k API integration
-- **Multilingual Tafsirs**: Support for English, Arabic, Bengali, Urdu, Russian, and Kurdish
-- **Islamic Remedies**: Mood-based Quran verses, Hadith, and Duas for emotional support
-- **Duas & Hadith**: Authentic supplications and traditions
-- **99 Names of Allah**: Reflect on divine attributes
-- **Islamic Quiz**: Test and expand knowledge
-- **E-Books**: Islamic literature library
-
----
-
-## 📈 Previous Updates (v1.2.0)
-
-### ✨ New Features
-- **Islamic Remedies**: Complete redesign with modern UI/UX and mood-based spiritual guidance
-- **Expanded Content**: Added 50+ new Quran verses and Hadith across all mood categories
-- **Enhanced Gamification**: Improved stats tracking with level progression and achievements
-- **Better User Experience**: Smooth animations, improved mobile layout, and intuitive navigation
-
-### 🎨 UI/UX Improvements
-- **Remedies Interface**: Complete redesign with card-based layout and visual hierarchy
-- **Mood Selection**: Enhanced buttons with gradients, animations, and usage indicators
-- **Stats Dashboard**: Modern stats panel with progress bars and achievement notifications
-- **Responsive Design**: Better mobile experience with improved touch targets and spacing
-
-### 🔧 Technical Improvements
-- **Component Architecture**: Refactored remedies feature for better performance and maintainability
-- **Content Expansion**: Systematic addition of authentic Islamic references across all moods
-- **Animation System**: Implemented smooth transitions and hover effects throughout the app
-- **Data Structure**: Enhanced mood data with comprehensive categorization and metadata
+- **No tracking**: Your personal data and prayer habits are never tracked.
+- **Local storage**: All states and data are stored strictly via `localStorage` or Capacitor native storage.
+- **No analytics**: Zero third-party analytics or data collection scripts.
+- **Open source**: Transparent code you can trust.
 
 ---
 

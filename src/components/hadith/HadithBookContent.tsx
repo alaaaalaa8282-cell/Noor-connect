@@ -135,6 +135,21 @@ export function HadithBookContent() {
     });
   }, [hadithData, searchTerm]);
 
+  const [displayCount, setDisplayCount] = useState(50);
+
+  // Reset pagination when searching or changing books
+  useEffect(() => {
+    setDisplayCount(50);
+  }, [searchTerm, book, collection]);
+
+  const displayedHadith = useMemo(() => {
+    return filteredHadith.slice(0, displayCount);
+  }, [filteredHadith, displayCount]);
+
+  const loadMore = () => {
+    setDisplayCount(prev => prev + 50);
+  };
+
   if (!collectionData) {
     return (
       <div className="min-h-screen bg-background flex items-center justify-center">
@@ -199,7 +214,7 @@ export function HadithBookContent() {
             )}
           </div>
           <Badge variant="secondary" className="text-xs">
-            {loading ? "Loading..." : `${hadithData.length} Hadith`}
+            {loading ? "Loading..." : `${filteredHadith.length} Hadith`}
           </Badge>
         </div>
 
@@ -224,7 +239,7 @@ export function HadithBookContent() {
               <div>
                 <h3 className="font-semibold text-foreground mb-2">Description</h3>
                 <p className="text-sm text-muted-foreground leading-relaxed">
-                  {bookInfo?.description || "Description is not available for this book yet."}
+                  {bookInfo?.description || "Description is not available for this book."}
                 </p>
               </div>
             </div>
@@ -256,7 +271,7 @@ export function HadithBookContent() {
         {/* Hadith List */}
         {!loading && (
           <div className="space-y-4">
-            {filteredHadith.map((hadith) => {
+            {displayedHadith.map((hadith) => {
               const tags = Array.isArray(hadith.tags) ? hadith.tags : [];
               return (
                 <Card
@@ -289,14 +304,14 @@ export function HadithBookContent() {
 
                         {/* Translation */}
                         {hadith.englishTranslation && (
-                          <p className="text-sm text-muted-foreground italic leading-relaxed">
-                            "{hadith.englishTranslation}"
+                          <p className="text-sm text-muted-foreground italic leading-relaxed whitespace-pre-wrap">
+                            {hadith.englishTranslation}
                           </p>
                         )}
 
                         {/* Narrator */}
                         {hadith.narrator && (
-                          <p className="text-xs text-muted-foreground mt-2">
+                          <p className="text-sm font-semibold text-primary mt-3">
                             Narrated by: {hadith.narrator}
                           </p>
                         )}
@@ -313,12 +328,25 @@ export function HadithBookContent() {
                         )}
                       </div>
 
-                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors" />
+                      <ChevronRight className="w-4 h-4 text-muted-foreground group-hover:text-primary transition-colors mt-1" />
                     </div>
                   </CardContent>
                 </Card>
               );
             })}
+
+            {/* Load More Button */}
+            {filteredHadith.length > displayCount && (
+              <div className="pt-4 pb-8 flex justify-center">
+                <Button
+                  onClick={loadMore}
+                  variant="outline"
+                  className="w-full max-w-sm rounded-xl border-primary/20 hover:bg-primary/5"
+                >
+                  Load More ({filteredHadith.length - displayCount} remaining)
+                </Button>
+              </div>
+            )}
           </div>
         )}
 

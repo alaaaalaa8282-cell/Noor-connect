@@ -49,10 +49,12 @@
             android:grantUriPermissions="true">
             <meta-data
                 android:name="android.support.FILE_PROVIDER_PATHS"
-                android:resource="@xml/file_paths"></meta-data>
+                android:resource="@xml/file_paths" />
         </provider>
 
-        <!-- Widgets -->
+        <!-- ══════════════ WIDGETS ══════════════ -->
+
+        <!-- Small Prayer Widget (2×2) -->
         <receiver android:name=".PrayerWidgetSmall" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -65,6 +67,7 @@
                 android:resource="@xml/prayer_widget_small_info" />
         </receiver>
 
+        <!-- Medium Prayer Widget (4×2) -->
         <receiver android:name=".PrayerWidgetMedium" android:exported="true">
             <intent-filter>
                 <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
@@ -77,6 +80,31 @@
                 android:resource="@xml/prayer_widget_medium_info" />
         </receiver>
 
+        <!-- Large Prayer Widget (4×4) — Full Timetable -->
+        <receiver android:name=".PrayerWidgetLarge" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.noorconnect.app.UPDATE_WIDGET" />
+                <action android:name="android.intent.action.TIMEZONE_CHANGED" />
+                <action android:name="android.intent.action.TIME_SET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/prayer_widget_large_info" />
+        </receiver>
+
+        <!-- Quran Verse Widget (4×2) -->
+        <receiver android:name=".QuranVerseWidget" android:exported="true">
+            <intent-filter>
+                <action android:name="android.appwidget.action.APPWIDGET_UPDATE" />
+                <action android:name="com.noorconnect.app.UPDATE_WIDGET" />
+            </intent-filter>
+            <meta-data
+                android:name="android.appwidget.provider"
+                android:resource="@xml/quran_verse_widget_info" />
+        </receiver>
+
+        <!-- Boot receiver (reschedule alarms + refresh widgets) -->
         <receiver android:name=".BootReceiver" android:exported="true">
             <intent-filter>
                 <action android:name="android.intent.action.BOOT_COMPLETED" />
@@ -98,6 +126,7 @@
             android:exported="false"
             android:foregroundServiceType="mediaPlayback"
             android:stopWithTask="false" />
+
     </application>
 
-    </manifest>
+</manifest>

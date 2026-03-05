@@ -1,4 +1,4 @@
-export type Language = 'en' | 'ar' | 'ur' | 'id' | 'tr';
+export type Language = 'en' | 'ar' | 'ur' | 'bn' | 'ru';
 
 export const translations = {
     en: {
@@ -75,7 +75,7 @@ export const translations = {
         ayahs: "Ayahs",
         juz: "Juz",
         surahs: "Surahs",
-        
+
         // Dashboard specific
         locationDetected: "Location detected",
         locationDetectionFailed: "Location detection failed",
@@ -85,7 +85,7 @@ export const translations = {
         prayerReminderSchedulingResumed: "Prayer reminder scheduling has resumed.",
         prayerRemindersPaused: "Prayer reminders and auto Qaza sync are paused while this mode is active.",
         failedToClearPrayerNotifications: "Failed to clear prayer notifications:",
-        
+
         // Profile specific
         salamGreetingEnabled: "Salam greeting enabled",
         salamGreetingDisabled: "Salam greeting disabled",
@@ -129,7 +129,7 @@ export const translations = {
         genderUpdated: "Gender updated",
         menstrualModeAvailable: "Menstrual mode features are now available.",
         preferencesUpdated: "Your preferences have been updated.",
-        
+
         // Qibla Compass specific
         compassIdle: "Compass idle",
         sensorNotActiveYet: "Sensor is not active yet.",
@@ -161,13 +161,13 @@ export const translations = {
         kaabaDistance: "Kaaba distance",
         currentBearing: "Current bearing",
         qiblaDirection: "Qibla direction",
-        
+
         // Weekly Chart specific
         weeklyProgress: "Weekly Progress",
         prayersThisWeek: "prayers this week",
         noPrayerDataYet: "No prayer data yet",
         checkInPrayersToSeeProgress: "Check in prayers to see your progress",
-        
+
         // Prayer Times List specific
         failedToLoadPrayerTimes: "Failed to load prayer times",
         tryAgain: "Try again",
@@ -176,13 +176,13 @@ export const translations = {
         defaultLocation: "Default",
         manualLocation: "Manual",
         ishraqDuhaTahajjud: "Ishraq, Duha, Tahajjud...",
-        
+
         // Salah Tracker specific
         todaysSalah: "Today's Salah",
         dayStreak: "Day Streak",
         allPrayersCompletedToday: "✨ MashaAllah! All prayers completed today!",
         services: "Services",
-        
+
         // Tasbeeh specific
         digitalTasbeeh: "Digital Tasbeeh",
         selectDhikr: "Select Dhikr",
@@ -192,7 +192,7 @@ export const translations = {
         resetCount: "Reset Count",
         nextGoal: "Next Goal",
         resetCurrentCounter: "Reset current counter to 0?",
-        
+
         // Quran specific
         alQuranAlKareem: "Al-Qur'an Al-Kareem",
         theNobleQuran: "The Noble Qur'an",
@@ -200,7 +200,7 @@ export const translations = {
         continueReading: "Continue Reading",
         searchBySurahNameOrNumber: "Search by Surah name or number...",
         noSurahsFound: "No surahs found matching your search.",
-        
+
         // Quran Reader specific
         quranReader: "Quran Reader",
         surahNotFound: "Surah not found",
@@ -318,7 +318,7 @@ export const translations = {
         enableNotifications: "تفعيل الإشعارات",
         notificationHistory: "سجل الإشعارات",
         notificationHistoryDesc: "عرض وإدارة سجل الإشعارات الخاص بمواعيد الصلاة، تنازلي رمضان، والمناسبات الإسلامية.",
-        
+
         // Quran specific
         alQuranAlKareem: "القرآن الكريم",
         theNobleQuran: "القرآن الكريم",
@@ -326,7 +326,7 @@ export const translations = {
         continueReading: "متابعة القراءة",
         searchBySurahNameOrNumber: "البحث باسم السورة أو الرقم...",
         noSurahsFound: "لم يتم العثور على سور تطابق بحثك.",
-        
+
         // Quran Reader specific
         quranReader: "قارئ القرآن",
         surahNotFound: "السورة غير موجودة",
@@ -433,7 +433,7 @@ export const translations = {
         enableNotifications: "نوٹیفیکیشن فعال کریں",
         notificationHistory: "نوٹیفکیشن کی تاریخ",
         notificationHistoryDesc: "نماز کے اوقات، رمضان کاؤنٹ ڈاؤن اور اسلامی واقعات سے اپنی نوٹیفکیشن کی تاریخ دیکھیں اور منظم کریں۔",
-        
+
         // Quran specific
         alQuranAlKareem: "القرآن الکریم",
         theNobleQuran: "القرآن الکریم",
@@ -441,7 +441,7 @@ export const translations = {
         continueReading: "پڑھنا جاری رکھیں",
         searchBySurahNameOrNumber: "سورہ کے نام یا نمبر سے تلاش کریں...",
         noSurahsFound: "آپ کی تلاش سے مطابق کوئی سورہ نہیں ملا۔",
-        
+
         // Quran Reader specific
         quranReader: "قرآن ریڈر",
         surahNotFound: "سورہ نہیں ملا",
@@ -453,235 +453,5 @@ export const translations = {
         fontSize: "فونٹ سائز",
         closeSettings: "ترتیبات بند کریں",
         lastRead: "آخری پڑھا",
-    },
-    id: {
-        appTitle: "Noor Connect",
-        // Navigation
-        home: "Beranda",
-        quran: "Al-Qur'an",
-        qibla: "Kiblat",
-        settings: "Pengaturan",
-        profile: "Profil",
-
-        // Dashboard
-        nextPrayer: "Shalat Berikutnya",
-        todaysPrayers: "Shalat Hari Ini",
-        viewAll: "Lihat Semua",
-        dailyAyah: "Ayat Harian",
-        dailyHadith: "Hadis Harian",
-        readMore: "Baca Selengkapnya",
-        share: "Bagikan",
-
-        // Features
-        qazaTracker: "Pelacak Qaza",
-        ramadanMode: "Mode Ramadhan",
-        menstrualMode: "Mode Menstruasi",
-        zakatCalculator: "Kalkulator Zakat",
-        islamicQuiz: "Kuis Islam",
-        namesOfAllah: "99 Nama",
-        tasbih: "Dzikir",
-        tracker: "Pelacak",
-        calc: "Kalk",
-        mode: "Mode",
-        islamic: "Islam",
-        ofAllah: "Allah",
-        direction: "Arah",
-
-        // Prayers
-        fajr: "Subuh",
-        sunrise: "Terbit",
-        dhuhr: "Dzuhur",
-        asr: "Ashar",
-        maghrib: "Maghrib",
-        isha: "Isya",
-        imsak: "Imsak",
-        ishraq: "Syuruq",
-        duha: "Dhuha",
-        tahajjud: "Tahajud",
-        midnight: "Tengah Malam",
-        showExtraPrayers: "Tampilkan Waktu Tambahan",
-
-        // Settings
-        appearance: "Tampilan",
-        darkMode: "Mode Gelap",
-        language: "Bahasa",
-        prayerSettings: "Pengaturan Shalat",
-        calculationMethod: "Metode Perhitungan",
-        madhab: "Perhitungan Ashar (Mazhab)",
-        timeFormat: "Format Waktu",
-        audioSettings: "Pengaturan Audio",
-        storageBackup: "Penyimpanan & Cadangan",
-        contactSupport: "Kontak & Dukungan",
-        about: "Tentang Noor Connect",
-
-        // Misc
-        loading: "Memuat",
-        location: "Lokasi",
-        detecting: "Mendeteksi...",
-        manual: "Manual",
-        joinDiscord: "Bergabung Discord",
-        contactDeveloper: "Hubungi Pengembang",
-        makeDua: "Doakan Saya",
-        upcoming: "Akan Datang",
-        end: "berakhir",
-        searchSurah: "Cari Surah...",
-        ayahs: "Ayat",
-        juz: "Juz",
-        surahs: "Surah",
-        // Dashboard specific
-        locationDetected: "Lokasi terdeteksi",
-        locationDetectionFailed: "Deteksi lokasi gagal",
-        pleaseEnableLocationPermissions: "Silakan aktifkan izin lokasi",
-        menstrualModeEnded: "Mode Menstruasi berakhir",
-        menstrualModeEnabled: "Mode Menstruasi diaktifkan",
-        prayerReminderSchedulingResumed: "Penjadwalan pengingat shalat dilanjutkan kembali.",
-        prayerRemindersPaused: "Pengingat shalat dan sinkronisasi Qaza otomatis dijeda saat mode ini aktif.",
-        failedToClearPrayerNotifications: "Gagal menghapus notifikasi shalat:",
-        notificationPreferences: "Preferensi Notifikasi",
-        prayerNotifications: "Notifikasi Shalat",
-        ramadanCountdown: "Hitung Mundur Ramadhan",
-        eidGreetings: "Ucapan Idul Fitri",
-        fridayKahfReminder: "Pengingat Jumat Kahf",
-        morningReminders: "Pengingat Pagi",
-        eveningReminders: "Pengingat Sore",
-        testNotification: "Kirim Notifikasi Tes",
-        enableNotifications: "Aktifkan Notifikasi",
-        notificationHistory: "Riwayat Notifikasi",
-        notificationHistoryDesc: "Lihat dan kelola riwayat notifikasi Anda dari waktu shalat, hitung mundur Ramadhan, dan acara Islam.",
-        
-        // Quran specific
-        alQuranAlKareem: "Al-Qur'an Al-Karim",
-        theNobleQuran: "Al-Qur'an Mulia",
-        readListenContemplate: "Baca, dengarkan, dan renungkan firman Allah.",
-        continueReading: "Lanjutkan Membaca",
-        searchBySurahNameOrNumber: "Cari berdasarkan nama atau nomor surah...",
-        noSurahsFound: "Tidak ada surah yang cocok dengan pencarian Anda.",
-        
-        // Quran Reader specific
-        quranReader: "Pembaca Qur'an",
-        surahNotFound: "Surah tidak ditemukan",
-        quranSettingsButton: "Pengaturan",
-        progress: "Kemajuan",
-        quranSettings: "Pengaturan Qur'an",
-        font: "Font",
-        translation: "Terjemahan",
-        fontSize: "Ukuran Font",
-        closeSettings: "Tutup Pengaturan",
-        lastRead: "Terakhir Dibaca",
-    },
-    tr: {
-        appTitle: "Noor Connect",
-        // Navigation
-        home: "Ana Sayfa",
-        quran: "Kur'an",
-        qibla: "Kıble",
-        settings: "Ayarlar",
-        profile: "Profil",
-
-        // Dashboard
-        nextPrayer: "Sonraki Namaz",
-        todaysPrayers: "Bugünün Namazları",
-        viewAll: "Tümünü Gör",
-        dailyAyah: "Günlük Ayet",
-        dailyHadith: "Günlük Hadis",
-        readMore: "Devamını Oku",
-        share: "Paylaş",
-
-        // Features
-        qazaTracker: "Kaza Takipçisi",
-        ramadanMode: "Ramazan Modu",
-        menstrualMode: "Menstrüel Mod",
-        zakatCalculator: "Zekat Hesaplayıcı",
-        islamicQuiz: "İslami Test",
-        namesOfAllah: "99 İsim",
-        tasbih: "Zikir",
-        tracker: "Takipçi",
-        calc: "Hesap",
-        mode: "Mod",
-        islamic: "İslami",
-        ofAllah: "Allah'ın",
-        direction: "Yön",
-
-        // Prayers
-        fajr: "Sabah",
-        sunrise: "Güneş",
-        dhuhr: "Öğle",
-        asr: "İkindi",
-        maghrib: "Akşam",
-        isha: "Yatsı",
-        imsak: "İmsak",
-        ishraq: "Şafak",
-        duha: "Duhâ",
-        tahajjud: "Tecvit",
-        midnight: "Gece Yarısı",
-        showExtraPrayers: "Ek Zamanları Göster",
-
-        // Settings
-        appearance: "Görünüm",
-        darkMode: "Karanlık Mod",
-        language: "Dil",
-        prayerSettings: "Namaz Ayarları",
-        calculationMethod: "Hesaplama Yöntemi",
-        madhab: "İkindi Hesaplaması (Mezhep)",
-        timeFormat: "Zaman Formatı",
-        audioSettings: "Ses Ayarları",
-        storageBackup: "Depolama ve Yedekleme",
-        contactSupport: "İletişim ve Destek",
-        about: "Noor Connect Hakkında",
-
-        // Misc
-        loading: "Yükleniyor",
-        location: "Konum",
-        detecting: "Tespit ediliyor...",
-        manual: "Manuel",
-        joinDiscord: "Discord'a Katıl",
-        contactDeveloper: "Geliştiriciye Ulaşın",
-        makeDua: "Benim İçin Dua Et",
-        upcoming: "Yaklaşan",
-        end: "son",
-        searchSurah: "Sure Ara...",
-        ayahs: "Ayetler",
-        juz: "Cüz",
-        surahs: "Sureler",
-        // Dashboard specific
-        locationDetected: "Konum tespit edildi",
-        locationDetectionFailed: "Konum tespiti başarısız oldu",
-        pleaseEnableLocationPermissions: "Lütfen konum izinlerini etkinleştirin",
-        menstrualModeEnded: "Menstrüel Modu sona erdi",
-        menstrualModeEnabled: "Menstrüel Modu etkinleştirildi",
-        prayerReminderSchedulingResumed: "Namaz hatırlatıcı planlaması devam ettirildi.",
-        prayerRemindersPaused: "Bu mod aktifken namaz hatırlatıcıları ve otomatik Qaza senkronizasyonu duraklatılır.",
-        failedToClearPrayerNotifications: "Namaz bildirimleri temizlenemedi:",
-        notificationPreferences: "Bildirim Tercihleri",
-        prayerNotifications: "Namaz Bildirimleri",
-        ramadanCountdown: "Ramazan Geri Sayım",
-        eidGreetings: "Bayram Tebrikleri",
-        fridayKahfReminder: "Cuma Kahf Hatırlatıcısı",
-        morningReminders: "Sabah Hatırlatıcıları",
-        eveningReminders: "Akşam Hatırlatıcıları",
-        testNotification: "Test Bildirimi Gönder",
-        enableNotifications: "Bildirimleri Etkinleştir",
-        notificationHistory: "Bildirim Geçmişi",
-        notificationHistoryDesc: "Namaz vakitleri, Ramazan geri sayımları ve İslami etkinliklerden bildirim geçmişinizi görüntüleyin ve yönetin.",
-        
-        // Quran specific
-        alQuranAlKareem: "Kur'an-ı Kerim",
-        theNobleQuran: "Yüce Kur'an",
-        readListenContemplate: "Allah'ın sözlerini okuyun, dinleyin ve üzerinde düşünün.",
-        continueReading: "Okumaya Devam Et",
-        searchBySurahNameOrNumber: "Sure adı veya numarasıyla ara...",
-        noSurahsFound: "Aramanızla eşleşen sure bulunamadı.",
-        
-        // Quran Reader specific
-        quranReader: "Kur'an Okuyucu",
-        surahNotFound: "Sure bulunamadı",
-        quranSettingsButton: "Ayarlar",
-        progress: "İlerleme",
-        quranSettings: "Kur'an Ayarları",
-        font: "Yazı Tipi",
-        translation: "Çeviri",
-        fontSize: "Yazı Tipi Boyutu",
-        closeSettings: "Ayarları Kapat",
-        lastRead: "Son Okunan",
     }
 };

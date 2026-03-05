@@ -1,56 +1,133 @@
-/**
- * Backup & Restore - Export/Import all user data
- */
-import { clearAllBooks, getStorageStats, getDownloadedBooks, type DownloadedBook } from './ebooks-storage';
+import { clearAllBooks, getDownloadedBooks, type DownloadedBook } from './ebooks-storage';
+const BACKUP_VERSION = '2.0';
 
-const BACKUP_VERSION = '1.0';
+/**
+ * Known keys used in localStorage to ensure we capture all relevant data
+ */
+const STORAGE_KEYS = [
+  // Core Settings & Preferences
+  'theme',
+  'madhab',
+  'time-format',
+  'calculation-method',
+  'prayer-method',
+  'hijri-date-offset',
+  'prayer-reminder-minutes',
+  'language',
+  'salam-greeting-enabled',
+  'user-gender',
+  'user-onboarded',
+  'permissions-granted',
+  'user-location',
+  'selected-reciter',
+  'quran-font-size',
+  'quran-font',
+  'prayer-alarm-enabled',
+  'show-extra-prayers',
+  'last-hadith',
+  'cached-prayer-times',
+
+  // Salah & Qaza (Most critical for user)
+  'salah-tracker',
+  'salah-streak',
+  'qaza-prayers',
+  'processed-salah-qaza',
+  'menstrual-mode-data',
+
+  // Quran Reader & Features
+  'quran-bookmarks',
+  'quran-notes',
+  'quran-recitation-progress',
+  'quran-reading-streak',
+  'quran-achievements',
+  'quran-translation',
+  'quran-font-manager-settings',
+
+  // Tasbeeh
+  'tasbeeh-total',
+  'tasbeeh-history',
+
+  // Remedies & Gamification
+  'remedy-stats',
+  'remedy-favorites',
+  'daily-remedy',
+  'remedy-achievements',
+  'remedy-power',
+  'remedy-level',
+  'remedy-xp',
+
+  // Tafsir
+  'tafsir-bookmarks',
+  'tafsir-history',
+  'tafsir-notes',
+  'tafsir-selected-edition',
+  'tafsir-edition',
+  'tafsir-settings',
+
+  // Habit Tracker
+  'habit-tracker-data',
+  'islamic-habits',
+  'habit-entries',
+  'custom-habits',
+  'hidden-habits',
+
+  // Quiz & Knowledge
+  'quiz-stats',
+  'enhanced-quiz-stats',
+  'quiz-history',
+  'quiz-achievements',
+
+  // Favorites & Social
+  'favorites',
+  'islamic-names-favorites',
+  'mood-history',
+  'ramadan-activity',
+  'duas-favorites',
+  'zakat-calc-history',
+
+  // Notifications & System
+  'notification-preferences',
+  'azan-files-metadata',
+  'selected-adhan-id',
+  'custom-adhans',
+  'notification-history',
+  'pwa-install-dismissed',
+  'app-version-cache'
+];
 
 interface BackupData {
   version: string;
   exportedAt: string;
-  data: {
-    theme: string | null;
-    madhab: string | null;
-    timeFormat: string | null;
-    calculationMethod: string | null;
-    tasbeehTotal: string | null;
-    tasbeehHistory: string | null;
-    favorites: string | null;
-    bookmarks: string | null;
-    readingProgress: string | null;
-    prayerSettings: string | null;
-    salahTracker: string | null;
-    salahStreak: string | null;
-    quranFontSize: string | null;
-    selectedAdhan: string | null;
-    downloadedBooks?: DownloadedBook[];
-  };
+  storage: Record<string, string | null>;
+  downloadedBooks?: DownloadedBook[];
 }
 
 // Export all user data
 export const exportBackup = async (): Promise<string> => {
   const downloadedBooks = await getDownloadedBooks();
+  const storage: Record<string, string | null> = {};
+
+  // Capture all defined keys
+  STORAGE_KEYS.forEach(key => {
+    storage[key] = localStorage.getItem(key);
+  });
+
+  // Also capture any keys that follow common patterns but aren't explicitly listed
+  for (let i = 0; i < localStorage.length; i++) {
+    const key = localStorage.key(i);
+    if (key && !STORAGE_KEYS.includes(key)) {
+      // Include keys that seem relevant to the app's features
+      if (key.startsWith('quran-') || key.startsWith('hadith-') || key.startsWith('tafsir-') || key.startsWith('prayer-')) {
+        storage[key] = localStorage.getItem(key);
+      }
+    }
+  }
 
   const backup: BackupData = {
     version: BACKUP_VERSION,
     exportedAt: new Date().toISOString(),
-    data: {
-      theme: localStorage.getItem('theme'),
-      madhab: localStorage.getItem('madhab'),
-      timeFormat: localStorage.getItem('time-format'),
-      calculationMethod: localStorage.getItem('calculation-method'),
-      tasbeehTotal: localStorage.getItem('tasbeeh-total'),
-      tasbeehHistory: localStorage.getItem('tasbeeh-history'),
-      favorites: localStorage.getItem('favorites'),
-      bookmarks: localStorage.getItem('bookmarks'),
-      readingProgress: localStorage.getItem('reading-progress'),
-      prayerSettings: localStorage.getItem('prayer-settings'),
-      salahTracker: localStorage.getItem('salah-tracker'),
-      salahStreak: localStorage.getItem('salah-streak'),
-      quranFontSize: localStorage.getItem('quran-font-size'),
-      selectedAdhan: localStorage.getItem('selected-adhan-id'),
-      downloadedBooks,
-    },
+    storage,
+    downloadedBooks,
   };
 
   return JSON.stringify(backup, null, 2);
@@ -64,7 +141,7 @@ export const downloadBackup = async (): Promise<void> => {
 
   const a = document.createElement('a');
   a.href = url;
-  a.download = `islamic-companion-backup-${new Date().toISOString().split('T')[0]}.json`;
+  a.download = `noor-connect-backup-${new Date().toISOString().split('T')[0]}.json`;
   document.body.appendChild(a);
   a.click();
   document.body.removeChild(a);
@@ -77,29 +154,50 @@ export const importBackup = async (file: File): Promise<{ success: boolean; mess
     const text = await file.text();
     const backup: BackupData = JSON.parse(text);
 
-    if (!backup.version || !backup.data) {
+    if (!backup.version) {
       return { success: false, message: 'Invalid backup file format' };
     }
 
-    // Restore all data except downloadedBooks (handled separately)
-    Object.entries(backup.data).forEach(([key, value]) => {
-      if (value !== null && key !== 'downloadedBooks') {
-        const storageKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
-        localStorage.setItem(storageKey, value as string);
-      }
-    });
+    // Version 1.0 support (Legacy transformation)
+    if (backup.version === '1.0' && (backup as any).data) {
+      const legacyData = (backup as any).data;
+      Object.entries(legacyData).forEach(([key, value]) => {
+        if (value !== null && key !== 'downloadedBooks') {
+          const storageKey = key.replace(/([A-Z])/g, '-$1').toLowerCase();
+          localStorage.setItem(storageKey, value as string);
+        }
+      });
 
-    // Apply theme
-    if (backup.data.theme) {
-      document.documentElement.classList.toggle('dark', backup.data.theme === 'dark');
+      return {
+        success: true,
+        message: 'Legacy backup restored successfully!',
+        booksToDownload: legacyData.downloadedBooks || []
+      };
     }
 
-    return {
-      success: true,
-      message: 'Backup restored successfully!',
-      booksToDownload: backup.data.downloadedBooks || []
-    };
+    // Version 2.0+ support (Direct storage mapping)
+    if (backup.storage) {
+      Object.entries(backup.storage).forEach(([key, value]) => {
+        if (value !== null) {
+          localStorage.setItem(key, value);
+        }
+      });
+
+      // Apply theme immediately if present
+      if (backup.storage['theme']) {
+        document.documentElement.classList.toggle('dark', backup.storage['theme'] === 'dark');
+      }
+
+      return {
+        success: true,
+        message: 'Backup restored successfully!',
+        booksToDownload: backup.downloadedBooks || []
+      };
+    }
+
+    return { success: false, message: 'Incompatible backup version' };
   } catch (error) {
+    console.error('Backup import error:', error);
     return { success: false, message: 'Failed to parse backup file' };
   }
 };
@@ -115,7 +213,7 @@ export const clearCache = async (): Promise<void> => {
   }
 };
 
-// Get Quran font size
+// Helper for UI settings
 export const getQuranFontSize = (): number => {
   return parseInt(localStorage.getItem('quran-font-size') || '24', 10);
 };

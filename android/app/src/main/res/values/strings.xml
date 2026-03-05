@@ -2,19 +2,33 @@
 <resources>
     <string name="app_name">Noor Connect</string>
     <string name="title_activity_main">Noor Connect</string>
-    
-    <string name="widget_tap_to_setup">Tap to open App</string>
-    <string name="widget_no_data">No prayer times available</string>
+
+    <!-- Widget general -->
+    <string name="widget_tap_to_setup">Tap to open</string>
+    <string name="widget_no_data">No prayer times</string>
     <string name="widget_loading">Loading…</string>
-    <string name="widget_next_prayer">Next Prayer</string>
-    <string name="widget_location_default">London, UK</string>
-    <string name="widget_time_default">18:45</string>
-    <string name="widget_time_remaining_default">in 45 minutes</string>
-    
+    <string name="widget_next_prayer">NEXT PRAYER</string>
+    <string name="widget_location_default">Your City</string>
+    <string name="widget_time_default">—:—</string>
+    <string name="widget_time_remaining_default">calculating…</string>
+
+    <!-- Widget descriptions (shown in widget picker) -->
+    <string name="widget_large_desc">Full prayer timetable with Hijri date</string>
+    <string name="widget_quran_desc">Daily Quranic verse with Arabic text</string>
+
+    <!-- Hijri date placeholder -->
+    <string name="widget_hijri_default">Rajab 1446</string>
+
+    <!-- Prayer names -->
     <string name="prayer_fajr">Fajr</string>
-    <string name="prayer_sunrise">Sunrise</string>
+    <string name="prayer_sunrise">Shuruq</string>
     <string name="prayer_dhuhr">Dhuhr</string>
     <string name="prayer_asr">Asr</string>
     <string name="prayer_maghrib">Maghrib</string>
     <string name="prayer_isha">Isha</string>
+
+    <!-- Quran verse widget defaults -->
+    <string name="widget_quran_arabic_default">بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ</string>
+    <string name="widget_quran_translit_default">Bismillah ir-rahman ir-raheem</string>
+    <string name="widget_quran_ref_default">Al-Fatiha 1:1</string>
 </resources>

@@ -1,6 +1,7 @@
-// Dynamic Hadith Data Loader - Fetch-based for true lazy loading
-// Data stored in public/data/hadith-collections/ - NOT bundled
+// Hadith Data Layer — uses Vite's import.meta.glob for lazy loading
+// Data lives in src/data/hadith-collections/<slug>/hadiths.json
 
+// ─── Types ──────────────────────────────────────────────────────────
 export interface EnhancedHadith {
   id: string;
   collection: string;
@@ -50,28 +51,26 @@ export interface HadithChapter {
   hadithCount: number;
 }
 
-interface CollectionProfile {
-  title: string;
-  author: string;
-  death: string;
-  description: string;
-  totalHadith: number;
-  totalBooks: number;
-  authenticity: string;
-  compilerPeriod: string;
-  arabicTitle: string;
-}
+// ─── Lazy loaders via Vite glob ─────────────────────────────────────
+type GlobLoader = () => Promise<unknown>;
 
-// Data URLs - served from public folder, not bundled
-const DATA_BASE_URL = '/data/hadith-collections';
+// Metadata JSONs: one per collection
+const metadataGlob: Record<string, GlobLoader> = import.meta.glob(
+  "./**/metadata.json"
+);
 
-// Cache for loaded data
-const metadataCache: Map<string, HadithCollection> = new Map();
-const hadithCache: Map<string, EnhancedHadith[]> = new Map();
-const bookCache: Map<string, EnhancedHadith[]> = new Map();
+// Hadith data JSONs: one per collection (hadiths.json) or per book (book-*.json)
+const hadithGlob: Record<string, GlobLoader> = import.meta.glob(
+  "./**/*.json",
+  { import: "default" }
+);
 
-// Fallback profiles for instant UI rendering
-const FALLBACK_COLLECTION_PROFILES: Record<string, CollectionProfile> = {
+// ─── Caches ─────────────────────────────────────────────────────────
+const metadataCache = new Map<string, HadithCollection>();
+const hadithCache = new Map<string, EnhancedHadith[]>();
+
+// ─── Collection profiles (instant fallback for UI) ──────────────────
+const COLLECTION_PROFILES: Record<string, Omit<HadithCollection, "name" | "books">> = {
   bukhari: {
     title: "Sahih al-Bukhari",
     arabicTitle: "صحيح البخاري",
@@ -99,7 +98,8 @@ const FALLBACK_COLLECTION_PROFILES: Record<string, CollectionProfile> = {
     arabicTitle: "سنن الترمذي",
     author: "Imam Abu Isa al-Tirmidhi",
     death: "279 AH / 892 CE",
-    description: "Collection containing authentic, good, and weak hadith.",
+    description:
+      "Collection containing authentic, good, and weak hadith with scholarly commentary.",
     totalHadith: 4053,
     totalBooks: 49,
     authenticity: "Hasan (Good)",
@@ -110,7 +110,8 @@ const FALLBACK_COLLECTION_PROFILES: Record<string, CollectionProfile> = {
     arabicTitle: "سنن أبي داود",
     author: "Imam Abu Dawud al-Sijistani",
     death: "275 AH / 889 CE",
-    description: "One of the six major Hadith collections focusing on Islamic jurisprudence.",
+    description:
+      "One of the six major Hadith collections focusing on Islamic jurisprudence.",
     totalHadith: 5274,
     totalBooks: 43,
     authenticity: "Hasan (Good)",
@@ -121,7 +122,8 @@ const FALLBACK_COLLECTION_PROFILES: Record<string, CollectionProfile> = {
     arabicTitle: "سنن النسائي",
     author: "Imam al-Nasa'i",
     death: "303 AH / 915 CE",
-    description: "Collection known for detailed chains of narration and strong authenticity standards.",
+    description:
+      "Collection known for detailed chains of narration and strong authenticity standards.",
     totalHadith: 5685,
     totalBooks: 52,
     authenticity: "Hasan (Good)",
@@ -143,237 +145,322 @@ const FALLBACK_COLLECTION_PROFILES: Record<string, CollectionProfile> = {
     arabicTitle: "موطأ مالك",
     author: "Imam Malik ibn Anas",
     death: "179 AH / 795 CE",
-    description: "Early collection of Hadith and legal rulings compiled in Medina.",
+    description:
+      "Early collection of Hadith and legal rulings compiled in Medina.",
     totalHadith: 1858,
     totalBooks: 61,
     authenticity: "Sahih (Authentic)",
     compilerPeriod: "93-179 AH",
   },
-  "musnad-ahmad": {
-    title: "Musnad Ahmad ibn Hanbal",
-    arabicTitle: "مسند أحمد بن حنبل",
-    author: "Imam Ahmad ibn Hanbal",
-    death: "241 AH / 855 CE",
-    description: "Large collection organized primarily by companion narrators.",
-    totalHadith: 27645,
-    totalBooks: 31,
-    authenticity: "Varied",
-    compilerPeriod: "164-241 AH",
-  },
-  "riyad-us-salihin": {
+  riyadussalihin: {
     title: "Riyad us-Salihin",
     arabicTitle: "رياض الصالحين",
     author: "Imam al-Nawawi",
     death: "676 AH / 1277 CE",
-    description: "Collection focusing on spirituality, character, and daily Islamic practice.",
+    description:
+      "Collection focusing on spirituality, character, and daily Islamic practice.",
     totalHadith: 1896,
     totalBooks: 18,
     authenticity: "Sahih (Authentic)",
     compilerPeriod: "631-676 AH",
   },
+  forty: {
+    title: "40 Hadith Nawawi",
+    arabicTitle: "الأربعون النووية",
+    author: "Imam al-Nawawi",
+    death: "676 AH / 1277 CE",
+    description: "Forty essential hadith covering the foundations of Islam.",
+    totalHadith: 42,
+    totalBooks: 1,
+    authenticity: "Sahih (Authentic)",
+    compilerPeriod: "631-676 AH",
+  },
 };
 
-// Helper functions
+// ─── Utility ────────────────────────────────────────────────────────
 function titleFromSlug(slug: string): string {
   return slug
     .split("-")
-    .map((token) => token.charAt(0).toUpperCase() + token.slice(1))
+    .map((s) => s.charAt(0).toUpperCase() + s.slice(1))
     .join(" ");
 }
 
-function normalizeBook(raw: unknown, index: number): HadithBook {
-  const data = (raw ?? {}) as Partial<HadithBook>;
+function normalizeBook(raw: Partial<HadithBook>, index: number): HadithBook {
   return {
-    number: String(data.number ?? index + 1),
-    name: data.name ?? `Book ${index + 1}`,
-    arabicName: data.arabicName ?? "",
-    hadithCount: Number(data.hadithCount ?? 0),
-    chapters: data.chapters,
-    description: data.description,
+    number: String(raw.number ?? index + 1),
+    name: raw.name ?? `Book ${index + 1}`,
+    arabicName: raw.arabicName ?? "",
+    hadithCount: Number(raw.hadithCount ?? 0),
+    chapters: raw.chapters,
+    description: raw.description,
   };
 }
 
-function normalizeCollection(nameFromPath: string, raw: unknown): HadithCollection {
-  const data = (raw ?? {}) as Partial<HadithCollection>;
-  const fallback = FALLBACK_COLLECTION_PROFILES[nameFromPath];
-  const books = Array.isArray(data.books)
-    ? data.books.map((book, index) => normalizeBook(book, index))
-    : [];
+async function loadGlob<T>(loader: GlobLoader): Promise<T> {
+  const mod = await loader();
+  if (
+    typeof mod === "object" &&
+    mod !== null &&
+    "default" in (mod as Record<string, unknown>)
+  ) {
+    return (mod as { default: T }).default;
+  }
+  return mod as T;
+}
 
+// ─── Find collection slug from glob paths ───────────────────────────
+function getAvailableCollectionSlugs(): string[] {
+  const slugs = new Set<string>();
+  for (const p of Object.keys(metadataGlob)) {
+    const match = p.match(/^\.\/([^/]+)\/metadata\.json$/);
+    if (match) slugs.add(match[1]);
+  }
+  // Also include any profile-defined slugs (they always show in UI)
+  for (const slug of Object.keys(COLLECTION_PROFILES)) {
+    slugs.add(slug);
+  }
+  return Array.from(slugs).sort();
+}
+
+// ─── Public API ─────────────────────────────────────────────────────
+
+/** Get all known collection slugs */
+export function getAllCollectionSlugs(): string[] {
+  return getAvailableCollectionSlugs();
+}
+
+/** Synchronously get a HadithCollection with fallback profile data (no book details) */
+export function getCollectionByName(
+  name: string
+): HadithCollection | undefined {
+  if (metadataCache.has(name)) return metadataCache.get(name);
+  const profile = COLLECTION_PROFILES[name];
+  if (!profile) return undefined;
   return {
-    name: data.name || nameFromPath,
-    title: data.title || fallback?.title || titleFromSlug(nameFromPath),
-    author: data.author || fallback?.author || "Unknown",
-    death: data.death || fallback?.death || "",
-    description: data.description || fallback?.description || "Hadith collection",
-    totalHadith: Number(data.totalHadith ?? fallback?.totalHadith ?? books.reduce((sum, book) => sum + book.hadithCount, 0)),
-    totalBooks: Number(data.totalBooks ?? fallback?.totalBooks ?? books.length),
-    books,
-    authenticity: data.authenticity || fallback?.authenticity || "",
-    compilerPeriod: data.compilerPeriod || fallback?.compilerPeriod || "",
-    arabicTitle: data.arabicTitle || fallback?.arabicTitle || "",
+    name,
+    books: [],
+    ...profile,
   };
 }
 
-// Fetch with timeout and retry
-async function fetchJSON<T>(url: string, retries = 2): Promise<T | null> {
-  for (let i = 0; i <= retries; i++) {
-    try {
-      const controller = new AbortController();
-      const timeout = setTimeout(() => controller.abort(), 30000);
-      
-      const response = await fetch(url, { 
-        signal: controller.signal,
-        headers: { 'Accept': 'application/json' }
-      });
-      
-      clearTimeout(timeout);
-      
-      if (!response.ok) throw new Error(`HTTP ${response.status}`);
-      return await response.json() as T;
-    } catch (error) {
-      if (i === retries) {
-        console.error(`Failed to fetch ${url}:`, error);
-        return null;
-      }
-      await new Promise(r => setTimeout(r, 1000 * (i + 1)));
+/** Synchronous list: titles + profiles only (for the collections grid) */
+export function getAllCollections(): HadithCollection[] {
+  // Start with profile-based collections, then add any data-only collections
+  const result: HadithCollection[] = [];
+  const seen = new Set<string>();
+
+  for (const slug of Object.keys(COLLECTION_PROFILES)) {
+    seen.add(slug);
+    if (metadataCache.has(slug)) {
+      result.push(metadataCache.get(slug)!);
+    } else {
+      result.push({ name: slug, books: [], ...COLLECTION_PROFILES[slug] });
     }
   }
-  return null;
+
+  // Add any data-present collections not in profiles
+  for (const slug of getAvailableCollectionSlugs()) {
+    if (seen.has(slug)) continue;
+    seen.add(slug);
+    if (metadataCache.has(slug)) {
+      result.push(metadataCache.get(slug)!);
+    }
+  }
+
+  return result;
 }
 
-// Load collection metadata
-export async function loadCollectionMetadata(collection: string): Promise<HadithCollection | null> {
-  if (metadataCache.has(collection)) {
-    return metadataCache.get(collection)!;
+/** Async: load full metadata (with book list) for a single collection */
+export async function loadCollectionMetadata(
+  slug: string
+): Promise<HadithCollection | null> {
+  if (metadataCache.has(slug)) return metadataCache.get(slug)!;
+
+  const loaderPath = `./${slug}/metadata.json`;
+  const loader = metadataGlob[loaderPath];
+  if (!loader) {
+    // Fallback to profile
+    const profile = COLLECTION_PROFILES[slug];
+    if (profile) {
+      const col: HadithCollection = { name: slug, books: [], ...profile };
+      metadataCache.set(slug, col);
+      return col;
+    }
+    return null;
   }
 
-  const metadata = await fetchJSON<HadithCollection>(`${DATA_BASE_URL}/${collection}/metadata.json`);
-  
-  if (metadata) {
-    const normalized = normalizeCollection(collection, metadata);
-    metadataCache.set(collection, normalized);
-    return normalized;
-  }
+  try {
+    const raw = await loadGlob<Partial<HadithCollection>>(loader);
+    const profile = COLLECTION_PROFILES[slug];
+    const books = Array.isArray(raw.books)
+      ? raw.books.map((b, i) => normalizeBook(b, i))
+      : [];
 
-  if (FALLBACK_COLLECTION_PROFILES[collection]) {
-    const fallback = normalizeCollection(collection, FALLBACK_COLLECTION_PROFILES[collection]);
-    metadataCache.set(collection, fallback);
-    return fallback;
-  }
+    const col: HadithCollection = {
+      name: raw.name || slug,
+      title: raw.title || profile?.title || titleFromSlug(slug),
+      author: raw.author || profile?.author || "",
+      death: raw.death || profile?.death || "",
+      description:
+        raw.description || profile?.description || "Hadith collection",
+      totalHadith: Number(
+        raw.totalHadith ?? profile?.totalHadith ?? books.reduce((s, b) => s + b.hadithCount, 0)
+      ),
+      totalBooks: Number(raw.totalBooks ?? profile?.totalBooks ?? books.length),
+      books,
+      authenticity: raw.authenticity || profile?.authenticity || "",
+      compilerPeriod: raw.compilerPeriod || profile?.compilerPeriod || "",
+      arabicTitle: raw.arabicTitle || profile?.arabicTitle || "",
+    };
 
-  return null;
+    metadataCache.set(slug, col);
+    return col;
+  } catch (err) {
+    console.warn(`Failed to load metadata for ${slug}:`, err);
+    return null;
+  }
 }
 
-// Load all hadiths for a collection (cached)
-export async function loadCollectionHadiths(collection: string): Promise<EnhancedHadith[]> {
-  const cacheKey = `${collection}:all`;
-  
-  if (hadithCache.has(cacheKey)) {
-    return hadithCache.get(cacheKey)!;
+/** Async: load ALL hadiths for a collection */
+export async function loadCollectionHadiths(
+  slug: string
+): Promise<EnhancedHadith[]> {
+  const cacheKey = `${slug}:all`;
+  if (hadithCache.has(cacheKey)) return hadithCache.get(cacheKey)!;
+
+  // Try hadiths.json first
+  const hadithsPath = `./${slug}/hadiths.json`;
+  const book1Path = `./${slug}/book-1.json`;
+
+  let loader = hadithGlob[hadithsPath] ?? hadithGlob[book1Path];
+  if (!loader) {
+    // Try any JSON that isn't metadata
+    for (const [path, ldr] of Object.entries(hadithGlob)) {
+      if (path.startsWith(`./${slug}/`) && !path.endsWith("/metadata.json")) {
+        loader = ldr;
+        break;
+      }
+    }
   }
 
-  const hadiths = await fetchJSON<EnhancedHadith[]>(`${DATA_BASE_URL}/${collection}/hadiths.json`);
-  
-  if (hadiths) {
-    hadithCache.set(cacheKey, hadiths);
-    return hadiths;
+  if (!loader) {
+    hadithCache.set(cacheKey, []);
+    return [];
   }
 
-  return [];
+  try {
+    const data = await loadGlob<EnhancedHadith[]>(loader);
+    const arr = Array.isArray(data) ? data : [];
+    hadithCache.set(cacheKey, arr);
+    return arr;
+  } catch (err) {
+    console.warn(`Failed to load hadiths for ${slug}:`, err);
+    hadithCache.set(cacheKey, []);
+    return [];
+  }
 }
 
-// Load hadiths for a specific book (cached)
-export async function loadBookHadiths(collection: string, bookNumber: string): Promise<EnhancedHadith[]> {
-  const cacheKey = `${collection}:${bookNumber}`;
-  
-  if (bookCache.has(cacheKey)) {
-    return bookCache.get(cacheKey)!;
-  }
+/** Async: load hadiths for a specific book within a collection */
+export async function loadBookHadiths(
+  slug: string,
+  bookNumber: string
+): Promise<EnhancedHadith[]> {
+  const cacheKey = `${slug}:book:${bookNumber}`;
+  if (hadithCache.has(cacheKey)) return hadithCache.get(cacheKey)!;
 
-  const allCacheKey = `${collection}:all`;
-  if (hadithCache.has(allCacheKey)) {
-    const filtered = hadithCache.get(allCacheKey)!.filter(h => h.bookNumber === bookNumber);
-    bookCache.set(cacheKey, filtered);
-    return filtered;
-  }
+  const all = await loadCollectionHadiths(slug);
+  const normalizedTarget = String(
+    Number.parseInt(bookNumber, 10) || bookNumber
+  );
+  const filtered = all.filter((h) => {
+    const hBook = String(Number.parseInt(String(h.bookNumber), 10) || h.bookNumber);
+    return hBook === normalizedTarget;
+  });
 
-  const allHadiths = await loadCollectionHadiths(collection);
-  const filtered = allHadiths.filter(h => h.bookNumber === bookNumber);
-  bookCache.set(cacheKey, filtered);
-  
+  hadithCache.set(cacheKey, filtered);
   return filtered;
 }
 
-// Preload collection metadata for all collections
-export async function preloadAllMetadata(): Promise<Record<string, HadithCollection>> {
-  const collections: Record<string, HadithCollection> = {};
-  
-  const promises = Object.keys(FALLBACK_COLLECTION_PROFILES).map(async (slug) => {
+/** Async: get a random daily hadith based on date seed */
+export async function getDailyHadith(
+  seedDate: Date = new Date()
+): Promise<EnhancedHadith | null> {
+  // Pick from major collections with English translations
+  const preferredSlugs = ["bukhari", "muslim", "tirmidhi", "abudawud", "nasai", "ibnmajah"];
+
+  for (const slug of preferredSlugs) {
+    const all = await loadCollectionHadiths(slug);
+    // Filter to hadiths with English translations for better UX
+    const withTranslation = all.filter(
+      (h) => h.englishTranslation && h.englishTranslation.trim().length > 0
+    );
+
+    if (withTranslation.length > 0) {
+      const dayIndex = Math.floor(
+        Date.UTC(
+          seedDate.getFullYear(),
+          seedDate.getMonth(),
+          seedDate.getDate()
+        ) / 86400000
+      );
+      return withTranslation[dayIndex % withTranslation.length];
+    }
+
+    if (all.length > 0) {
+      const dayIndex = Math.floor(
+        Date.UTC(
+          seedDate.getFullYear(),
+          seedDate.getMonth(),
+          seedDate.getDate()
+        ) / 86400000
+      );
+      return all[dayIndex % all.length];
+    }
+  }
+
+  return null;
+}
+
+/** Preload all metadata */
+export async function preloadAllMetadata(): Promise<
+  Record<string, HadithCollection>
+> {
+  const result: Record<string, HadithCollection> = {};
+  const slugs = getAvailableCollectionSlugs();
+  const promises = slugs.map(async (slug) => {
     const meta = await loadCollectionMetadata(slug);
-    if (meta) collections[slug] = meta;
+    if (meta) result[slug] = meta;
   });
-  
   await Promise.all(promises);
-  return collections;
+  return result;
 }
 
-// Get collection (sync fallback)
-export function getCollectionByName(name: string): HadithCollection | undefined {
-  return FALLBACK_COLLECTION_PROFILES[name] 
-    ? normalizeCollection(name, FALLBACK_COLLECTION_PROFILES[name])
-    : undefined;
-}
-
-export function getAllCollections(): HadithCollection[] {
-  return Object.keys(FALLBACK_COLLECTION_PROFILES).map(slug => 
-    normalizeCollection(slug, FALLBACK_COLLECTION_PROFILES[slug])
-  );
-}
-
+/** Get collection title (sync) */
 export function getCollectionTitle(name: string): string {
-  return FALLBACK_COLLECTION_PROFILES[name]?.title || name;
+  return COLLECTION_PROFILES[name]?.title || titleFromSlug(name);
 }
 
-// Clear cache if needed
+/** Clear all caches */
 export function clearHadithCache(): void {
   metadataCache.clear();
   hadithCache.clear();
-  bookCache.clear();
 }
 
-// Get cache stats for debugging
-export function getCacheStats(): { metadata: number; hadiths: number; books: number } {
-  return {
-    metadata: metadataCache.size,
-    hadiths: hadithCache.size,
-    books: bookCache.size
-  };
-}
-
-// Backward compatible export using Proxy
+// Backward compat
 export const HADITH_COLLECTIONS: Record<string, HadithCollection> = new Proxy(
   {} as Record<string, HadithCollection>,
   {
-    get(target, prop: string) {
-      if (FALLBACK_COLLECTION_PROFILES[prop]) {
-        return normalizeCollection(prop, FALLBACK_COLLECTION_PROFILES[prop]);
-      }
-      return target[prop];
+    get(_target, prop: string) {
+      return getCollectionByName(prop);
     },
     ownKeys() {
-      return Object.keys(FALLBACK_COLLECTION_PROFILES);
+      return Object.keys(COLLECTION_PROFILES);
     },
-    getOwnPropertyDescriptor(target, prop) {
-      if (FALLBACK_COLLECTION_PROFILES[prop as string]) {
+    getOwnPropertyDescriptor(_target, prop) {
+      if (COLLECTION_PROFILES[prop as string]) {
         return { enumerable: true, configurable: true };
       }
       return undefined;
     },
   }
 );
-
-// Legacy async loader
-export async function getCollectionsAsync(): Promise<Record<string, HadithCollection>> {
-  return preloadAllMetadata();
-}

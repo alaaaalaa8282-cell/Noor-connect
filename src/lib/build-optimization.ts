@@ -11,7 +11,7 @@ export const CRITICAL_CHUNKS = [
 // Heavy components that should be loaded on demand
 export const HEAVY_CHUNKS = {
   radio: () => import('../components/lazy/RadioComponents'),
-  ebooks: () => import('../pages/EbooksOptimized'),
+  ebooks: () => import('../pages/EbooksModern'),
   pdfViewer: () => import('../components/lazy/EbooksComponents'),
 };
 

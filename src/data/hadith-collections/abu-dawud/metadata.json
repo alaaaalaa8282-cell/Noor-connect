@@ -1,21 +1,21 @@
 {
   "name": "abu-dawud",
-  "title": "Sunan Abu Dawud",
+  "title": "Abu Dawud",
   "arabicTitle": "",
-  "author": "Imam Abu Dawud al-Sijistani",
-  "death": "275 AH / 889 CE",
-  "description": "Imported from external hadith dataset.",
+  "author": "",
+  "death": "",
+  "description": "Hadith collection: Abu Dawud",
+  "authenticity": "",
+  "compilerPeriod": "",
   "totalHadith": 3,
   "totalBooks": 1,
-  "authenticity": "Hasan (Good)",
-  "compilerPeriod": "",
   "books": [
     {
       "number": "1",
       "name": "Book 1",
       "arabicName": "",
       "hadithCount": 3,
-      "description": ""
+      "description": "A section containing authenticated traditions on this unique subject, compiled by the author."
     }
   ]
 }

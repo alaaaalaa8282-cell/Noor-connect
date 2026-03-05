@@ -14,7 +14,6 @@ export default function Services() {
 
     const services = [
         { title: "Live", path: "/live", icon: Tv, color: 'text-rose-500', bgColor: 'bg-rose-500/10' },
-        { title: "Hadith", path: "/hadith", icon: MessageCircle, color: 'text-sky-500', bgColor: 'bg-sky-500/10' },
         { title: "Hadith Collections", path: "/hadith/collections", icon: BookText, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
         { title: "Radio", path: "/quran-radio", icon: Radio, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
         { title: "Habits", path: "/habit-tracker", icon: Target, color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },

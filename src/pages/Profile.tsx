@@ -78,8 +78,8 @@ const Profile = () => {
   const [prayerNotificationsEnabled, setPrayerNotificationsEnabled] = useState(false);
   const [prayerNotificationsLoading, setPrayerNotificationsLoading] = useState(true);
   const [scheduledPrayerCount, setScheduledPrayerCount] = useState(0);
-  
-    
+
+
 
   const refreshPermissionStatus = useCallback(async () => {
     const status = await unifiedNotifications.getPermissionStatus();
@@ -306,14 +306,14 @@ const Profile = () => {
   const handleFontSizeChange = (value: number[]) => {
     console.log('handleFontSizeChange called with:', value);
     if (!value || value.length === 0) return;
-    
+
     const size = value[0];
     if (typeof size !== 'number' || size < 16 || size > 42) return;
-    
+
     console.log('Setting font size to:', size);
     setQuranFontSizeState(size);
     setQuranFontSize(size);
-    
+
     toast({
       title: "Quran Font Size Updated",
       description: `Quran text size set to ${size}px`,
@@ -394,7 +394,7 @@ const Profile = () => {
               await downloadBook(book);
             }
             downloadedCount++;
-            
+
             // Update progress every few books
             if (downloadedCount % Math.max(1, Math.floor(result.booksToDownload.length / 5)) === 0) {
               update({
@@ -467,7 +467,7 @@ const Profile = () => {
     localStorage.setItem('prayer-reminder-minutes', value);
   };
 
-  
+
   const handleHijriOffsetChange = (value: string) => {
     setHijriOffset(value);
     localStorage.setItem('hijri-date-offset', value);
@@ -506,16 +506,16 @@ const Profile = () => {
                     <Globe className="w-3.5 h-3.5" />
                     {t('language')}
                   </Label>
-                  <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "ar" | "ur" | "id" | "tr")}>
+                  <Select value={language} onValueChange={(v) => setLanguage(v as "en" | "ar" | "ur" | "bn" | "ru")}>
                     <SelectTrigger className="w-full h-12 rounded-xl bg-muted/30 border-none ring-0 focus:ring-primary/20">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl border-border/40 shadow-xl">
                       <SelectItem value="en">English</SelectItem>
-                      <SelectItem value="ar">Arabic</SelectItem>
-                      <SelectItem value="ur">Urdu</SelectItem>
-                      <SelectItem value="id">Bahasa</SelectItem>
-                      <SelectItem value="tr">Turkish</SelectItem>
+                      <SelectItem value="ar">العربية (Arabic)</SelectItem>
+                      <SelectItem value="ur">اردو (Urdu)</SelectItem>
+                      <SelectItem value="bn">বাংলা (Bengali)</SelectItem>
+                      <SelectItem value="ru">Русский (Russian)</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
@@ -544,7 +544,7 @@ const Profile = () => {
             <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5 space-y-6">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
-                   <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
+                  <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
                     <Type className="w-3.5 h-3.5" />
                     Quran Font Size
                   </Label>
@@ -642,7 +642,7 @@ const Profile = () => {
             </h3>
             <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5 space-y-5">
               <PrayerMethodSelector />
-              
+
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
                   <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ps-1">Madhab</Label>
@@ -1070,7 +1070,7 @@ const Profile = () => {
           )}
         </Card>
 
-        
+
         {/* Notification History */}
         <Card className="p-4 bg-muted/30">
           <div className="flex items-center justify-between mb-3">
@@ -1160,8 +1160,15 @@ const Profile = () => {
             </Button>
           </div>
         </Card>
+
+        {/* Version Info */}
+        <div className="flex justify-center pt-4 pb-8">
+          <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground/40">
+            App Version 1.1
+          </p>
+        </div>
       </div>
-      
+
     </div>
   );
 };

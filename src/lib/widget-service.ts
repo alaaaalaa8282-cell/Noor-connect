@@ -1,64 +1,168 @@
+/**
+ * widget-service.ts
+ * Sends enriched prayer + Quran data to the Android home-screen widgets.
+ */
 import { registerPlugin } from '@capacitor/core';
+import { calculatePrayerTimes, formatPrayerTime, getNextPrayer } from './prayer-calculator';
+import type { WidgetPluginInterface, PrayerEntry } from './widgetPlugin';
 
-export interface WidgetPlugin {
-    updateWidget(options: {
-        name: string;
-        time: string;
-        remaining: string;
-        location?: string;
-    }): Promise<{ status: string }>;
-}
+/* Re-export the plugin type for convenience */
+export type { WidgetPluginInterface, PrayerEntry };
 
-const WidgetPlugin = registerPlugin<WidgetPlugin>('WidgetPlugin');
+const WidgetPlugin = registerPlugin<WidgetPluginInterface>('WidgetPlugin');
+
+// ─────────────────────────────────────────────────────────
+// Helpers
+// ─────────────────────────────────────────────────────────
 
 /**
- * Service to handle widget updates from React
+ * Convert a Gregorian Date to a human-readable Hijri string.
+ * Uses the `Intl` API — no external library required.
  */
-import { getNextPrayer } from './prayer-calculator';
+function getHijriDateString(): string {
+    try {
+        const islamicFormatter = new Intl.DateTimeFormat('en-u-ca-islamic', {
+            day: 'numeric',
+            month: 'long',
+            year: 'numeric',
+        });
+        return islamicFormatter.format(new Date());
+    } catch {
+        return '';
+    }
+}
+
+/**
+ * Get a formatted clock string for the widget header (e.g. "14:35").
+ */
+function getCurrentTimeString(): string {
+    return new Date().toLocaleTimeString('en-US', {
+        hour: '2-digit',
+        minute: '2-digit',
+        hour12: false,
+    });
+}
+
+/**
+ * Build the all-5-prayers array with pass/active/upcoming status.
+ */
+function buildAllPrayers(lat: number, lon: number): PrayerEntry[] {
+    const now = new Date();
+    const times = calculatePrayerTimes(lat, lon, now);
+    const names = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
+    const dates = [times.fajr, times.dhuhr, times.asr, times.maghrib, times.isha];
+
+    let activeAssigned = false;
+    const result: PrayerEntry[] = [];
+
+    for (let i = dates.length - 1; i >= 0; i--) {
+        if (!activeAssigned && now >= dates[i]) {
+            result[i] = {
+                name: names[i],
+                time: formatPrayerTime(dates[i]),
+                status: 'active',
+            };
+            activeAssigned = true;
+        }
+    }
+
+    for (let i = 0; i < dates.length; i++) {
+        if (!result[i]) {
+            result[i] = {
+                name: names[i],
+                time: formatPrayerTime(dates[i]),
+                status: now > dates[i] ? 'passed' : 'upcoming',
+            };
+        }
+    }
+
+    return result;
+}
+
+/**
+ * Read today's Quran verse from localStorage (set by the DailyAyah component).
+ */
+function getStoredQuranVerse(): { arabic: string; translit: string; ref: string } | null {
+    try {
+        const raw = localStorage.getItem('daily-ayah-cache');
+        if (!raw) return null;
+        const parsed = JSON.parse(raw);
+        // Support both camelCase and snake_case keys from different sources
+        return {
+            arabic: parsed.arabic || parsed.text_arabic || parsed.textArabic || '',
+            translit: parsed.transliteration || parsed.translit || '',
+            ref: parsed.reference || parsed.ref || '',
+        };
+    } catch {
+        return null;
+    }
+}
+
+// ─────────────────────────────────────────────────────────
+// Public service class
+// ─────────────────────────────────────────────────────────
 
 export class WidgetService {
     /**
-     * Update the home screen widget with the next prayer info
+     * Full widget update: sends prayer schedule, Hijri date, current time,
+     * and today's Quran verse to ALL Noor Connect home-screen widgets.
      */
-    static async updateWidget(latitude: number, longitude: number, locationName?: string) {
+    static async updateWidget(
+        latitude: number,
+        longitude: number,
+        locationName?: string,
+    ) {
         try {
             const next = getNextPrayer(latitude, longitude);
             if (!next) return;
 
             const isRamadan = localStorage.getItem('ramadan-mode') === 'true';
-            let name = next.name;
-
+            let prayerName = next.name;
             if (isRamadan) {
-                if (next.name === 'Maghrib') name += ' (Iftar)';
-                if (next.name === 'Fajr') name += ' (Suhoor)';
+                if (next.name === 'Maghrib') prayerName += ' (Iftar)';
+                if (next.name === 'Fajr') prayerName += ' (Suhoor)';
             }
 
-            await WidgetPlugin.updateWidget({
-                name,
-                time: next.time.toLocaleTimeString('en-US', {
-                    hour: 'numeric',
-                    minute: '2-digit',
-                    hour12: true
-                }),
+            const nextTimeStr = next.time.toLocaleTimeString('en-US', {
+                hour: 'numeric',
+                minute: '2-digit',
+                hour12: true,
+            });
+
+            const allPrayers = buildAllPrayers(latitude, longitude);
+            const quran = getStoredQuranVerse();
+
+            await WidgetPlugin.updateWidgetFull({
+                name: prayerName,
+                time: nextTimeStr,
                 remaining: next.timeUntil,
-                location: locationName
+                location: locationName ?? '',
+                hijriDate: getHijriDateString(),
+                currentTime: getCurrentTimeString(),
+                allPrayers,
+                quranArabic: quran?.arabic ?? '',
+                quranTranslit: quran?.translit ?? '',
+                quranRef: quran?.ref ?? '',
             });
 
         } catch (error) {
-            console.error('Failed to update widget:', error);
+            console.error('[WidgetService] updateWidget failed:', error);
         }
     }
 
     /**
-     * Start a timer to update the widget every 30 minutes
+     * Start auto-update timer (every 30 minutes).
+     * Returns the interval ID for cleanup.
      */
-    static startAutoUpdate(latitude: number, longitude: number, locationName?: string) {
-        // Initial update
+    static startAutoUpdate(
+        latitude: number,
+        longitude: number,
+        locationName?: string,
+    ): ReturnType<typeof setInterval> {
         this.updateWidget(latitude, longitude, locationName);
-
-        // Update every 30 minutes
-        return setInterval(() => {
-            this.updateWidget(latitude, longitude, locationName);
-        }, 30 * 60 * 1000);
+        return setInterval(
+            () => this.updateWidget(latitude, longitude, locationName),
+            30 * 60 * 1000,
+        );
     }
 }

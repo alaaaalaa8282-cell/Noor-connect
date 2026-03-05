@@ -1,13 +1,22 @@
-import { createContext, useContext, useState, useEffect, ReactNode } from 'react';
+import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import {
+  type LanguageCode,
+  LANGUAGES,
+  SUPPORTED_CODES,
+  DEFAULT_LANGUAGE,
+  WIDGET_STRING_KEYS,
+  isRTL as checkRTL,
+  toLanguageCode,
+} from '@/lib/language-config';
+import { Capacitor } from '@capacitor/core';
+import { Preferences } from '@capacitor/preferences';
 
-export type Language = 'en' | 'ar' | 'ur' | 'id' | 'tr';
-
-const STORAGE_KEY = 'app-language';
+const PREF_KEY = 'app-language';
 
 interface LanguageContextType {
-  language: Language;
-  setLanguage: (lang: Language) => void;
+  language: LanguageCode;
+  setLanguage: (lang: LanguageCode) => void;
   t: (key: string) => string;
   isRTL: boolean;
 }
@@ -18,48 +27,164 @@ interface LanguageProviderProps {
   children: ReactNode;
 }
 
+// ─── Side-effects applied whenever the language changes ───
+
+function applyLanguageSideEffects(lang: LanguageCode) {
+  const config = LANGUAGES[lang];
+  const rtl = config.dir === 'rtl';
+  const dir = rtl ? 'rtl' : 'ltr';
+
+  // 1. Force HTML dir + lang attributes (critical for RTL layouts)
+  document.documentElement.dir = dir;
+  document.documentElement.lang = lang;
+
+  // 2. Toggle body class for global CSS hooks
+  document.body.classList.toggle('rtl', rtl);
+  document.body.classList.toggle('ltr', !rtl);
+
+  // 3. Typographic leading — set CSS variables at the root so buttons/headers
+  //    don't clip tall glyphs (Nastaliq Urdu, Arabic)
+  const root = document.documentElement.style;
+  root.setProperty('--lang-line-height', String(config.typography.lineHeight));
+  root.setProperty('--lang-font-size-adjust', config.typography.fontSizeAdjust);
+
+  // 4. Apply Noto Nastaliq Urdu font for Urdu
+  if (lang === 'ur') {
+    root.fontFamily = "'Noto Nastaliq Urdu', 'Noto Sans', sans-serif";
+  } else {
+    root.fontFamily = ''; // Reset to default
+  }
+}
+
+// ─── Persistence: Capacitor Preferences is the ONLY source of truth ───
+
+async function persistLanguage(lang: LanguageCode) {
+  try {
+    await Preferences.set({ key: PREF_KEY, value: lang });
+  } catch (e) {
+    console.warn('Failed to save language to Preferences:', e);
+  }
+}
+
+async function loadSavedLanguageCode(): Promise<LanguageCode | null> {
+  try {
+    const { value } = await Preferences.get({ key: PREF_KEY });
+    if (value && SUPPORTED_CODES.includes(value as LanguageCode)) {
+      return value as LanguageCode;
+    }
+  } catch {
+    // Preferences unavailable — first boot or web browser
+  }
+  return null;
+}
+
+// ─── System-first detection via @capacitor/device ───
+
+async function detectSystemLanguage(): Promise<LanguageCode> {
+  if (Capacitor.isNativePlatform()) {
+    try {
+      const { Device } = await import('@capacitor/device');
+      const info = await Device.getLanguageCode();
+      // info.value is e.g. "en-US" or "ar" — take the first 2 chars
+      const twoLetter = (info.value || '').slice(0, 2).toLowerCase();
+      if (SUPPORTED_CODES.includes(twoLetter as LanguageCode)) {
+        return twoLetter as LanguageCode;
+      }
+    } catch (e) {
+      console.warn('Device.getLanguageCode failed:', e);
+    }
+  } else {
+    // Web fallback: navigator.language
+    const twoLetter = (navigator.language || '').slice(0, 2).toLowerCase();
+    if (SUPPORTED_CODES.includes(twoLetter as LanguageCode)) {
+      return twoLetter as LanguageCode;
+    }
+  }
+  return DEFAULT_LANGUAGE;
+}
+
+// ─── "Dumb Widget" bridge: send only the strings the widget needs ───
+
+async function sendWidgetStrings(tFn: (key: string) => string) {
+  if (!Capacitor.isNativePlatform()) return;
+  try {
+    // Build a tiny JSON payload of only the widget-relevant strings
+    const payload: Record<string, string> = {};
+    for (const key of WIDGET_STRING_KEYS) {
+      payload[key] = tFn(key);
+    }
+
+    const { registerPlugin } = await import('@capacitor/core');
+    const WidgetPlugin = registerPlugin<{
+      setWidgetStrings: (opts: { strings: string }) => Promise<{ status: string }>;
+    }>('WidgetPlugin');
+    await WidgetPlugin.setWidgetStrings({ strings: JSON.stringify(payload) });
+  } catch (e) {
+    // Widget plugin might not be available — that's OK
+    console.warn('Failed to send widget strings:', e);
+  }
+}
+
+// ─── Provider ────────────────────────────────────────────
+
 export function LanguageProvider({ children }: LanguageProviderProps) {
   const { i18n, t } = useTranslation();
-  const [language, setLanguageState] = useState<Language>('en');
+  const [language, setLanguageState] = useState<LanguageCode>(DEFAULT_LANGUAGE);
 
-  // Detect if language is RTL
-  const isRTL = language === 'ar' || language === 'ur';
+  const isLanguageRTL = checkRTL(language);
 
-  // Apply RTL direction and font changes
+  // ── Load saved language on mount ──
   useEffect(() => {
-    const dir = isRTL ? 'rtl' : 'ltr';
-    document.documentElement.dir = dir;
-    document.documentElement.lang = language;
-    
-    // Apply Noto Nastaliq Urdu font for Urdu
-    if (language === 'ur') {
-      document.documentElement.style.fontFamily = "'Noto Nastaliq Urdu', 'Noto Sans', sans-serif";
-    } else {
-      document.documentElement.style.fontFamily = ''; // Reset to default
-    }
-    
-    localStorage.setItem(STORAGE_KEY, language);
-  }, [language, isRTL]);
+    const bootstrap = async () => {
+      // 1. Check Capacitor Preferences (sole source of truth)
+      let lang = await loadSavedLanguageCode();
 
-  // Load saved language on mount
+      // 2. First boot — no preference saved yet → detect from system
+      if (!lang) {
+        lang = await detectSystemLanguage();
+        // Persist so we don't re-detect every launch
+        await persistLanguage(lang);
+      }
+
+      setLanguageState(lang);
+      i18n.changeLanguage(lang);
+      applyLanguageSideEffects(lang);
+
+      // Also push strings to the widget on boot
+      sendWidgetStrings(i18n.t.bind(i18n));
+    };
+
+    bootstrap();
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // ── Apply side effects whenever language changes ──
   useEffect(() => {
-    const savedLang = localStorage.getItem(STORAGE_KEY) as Language;
-    if (savedLang && ['en', 'ar', 'ur', 'id', 'tr'].includes(savedLang)) {
-      setLanguageState(savedLang);
-      i18n.changeLanguage(savedLang);
-    }
-  }, [i18n]);
+    applyLanguageSideEffects(language);
+  }, [language]);
 
-  const setLanguage = (lang: Language) => {
-    setLanguageState(lang);
-    i18n.changeLanguage(lang);
-  };
+  // ── Public setter ──
+  const setLanguage = useCallback(
+    (lang: LanguageCode) => {
+      setLanguageState(lang);
+      i18n.changeLanguage(lang);
+      applyLanguageSideEffects(lang);
+      persistLanguage(lang);
+
+      // After i18next switches, send updated strings to native widget
+      // Use a microtask so i18n.t() returns the new language's values
+      queueMicrotask(() => {
+        sendWidgetStrings(i18n.t.bind(i18n));
+      });
+    },
+    [i18n]
+  );
 
   const value: LanguageContextType = {
     language,
     setLanguage,
     t,
-    isRTL,
+    isRTL: isLanguageRTL,
   };
 
   return (
@@ -76,3 +201,7 @@ export function useLanguage() {
   }
   return context;
 }
+
+// Re-export for convenience
+export type { LanguageCode };
+export { LANGUAGES, SUPPORTED_CODES };

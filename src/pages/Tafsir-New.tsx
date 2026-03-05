@@ -1,22 +1,18 @@
 import { useEffect, useState, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { 
-  ArrowLeft, 
-  BookOpen, 
-  Search, 
-  Sparkles, 
-  ChevronRight, 
-  MessageSquare, 
-  Bookmark, 
-  Share2, 
-  Filter, 
-  Edit3, 
-  History, 
-  FileText, 
-  Headphones, 
-  GitCompare, 
-  Play, 
-  Pause,
+import {
+  ArrowLeft,
+  BookOpen,
+  Search,
+  Sparkles,
+  ChevronRight,
+  MessageSquare,
+  Bookmark,
+  Share2,
+  Filter,
+  Edit3,
+  History,
+  FileText,
   Languages,
   MoreVertical,
   Type,
@@ -28,23 +24,23 @@ import { Button } from "@/components/ui/button";
 import { Card, CardContent } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { ScrollArea } from "@/components/ui/scroll-area";
-import { 
-  Select, 
-  SelectContent, 
-  SelectItem, 
-  SelectTrigger, 
-  SelectValue 
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue
 } from "@/components/ui/select";
 import { Textarea } from "@/components/ui/textarea";
-import { 
-  Dialog, 
-  DialogContent, 
-  DialogHeader, 
-  DialogTitle, 
+import {
+  Dialog,
+  DialogContent,
+  DialogHeader,
+  DialogTitle,
   DialogTrigger,
   DialogFooter
 } from "@/components/ui/dialog";
-import { 
+import {
   DropdownMenu,
   DropdownMenuContent,
   DropdownMenuItem,
@@ -85,17 +81,13 @@ interface SurahTafsir {
   tafsirs: TafsirData[];
 }
 
-interface ComparisonTafsir {
-  edition: TafsirEdition;
-  tafsirs: TafsirData[];
-}
 
 const Tafsir = () => {
   const navigate = useNavigate();
   const { t } = useLanguage();
   const { t: ti18n } = useI18n();
   const { toast } = useToast();
-  
+
   const [surahs, setSurahs] = useState<Surah[]>(() => {
     try {
       const cached = localStorage.getItem('quran-surahs-cache');
@@ -105,7 +97,7 @@ const Tafsir = () => {
     }
     return [];
   });
-  
+
   const [filteredSurahs, setFilteredSurahs] = useState<Surah[]>(surahs);
   const [loading, setLoading] = useState(surahs.length === 0);
   const [searchQuery, setSearchQuery] = useState("");
@@ -113,22 +105,12 @@ const Tafsir = () => {
   const [currentSurahTafsir, setCurrentSurahTafsir] = useState<SurahTafsir | null>(null);
   const [selectedEdition, setSelectedEdition] = useState<string>("en-tafisr-ibn-kathir");
   const [tafsirLoading, setTafsirLoading] = useState(false);
-  const [bookmarks, setBookmarks] = useState<Array<{surah: number, surahName: string}>>([]);
+  const [bookmarks, setBookmarks] = useState<Array<{ surah: number, surahName: string }>>([]);
   const [searchTafsirQuery, setSearchTafsirQuery] = useState("");
-  const [showComparison, setShowComparison] = useState(false);
-  const [expandedComparisonAyahs, setExpandedComparisonAyahs] = useState<Set<number>>(new Set());
-  const [tafsirHistory, setTafsirHistory] = useState<Array<{surah: number, surahName: string, timestamp: number}>>([]);
+  const [tafsirHistory, setTafsirHistory] = useState<Array<{ surah: number, surahName: string, timestamp: number }>>([]);
   const [personalNotes, setPersonalNotes] = useState<Record<string, string>>({});
   const [showNotesEditor, setShowNotesEditor] = useState(false);
-  const [currentAyahForNote, setCurrentAyahForNote] = useState<{surah: number, ayah: number} | null>(null);
-  const [showAudioTTS, setShowAudioTTS] = useState(false);
-  const [currentTTSText, setCurrentTTSText] = useState("");
-  const [isSpeaking, setIsSpeaking] = useState(false);
-  const [speechRate, setSpeechRate] = useState(0.9);
-  const [speechPitch, setSpeechPitch] = useState(1);
-  const [speechVoice, setSpeechVoice] = useState<SpeechSynthesisVoice | null>(null);
-  const [comparisonData, setComparisonData] = useState<ComparisonTafsir[]>([]);
-  const [comparisonLoading, setComparisonLoading] = useState(false);
+  const [currentAyahForNote, setCurrentAyahForNote] = useState<{ surah: number, ayah: number } | null>(null);
   const [activeTab, setActiveTab] = useState<"surahs" | "bookmarks" | "history">("surahs");
   const [fontSize, setFontSize] = useState<"sm" | "base" | "lg" | "xl">("base");
   const scrollRef = useRef<HTMLDivElement>(null);
@@ -151,24 +133,6 @@ const Tafsir = () => {
     if (savedNotes) setPersonalNotes(JSON.parse(savedNotes));
   }, []);
 
-  useEffect(() => {
-    // Initialize speech synthesis
-    if ('speechSynthesis' in window) {
-      const loadVoices = () => {
-        const voices = speechSynthesis.getVoices();
-        const preferredVoice = voices.find(voice => 
-          voice.lang.includes('en') && voice.localService
-        ) || voices[0];
-        setSpeechVoice(preferredVoice);
-      };
-
-      if (speechSynthesis.getVoices().length > 0) {
-        loadVoices();
-      } else {
-        speechSynthesis.onvoiceschanged = loadVoices;
-      }
-    }
-  }, []);
 
   const fetchSurahs = async () => {
     try {
@@ -187,7 +151,7 @@ const Tafsir = () => {
   const handleSurahSelect = async (surah: Surah) => {
     setSelectedSurah(surah);
     setTafsirLoading(true);
-    
+
     // Add to history
     const historyEntry = {
       surah: surah.number,
@@ -203,21 +167,21 @@ const Tafsir = () => {
     } catch (error) {
       console.warn("Failed to save history:", error);
     }
-    
+
     try {
       // Check cache first
       const cacheKey = `tafsir-surah-${selectedEdition}-${surah.number}`;
       const cached = localStorage.getItem(cacheKey);
-      
+
       if (cached) {
         setCurrentSurahTafsir(JSON.parse(cached));
         setTafsirLoading(false);
         return;
       }
-      
+
       // Fetch Tafsir for all ayahs in surah
       const tafsirs: TafsirData[] = [];
-      
+
       for (let ayah = 1; ayah <= surah.numberOfAyahs; ayah++) {
         try {
           const tafsir = await fetchTafsir(surah.number, ayah, selectedEdition);
@@ -227,16 +191,16 @@ const Tafsir = () => {
           // Continue with next ayah even if one fails
         }
       }
-      
+
       const surahTafsir: SurahTafsir = {
         surah: surah.number,
         surahName: surah.name,
         englishName: surah.englishName,
         tafsirs: tafsirs
       };
-      
+
       setCurrentSurahTafsir(surahTafsir);
-      
+
       // Cache the result
       try {
         localStorage.setItem(cacheKey, JSON.stringify(surahTafsir));
@@ -257,14 +221,14 @@ const Tafsir = () => {
 
   const handleBookmark = () => {
     if (!selectedSurah || !currentSurahTafsir) return;
-    
+
     const bookmark = {
       surah: selectedSurah.number,
       surahName: selectedSurah.name
     };
-    
+
     const exists = bookmarks.some(b => b.surah === bookmark.surah);
-    
+
     if (exists) {
       setBookmarks(prev => prev.filter(b => b.surah !== bookmark.surah));
       toast({
@@ -278,7 +242,7 @@ const Tafsir = () => {
         description: "Surah Tafsir has been bookmarked"
       });
     }
-    
+
     try {
       const updated = exists ? bookmarks.filter(b => b.surah !== bookmark.surah) : [...bookmarks, bookmark];
       localStorage.setItem('tafsir-bookmarks', JSON.stringify(updated));
@@ -294,17 +258,17 @@ const Tafsir = () => {
 
   const saveNote = (note: string) => {
     if (!currentAyahForNote) return;
-    
+
     const key = `${currentAyahForNote.surah}:${currentAyahForNote.ayah}`;
     const updatedNotes = { ...personalNotes, [key]: note };
     setPersonalNotes(updatedNotes);
-    
+
     try {
       localStorage.setItem('tafsir-notes', JSON.stringify(updatedNotes));
     } catch (error) {
       console.warn("Failed to save notes:", error);
     }
-    
+
     setShowNotesEditor(false);
     setCurrentAyahForNote(null);
     toast({
@@ -316,124 +280,14 @@ const Tafsir = () => {
   const getFilteredTafsirs = () => {
     if (!currentSurahTafsir?.tafsirs) return [];
     if (!searchTafsirQuery) return currentSurahTafsir.tafsirs;
-    
+
     return currentSurahTafsir.tafsirs.filter(tafsir =>
       tafsir.text?.toLowerCase().includes(searchTafsirQuery.toLowerCase())
     );
   };
 
-  interface ComparisonTafsir {
-    edition: TafsirEdition;
-    tafsirs: TafsirData[];
-  }
 
-  const getComparisonTafsirs = async (surah: Surah, editions: string[]): Promise<ComparisonTafsir[]> => {
-    const results: ComparisonTafsir[] = [];
-    
-    for (const editionId of editions) {
-      try {
-        const edition = TAFSIR_EDITIONS.find(e => e.id === editionId);
-        if (!edition) continue;
-        
-        const tafsirs: TafsirData[] = [];
-        for (let ayah = 1; ayah <= Math.min(surah.numberOfAyahs, 10); ayah++) { // Limit to first 10 ayahs for comparison
-          try {
-            const tafsir = await fetchTafsir(surah.number, ayah, editionId);
-            tafsirs.push(tafsir);
-          } catch (error) {
-            console.warn(`Failed to fetch comparison tafsir for ${surah.number}:${ayah}`, error);
-          }
-        }
-        
-        results.push({ edition, tafsirs });
-      } catch (error) {
-        console.warn(`Failed to load edition ${editionId}`, error);
-      }
-    }
-    
-    return results;
-  };
-
-  const handleComparison = async () => {
-    if (!selectedSurah) return;
-    
-    setComparisonLoading(true);
-    setShowComparison(true); // Show dialog immediately to provide feedback
-    try {
-      const editions = [
-        selectedEdition, 
-        ...TAFSIR_EDITIONS.filter(e => e.id !== selectedEdition).slice(0, 2).map(e => e.id)
-      ];
-      const data = await getComparisonTafsirs(selectedSurah, editions);
-      setComparisonData(data);
-      setExpandedComparisonAyahs(new Set([1])); // Expand first ayah by default
-    } catch (error) {
-      console.error("Error loading comparison:", error);
-      toast({
-        title: "Error",
-        description: "Failed to load comparison data",
-        variant: "destructive"
-      });
-      setShowComparison(false);
-    } finally {
-      setComparisonLoading(false);
-    }
-  };
-
-  const toggleComparisonAyah = (ayah: number) => {
-    const newExpanded = new Set(expandedComparisonAyahs);
-    if (newExpanded.has(ayah)) {
-      newExpanded.delete(ayah);
-    } else {
-      newExpanded.add(ayah);
-    }
-    setExpandedComparisonAyahs(newExpanded);
-  };
-
-  const handleAudioTTS = (text: string, ayah: number) => {
-    if (!text) {
-      toast({
-        title: "No text",
-        description: "No tafsir text available to read.",
-        variant: "destructive"
-      });
-      return;
-    }
-    
-    // Cancel any existing speech
-    if ('speechSynthesis' in window) {
-      speechSynthesis.cancel();
-    }
-    
-    setCurrentTTSText(text);
-    setShowAudioTTS(true);
-    
-    // Start speech after a short delay to ensure UI is ready
-    setTimeout(() => {
-      if ('speechSynthesis' in window) {
-        const utterance = new SpeechSynthesisUtterance(text);
-        utterance.rate = speechRate;
-        utterance.pitch = speechPitch;
-        utterance.volume = 1;
-        
-        // Find a suitable voice
-        const voices = speechSynthesis.getVoices();
-        const preferredVoice = speechVoice || voices.find(v => v.lang.startsWith('en')) || voices[0];
-        if (preferredVoice) utterance.voice = preferredVoice;
-        
-        utterance.onstart = () => setIsSpeaking(true);
-        utterance.onend = () => setIsSpeaking(false);
-        utterance.onerror = (event) => {
-          console.error('Speech synthesis error:', event);
-          setIsSpeaking(false);
-        };
-        
-        speechSynthesis.speak(utterance);
-      }
-    }, 100);
-  };
-
-  const isBookmarked = selectedSurah && 
+  const isBookmarked = selectedSurah &&
     bookmarks.some(b => b.surah === selectedSurah.number);
 
   const goBack = () => {
@@ -447,11 +301,11 @@ const Tafsir = () => {
   return (
     <PageTransition>
       <div className="min-h-screen bg-[#F8FAF9] pb-20 dark:bg-slate-950">
-        <AppBar 
-          title={currentSurahTafsir ? currentSurahTafsir.englishName : selectedSurah ? selectedSurah.englishName : "Tafsir"} 
+        <AppBar
+          title={currentSurahTafsir ? currentSurahTafsir.englishName : selectedSurah ? selectedSurah.englishName : "Tafsir"}
           showBack={true}
           onBack={goBack}
-          rightElement={
+          actions={
             <div className="flex items-center gap-1">
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
@@ -471,8 +325,8 @@ const Tafsir = () => {
                             onClick={() => setFontSize(size)}
                             className={cn(
                               "w-8 h-8 rounded flex items-center justify-center text-xs font-bold border transition-all",
-                              fontSize === size 
-                                ? "bg-emerald-600 text-white border-emerald-600" 
+                              fontSize === size
+                                ? "bg-emerald-600 text-white border-emerald-600"
                                 : "bg-white text-slate-600 border-slate-200 hover:border-emerald-300"
                             )}
                           >
@@ -486,7 +340,7 @@ const Tafsir = () => {
                   <div className="p-2">
                     <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Tafsir Edition</p>
                     {TAFSIR_EDITIONS.map((edition) => (
-                      <DropdownMenuItem 
+                      <DropdownMenuItem
                         key={edition.id}
                         onClick={() => {
                           setSelectedEdition(edition.id);
@@ -518,7 +372,7 @@ const Tafsir = () => {
               <div className="relative rounded-[2.5rem] bg-gradient-to-br from-[#115E59] via-[#0D9488] to-[#0891B2] p-8 shadow-2xl shadow-emerald-900/20 overflow-hidden">
                 <div className="absolute top-0 right-0 w-64 h-64 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
                 <div className="absolute bottom-0 left-0 w-48 h-48 bg-emerald-400/10 rounded-full blur-2xl translate-y-1/2 -translate-x-1/2" />
-                
+
                 <div className="relative z-10 space-y-4">
                   <div className="flex items-center gap-3">
                     <div className="w-12 h-12 rounded-2xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20">
@@ -531,7 +385,7 @@ const Tafsir = () => {
                   </div>
 
                   <div className="grid grid-cols-3 gap-3">
-                    <button 
+                    <button
                       onClick={() => setActiveTab("history")}
                       className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/10 transition-all text-left group"
                     >
@@ -539,7 +393,7 @@ const Tafsir = () => {
                       <p className="text-white text-xs font-bold uppercase tracking-tighter opacity-60">History</p>
                       <p className="text-white text-lg font-black">{tafsirHistory.length}</p>
                     </button>
-                    <button 
+                    <button
                       onClick={() => setActiveTab("bookmarks")}
                       className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/10 transition-all text-left group"
                     >
@@ -557,23 +411,59 @@ const Tafsir = () => {
               </div>
 
               {/* Search Section */}
-              <div className="sticky top-20 z-20 transition-all duration-300">
+              <div className="sticky top-20 z-20 transition-all duration-300 space-y-4">
                 <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
-                  <Input 
-                    placeholder="Search Surah name or number..." 
+                  <Input
+                    placeholder="Search Surah name or number..."
                     className="h-14 pl-12 rounded-2xl border-none bg-white shadow-xl shadow-slate-200/50 focus-visible:ring-emerald-500/30 text-base"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
                   />
                   {searchQuery && (
-                    <button 
+                    <button
                       onClick={() => setSearchQuery("")}
                       className="absolute right-4 top-1/2 -translate-y-1/2 p-1 rounded-full hover:bg-slate-100 transition-colors"
                     >
                       <ArrowLeft className="w-4 h-4 text-slate-400 rotate-180" />
                     </button>
                   )}
+                </div>
+
+                {/* Tafsir Author Selector - Visible UI */}
+                <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col gap-3">
+                  <div className="flex items-center gap-2 text-slate-800 font-bold">
+                    <Languages className="w-5 h-5 text-emerald-600" />
+                    <span>Select Tafsir Author</span>
+                  </div>
+                  <Select
+                    value={selectedEdition}
+                    onValueChange={(value) => {
+                      setSelectedEdition(value);
+                      if (selectedSurah) handleSurahSelect(selectedSurah);
+                    }}
+                  >
+                    <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100 text-slate-700">
+                      <SelectValue placeholder="Choose a Tafsir" />
+                    </SelectTrigger>
+                    <SelectContent className="rounded-2xl max-h-80 overflow-y-auto">
+                      {TAFSIR_EDITIONS.map((edition) => (
+                        <SelectItem key={edition.id} value={edition.id} className="rounded-lg py-3">
+                          <div className="flex flex-col text-left">
+                            <span className="font-bold text-slate-800">{edition.name}</span>
+                            <div className="flex items-center gap-2 mt-0.5">
+                              <Badge variant="outline" className="text-[10px] bg-emerald-50 text-emerald-700 border-emerald-100">
+                                {edition.language}
+                              </Badge>
+                              {edition.author && (
+                                <span className="text-[10px] text-slate-400">by {edition.author}</span>
+                              )}
+                            </div>
+                          </div>
+                        </SelectItem>
+                      ))}
+                    </SelectContent>
+                  </Select>
                 </div>
               </div>
 
@@ -594,8 +484,8 @@ const Tafsir = () => {
                         className="group relative flex items-center p-4 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-100 transition-all text-left"
                       >
                         <div className="relative w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-black group-hover:bg-emerald-600 group-hover:text-white transition-all overflow-hidden">
-                           <span className="relative z-10">{surah.number}</span>
-                           <div className="absolute inset-0 opacity-10 font-arabic text-3xl flex items-center justify-center translate-x-2 translate-y-2 select-none">{surah.name}</div>
+                          <span className="relative z-10">{surah.number}</span>
+                          <div className="absolute inset-0 opacity-10 font-arabic text-3xl flex items-center justify-center translate-x-2 translate-y-2 select-none">{surah.name}</div>
                         </div>
                         <div className="ml-4 flex-1">
                           <h3 className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{surah.englishName}</h3>
@@ -645,7 +535,7 @@ const Tafsir = () => {
                 </TabsContent>
 
                 <TabsContent value="history" className="mt-6">
-                   {tafsirHistory.length === 0 ? (
+                  {tafsirHistory.length === 0 ? (
                     <div className="text-center py-12 px-6 bg-white rounded-3xl border border-dashed border-slate-200">
                       <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
                         <History className="w-8 h-8 text-slate-300" />
@@ -698,9 +588,9 @@ const Tafsir = () => {
                     </div>
                   </div>
                   <div className="flex gap-2">
-                    <Button 
-                      variant="ghost" 
-                      size="icon" 
+                    <Button
+                      variant="ghost"
+                      size="icon"
                       className={cn("rounded-xl transition-all", isBookmarked && "bg-emerald-50 text-emerald-600")}
                       onClick={handleBookmark}
                     >
@@ -714,39 +604,52 @@ const Tafsir = () => {
 
                 <Separator className="bg-slate-100 mb-4" />
 
-                <div className="flex flex-wrap gap-2">
-                   <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-xl h-10 px-4 bg-slate-50 border-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
-                    onClick={handleComparison}
-                    disabled={comparisonLoading}
-                  >
-                    <GitCompare className="w-4 h-4 mr-2" />
-                    Comparison
-                  </Button>
-                  <Button 
-                    variant="outline" 
-                    size="sm" 
-                    className="rounded-xl h-10 px-4 bg-slate-50 border-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
-                    onClick={() => {
-                       const firstTafsir = getFilteredTafsirs()[0];
-                       if (firstTafsir) handleAudioTTS(firstTafsir.text, firstTafsir.ayah);
-                    }}
-                  >
-                    <Headphones className="w-4 h-4 mr-2" />
-                    Listen All
-                  </Button>
+                <div className="flex flex-wrap items-center gap-3">
+                  <DropdownMenu>
+                    <DropdownMenuTrigger asChild>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        className="rounded-xl h-10 px-4 bg-slate-50 border-slate-100 text-slate-600 hover:bg-emerald-50 hover:text-emerald-700 hover:border-emerald-200"
+                      >
+                        <Languages className="w-4 h-4 mr-2" />
+                        {TAFSIR_EDITIONS.find(e => e.id === selectedEdition)?.name.split(' ')[0] || "Author"}
+                        <ChevronDown className="w-3 h-3 ml-2 opacity-50" />
+                      </Button>
+                    </DropdownMenuTrigger>
+                    <DropdownMenuContent align="start" className="w-72 rounded-2xl max-h-80 overflow-y-auto">
+                      {TAFSIR_EDITIONS.map((edition) => (
+                        <DropdownMenuItem
+                          key={edition.id}
+                          onClick={() => {
+                            setSelectedEdition(edition.id);
+                            if (selectedSurah) handleSurahSelect(selectedSurah);
+                          }}
+                          className={cn("flex items-center justify-between py-3 rounded-xl", selectedEdition === edition.id && "bg-emerald-50 text-emerald-700")}
+                        >
+                          <div className="flex flex-col">
+                            <span className="font-bold">{edition.name}</span>
+                            {edition.author && (
+                              <span className="text-[10px] opacity-70">by {edition.author}</span>
+                            )}
+                          </div>
+                          <Badge variant="outline" className="text-[9px]">{edition.language}</Badge>
+                        </DropdownMenuItem>
+                      ))}
+                    </DropdownMenuContent>
+                  </DropdownMenu>
+
                   <div className="relative flex-1 min-w-[200px]">
                     <Search className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-slate-400" />
-                    <Input 
-                      placeholder="Search in Tafsir..." 
+                    <Input
+                      placeholder="Search in Tafsir..."
                       className="h-10 pl-9 rounded-xl border-none bg-slate-50 focus-visible:ring-emerald-500/20 text-sm"
                       value={searchTafsirQuery}
                       onChange={(e) => setSearchTafsirQuery(e.target.value)}
                     />
                   </div>
                 </div>
+
               </div>
 
               {/* Loading State for Tafsir */}
@@ -766,9 +669,9 @@ const Tafsir = () => {
               {/* Tafsir Content List */}
               <div className="space-y-4">
                 {getFilteredTafsirs().map((tafsir, idx) => {
-                   const noteKey = `${tafsir.surah}:${tafsir.ayah}`;
-                   const hasNote = personalNotes[noteKey];
-                   return (
+                  const noteKey = `${tafsir.surah}:${tafsir.ayah}`;
+                  const hasNote = personalNotes[noteKey];
+                  return (
                     <motion.div
                       key={idx}
                       initial={{ opacity: 0, y: 10 }}
@@ -784,22 +687,15 @@ const Tafsir = () => {
                           <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ayah {tafsir.ayah}</span>
                         </div>
                         <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
+                          <Button
+                            variant="ghost"
+                            size="icon"
                             className={cn("h-8 w-8 rounded-lg", hasNote && "bg-blue-50 text-blue-600")}
                             onClick={() => handleNote(tafsir.surah, tafsir.ayah)}
                           >
                             <Edit3 className="w-4 h-4" />
                           </Button>
-                          <Button 
-                            variant="ghost" 
-                            size="icon" 
-                            className="h-8 w-8 rounded-lg"
-                            onClick={() => handleAudioTTS(tafsir.text, tafsir.ayah)}
-                          >
-                            <Headphones className="w-4 h-4" />
-                          </Button>
+
                         </div>
                       </div>
 
@@ -863,14 +759,14 @@ const Tafsir = () => {
                 />
               </div>
               <DialogFooter>
-                <Button 
-                  variant="ghost" 
+                <Button
+                  variant="ghost"
                   onClick={() => setShowNotesEditor(false)}
                   className="rounded-xl"
                 >
                   Cancel
                 </Button>
-                <Button 
+                <Button
                   onClick={() => {
                     const textarea = document.querySelector('textarea') as HTMLTextAreaElement;
                     if (textarea) saveNote(textarea.value);
@@ -883,146 +779,7 @@ const Tafsir = () => {
             </DialogContent>
           </Dialog>
 
-          {/* Comparison Dialog */}
-          <Dialog open={showComparison} onOpenChange={setShowComparison}>
-            <DialogContent className="max-w-3xl rounded-[2.5rem] h-[80vh] flex flex-col p-0 overflow-hidden">
-               <div className="p-6 bg-white border-b border-slate-100 flex items-center justify-between">
-                  <div className="flex items-center gap-3">
-                    <div className="w-10 h-10 rounded-xl bg-orange-50 flex items-center justify-center text-orange-600">
-                      <GitCompare className="w-5 h-5" />
-                    </div>
-                    <div>
-                      <h3 className="font-bold text-lg text-slate-800">Tafsir Comparison</h3>
-                      <p className="text-xs text-slate-400 font-medium">Compare multiple interpretations side-by-side</p>
-                    </div>
-                  </div>
-                  <Button variant="ghost" size="icon" onClick={() => setShowComparison(false)} className="rounded-full">
-                    <ArrowLeft className="w-5 h-5 rotate-180" />
-                  </Button>
-               </div>
-               
-               <div className="flex-1 overflow-y-auto p-6 bg-slate-50">
-                  {comparisonLoading ? (
-                    <div className="flex flex-col items-center justify-center h-full space-y-4">
-                      <div className="w-12 h-12 rounded-full border-4 border-orange-100 border-t-orange-500 animate-spin" />
-                      <p className="font-bold text-slate-600">Compiling interpretations...</p>
-                    </div>
-                  ) : (
-                    <div className="space-y-6">
-                      <div className="mb-6 p-4 bg-orange-100/50 rounded-2xl border border-orange-200">
-                        <h4 className="text-sm font-bold text-orange-800 uppercase tracking-widest mb-1">Surah context</h4>
-                        <p className="text-lg font-bold text-slate-800">{selectedSurah?.englishName} ({selectedSurah?.name})</p>
-                        <p className="text-xs text-slate-500">{selectedSurah?.englishNameTranslation} • {selectedSurah?.numberOfAyahs} Ayahs</p>
-                      </div>
 
-                      {comparisonData[0]?.tafsirs.map((tafsir, ayahIdx) => (
-                        <div key={ayahIdx} className="space-y-3">
-                          <div className="flex items-center gap-2 px-2">
-                             <span className="text-sm font-black text-orange-600 uppercase tracking-widest">Ayah {tafsir.ayah}</span>
-                             <div className="flex-1 h-px bg-orange-100" />
-                          </div>
-                          
-                          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
-                            {comparisonData.map((editionData, edIdx) => {
-                              const editionTafsir = editionData.tafsirs.find(t => t.ayah === tafsir.ayah);
-                              return (
-                                <div key={edIdx} className="p-5 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-md transition-all">
-                                  <div className="flex items-center justify-between mb-3">
-                                    <span className="text-[10px] font-bold text-slate-400 uppercase tracking-tighter">{editionData.edition.name}</span>
-                                    <Badge variant="outline" className="text-[9px] bg-slate-50 border-slate-200">{editionData.edition.language}</Badge>
-                                  </div>
-                                  <p className="text-sm text-slate-700 leading-relaxed text-justify">
-                                    {editionTafsir?.text}
-                                  </p>
-                                </div>
-                              );
-                            })}
-                          </div>
-                        </div>
-                      ))}
-                    </div>
-                  )}
-               </div>
-            </DialogContent>
-          </Dialog>
-
-          {/* TTS Player Dialog */}
-          <Dialog open={showAudioTTS} onOpenChange={setShowAudioTTS}>
-            <DialogContent className="sm:max-w-[500px] rounded-[2.5rem] p-0 overflow-hidden border-none shadow-2xl">
-              <div className="bg-gradient-to-br from-emerald-600 to-teal-700 p-8 text-white relative">
-                <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full blur-3xl -translate-y-1/2 translate-x-1/2" />
-                <div className="relative z-10 flex flex-col items-center text-center space-y-4">
-                  <div className="w-20 h-20 rounded-3xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-xl">
-                    <Headphones className="w-10 h-10 text-white animate-pulse" />
-                  </div>
-                  <div>
-                    <h3 className="text-xl font-bold">Audio Tafsir</h3>
-                    <p className="text-emerald-100/70 text-sm font-medium">Listening to Ayah {currentTTSText ? "Reflection" : "..."}</p>
-                  </div>
-                </div>
-              </div>
-
-              <div className="p-8 bg-white space-y-6">
-                <div className="p-4 bg-slate-50 rounded-2xl border border-slate-100 max-h-40 overflow-y-auto">
-                  <p className="text-sm text-slate-600 leading-relaxed italic">
-                    "{currentTTSText}"
-                  </p>
-                </div>
-
-                <div className="space-y-4">
-                  <div className="flex items-center justify-between">
-                    <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Playback Speed</span>
-                    <span className="text-sm font-bold text-emerald-600 bg-emerald-50 px-2 py-1 rounded-lg">{speechRate}x</span>
-                  </div>
-                  <input
-                    type="range"
-                    min="0.5"
-                    max="2"
-                    step="0.1"
-                    value={speechRate}
-                    onChange={(e) => setSpeechRate(parseFloat(e.target.value))}
-                    className="w-full h-2 bg-slate-100 rounded-lg appearance-none cursor-pointer accent-emerald-600"
-                  />
-                </div>
-
-                <div className="flex gap-3">
-                  <Button 
-                    variant="outline" 
-                    className="flex-1 h-14 rounded-2xl border-slate-200 text-slate-600 font-bold hover:bg-slate-50"
-                    onClick={() => {
-                      if ('speechSynthesis' in window) {
-                        if (isSpeaking) {
-                          speechSynthesis.pause();
-                          setIsSpeaking(false);
-                        } else {
-                          speechSynthesis.resume();
-                          setIsSpeaking(true);
-                        }
-                      }
-                    }}
-                  >
-                    {isSpeaking ? (
-                      <><Pause className="w-5 h-5 mr-2" /> Pause</>
-                    ) : (
-                      <><Play className="w-5 h-5 mr-2" /> Resume</>
-                    )}
-                  </Button>
-                  <Button 
-                    className="flex-1 h-14 rounded-2xl bg-emerald-600 hover:bg-emerald-700 text-white font-bold shadow-lg shadow-emerald-600/20"
-                    onClick={() => {
-                      if ('speechSynthesis' in window) {
-                        speechSynthesis.cancel();
-                        setIsSpeaking(false);
-                        setShowAudioTTS(false);
-                      }
-                    }}
-                  >
-                    Stop
-                  </Button>
-                </div>
-              </div>
-            </DialogContent>
-          </Dialog>
 
         </div>
       </div>

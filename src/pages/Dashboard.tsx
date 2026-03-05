@@ -81,7 +81,7 @@ export default function Dashboard() {
   const prayerTimesHook = usePrayerTimes();
 
   const prayerLocation = prayerTimesHook.location;
-  
+
   // Priority: GPS location > VPN/API location
   // If GPS location is set, use it regardless of whether it's default
   const locationLabel = useMemo(() => {
@@ -89,12 +89,12 @@ export default function Dashboard() {
     if (location.latitude && location.longitude) {
       return location.locationName;
     }
-    
+
     // Otherwise, use VPN/API location if available
     if (prayerLocation?.city && prayerLocation?.country) {
       return `${prayerLocation.city}, ${prayerLocation.country}`;
     }
-    
+
     // Fallback to default location
     return location.locationName;
   }, [location, prayerLocation]);
@@ -105,12 +105,12 @@ export default function Dashboard() {
     if (location.latitude && location.longitude && location.timeZone) {
       return location.timeZone;
     }
-    
+
     // Otherwise, use VPN/API location if available
     if (prayerLocation?.timeZone) {
       return prayerLocation.timeZone;
     }
-    
+
     // Fallback to default location timezone
     return location.timeZone;
   }, [location, prayerLocation]);
@@ -216,8 +216,8 @@ export default function Dashboard() {
 
     // Add online listener to refresh prayer times as soon as internet is back
     const handleOnline = () => {
-            loadPrayerTimes();
-            widgetRefreshManager.refreshAll(); // Refresh all widgets when online
+      loadPrayerTimes();
+      widgetRefreshManager.refreshAll(); // Refresh all widgets when online
     };
 
     window.addEventListener('online', handleOnline);
@@ -239,7 +239,7 @@ export default function Dashboard() {
     if (success) {
       toast({ title: ti18n('locationDetected'), description: `Updated to ${location.locationName}` });
 
-      
+
       // Reload prayer times with new location
       await loadPrayerTimes();
     } else {
@@ -247,7 +247,7 @@ export default function Dashboard() {
     }
   };
 
-  
+
   // Handle menstrual mode toggle
   const handleMenstrualModeToggle = async () => {
     if (menstrualModeData.isActive) {
@@ -329,7 +329,7 @@ export default function Dashboard() {
 
     window.addEventListener('storage', handleStorageChange);
     window.addEventListener('time-format-changed', handleCustomTimeFormatChange as EventListener);
-    
+
     return () => {
       window.removeEventListener('storage', handleStorageChange);
       window.removeEventListener('time-format-changed', handleCustomTimeFormatChange as EventListener);
@@ -346,8 +346,8 @@ export default function Dashboard() {
         if (data) {
           const parsed = JSON.parse(data);
           // Clear if it contains ISTRES or other problematic location data
-          if (parsed.city === 'Istres' || parsed.locationName?.includes('Istres') || 
-              parsed.city === 'ISTRES' || parsed.locationName?.includes('ISTRES')) {
+          if (parsed.city === 'Istres' || parsed.locationName?.includes('Istres') ||
+            parsed.city === 'ISTRES' || parsed.locationName?.includes('ISTRES')) {
             localStorage.removeItem(key);
             console.log('Cleared stale location data containing ISTRES');
             // Force reload page to refresh location
@@ -449,7 +449,7 @@ export default function Dashboard() {
                     </div>
                   )}
                 </div>
-                
+
                 <div className="flex flex-col items-end gap-1">
                   <p className="text-[10px] text-white/60 font-medium tracking-wide uppercase flex items-center gap-1.5 glass-card px-3 py-1">
                     <MapPin className="w-3 h-3 text-[#e0c097]" />
@@ -505,8 +505,8 @@ export default function Dashboard() {
             <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/20 rounded-br-lg"></div>
           </div>
 
-          
-          
+
+
           {/* Islamic Greeting (shows on special days) */}
           <Suspense fallback={null}>
             <IslamicGreeting />
@@ -532,6 +532,14 @@ export default function Dashboard() {
               />
             </Suspense>
           </ErrorBoundary>
+
+          {/* Salah Tracker */}
+          <Suspense fallback={
+            <div className="h-40 card-premium skeleton-premium" />
+          }>
+            <SalahTracker />
+          </Suspense>
+
 
           {/* Prayer Times List */}
           <ErrorBoundary>
@@ -640,54 +648,7 @@ export default function Dashboard() {
 
           {/* AI Reciter Recognition Feature - REMOVED */}
 
-          {/* Quick Access Grid */}
-          <div className="grid grid-cols-2 sm:grid-cols-3 gap-4">
-            {[
-              { icon: Compass, label: t('qibla'), sub: t('direction'), link: '/qibla', color: 'text-emerald-500', bgColor: 'bg-emerald-500/10' },
-              { icon: Calendar, label: t('qazaTracker'), sub: t('tracker'), link: '/qaza', color: 'text-orange-500', bgColor: 'bg-orange-500/10' },
-              { icon: BookOpen, label: t('ramadanMode'), sub: t('mode'), link: '/ramadan', color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
-              { icon: MessageCircle, label: 'Hadith Collections', sub: 'Browse', link: '/hadith/collections', color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
-              ...(shouldShowMenstrualFeatures() ? [
-                { icon: Heart, label: t('menstrualMode'), sub: t('mode'), link: '/menstrual-mode', color: 'text-rose-500', bgColor: 'bg-rose-500/10' }
-              ] : []),
-              { icon: Calculator, label: t('zakatCalculator'), sub: t('calc'), link: '/zakat', color: 'text-purple-500', bgColor: 'bg-purple-500/10' },
-              { icon: Trophy, label: t('islamicQuiz'), sub: t('islamic'), link: '/quiz', color: 'text-yellow-500', bgColor: 'bg-yellow-500/10' },
-              { icon: Star, label: t('namesOfAllah'), sub: t('ofAllah'), link: '/names-of-allah', color: 'text-teal-500', bgColor: 'bg-teal-500/10' },
-              { icon: Settings, label: 'Customize', sub: 'Widgets', link: '/widget-customizer', color: 'text-gray-500', bgColor: 'bg-gray-500/10' },
-            ].map((item, idx) => (
-              <div
-                key={idx}
-                className="group relative overflow-hidden rounded-3xl bg-card border border-border/40 p-5 cursor-pointer transition-all duration-300 hover:shadow-xl hover:shadow-primary/5 hover:-translate-y-1 active:scale-95 touch-feedback"
-                onClick={(event) => handleCardClick(event, item.link)}
-              >
-                {/* Subtle Gradient Overlay */}
-                <div className="absolute inset-0 bg-gradient-to-br from-white/5 to-transparent opacity-0 group-hover:opacity-100 transition-opacity" />
 
-                <div className="relative z-10 flex flex-col items-center text-center gap-3">
-                  {/* Icon Container */}
-                  <div className={`p-4 rounded-2xl ${item.bgColor} shadow-sm group-hover:shadow-md transition-all duration-500 group-hover:scale-110 group-active:scale-90`}>
-                    <item.icon className={`w-6 h-6 ${item.color}`} strokeWidth={2.5} />
-                  </div>
-
-                  {/* Text Content */}
-                  <div className="space-y-1">
-                    <h3 className="font-bold text-xs sm:text-sm tracking-tight group-hover:text-primary transition-colors">{item.label}</h3>
-                    <p className="text-[9px] text-muted-foreground uppercase font-bold tracking-widest opacity-60">{item.sub}</p>
-                  </div>
-                </div>
-
-                {/* Status Dot */}
-                <div className="absolute top-4 right-4 w-1.5 h-1.5 rounded-full bg-border group-hover:bg-primary/50 transition-colors" />
-              </div>
-            ))}
-          </div>
-
-          {/* Salah Tracker */}
-          <Suspense fallback={
-            <div className="h-40 card-premium skeleton-premium" />
-          }>
-            <SalahTracker />
-          </Suspense>
 
           {/* Weekly Progress Chart */}
           <Suspense fallback={
@@ -789,7 +750,7 @@ export default function Dashboard() {
 
                         const fetchedTimezone = result.timezone;
 
-                        
+
                         // Step 3: Set state synchronously
                         location.setLocation(
                           coords.latitude,
@@ -843,11 +804,14 @@ export default function Dashboard() {
               </CardDescription>
             </CardHeader>
             <CardContent className="pb-4">
-              <div className="glass-card px-4 py-3 rounded-xl">
+              <div className="glass-card px-4 py-3 rounded-xl mb-3">
                 <p className="text-center text-xs text-muted-foreground italic font-arabic">
                   "In the remembrance of Allah do hearts find rest." — 13:28
                 </p>
               </div>
+              <p className="text-center text-[10px] text-muted-foreground/60 font-medium tracking-widest uppercase">
+                App Version 1.1
+              </p>
             </CardContent>
           </Card>
         </div>
