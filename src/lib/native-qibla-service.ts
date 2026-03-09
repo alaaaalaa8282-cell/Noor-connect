@@ -198,8 +198,6 @@ export class NativeQiblaService {
   }
 
   private async setupEventListeners(): Promise<void> {
-    if (!this.isNative) return;
-
     await QiblaPlugin.addListener('qiblaDirectionChange', (data: QiblaDirectionData) => {
       // Apply low-pass filter to smooth out jitter
       let smoothedCompass = data.compassAngle;
@@ -231,6 +229,8 @@ export class NativeQiblaService {
 
       this.listeners.forEach(listener => listener(smoothedData));
     });
+
+    if (!this.isNative) return;
 
     await QiblaPlugin.addListener('permissionGranted', (data) => {
       console.log('Permission granted:', data);
