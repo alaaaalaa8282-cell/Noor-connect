@@ -3,7 +3,7 @@
  * Allows users to set a specific adhan sound for each prayer
  */
 
-import { ADHAN_OPTIONS } from '@/components/AdhanSelector';
+// Adhan preferences constants
 
 // Add special Fajr adhan to options
 export const FAJR_ADHAN_OPTION = {
@@ -11,6 +11,15 @@ export const FAJR_ADHAN_OPTION = {
     name: 'Fajr Special Adhan',
     url: '/audio/adhan-fajr.mp3'
 };
+
+export const ADHAN_OPTIONS = [
+    { id: 'adhan-makkah', name: 'Makkah Adhan', url: '/audio/adhan-makkah.mp3' },
+    { id: 'adhan-madinah', name: 'Madinah Adhan', url: '/audio/adhan-madinah.mp3' },
+    { id: 'adhan-egyptian', name: 'Egyptian Adhan', url: '/audio/adhan-egyptian.mp3' },
+    { id: 'adhan-classic', name: 'Classic Adhan', url: '/audio/adhan-classic.mp3' },
+    { id: 'adhan-tvquran', name: 'TV Quran Adhan', url: '/audio/adhan-tvquran.mp3' },
+    { id: 'adhan-lovable', name: 'Noor Connect Adhan', url: '/audio/adhan-lovable.mp3' },
+];
 
 // All available adhans including Fajr-specific
 export const ALL_ADHAN_OPTIONS = [FAJR_ADHAN_OPTION, ...ADHAN_OPTIONS];

@@ -13,18 +13,12 @@ import {
   getAdhanPreferences,
   setAdhanForPrayer,
   ALL_ADHAN_OPTIONS,
+  ADHAN_OPTIONS,
   type PrayerName,
   type AdhanPreferences
 } from '@/lib/adhan-preferences';
 
-export const ADHAN_OPTIONS = [
-  { id: 'adhan-makkah', name: 'Makkah Adhan', url: '/audio/adhan-makkah.mp3' },
-  { id: 'adhan-madinah', name: 'Madinah Adhan', url: '/audio/adhan-madinah.mp3' },
-  { id: 'adhan-egyptian', name: 'Egyptian Adhan', url: '/audio/adhan-egyptian.mp3' },
-  { id: 'adhan-classic', name: 'Classic Adhan', url: '/audio/adhan-classic.mp3' },
-  { id: 'adhan-tvquran', name: 'TV Quran Adhan', url: '/audio/adhan-tvquran.mp3' },
-  { id: 'adhan-lovable', name: 'Noor Connect Adhan', url: '/audio/adhan-lovable.mp3' },
-];
+
 
 const ADHAN_STORAGE_KEY = 'selected-adhan-id';
 
@@ -122,41 +116,48 @@ export const AdhanSelector = () => {
     // Stop any existing audio first
     stopAllAdhanPreviews();
 
-    let adhanUrl = "";
+    const startPlayingUrl = (url: string) => {
+      globalPreviewAudio = new Audio(url);
+      globalPreviewAudio.volume = 0.5;
+
+      const handleEnded = () => {
+        setPlayingPrayer(null);
+        globalPreviewAudio = null;
+      };
+
+      const handleError = () => {
+        setPlayingPrayer(null);
+        globalPreviewAudio = null;
+      };
+
+      globalPreviewAudio.addEventListener('ended', handleEnded);
+      globalPreviewAudio.addEventListener('error', handleError);
+
+      globalPreviewAudio.play().then(() => {
+        setPlayingPrayer(prayer);
+      }).catch((e) => {
+        console.error("Audio playback failed:", e);
+        setPlayingPrayer(null);
+        globalPreviewAudio = null;
+      });
+    };
+
     if (adhanId.startsWith('custom-')) {
-      const { getCustomAdhanUrl } = await import('./CustomAdhanUpload');
-      const url = await getCustomAdhanUrl(adhanId);
-      if (url) adhanUrl = url;
+      try {
+        const { getCustomAdhanUrl } = await import('./CustomAdhanUpload');
+        const url = await getCustomAdhanUrl(adhanId);
+        if (url) {
+          startPlayingUrl(url);
+        }
+      } catch (err) {
+        console.error("Failed to load custom adhan", err);
+      }
     } else {
       const adhan = ALL_ADHAN_OPTIONS.find(a => a.id === adhanId);
-      if (adhan) adhanUrl = adhan.url;
+      if (adhan && adhan.url) {
+        startPlayingUrl(adhan.url);
+      }
     }
-
-    if (!adhanUrl) return;
-
-    // Create new audio instance
-    globalPreviewAudio = new Audio(adhanUrl);
-    globalPreviewAudio.volume = 0.5;
-
-    const handleEnded = () => {
-      setPlayingPrayer(null);
-      globalPreviewAudio = null;
-    };
-
-    const handleError = () => {
-      setPlayingPrayer(null);
-      globalPreviewAudio = null;
-    };
-
-    globalPreviewAudio.addEventListener('ended', handleEnded);
-    globalPreviewAudio.addEventListener('error', handleError);
-
-    globalPreviewAudio.play().then(() => {
-      setPlayingPrayer(prayer);
-    }).catch(() => {
-      setPlayingPrayer(null);
-      globalPreviewAudio = null;
-    });
   };
 
   const combinedOptions = [...ALL_ADHAN_OPTIONS, ...customAdhans];
@@ -183,7 +184,7 @@ export const AdhanSelector = () => {
             <ChevronDown className="w-4 h-4" />
           )}
         </Button>
-      </div>
+      </div >
 
       {isExpanded && (
         <div className="mt-4 space-y-3">
@@ -227,6 +228,6 @@ export const AdhanSelector = () => {
           </p>
         </div>
       )}
-    </Card>
+    </Card >
   );
 };

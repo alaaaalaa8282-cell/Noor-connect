@@ -78,7 +78,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
               {isCurrent && (
                 <div className="flex items-center gap-1.5 px-2 py-0.5 rounded-full bg-primary/20 border border-primary/20">
                   <span className={`h-1.5 w-1.5 rounded-full ${isEndingSoon ? 'bg-red-500 animate-pulse' : 'bg-green-500 animate-bounce'}`} />
-                  <span className="text-[9px] font-black uppercase tracking-tighter text-primary">Active</span>
+                  <span className="text-[9px] font-black uppercase tracking-tighter text-primary">{t('active')}</span>
                 </div>
               )}
             </div>
@@ -87,7 +87,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
             )}
             {!isCurrent && !isNext && (
               <span className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-widest mt-0.5">
-                {prayer.name === 'Sunrise' ? 'Nature' : 'Prayer'}
+                {prayer.name === 'Sunrise' ? t('nature') : t('prayer')}
               </span>
             )}
           </div>
@@ -101,7 +101,7 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
           {/* Countdown or End Time */}
           {isCurrent && countdown ? (
             <div className={`text-[10px] font-bold uppercase tracking-widest ${isEndingSoon ? 'text-red-500 animate-pulse' : 'text-primary/70'}`}>
-              Ends in {countdown.formattedTime}
+              {t('endsIn') || 'Ends In'} {countdown.formattedTime}
             </div>
           ) : (
             <div className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-widest">
@@ -398,10 +398,10 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
 
         <div className="flex items-center justify-between bg-accent/20 p-3 rounded-xl border border-border/50">
           <div className="flex flex-col">
-            <Label htmlFor="extra-prayers" className="text-sm font-medium cursor-pointer">
+            <Label htmlFor="extra-prayers" className="text-sm font-bold cursor-pointer group-hover:text-primary transition-colors">
               {t('showExtraPrayers')}
             </Label>
-            <span className="text-[10px] text-muted-foreground">{ti18n('ishraqDuhaTahajjud')}</span>
+            <span className="text-[11px] text-muted-foreground/80 font-medium">{ti18n('ishraqDuhaTahajjud')}</span>
           </div>
           <Switch
             id="extra-prayers"

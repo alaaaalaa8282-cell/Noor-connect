@@ -11,7 +11,7 @@ const DailyHadith = lazy(() => import("@/components/EnhancedDailyHadith").then(m
 const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown"));
 const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
 const QazaTracker = lazy(() => import("@/components/QazaTracker").then(module => ({ default: module.QazaTracker })));
-const DhikrReminder = lazy(() => import("@/components/DhikrReminder").then(module => ({ default: module.DhikrReminder })));
+
 const IslamicGreeting = lazy(() => import("@/components/IslamicGreeting").then(module => ({ default: module.IslamicGreeting })));
 const IslamicEventsWidget = lazy(() => import("@/components/IslamicEventsWidget").then(module => ({ default: module.IslamicEventsWidget })));
 const QuranProgressWidget = lazy(() => import("@/components/QuranProgressWidget").then(module => ({ default: module.QuranProgressWidget })));
@@ -587,10 +587,7 @@ export default function Dashboard() {
             <DailyHadith />
           </Suspense>
 
-          {/* Dhikr Reminder */}
-          <Suspense fallback={<div className="h-40 bg-muted/20 animate-pulse rounded-lg" />}>
-            <DhikrReminder />
-          </Suspense>
+
 
           {/* Menstrual Mode Toggle - Only show for female users */}
           {shouldShowMenstrualFeatures() && (

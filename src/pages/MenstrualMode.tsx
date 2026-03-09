@@ -110,8 +110,8 @@ export default function MenstrualMode() {
     }
 
     toast({
-      title: "Menstrual Mode enabled",
-      description: "Prayer reminders and auto Qaza sync are paused while this mode is active.",
+      title: "Menstrual Mode Enabled",
+      description: "Prayer Reminders And Auto Qaza Sync Are Paused While This Mode Is Active.",
     });
   };
 
@@ -124,8 +124,8 @@ export default function MenstrualMode() {
     }
 
     toast({
-      title: "Menstrual Mode ended",
-      description: "Prayer reminder scheduling has resumed.",
+      title: "Menstrual Mode Ended",
+      description: "Prayer Reminder Scheduling Has Resumed.",
     });
   };
 
@@ -164,67 +164,65 @@ export default function MenstrualMode() {
             </Button>
             <div className="flex-1">
               <h1 className="text-xl font-bold">{t("menstrualMode")}</h1>
-              <p className="text-sm text-muted-foreground">Manage prayer reminders and tracking during your cycle</p>
+              <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-tight">{t("menstrualModeDescription")}</p>
             </div>
             <div
-              className={`px-3 py-1 rounded-full text-xs font-semibold ${
-                modeData.isActive ? "bg-rose-500/10 text-rose-600" : "bg-emerald-500/10 text-emerald-600"
-              }`}
+              className={`px-3 py-1 rounded-full text-[10px] font-black uppercase tracking-widest ${modeData.isActive ? "bg-rose-500/10 text-rose-600" : "bg-emerald-500/10 text-emerald-600"
+                }`}
             >
-              {modeData.isActive ? "Active" : "Inactive"}
+              {modeData.isActive ? t("active") : t("inactive")}
             </div>
           </div>
 
           <Card
-            className={`p-4 space-y-4 ${
-              modeData.isActive
-                ? "bg-gradient-to-br from-rose-500/15 to-rose-600/5 border-rose-500/20"
-                : "bg-muted/30"
-            }`}
+            className={`p-4 space-y-4 ${modeData.isActive
+              ? "bg-gradient-to-br from-rose-500/15 to-rose-600/5 border-rose-500/20"
+              : "bg-muted/30"
+              }`}
           >
             {modeData.isActive && modeData.startedAt ? (
               <>
-                <div className="flex items-start justify-between gap-3">
+                <div className="flex items-start justify-between gap-3 mb-2">
                   <div>
-                    <p className="text-lg font-semibold text-rose-600 dark:text-rose-400">Menstrual Mode is active</p>
-                    <p className="text-sm text-muted-foreground">Started: {formatDateTime(modeData.startedAt)}</p>
+                    <p className="text-lg font-bold text-rose-600 dark:text-rose-400">{t("menstrualMode")} {t("active")}</p>
+                    <p className="text-[11px] font-medium text-muted-foreground uppercase tracking-tight">Started: {formatDateTime(modeData.startedAt)}</p>
                   </div>
                   <div className="text-right">
-                    <p className="text-2xl font-bold text-rose-600 dark:text-rose-400">{activeDays}</p>
-                    <p className="text-xs text-muted-foreground">Day count</p>
+                    <p className="text-2xl font-black text-rose-600 dark:text-rose-400">{activeDays}</p>
+                    <p className="text-[10px] font-black text-muted-foreground uppercase tracking-widest">{t("dayCount")}</p>
                   </div>
                 </div>
 
                 {expectedEndDate && (
-                  <div className="flex items-center gap-2 text-sm text-muted-foreground">
-                    <Calendar className="w-4 h-4" />
-                    <span>Expected end: {formatDateOnly(expectedEndDate.toISOString())}</span>
+                  <div className="flex items-center gap-2 text-xs font-medium text-muted-foreground bg-white/40 dark:bg-black/20 p-2 rounded-xl border border-rose-500/10 mb-4">
+                    <Calendar className="w-4 h-4 text-rose-400" />
+                    <span>{t("expectedEnd")}: {formatDateOnly(expectedEndDate.toISOString())}</span>
                   </div>
                 )}
 
-                <Button className="w-full" variant="destructive" onClick={handleEndMode}>
-                  End Menstrual Mode
+                <Button className="w-full h-11 rounded-xl font-bold shadow-sm" variant="destructive" onClick={handleEndMode}>
+                  {t("endMenstrualMode")}
                 </Button>
               </>
             ) : (
               <>
-                <div className="space-y-2">
-                  <p className="text-lg font-semibold">Mode is currently off</p>
-                  <p className="text-sm text-muted-foreground">
-                    Start this mode to pause prayer reminders and auto Qaza sync based on your settings.
+                <div className="space-y-2 mb-4">
+                  <p className="text-lg font-bold">{t("menstrualMode")} {t("off")}</p>
+                  <p className="text-xs font-medium text-muted-foreground leading-relaxed">
+                    {t("prayerRemindersPaused")}
                   </p>
                 </div>
-                <Button className="w-full" onClick={handleStartMode}>
-                  Start Menstrual Mode
+                <Button className="w-full h-12 rounded-xl font-bold shadow-md bg-rose-500 hover:bg-rose-600 text-white transition-all" onClick={handleStartMode}>
+                  {t("startMenstrualMode")}
                 </Button>
               </>
             )}
           </Card>
 
-          <Card className="p-4 space-y-3">
+          <Card className="p-5 space-y-4 rounded-[24px] border-border/40 shadow-sm">
             <div className="flex items-center gap-2">
               <Clock className="w-5 h-5 text-primary" />
-              <span className="font-medium">Typical cycle length</span>
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60">{t("typicalCycleLength")}</span>
             </div>
             <div className="flex items-center justify-between">
               <Button
@@ -252,16 +250,16 @@ export default function MenstrualMode() {
             </div>
           </Card>
 
-          <Card className="p-4 space-y-4">
+          <Card className="p-5 space-y-6 rounded-[24px] border-border/40 shadow-sm">
             <div className="flex items-center gap-2">
               <BellOff className="w-5 h-5 text-primary" />
-              <span className="font-medium">Mode behavior</span>
+              <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60">{t("modeBehavior")}</span>
             </div>
 
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
-                <Label>Pause prayer reminders</Label>
-                <p className="text-xs text-muted-foreground">Stops scheduled prayer notifications while active</p>
+                <Label className="text-sm font-bold">{t("pausePrayerReminders")}</Label>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight">{t("pausePrayerRemindersDescription")}</p>
               </div>
               <Switch
                 checked={modeData.pausePrayerNotifications}
@@ -271,28 +269,28 @@ export default function MenstrualMode() {
 
             <div className="flex items-center justify-between gap-4">
               <div className="space-y-1">
-                <Label>Pause auto Qaza sync</Label>
-                <p className="text-xs text-muted-foreground">Prevents missed-prayer auto addition while active</p>
+                <Label className="text-sm font-bold">{t("pauseAutoQazaSync")}</Label>
+                <p className="text-[10px] font-medium text-muted-foreground uppercase tracking-tight">{t("pauseAutoQazaSyncDescription")}</p>
               </div>
               <Switch checked={modeData.pauseQazaAutoSync} onCheckedChange={handlePauseQazaChange} />
             </div>
           </Card>
 
-          <Card className="p-4 space-y-2 bg-muted/20">
-            <div className="flex items-center gap-2 text-sm font-medium">
-              <AlertCircle className="w-4 h-4 text-amber-500" />
-              <span>Notes</span>
+          <Card className="p-5 space-y-3 bg-muted/20 border-none rounded-[24px]">
+            <div className="flex items-center gap-2 text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+              <AlertCircle className="w-3.5 h-3.5 text-amber-500" />
+              <span>{t("notes")}</span>
             </div>
-            <p className="text-xs text-muted-foreground">
-              This feature helps manage app behavior only. Follow your own fiqh guidance or scholar for rulings.
+            <p className="text-xs font-medium text-muted-foreground leading-relaxed ps-1">
+              {t("menstrualModeNotes")}
             </p>
           </Card>
 
           {modeData.history.length > 0 && (
-            <Card className="p-4 space-y-3">
+            <Card className="p-5 space-y-4 border-border/40 shadow-sm rounded-[24px]">
               <div className="flex items-center gap-2">
                 <CheckCircle className="w-5 h-5 text-primary" />
-                <span className="font-medium">Recent sessions</span>
+                <span className="text-xs font-black uppercase tracking-[0.2em] text-muted-foreground/60">{t("recentSessions")}</span>
               </div>
               <div className="space-y-2">
                 {modeData.history.slice(0, 5).map((entry, index) => (

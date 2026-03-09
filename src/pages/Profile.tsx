@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 import { useI18n } from "@/hooks/useI18n";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones, Settings } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones, Settings, Clock } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -170,7 +170,7 @@ const Profile = () => {
     }
 
     toast({
-      title: `${key.replace(/([A-Z])/g, ' $1').trim()} ${checked ? 'enabled' : 'disabled'}`
+      title: `${t(key)} ${checked ? 'Enabled' : 'Disabled'}`
     });
   };
 
@@ -288,13 +288,13 @@ const Profile = () => {
   const handleMadhabChange = (value: "shafi" | "hanafi") => {
     setMadhabState(value);
     setMadhab(value);
-    toast({ title: `Madhab: ${value === "shafi" ? "Shafi'i" : "Hanafi"}` });
+    toast({ title: `${t('madhab')}: ${value === "shafi" ? "Shafi'i" : "Hanafi"}` });
   };
 
   const handleTimeFormatChange = (value: "12" | "24") => {
     setTimeFormatState(value);
     saveTimeFormat(value);
-    toast({ title: `Time format: ${value}-hour` });
+    toast({ title: `${t('timeFormat')}: ${value}-Hour` });
   };
 
   const handleMethodChange = (value: string) => {
@@ -315,8 +315,8 @@ const Profile = () => {
     setQuranFontSize(size);
 
     toast({
-      title: "Quran Font Size Updated",
-      description: `Quran text size set to ${size}px`,
+      title: t('quranFontSizeUpdated'),
+      description: `${t('fontSize')} set to ${size}px`,
     });
   };
 
@@ -329,8 +329,8 @@ const Profile = () => {
 
     const fontOption = quranFontManager.getFontOption(font);
     toast({
-      title: "Quran font changed",
-      description: `Now using ${fontOption.name}`
+      title: "Quran Font Changed",
+      description: `Now Using ${fontOption.name}`
     });
   };
 
@@ -455,10 +455,10 @@ const Profile = () => {
     setGenderSettingsState(updated);
 
     toast({
-      title: "Gender updated",
+      title: t('genderUpdated'),
       description: newGender === "female"
-        ? "Menstrual mode features are now available."
-        : "Your preferences have been updated.",
+        ? t('menstrualModeAvailable')
+        : t('preferencesUpdated'),
     });
   };
 
@@ -475,7 +475,7 @@ const Profile = () => {
     window.dispatchEvent(new Event('hijri-date-offset-changed'));
     const days = parseInt(value, 10);
     const sign = days > 0 ? '+' : '';
-    toast({ title: `Hijri date offset updated`, description: `Offset is now ${sign}${days} day${Math.abs(days) !== 1 ? 's' : ''}` });
+    toast({ title: `Hijri Date Offset Updated`, description: `Offset Is Now ${sign}${days} Day${Math.abs(days) !== 1 ? 's' : ''}` });
   };
 
 
@@ -483,13 +483,13 @@ const Profile = () => {
     <div className="min-h-screen bg-background">
       <div className="max-w-lg mx-auto px-4 py-6 space-y-4">
         {/* Header */}
-        <div className="flex items-center gap-4 mb-8">
+        <div className="flex items-center gap-4 mb-10">
           <div className="flex-1">
             <h1 className="text-3xl font-black text-foreground tracking-tight">{t('settings')}</h1>
-            <p className="text-sm font-bold text-primary uppercase tracking-widest">{t('appTitle')}</p>
+            <p className="text-sm font-bold text-primary/80 uppercase tracking-[0.2em]">{t('appTitle')}</p>
           </div>
-          <div className="w-12 h-12 rounded-2xl bg-primary/10 flex items-center justify-center border border-primary/20">
-            <Settings className="w-6 h-6 text-primary animate-spin-slow" />
+          <div className="w-14 h-14 rounded-[20px] bg-primary/10 flex items-center justify-center border border-primary/20 shadow-inner">
+            <Settings className="w-7 h-7 text-primary animate-spin-slow" />
           </div>
         </div>
 
@@ -539,14 +539,14 @@ const Profile = () => {
           {/* Quran Display Section */}
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
-              Quran Display Settings
+              {t('quranDisplaySettings')}
             </h3>
             <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5 space-y-6">
               <div className="space-y-4">
                 <div className="flex justify-between items-center">
                   <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
                     <Type className="w-3.5 h-3.5" />
-                    Quran Font Size
+                    {t('quranFontSize')}
                   </Label>
                   <span className="text-xs font-black text-primary font-mono bg-primary/10 px-2 py-1 rounded">{quranFontSize}px</span>
                 </div>
@@ -566,7 +566,7 @@ const Profile = () => {
               <div className="space-y-3">
                 <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
                   <BookOpen className="w-3.5 h-3.5" />
-                  Arabic Script Style
+                  {t('arabicScriptStyle')}
                 </Label>
                 <Select value={quranFont} onValueChange={handleQuranFontChange}>
                   <SelectTrigger className="w-full h-12 rounded-xl bg-muted/30 border-none ring-0 focus:ring-primary/20">
@@ -606,19 +606,19 @@ const Profile = () => {
                     <SelectItem value="male">
                       <div className="flex items-center gap-2">
                         <User className="w-4 h-4 text-blue-500" />
-                        <span className="font-bold">Man</span>
+                        <span className="font-bold">{t('man')}</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="female">
                       <div className="flex items-center gap-2">
                         <UserCircle className="w-4 h-4 text-rose-500" />
-                        <span className="font-bold">Woman</span>
+                        <span className="font-bold">{t('woman')}</span>
                       </div>
                     </SelectItem>
                     <SelectItem value="prefer-not-to-say">
                       <div className="flex items-center gap-2">
                         <UserX className="w-4 h-4 text-muted-foreground" />
-                        <span className="font-bold">Prefer not to say</span>
+                        <span className="font-bold">{t('preferNotToSay')}</span>
                       </div>
                     </SelectItem>
                   </SelectContent>
@@ -645,19 +645,19 @@ const Profile = () => {
 
               <div className="grid grid-cols-2 gap-4">
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ps-1">Madhab</Label>
+                  <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ps-1">{t('madhab')}</Label>
                   <Select value={madhab} onValueChange={(v) => handleMadhabChange(v as "shafi" | "hanafi")}>
                     <SelectTrigger className="rounded-xl bg-muted/30 border-none h-11">
                       <SelectValue />
                     </SelectTrigger>
                     <SelectContent className="rounded-xl shadow-lg">
-                      <SelectItem value="shafi">Shafi'i/Other</SelectItem>
-                      <SelectItem value="hanafi">Hanafi</SelectItem>
+                      <SelectItem value="shafi">{t('madhabShafi').replace('Madhab: ', '')}</SelectItem>
+                      <SelectItem value="hanafi">{t('madhabHanafi').replace('Madhab: ', '')}</SelectItem>
                     </SelectContent>
                   </Select>
                 </div>
                 <div className="space-y-2">
-                  <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ps-1">Time Format</Label>
+                  <Label className="text-[10px] font-black text-muted-foreground uppercase tracking-widest ps-1">{t('timeFormat')}</Label>
                   <Select value={timeFormat} onValueChange={(v) => handleTimeFormatChange(v as "12" | "24")}>
                     <SelectTrigger className="rounded-xl bg-muted/30 border-none h-11">
                       <SelectValue />
@@ -673,18 +673,18 @@ const Profile = () => {
               <div className="pt-4 border-t border-border/40 space-y-3">
                 <Label className="text-[11px] font-bold text-muted-foreground flex items-center gap-2 uppercase tracking-wider">
                   <Calendar className="w-3.5 h-3.5" />
-                  Hijri Adjustment
+                  {t('hijriAdjustment')}
                 </Label>
                 <Select value={hijriOffset} onValueChange={handleHijriOffsetChange}>
                   <SelectTrigger className="w-full h-11 rounded-xl bg-muted/30 border-none">
                     <SelectValue />
                   </SelectTrigger>
                   <SelectContent className="rounded-xl shadow-lg">
-                    <SelectItem value="-2">-2 Days</SelectItem>
-                    <SelectItem value="-1">-1 Day</SelectItem>
-                    <SelectItem value="0">0 Days (Auto)</SelectItem>
-                    <SelectItem value="1">+1 Day</SelectItem>
-                    <SelectItem value="2">+2 Days</SelectItem>
+                    <SelectItem value="-2">-2 {t('days')}</SelectItem>
+                    <SelectItem value="-1">-1 {t('day')}</SelectItem>
+                    <SelectItem value="0">0 {t('days')} ({t('manual')})</SelectItem>
+                    <SelectItem value="1">+1 {t('day')}</SelectItem>
+                    <SelectItem value="2">+2 {t('days')}</SelectItem>
                   </SelectContent>
                 </Select>
               </div>
@@ -692,96 +692,139 @@ const Profile = () => {
           </div>
         </div>
 
-        {/* Adhan Settings */}
-        <Card className="p-4 space-y-4">
-          <AdhanSelector />
-          <CustomAdhanUpload />
-        </Card>
-
-        {/* Audio Settings */}
-        <Card className="p-4 space-y-4">
-          <h3 className="font-semibold text-sm flex items-center gap-2">
-            <Volume2 className="w-4 h-4" /> {t('audioSettings')}
+        {/* Adhan & Prayer Notifications */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+            {t('prayerNotifications')}
           </h3>
-          <div className="flex items-center justify-between">
-            <div>
-              <Label>{t('salamGreeting')}</Label>
-              <p className="text-xs text-muted-foreground">{t('salamGreetingDescription')}</p>
-            </div>
-            <Switch checked={salamGreetingEnabled} onCheckedChange={handleSalamGreetingToggle} />
-          </div>
+          <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5 space-y-6">
+            <AdhanSelector />
 
-          {/* Prayer Alarm Control */}
-          <div className="mt-4 pt-4 border-t border-border/50">
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <Label className="text-sm font-medium">{t('prayerAlarmAdhan')}</Label>
-                <p className="text-xs text-muted-foreground">{t('prayerAlarmDescription')}</p>
+            <div className="pt-4 border-t border-border/40">
+              <div className="flex items-center justify-between mb-4">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-primary/10 text-primary">
+                    <Bell className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-bold">{t('prayerAlarmAdhan')}</Label>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">{t('prayerAlarmDescription')}</p>
+                  </div>
+                </div>
+                <Switch
+                  checked={isAlarmEnabled}
+                  onCheckedChange={(checked) => checked ? enableAlarm() : disableAlarm()}
+                />
               </div>
-              <Switch
-                checked={isAlarmEnabled}
-                onCheckedChange={(checked) => {
-                  if (checked) {
-                    enableAlarm();
-                  } else {
-                    disableAlarm();
-                  }
-                }}
-              />
-            </div>
 
-            {isAlarmPlaying && (
-              <div className="p-3 bg-primary/10 rounded-lg border border-primary/20 animate-pulse mb-3">
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center gap-2">
-                    <Bell className="h-4 w-4 text-primary animate-bounce" />
+              {isAlarmPlaying && (
+                <div className="p-4 bg-primary/10 rounded-2xl border border-primary/20 animate-pulse mb-4 flex items-center justify-between">
+                  <div className="flex items-center gap-3">
+                    <div className="bg-primary text-primary-foreground p-2 rounded-lg">
+                      <Headphones className="h-4 w-4 animate-bounce" />
+                    </div>
                     <div>
-                      <p className="text-sm font-medium text-primary">{currentPrayer} {t('time')}!</p>
-                      <p className="text-xs text-muted-foreground">{t('adhanIsPlaying')}</p>
+                      <p className="text-sm font-bold text-primary">{currentPrayer} {t('time')}!</p>
+                      <p className="text-[10px] uppercase font-bold text-muted-foreground/70">{t('adhanIsPlaying')}</p>
                     </div>
                   </div>
-                  <Button
-                    variant="destructive"
-                    size="sm"
-                    onClick={stopAdhan}
-                  >
-                    Stop
+                  <Button variant="destructive" size="sm" onClick={stopAdhan} className="rounded-xl font-bold">
+                    {t('stop')}
                   </Button>
                 </div>
-              </div>
-            )}
+              )}
 
-            <div className="flex items-center justify-between mb-3">
-              <div>
-                <Label className="text-xs text-muted-foreground">{t('prePrayerReminder')}</Label>
-                <p className="text-xs text-muted-foreground">{t('prePrayerReminderDescription')}</p>
+              <div className="flex gap-3">
+                <Button variant="outline" size="sm" onClick={testAdhan} disabled={isAlarmPlaying} className="flex-1 h-11 rounded-xl font-bold gap-2">
+                  <Volume2 className="w-4 h-4" />
+                  {t('testAdhan')}
+                </Button>
               </div>
-              <Select value={reminderMinutes} onValueChange={handleReminderChange}>
-                <SelectTrigger className="w-20">
-                  <SelectValue />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="0">Off</SelectItem>
-                  <SelectItem value="5">5 min</SelectItem>
-                  <SelectItem value="10">10 min</SelectItem>
-                  <SelectItem value="15">15 min</SelectItem>
-                </SelectContent>
-              </Select>
             </div>
 
-            <div className="flex gap-2">
+            <div className="pt-4 border-t border-border/40 space-y-4">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-3">
+                  <div className="p-2 rounded-xl bg-orange-500/10 text-orange-500">
+                    <Clock className="w-5 h-5" />
+                  </div>
+                  <div>
+                    <Label className="text-sm font-bold">{t('prePrayerReminder')}</Label>
+                    <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">{t('prePrayerReminderDescription')}</p>
+                  </div>
+                </div>
+                <Select value={reminderMinutes} onValueChange={handleReminderChange}>
+                  <SelectTrigger className="w-24 h-10 rounded-xl bg-muted/30 border-none">
+                    <SelectValue />
+                  </SelectTrigger>
+                  <SelectContent className="rounded-xl shadow-lg">
+                    <SelectItem value="0">{t('off')}</SelectItem>
+                    <SelectItem value="5">5 {t('min')}</SelectItem>
+                    <SelectItem value="10">10 {t('min')}</SelectItem>
+                    <SelectItem value="15">15 {t('min')}</SelectItem>
+                  </SelectContent>
+                </Select>
+              </div>
+            </div>
+          </Card>
+        </div>
+
+        {/* Custom Adhan Upload */}
+        <div className="space-y-3">
+          <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+            {t('customAdhan')}
+          </h3>
+          <CustomAdhanUpload />
+        </div>
+
+        {/* Battery Optimization (Muslim Pro style) */}
+        {isCapacitorApp && (
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+              {t('batteryOptimization')}
+            </h3>
+            <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5 space-y-4 bg-amber-500/5 border-amber-500/10">
+              <div className="flex items-start gap-4">
+                <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 flex-shrink-0">
+                  <Smartphone className="w-6 h-6" />
+                </div>
+                <div className="space-y-1">
+                  <p className="text-sm font-bold text-amber-900 dark:text-amber-200">{t('batteryOptimization')}</p>
+                  <p className="text-xs text-amber-800/70 dark:text-amber-300/60 leading-relaxed font-medium">
+                    {t('batteryOptimizationWarning')}
+                  </p>
+                </div>
+              </div>
+
+              <div className="bg-amber-500/10 rounded-xl p-3 border border-amber-500/10">
+                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">💡 {ti18n('optimizationTip') || 'Pro Tip:'}</p>
+                <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 leading-snug">
+                  {t('optimizationTip')}
+                </p>
+              </div>
+
               <Button
                 variant="outline"
-                size="sm"
-                onClick={testAdhan}
-                disabled={isAlarmPlaying}
-                className="flex-1"
+                className="w-full bg-background/50 border-amber-500/20 hover:bg-amber-500 text-amber-700 hover:text-white transition-all duration-300 h-11 rounded-xl font-bold"
+                onClick={async () => {
+                  try {
+                    const { Capacitor } = await import('@capacitor/core');
+                    if (Capacitor.isNativePlatform()) {
+                      // Open Android App Settings
+                      window.open('package:' + 'com.noorconnect.app'); // This usually triggers the chooser on Android
+                      toast({ title: t('batterySettingsOpened') });
+                    }
+                  } catch (e) {
+                    console.error('Failed to open settings', e);
+                  }
+                }}
               >
-                {t('testAdhan')}
+                <Smartphone className="w-4 h-4 mr-2" />
+                {t('openBatterySettings')}
               </Button>
-            </div>
+            </Card>
           </div>
-        </Card>
+        )}
 
 
         {/* Storage & Backup */}

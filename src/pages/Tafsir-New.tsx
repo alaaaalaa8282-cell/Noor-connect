@@ -116,10 +116,10 @@ const Tafsir = () => {
   const scrollRef = useRef<HTMLDivElement>(null);
 
   const fontSizeClasses = {
-    sm: "text-sm",
-    base: "text-base",
-    lg: "text-lg",
-    xl: "text-xl"
+    sm: "text-base leading-relaxed",
+    base: "text-lg leading-[1.8]",
+    lg: "text-xl leading-[1.8]",
+    xl: "text-2xl leading-[1.8]"
   };
 
   useEffect(() => {
@@ -161,7 +161,7 @@ const Tafsir = () => {
       console.error("Error fetching surahs:", error);
       toast({
         title: "Connection Error",
-        description: "Failed to load Surah list. Please check your connection.",
+        description: "Failed To Load Surah List. Please Check Your Connection.",
         variant: "destructive"
       });
     } finally {
@@ -179,15 +179,17 @@ const Tafsir = () => {
       surahName: surah.name,
       timestamp: Date.now()
     };
+
     setTafsirHistory(prev => {
       const filtered = prev.filter(h => h.surah !== surah.number);
-      return [historyEntry, ...filtered].slice(0, 10); // Keep last 10
+      const newHistory = [historyEntry, ...filtered].slice(0, 10);
+      try {
+        localStorage.setItem('tafsir-history', JSON.stringify(newHistory));
+      } catch (error) {
+        console.warn("Failed to save history:", error);
+      }
+      return newHistory;
     });
-    try {
-      localStorage.setItem('tafsir-history', JSON.stringify([historyEntry, ...tafsirHistory.filter(h => h.surah !== surah.number)].slice(0, 10)));
-    } catch (error) {
-      console.warn("Failed to save history:", error);
-    }
 
     try {
       // Check cache first
@@ -200,24 +202,32 @@ const Tafsir = () => {
         return;
       }
 
-      // Fetch Tafsir for all ayahs in surah
-      const tafsirs: TafsirData[] = [];
+      // 1. Fetch complete Tafsir for the surah in ONE request (much faster)
+      // 2. Fetch Arabic text & Translation for complete context (UX)
+      const [tafsirData, quranData] = await Promise.all([
+        fetch(`https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/${selectedEdition}/${surah.number}.json`).then(res => res.json()),
+        fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/editions/quran-uthmani,en.sahih`).then(res => res.json())
+      ]);
 
-      for (let ayah = 1; ayah <= surah.numberOfAyahs; ayah++) {
-        try {
-          const tafsir = await fetchTafsir(surah.number, ayah, selectedEdition);
-          tafsirs.push(tafsir);
-        } catch (error) {
-          console.warn(`Failed to fetch tafsir for ${surah.number}:${ayah}`, error);
-          // Continue with next ayah even if one fails
-        }
+      if (!tafsirData || !quranData.data) {
+        throw new Error("Failed to fetch complete data");
       }
+
+      const arabicEdition = quranData.data[0];
+      const translationEdition = quranData.data[1];
+
+      // Merge Tafsir with Arabic and Translation for a "Premium" reading experience
+      const mergedTafsirs: any[] = tafsirData.map((t: any, idx: number) => ({
+        ...t,
+        arabic: arabicEdition.ayahs[idx]?.text,
+        translation: translationEdition.ayahs[idx]?.text
+      }));
 
       const surahTafsir: SurahTafsir = {
         surah: surah.number,
         surahName: surah.name,
         englishName: surah.englishName,
-        tafsirs: tafsirs
+        tafsirs: mergedTafsirs
       };
 
       setCurrentSurahTafsir(surahTafsir);
@@ -232,7 +242,7 @@ const Tafsir = () => {
       console.error("Error loading surah tafsir:", error);
       toast({
         title: "Error",
-        description: "Failed to load Tafsir for this Surah",
+        description: "Failed to load Tafsir. Please check your internet.",
         variant: "destructive"
       });
     } finally {
@@ -336,9 +346,9 @@ const Tafsir = () => {
                 </DropdownMenuTrigger>
                 <DropdownMenuContent align="end" className="w-72">
                   <div className="p-2">
-                    <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Appearance</p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">{t('appearance')}</p>
                     <div className="flex items-center justify-between px-2 py-1">
-                      <span className="text-sm">Font Size</span>
+                      <span className="text-sm">{t('fontSize')}</span>
                       <div className="flex gap-1">
                         {(['sm', 'base', 'lg', 'xl'] as const).map((size) => (
                           <button
@@ -359,7 +369,7 @@ const Tafsir = () => {
                   </div>
                   <DropdownMenuSeparator />
                   <div className="p-2">
-                    <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">Tafsir Edition</p>
+                    <p className="text-xs font-semibold text-muted-foreground mb-2 px-2 uppercase tracking-wider">{t('tafsirEdition')}</p>
                     {TAFSIR_EDITIONS.map((edition) => (
                       <DropdownMenuItem
                         key={edition.id}
@@ -385,7 +395,7 @@ const Tafsir = () => {
           }
         />
 
-        <div className="max-w-2xl mx-auto px-4 py-4 space-y-6">
+        <div className="max-w-3xl mx-auto px-4 py-8 space-y-10">
           {/* Dashboard Mode (Surah List) */}
           {!selectedSurah && (
             <div className="space-y-6 animate-in fade-in slide-in-from-bottom-4 duration-500">
@@ -400,8 +410,8 @@ const Tafsir = () => {
                       <BookOpen className="w-6 h-6 text-white" />
                     </div>
                     <div>
-                      <h1 className="text-2xl font-bold text-white tracking-tight">Holy Tafsir</h1>
-                      <p className="text-emerald-100/70 text-sm font-medium">Explore the depths of Quran</p>
+                      <h1 className="text-2xl font-bold text-white tracking-tight">{t('holyTafsir')}</h1>
+                      <p className="text-emerald-100/70 text-sm font-medium">{t('exploreDepthsQuran')}</p>
                     </div>
                   </div>
 
@@ -411,7 +421,7 @@ const Tafsir = () => {
                       className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/10 transition-all text-left group"
                     >
                       <History className="w-4 h-4 text-emerald-200 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-white text-xs font-bold uppercase tracking-tighter opacity-60">History</p>
+                      <p className="text-white text-xs font-bold uppercase tracking-tighter opacity-60">{t('history')}</p>
                       <p className="text-white text-lg font-black">{tafsirHistory.length}</p>
                     </button>
                     <button
@@ -419,12 +429,12 @@ const Tafsir = () => {
                       className="bg-white/10 hover:bg-white/20 backdrop-blur-sm rounded-2xl p-3 border border-white/10 transition-all text-left group"
                     >
                       <Bookmark className="w-4 h-4 text-emerald-200 mb-2 group-hover:scale-110 transition-transform" />
-                      <p className="text-white text-xs font-bold uppercase tracking-tighter opacity-60">Saved</p>
+                      <p className="text-white text-xs font-bold uppercase tracking-tighter opacity-60">{t('saved')}</p>
                       <p className="text-white text-lg font-black">{bookmarks.length}</p>
                     </button>
                     <div className="bg-white/10 backdrop-blur-sm rounded-2xl p-3 border border-white/10 text-left">
                       <Edit3 className="w-4 h-4 text-emerald-200 mb-2" />
-                      <p className="text-white text-xs font-bold uppercase tracking-tighter opacity-60">Notes</p>
+                      <p className="text-white text-xs font-bold uppercase tracking-tighter opacity-60">{t('notes')}</p>
                       <p className="text-white text-lg font-black">{Object.keys(personalNotes).length}</p>
                     </div>
                   </div>
@@ -436,7 +446,7 @@ const Tafsir = () => {
                 <div className="relative group">
                   <Search className="absolute left-4 top-1/2 -translate-y-1/2 w-5 h-5 text-slate-400 group-focus-within:text-emerald-600 transition-colors" />
                   <Input
-                    placeholder="Search Surah name or number..."
+                    placeholder={t('searchBySurahNameOrNumber')}
                     className="h-14 pl-12 rounded-2xl border-none bg-white shadow-xl shadow-slate-200/50 focus-visible:ring-emerald-500/30 text-base"
                     value={searchQuery}
                     onChange={(e) => setSearchQuery(e.target.value)}
@@ -455,7 +465,7 @@ const Tafsir = () => {
                 <div className="bg-white rounded-3xl p-5 shadow-sm border border-slate-100 flex flex-col gap-3">
                   <div className="flex items-center gap-2 text-slate-800 font-bold">
                     <Languages className="w-5 h-5 text-emerald-600" />
-                    <span>Select Tafsir Author</span>
+                    <span>{t('selectTafsirAuthor')}</span>
                   </div>
                   <Select
                     value={selectedEdition}
@@ -465,7 +475,7 @@ const Tafsir = () => {
                     }}
                   >
                     <SelectTrigger className="h-12 rounded-xl bg-slate-50 border-slate-100 text-slate-700">
-                      <SelectValue placeholder="Choose a Tafsir" />
+                      <SelectValue placeholder={t('chooseTafsir')} />
                     </SelectTrigger>
                     <SelectContent className="rounded-2xl max-h-80 overflow-y-auto">
                       {TAFSIR_EDITIONS.map((edition) => (
@@ -491,9 +501,9 @@ const Tafsir = () => {
               {/* Navigation Tabs */}
               <Tabs value={activeTab} onValueChange={(v) => setActiveTab(v as any)} className="w-full">
                 <TabsList className="w-full bg-slate-200/50 p-1 rounded-xl h-12">
-                  <TabsTrigger value="surahs" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">All Surahs</TabsTrigger>
-                  <TabsTrigger value="bookmarks" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">Bookmarks</TabsTrigger>
-                  <TabsTrigger value="history" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">History</TabsTrigger>
+                  <TabsTrigger value="surahs" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('allSurahs')}</TabsTrigger>
+                  <TabsTrigger value="bookmarks" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('bookmarks')}</TabsTrigger>
+                  <TabsTrigger value="history" className="flex-1 rounded-lg data-[state=active]:bg-white data-[state=active]:shadow-sm">{t('history')}</TabsTrigger>
                 </TabsList>
 
                 <TabsContent value="surahs" className="mt-6 space-y-3">
@@ -508,26 +518,26 @@ const Tafsir = () => {
                         <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
                           <Search className="w-8 h-8 text-slate-300" />
                         </div>
-                        <h3 className="font-bold text-slate-800">No Surahs found</h3>
-                        <p className="text-sm text-slate-500 mt-2">Try adjusting your search query.</p>
+                        <h3 className="font-bold text-slate-800">{t('noSurahsFound')}</h3>
+                        <p className="text-sm text-slate-500 mt-2">{t('tryAdjustingSearch')}</p>
                       </div>
                     ) : (
                       filteredSurahs.map((surah) => (
                         <button
                           key={surah.number}
                           onClick={() => handleSurahSelect(surah)}
-                          className="group relative flex items-center p-4 bg-white rounded-3xl border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-100 transition-all text-left"
+                          className="group relative flex items-center p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-900/5 hover:border-emerald-100 transition-all text-left"
                         >
-                          <div className="relative w-12 h-12 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-black group-hover:bg-emerald-600 group-hover:text-white transition-all overflow-hidden">
+                          <div className="relative w-14 h-14 rounded-2xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-black group-hover:bg-emerald-600 group-hover:text-white transition-all overflow-hidden">
                             <span className="relative z-10">{surah.number}</span>
                             <div className="absolute inset-0 opacity-10 font-arabic text-3xl flex items-center justify-center translate-x-2 translate-y-2 select-none">{surah.name}</div>
                           </div>
-                          <div className="ml-4 flex-1">
-                            <h3 className="font-bold text-slate-800 group-hover:text-emerald-700 transition-colors">{surah.englishName}</h3>
-                            <p className="text-xs text-slate-400 font-medium">{surah.englishNameTranslation} • {surah.numberOfAyahs} Ayahs</p>
+                          <div className="ml-5 flex-1">
+                            <h3 className="font-bold text-lg text-slate-800 group-hover:text-emerald-700 transition-colors">{surah.englishName}</h3>
+                            <p className="text-sm text-slate-400 font-medium">{surah.englishNameTranslation} • {surah.numberOfAyahs} {t('ayahs')}</p>
                           </div>
                           <div className="text-right flex flex-col items-end">
-                            <span className="font-arabic text-lg text-emerald-600 font-bold">{surah.name}</span>
+                            <span className="font-arabic text-xl text-emerald-600 font-bold">{surah.name}</span>
                             <span className="text-[10px] text-slate-400 uppercase font-bold tracking-tighter">{surah.revelationType}</span>
                           </div>
                         </button>
@@ -561,7 +571,7 @@ const Tafsir = () => {
                           </div>
                           <div className="ml-4 flex-1">
                             <h3 className="font-bold text-slate-800">{bookmark.surahName}</h3>
-                            <p className="text-xs text-slate-400">Bookmarked</p>
+                            <p className="text-xs text-slate-400">{t('bookmarked')}</p>
                           </div>
                           <ChevronRight className="w-5 h-5 text-slate-300" />
                         </button>
@@ -576,8 +586,8 @@ const Tafsir = () => {
                       <div className="w-16 h-16 rounded-full bg-slate-50 flex items-center justify-center mx-auto mb-4">
                         <History className="w-8 h-8 text-slate-300" />
                       </div>
-                      <h3 className="font-bold text-slate-800">No history available</h3>
-                      <p className="text-sm text-slate-500 max-w-[200px] mx-auto mt-2">Start exploring Tafsir to see your history here.</p>
+                      <h3 className="font-bold text-slate-800">{t('noHistoryAvailable')}</h3>
+                      <p className="text-sm text-slate-500 max-w-[200px] mx-auto mt-2">{t('startExploringTafsir')}</p>
                     </div>
                   ) : (
                     <div className="grid grid-cols-1 gap-3">
@@ -620,7 +630,7 @@ const Tafsir = () => {
                     </div>
                     <div>
                       <h2 className="text-xl font-bold text-slate-800">{selectedSurah.englishName}</h2>
-                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{selectedSurah.revelationType} • {selectedSurah.numberOfAyahs} Ayahs</p>
+                      <p className="text-xs text-slate-400 font-bold uppercase tracking-widest">{selectedSurah.revelationType} • {selectedSurah.numberOfAyahs} {t('ayahs')}</p>
                     </div>
                   </div>
                   <div className="flex gap-2">
@@ -696,61 +706,96 @@ const Tafsir = () => {
                     <BookOpen className="absolute top-1/2 left-1/2 -translate-x-1/2 -translate-y-1/2 w-6 h-6 text-emerald-600" />
                   </div>
                   <div className="text-center">
-                    <p className="text-lg font-bold text-slate-800">Fetching Wisdom</p>
-                    <p className="text-sm text-slate-500">Loading comprehensive Tafsir for {selectedSurah.englishName}...</p>
+                    <p className="text-lg font-bold text-slate-800">{t('fetchingWisdom')}</p>
+                    <p className="text-sm text-slate-500">{t('loadingComprehensiveTafsir')} {selectedSurah.englishName}...</p>
                   </div>
                 </div>
               )}
 
               {/* Tafsir Content List */}
-              <div className="space-y-4">
-                {getFilteredTafsirs().map((tafsir, idx) => {
+              <div className="space-y-12">
+                {getFilteredTafsirs().map((tafsir: any, idx) => {
                   const noteKey = `${tafsir.surah}:${tafsir.ayah}`;
                   const hasNote = personalNotes[noteKey];
                   return (
                     <motion.div
                       key={idx}
-                      initial={{ opacity: 0, y: 10 }}
+                      initial={{ opacity: 0, y: 20 }}
                       animate={{ opacity: 1, y: 0 }}
                       transition={{ delay: idx * 0.05 }}
-                      className="group p-6 bg-white rounded-[2rem] border border-slate-100 shadow-sm hover:shadow-xl hover:shadow-emerald-900/5 transition-all"
+                      className="group relative"
                     >
-                      <div className="flex items-start justify-between mb-4">
-                        <div className="flex items-center gap-2">
-                          <span className="w-10 h-10 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-700 font-bold text-sm">
-                            {tafsir.ayah}
-                          </span>
-                          <span className="text-xs font-bold text-slate-400 uppercase tracking-widest">Ayah {tafsir.ayah}</span>
-                        </div>
-                        <div className="flex gap-1 opacity-0 group-hover:opacity-100 transition-opacity">
-                          <Button
-                            variant="ghost"
-                            size="icon"
-                            className={cn("h-8 w-8 rounded-lg", hasNote && "bg-blue-50 text-blue-600")}
-                            onClick={() => handleNote(tafsir.surah, tafsir.ayah)}
-                          >
-                            <Edit3 className="w-4 h-4" />
-                          </Button>
-
-                        </div>
-                      </div>
-
-                      <div className={cn(
-                        "font-medium text-slate-700 leading-relaxed text-justify",
-                        fontSizeClasses[fontSize]
-                      )}>
-                        {tafsir.text}
-                      </div>
-
-                      {hasNote && (
-                        <div className="mt-4 p-4 bg-blue-50/50 rounded-2xl border border-blue-100 space-y-2">
-                          <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase tracking-wider">
-                            <MessageSquare className="w-3 h-3" />
-                            Personal Note
+                      <div className="bg-white rounded-[2.5rem] border border-slate-100 shadow-xl shadow-slate-200/40 overflow-hidden">
+                        {/* Ayah Reference Badge */}
+                        <div className="flex items-center justify-between px-8 py-5 bg-slate-50/50 border-b border-slate-100">
+                          <div className="flex items-center gap-3">
+                            <span className="w-10 h-10 rounded-xl bg-emerald-600 flex items-center justify-center text-white font-black text-sm shadow-lg shadow-emerald-600/20">
+                              {tafsir.ayah}
+                            </span>
+                            <span className="text-sm font-bold text-slate-500 uppercase tracking-widest">{t('ayah')} {tafsir.ayah}</span>
                           </div>
-                          <p className="text-sm text-blue-800/80 italic">{personalNotes[noteKey]}</p>
+                          <div className="flex gap-2">
+                            <Button
+                              variant="ghost"
+                              size="icon"
+                              className={cn("h-10 w-10 rounded-xl hover:bg-emerald-50 hover:text-emerald-600 transition-colors", hasNote && "bg-blue-50 text-blue-600")}
+                              onClick={() => handleNote(tafsir.surah, tafsir.ayah)}
+                            >
+                              <Edit3 className="w-5 h-5" />
+                            </Button>
+                          </div>
                         </div>
-                      )}
+
+                        <div className="p-8 md:p-10 space-y-10">
+                          {/* Arabic Text Section */}
+                          {tafsir.arabic && (
+                            <div className="space-y-4">
+                              <p
+                                className="text-3xl md:text-4xl text-right leading-[2.5] text-slate-800 font-arabic"
+                                dir="rtl"
+                                style={{ fontFamily: "var(--quran-font, 'Amiri', serif)" }}
+                              >
+                                {tafsir.arabic}
+                              </p>
+                              {tafsir.translation && (
+                                <p className="text-lg md:text-xl text-slate-500 italic leading-relaxed border-l-2 border-emerald-100 pl-4 py-1">
+                                  {tafsir.translation}
+                                </p>
+                              )}
+                            </div>
+                          )}
+
+                          {/* Tafsir Commentary Section */}
+                          <div className="space-y-6">
+                            <div className="flex items-center gap-2">
+                              <Separator className="flex-1" />
+                              <Badge variant="outline" className="text-[10px] uppercase tracking-widest text-slate-400 font-bold border-slate-200">
+                                {t('tafsirCommentary')}
+                              </Badge>
+                              <Separator className="flex-1" />
+                            </div>
+
+                            <div className={cn(
+                              "text-slate-700 text-justify",
+                              fontSizeClasses[fontSize as keyof typeof fontSizeClasses] || fontSizeClasses.base
+                            )}>
+                              {tafsir.text}
+                            </div>
+                          </div>
+
+                          {/* Personal Note Section */}
+                          {hasNote && (
+                            <div className="p-6 bg-blue-50/50 rounded-3xl border border-blue-100 space-y-3 relative overflow-hidden">
+                              <div className="absolute top-0 right-0 w-24 h-24 bg-blue-50 rounded-full blur-2xl -translate-y-1/2 translate-x-1/2" />
+                              <div className="flex items-center gap-2 text-blue-700 font-bold text-xs uppercase tracking-wider relative z-10">
+                                <MessageSquare className="w-3 h-3" />
+                                {t('myReflection')}
+                              </div>
+                              <p className="text-base text-blue-800/80 italic leading-relaxed relative z-10">{personalNotes[noteKey]}</p>
+                            </div>
+                          )}
+                        </div>
+                      </div>
                     </motion.div>
                   );
                 })}
