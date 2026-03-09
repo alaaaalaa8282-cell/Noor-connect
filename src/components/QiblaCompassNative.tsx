@@ -259,18 +259,22 @@ export default function QiblaCompassNative() {
       </AnimatePresence>
 
       {/* Action Buttons */}
-      <div className="grid grid-cols-2 gap-4">
+      <motion.div
+        initial={{ opacity: 0, y: 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.5 }}
+        className="grid grid-cols-2 gap-4 pb-4"
+      >
         <Button
           variant="outline"
           onClick={startCompass}
           disabled={compassState === "activating"}
-          className="h-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white gap-2 transition-all active:scale-[0.98]"
+          className="h-16 rounded-3xl border-[#e0c097]/30 bg-[#e0c097]/5 hover:bg-[#e0c097]/10 text-[#e0c097] gap-3 transition-all active:scale-[0.98] shadow-[0_0_20px_rgba(224,192,151,0.05)] font-bold text-md"
         >
-          {compassState === "activating" ? <Loader2 className="w-4 h-4 animate-spin" /> : <RefreshCw className="w-4 h-4" />}
+          {compassState === "activating" ? <Loader2 className="w-5 h-5 animate-spin" /> : <RefreshCw className="w-5 h-5" />}
           Calibrate
         </Button>
         <Button
-          variant="outline"
           onClick={() => {
             setIsRefreshingLocation(true);
             setTimeout(() => {
@@ -280,12 +284,12 @@ export default function QiblaCompassNative() {
             }, 1000);
           }}
           disabled={isRefreshingLocation}
-          className="h-14 rounded-2xl border-white/10 bg-white/5 hover:bg-white/10 text-white gap-2 transition-all active:scale-[0.98]"
+          className="h-16 rounded-3xl bg-gradient-to-r from-[#e0c097] to-[#d6af7e] text-black hover:opacity-90 gap-3 transition-all active:scale-[0.98] shadow-[0_0_25px_rgba(224,192,151,0.3)] font-black text-md border-0"
         >
-          {isRefreshingLocation ? <Loader2 className="w-4 h-4 animate-spin" /> : <LocateFixed className="w-4 h-4" />}
+          {isRefreshingLocation ? <Loader2 className="w-5 h-5 animate-spin" /> : <LocateFixed className="w-5 h-5" />}
           GPS Refresh
         </Button>
-      </div>
+      </motion.div>
 
       {/* Safety Alert */}
       <div className="flex items-start gap-3 p-4 bg-amber-500/5 border border-amber-500/10 rounded-2xl">
