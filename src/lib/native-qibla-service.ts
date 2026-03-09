@@ -30,40 +30,40 @@ export interface QiblaPlugin {
     success: boolean;
     message: string;
   }>;
-  
+
   stopCompass(): Promise<{
     success: boolean;
     message: string;
   }>;
-  
+
   getQiblaDirection(): Promise<{
     success: boolean;
     message: string;
     isListening?: boolean;
   }>;
-  
+
   checkPermissions(): Promise<PermissionStatus>;
-  
+
   addListener(
     eventName: 'qiblaDirectionChange',
     listenerFunc: (data: QiblaDirectionData) => void
   ): Promise<any>;
-  
+
   addListener(
     eventName: 'permissionGranted',
     listenerFunc: (data: { success: boolean; permission: string; message: string }) => void
   ): Promise<any>;
-  
+
   addListener(
     eventName: 'permissionDenied',
     listenerFunc: (data: { success: boolean; message: string }) => void
   ): Promise<any>;
-  
+
   addListener(
     eventName: 'locationAddress',
     listenerFunc: (data: LocationAddress) => void
   ): Promise<any>;
-  
+
   removeAllListeners(): Promise<void>;
 }
 
@@ -76,6 +76,11 @@ export class NativeQiblaService {
   private isNative = Capacitor.isNativePlatform();
   private isListening = false;
   private listeners: Set<(data: QiblaDirectionData) => void> = new Set();
+
+  // Smoothing state
+  private lastCompassAngle: number | null = null;
+  private lastNeedleAngle: number | null = null;
+  private smoothingFactor = 0.2; // Adjust for smoothness (lower = smoother, higher = more responsive)
 
   static getInstance(): NativeQiblaService {
     if (!NativeQiblaService.instance) {
@@ -104,9 +109,9 @@ export class NativeQiblaService {
       return result;
     } catch (error) {
       console.error('Failed to start compass:', error);
-      return { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Unknown error occurred' 
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
@@ -131,16 +136,16 @@ export class NativeQiblaService {
       return result;
     } catch (error) {
       console.error('Failed to stop compass:', error);
-      return { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Unknown error occurred' 
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
 
-  async getQiblaDirection(): Promise<{ 
-    success: boolean; 
-    message: string; 
+  async getQiblaDirection(): Promise<{
+    success: boolean;
+    message: string;
     isListening?: boolean;
   }> {
     try {
@@ -152,9 +157,9 @@ export class NativeQiblaService {
       return await QiblaPlugin.getQiblaDirection();
     } catch (error) {
       console.error('Failed to get Qibla direction:', error);
-      return { 
-        success: false, 
-        message: error instanceof Error ? error.message : 'Unknown error occurred' 
+      return {
+        success: false,
+        message: error instanceof Error ? error.message : 'Unknown error occurred'
       };
     }
   }
@@ -196,7 +201,35 @@ export class NativeQiblaService {
     if (!this.isNative) return;
 
     await QiblaPlugin.addListener('qiblaDirectionChange', (data: QiblaDirectionData) => {
-      this.listeners.forEach(listener => listener(data));
+      // Apply low-pass filter to smooth out jitter
+      let smoothedCompass = data.compassAngle;
+      let smoothedNeedle = data.needleAngle;
+
+      if (this.lastCompassAngle !== null) {
+        // Handle 360-degree wrap-around for smoothing
+        let diff = data.compassAngle - this.lastCompassAngle;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        smoothedCompass = (this.lastCompassAngle + diff * this.smoothingFactor + 360) % 360;
+      }
+
+      if (this.lastNeedleAngle !== null) {
+        let diff = data.needleAngle - this.lastNeedleAngle;
+        if (diff > 180) diff -= 360;
+        if (diff < -180) diff += 360;
+        smoothedNeedle = (this.lastNeedleAngle + diff * this.smoothingFactor + 360) % 360;
+      }
+
+      this.lastCompassAngle = smoothedCompass;
+      this.lastNeedleAngle = smoothedNeedle;
+
+      const smoothedData: QiblaDirectionData = {
+        ...data,
+        compassAngle: smoothedCompass,
+        needleAngle: smoothedNeedle
+      };
+
+      this.listeners.forEach(listener => listener(smoothedData));
     });
 
     await QiblaPlugin.addListener('permissionGranted', (data) => {
