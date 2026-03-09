@@ -180,30 +180,28 @@ export default function QiblaCompassNative() {
               className="absolute inset-0 flex items-center justify-center"
               style={{ rotate: qiblaNeedleRotation }}
             >
-              {/* Premium Needle Design */}
-              <div className="relative w-full flex items-center justify-center">
-                {/* Pointer Line */}
-                <div className="absolute top-[10%] w-1 h-[40%] bg-gradient-to-b from-[#e0c097] to-transparent rounded-full shadow-[0_0_15px_rgba(224,192,151,0.5)]" />
+              {/* User requested Asset: qibla.png - The authentic compass look */}
+              <div className="relative w-full h-full flex items-center justify-center p-8">
+                <motion.img
+                  src="/qibla.png"
+                  alt="Qibla Pointer"
+                  className={`w-full h-full object-contain transition-all duration-500 drop-shadow-[0_0_15px_rgba(224,192,151,0.3)] invert brightness-200 ${isAligned ? 'scale-110 drop-shadow-[0_0_25px_rgba(16,185,129,0.8)]' : 'scale-100'}`}
+                  initial={{ opacity: 0, scale: 0.5 }}
+                  animate={{ opacity: 1, scale: isAligned ? 1.05 : 0.95 }}
+                />
 
-                {/* Kaaba Icon at the tip */}
-                <motion.div
-                  className="absolute top-[8%] flex flex-col items-center"
-                  animate={isAligned ? { y: [0, -5, 0] } : {}}
-                  transition={{ repeat: Infinity, duration: 2 }}
-                >
-                  <div className={`p-2 rounded-xl border-2 shadow-2xl transition-all duration-300 ${isAligned ? 'bg-emerald-500 border-emerald-400 scale-125' : 'bg-black/80 border-[#e0c097]/40 scale-100'}`}>
-                    <img src="/qibla3.png" alt="Kaaba" className="w-8 h-8 object-contain" />
-                  </div>
-                  {isAligned && (
-                    <motion.div
-                      initial={{ scale: 0 }}
-                      animate={{ scale: 1 }}
-                      className="mt-2"
-                    >
-                      <Badge className="bg-emerald-500/80 backdrop-blur-md text-white border-0 py-0 px-2 text-[8px] uppercase tracking-tighter">Perfect</Badge>
-                    </motion.div>
-                  )}
-                </motion.div>
+                {/* Kaaba Indicator Tag when Aligned */}
+                {isAligned && (
+                  <motion.div
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    className="absolute top-[10%] flex flex-col items-center"
+                  >
+                    <div className="bg-emerald-500/90 backdrop-blur-md text-white border border-emerald-400 px-3 py-1 rounded-full text-[10px] font-bold shadow-lg shadow-emerald-500/40">
+                      KAABA
+                    </div>
+                  </motion.div>
+                )}
               </div>
             </motion.div>
           </motion.div>
