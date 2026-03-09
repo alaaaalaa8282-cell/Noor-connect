@@ -29,19 +29,20 @@ export const BottomNav = memo(function BottomNav() {
       className="w-full fixed bottom-0 left-0 right-0 z-[100] pointer-events-none pb-6 px-4 pb-safe flex justify-center"
       style={{
         willChange: 'transform, opacity',
-        transform: 'translateZ(0)'
+        transform: 'translateZ(0)',
+        paddingBottom: 'env(safe-area-inset-bottom, 24px)'
       }}
     >
       {/* Floating Island Base with refined glassmorphism and shadow */}
       <div className="w-full max-w-md bg-background/95 backdrop-blur-xl border border-white/10 shadow-[0_20px_50px_rgba(0,0,0,0.4)] pointer-events-auto rounded-[32px] overflow-hidden">
-        <div className="flex flex-row items-center justify-around h-[76px] px-2">
+        <div className="flex flex-row items-center justify-around h-[76px] px-4">
           {navItems.map((item) => (
             <NavLink
               key={item.path}
               to={item.path}
               end={item.path === "/"}
               onClick={triggerHapticFeedback}
-              className="group flex flex-col items-center justify-center h-full relative px-2"
+              className="group flex flex-col items-center justify-center h-full relative px-3"
             >
               {({ isActive }) => (
                 <div className="flex flex-col items-center justify-center gap-1 transition-all duration-300 relative z-10">
