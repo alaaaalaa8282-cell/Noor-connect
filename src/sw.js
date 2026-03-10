@@ -88,7 +88,8 @@ self.addEventListener('fetch', (event) => {
     event.respondWith(
       fetch(event.request)
         .then((response) => {
-          if (response.ok) {
+          // Only cache successful same-origin responses to prevent CORS errors
+          if (response.status === 200 && response.type === 'basic') {
             const copy = response.clone();
             caches.open(API_CACHE_NAME).then(cache => cache.put(event.request, copy));
           }
@@ -113,7 +114,8 @@ self.addEventListener('fetch', (event) => {
   event.respondWith(
     caches.match(event.request).then((cachedResponse) => {
       const networkFetch = fetch(event.request).then((networkResponse) => {
-        if (networkResponse.ok) {
+        // Only cache successful same-origin responses to prevent CORS errors
+        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
           const copy = networkResponse.clone();
           caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
         }

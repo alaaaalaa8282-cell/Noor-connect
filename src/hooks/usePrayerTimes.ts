@@ -154,19 +154,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
           })
         },
         {
-          name: 'ipinfo.io',
-          url: 'https://ipinfo.io/json',
-          parser: (data: { loc: string; city: string; country: string }) => {
-            const [lat, lon] = data.loc.split(',').map(Number);
-            return {
-              latitude: lat,
-              longitude: lon,
-              city: data.city,
-              country: data.country
-            };
-          }
-        },
-        {
           name: 'ipapi.co',
           url: 'https://ipapi.co/json/',
           parser: (data: { latitude: number; longitude: number; city: string; country_name: string }) => ({
@@ -532,7 +519,17 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
         return;
       }
 
-      // Try IP-based location (Karachi-first fallback path)
+      // Try Geolocation first (browser/native API)
+      try {
+        const geoPosition = await getLocationFromGeolocation();
+        saveLocation(geoPosition);
+        await fetchPrayerTimesWithCoordinates(geoPosition);
+        return;
+      } catch (geoError) {
+        console.warn('Geolocation failed, falling back to IP:', geoError);
+      }
+
+      // Try IP-based location (fallback path)
       try {
         const ipLocation = await getLocationFromIP();
         saveLocation(ipLocation);
