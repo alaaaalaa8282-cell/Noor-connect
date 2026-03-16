@@ -9,6 +9,8 @@ import {
   shortestSignedAngle,
   isFacingQibla,
   getRotationInstruction,
+  formatDistance,
+  formatBearing,
   type QiblaResult,
 } from '@/lib/qibla';
 import { useI18n } from '@/hooks/useI18n';
@@ -188,8 +190,8 @@ const QiblaCompassModern = () => {
             bearing,
             distanceKm,
             cardinalDirection: getCardinalDirection(bearing),
-            formattedBearing: `${Math.round(bearing)}°`,
-            formattedDistance: `${Math.round(distanceKm)} km`,
+            formattedBearing: formatBearing(bearing),
+            formattedDistance: formatDistance(distanceKm),
           } : null);
         }
       } catch (error) {
@@ -358,8 +360,8 @@ const QiblaCompassModern = () => {
         bearing,
         distanceKm,
         cardinalDirection: getCardinalDirection(bearing),
-        formattedBearing: `${Math.round(bearing)}°`,
-        formattedDistance: `${Math.round(distanceKm)} km`,
+        formattedBearing: formatBearing(bearing),
+        formattedDistance: formatDistance(distanceKm),
       });
 
       // Start continuous distance tracking
@@ -419,7 +421,7 @@ const QiblaCompassModern = () => {
   // ── Dial & Needle Rotation ────────────────────────────────────
   const dialRotation = deviceHeading === null ? 0 : -deviceHeading;
   // Convert mathematical degrees (0°=East) to compass degrees (0°=North)
-  const needleRotation = qiblaResult ? (qiblaResult.bearing + 90) % 360 : 0;
+  const needleRotation = qiblaResult ? qiblaResult.bearing : 0;
 
   // ── Loading State ─────────────────────────────────────────────
   if (isLoadingLocation && !location) {
