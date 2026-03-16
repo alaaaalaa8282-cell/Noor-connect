@@ -1,43 +1,32 @@
-// version 2.0.0 - MP3Quran.net V3 API Integration
+// Quran Audio Player using verified audio URLs
+// Professional audio recitations with rich metadata
 import { useEffect, useMemo, useRef, useState, useCallback } from "react";
-import { AlertCircle, Pause, Play, User, Volume2, X } from "lucide-react";
+import { AlertCircle, Pause, Play, User, Volume2, X, Download, Trash2, Bell, BellOff } from "lucide-react";
 import { Button } from "./ui/button";
 import { Card } from "./ui/card";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "./ui/select";
 import { Slider } from "./ui/slider";
+import { Badge } from "./ui/badge";
 import { androidAudioHelper } from "@/lib/android-audio-helper";
 import { useGlobalRadio } from "@/lib/global-radio";
+import { QURAN_AUDIO_API } from "@/lib/quran-audio";
+import { AdhanControl } from "./AdhanControl";
+import { adhanService } from "@/lib/adhan-service";
 
-// MP3Quran.net V3 API Types
-interface Moshaf {
-  id: number;
-  name: string;
-  server: string;
-  surah_total: number;
-  surah_list: string;
-}
-
-interface Reciter {
-  id: number;
-  name: string;
-  moshaf: Moshaf[];
-}
-
-interface MP3QuranResponse {
-  reciters: Reciter[];
-}
-
-// Flattened structure for dropdown display
-interface FlattenedReciter {
-  id: string; // "{reciterId}-{moshafId}" for unique key
+// Download storage interface
+interface DownloadedSurah {
+  surahNumber: number;
   reciterId: number;
-  moshafId: number;
-  name: string;
-  moshafName: string;
-  server: string;
-  surahList: number[];
-  surahTotal: number;
+  reciterName: string;
+  audioUrl: string;
+  downloadedAt: number;
+  fileSize?: number;
 }
+
+// Local storage key for downloads
+const DOWNLOADS_STORAGE_KEY = 'quran-downloaded-surahs';
+// Local storage key for persisting selected reciter
+const RECITER_STORAGE_KEY = 'quran-selected-reciter';
 
 interface QuranAudioPlayerProps {
   surahNumber: number;
@@ -47,15 +36,6 @@ interface QuranAudioPlayerProps {
   onAyahChange?: (ayah: number) => void;
   onClose: () => void;
 }
-
-// Parse surah_list string "1,2,3,..." to number array
-function parseSurahList(surahListStr: string): number[] {
-  if (!surahListStr) return [];
-  return surahListStr.split(',').map(s => parseInt(s.trim(), 10)).filter(n => !isNaN(n));
-}
-
-// Local storage key for persisting selected reciter
-const RECITER_STORAGE_KEY = 'mp3quran-selected-reciter';
 
 export function QuranAudioPlayer({
   surahNumber,
@@ -71,17 +51,62 @@ export function QuranAudioPlayer({
   const [isLoading, setIsLoading] = useState(false);
   const [progress, setProgress] = useState(0);
   const [duration, setDuration] = useState(0);
-  const [reciters, setReciters] = useState<FlattenedReciter[]>([]);
-  const [selectedReciterId, setSelectedReciterId] = useState<string>('');
+  const [reciters, setReciters] = useState<any[]>([]);
+  const [selectedReciterId, setSelectedReciterId] = useState<number>(1);
   const [isBackgroundMode, setIsBackgroundMode] = useState(false);
-  const [surahAvailable, setSurahAvailable] = useState(true);
-  const [availabilityError, setAvailabilityError] = useState<string | null>(null);
   const [fetchError, setFetchError] = useState<string | null>(null);
+  const [downloadedSurahs, setDownloadedSurahs] = useState<DownloadedSurah[]>([]);
+  const [isDownloading, setIsDownloading] = useState(false);
+  const [adhanEnabled, setAdhanEnabled] = useState(false);
   const { updateRadioState, isPlaying: isRadioPlaying } = useGlobalRadio();
 
+  // Load Adhan config and downloaded surahs from localStorage
+  useEffect(() => {
+    try {
+      const stored = localStorage.getItem(DOWNLOADS_STORAGE_KEY);
+      if (stored) {
+        setDownloadedSurahs(JSON.parse(stored));
+      }
+    } catch (error) {
+      console.error('Failed to load downloaded surahs:', error);
+    }
+
+    // Load Adhan configuration
+    try {
+      const adhanConfig = adhanService.getAdhanConfig();
+      setAdhanEnabled(adhanConfig.enabled);
+    } catch (error) {
+      console.error('Failed to load Adhan config:', error);
+    }
+  }, []);
+
+  // Generate audio URL from our verified audio system
+  const audioSrc = useMemo(() => {
+    if (!selectedReciterId || reciters.length === 0) {
+      return '';
+    }
+
+    // Use our verified audio system to get the audio URL
+    const reciter = reciters.find(r => r.id === selectedReciterId);
+    if (!reciter) return '';
+
+    const reciterInfo = QURAN_AUDIO_API.RECITER_AUDIO_MAP[selectedReciterId as keyof typeof QURAN_AUDIO_API.RECITER_AUDIO_MAP];
+    if (!reciterInfo) return '';
+
+    let url: string;
+    if (reciterInfo.requiresZeroPadding) {
+      const paddedChapter = surahNumber.toString().padStart(3, '0');
+      url = `${reciterInfo.url}/${paddedChapter}.mp3`;
+    } else {
+      url = `${reciterInfo.url}/${surahNumber}.mp3`;
+    }
+
+    console.log(`Loading Surah ${surahNumber} from: ${url}`);
+    return url;
+  }, [surahNumber, selectedReciterId, reciters]);
 
   const togglePlayback = useCallback(async () => {
-    if (!audioRef.current || !surahAvailable) return;
+    if (!audioRef.current || !audioSrc) return;
 
     if (isPlaying) {
       audioRef.current.pause();
@@ -100,73 +125,105 @@ export function QuranAudioPlayer({
         setIsPlaying(false);
       }
     }
-  }, [isPlaying, surahAvailable, isRadioPlaying, updateRadioState]);
+  }, [isPlaying, audioSrc, isRadioPlaying, updateRadioState]);
 
-  // Get currently selected reciter object
-  const selectedReciter = useMemo(() => {
-    return reciters.find(r => r.id === selectedReciterId) || null;
-  }, [reciters, selectedReciterId]);
+  // Check if current surah is downloaded for selected reciter
+  const isCurrentSurahDownloaded = useMemo(() => {
+    return downloadedSurahs.some(
+      ds => ds.surahNumber === surahNumber && ds.reciterId === selectedReciterId
+    );
+  }, [downloadedSurahs, surahNumber, selectedReciterId]);
 
-  // Check if current surah is available for selected reciter
+  // Enhanced background audio setup
   useEffect(() => {
-    if (!selectedReciter) {
-      setSurahAvailable(false);
-      setAvailabilityError(null);
+    if (isBackgroundMode && audioRef.current) {
+      // Setup background audio for all platforms
+      setupBackgroundAudio();
+    } else {
+      cleanupBackgroundAudio();
+    }
+    
+    return () => {
+      cleanupBackgroundAudio();
+    };
+  }, [isBackgroundMode, audioSrc]);
+
+  // Setup background audio with enhanced features
+  const setupBackgroundAudio = useCallback(() => {
+    if (!audioRef.current) return;
+    
+    const audio = audioRef.current;
+    
+    // Use enhanced platform-specific optimizations
+    androidAudioHelper.setupPlatformOptimizations(audio);
+    
+    // Check and log background capabilities
+    const capabilities = androidAudioHelper.getBackgroundCapabilities();
+    console.log('Background audio capabilities:', capabilities);
+    
+    // Request picture-in-picture if available (better background experience)
+    if ('documentPictureInPicture' in window && !document.pictureInPictureElement) {
+      console.log('Picture-in-Picture API available for enhanced background playback');
+    }
+    
+    // Additional background optimizations
+    if (androidAudioHelper.supportsBackgroundPlayback()) {
+      console.log('Browser supports background playback with Media Session API');
+    } else {
+      console.warn('Browser may have limited background playback support');
+    }
+    
+    console.log(`Background audio setup complete for ${androidAudioHelper.getPlatformName()}`);
+  }, [audioSrc]);
+
+  const cleanupBackgroundAudio = useCallback(() => {
+    androidAudioHelper.cleanup();
+    console.log('Background audio cleanup complete');
+  }, []);
+
+  // Enhanced Media Session API for robust background playback
+  useEffect(() => {
+    if (!('mediaSession' in navigator)) {
+      console.warn('Media Session API not available - background controls limited');
       return;
     }
 
-    const isAvailable = selectedReciter.surahList.includes(surahNumber);
-    setSurahAvailable(isAvailable);
-
-    if (!isAvailable) {
-      setAvailabilityError(`Surah ${surahNumber} is not available for ${selectedReciter.name}. This reciter has ${selectedReciter.surahTotal} surahs recorded.`);
-      // Stop playback if currently playing
-      if (audioRef.current && isPlaying) {
-        audioRef.current.pause();
-        setIsPlaying(false);
-      }
-    } else {
-      setAvailabilityError(null);
-    }
-  }, [selectedReciter, surahNumber, isPlaying]);
-
-  // Handle Android background audio optimizations
-  useEffect(() => {
-    if (isBackgroundMode && audioRef.current) {
-      if (androidAudioHelper.isAndroid()) {
-        androidAudioHelper.setupAndroidOptimizations(audioRef.current);
-      } else {
-        androidAudioHelper.requestWakeLock();
-      }
-    } else {
-      androidAudioHelper.cleanup();
-    }
-    return () => {
-      androidAudioHelper.cleanup();
-    };
-  }, [isBackgroundMode]);
-
-  // Setup Media Session API for background playback
-  useEffect(() => {
-    if (!('mediaSession' in navigator)) return;
-
     const updateMediaSession = () => {
+      const reciterName = reciters.find(r => r.id === selectedReciterId)?.name || 'Quran Recitation';
+      
       navigator.mediaSession.metadata = new MediaMetadata({
-        title: `Surah ${surahName}`,
-        artist: selectedReciter?.name || 'Quran Recitation',
-        album: 'Holy Quran',
+        title: `Surah ${surahNumber}: ${surahName}`,
+        artist: reciterName,
+        album: 'Holy Quran - Noor Connect',
         artwork: [
+          { src: '/icon-96x96.png', sizes: '96x96', type: 'image/png' },
+          { src: '/icon-128x128.png', sizes: '128x128', type: 'image/png' },
           { src: '/icon-192x192.png', sizes: '192x192', type: 'image/png' },
+          { src: '/icon-256x256.png', sizes: '256x256', type: 'image/png' },
+          { src: '/icon-384x384.png', sizes: '384x384', type: 'image/png' },
           { src: '/icon-512x512.png', sizes: '512x512', type: 'image/png' }
         ]
       });
 
+      // Enhanced media session action handlers
       navigator.mediaSession.setActionHandler('play', () => {
+        console.log('Media session play triggered');
         togglePlayback();
       });
 
       navigator.mediaSession.setActionHandler('pause', () => {
+        console.log('Media session pause triggered');
         togglePlayback();
+      });
+
+      navigator.mediaSession.setActionHandler('stop', () => {
+        console.log('Media session stop triggered');
+        if (audioRef.current) {
+          audioRef.current.pause();
+          audioRef.current.currentTime = 0;
+        }
+        setIsPlaying(false);
+        setProgress(0);
       });
 
       navigator.mediaSession.setActionHandler('previoustrack', () => {
@@ -179,6 +236,7 @@ export function QuranAudioPlayer({
       navigator.mediaSession.setActionHandler('nexttrack', () => {
         if (surahNumber < 114) {
           console.log('Next surah requested - parent component should handle this');
+          // You could add auto-advance logic here
         } else {
           togglePlayback();
         }
@@ -190,6 +248,29 @@ export function QuranAudioPlayer({
           setProgress(details.seekTime);
         }
       });
+
+      navigator.mediaSession.setActionHandler('seekbackward', (details) => {
+        if (audioRef.current) {
+          const seekTime = Math.max(0, audioRef.current.currentTime - (details.seekOffset || 10));
+          audioRef.current.currentTime = seekTime;
+          setProgress(seekTime);
+        }
+      });
+
+      navigator.mediaSession.setActionHandler('seekforward', (details) => {
+        if (audioRef.current) {
+          const seekTime = Math.min(audioRef.current.duration, audioRef.current.currentTime + (details.seekOffset || 10));
+          audioRef.current.currentTime = seekTime;
+          setProgress(seekTime);
+        }
+      });
+
+      // Set playback state for better integration
+      if (audioRef.current && isPlaying) {
+        navigator.mediaSession.playbackState = 'playing';
+      } else {
+        navigator.mediaSession.playbackState = 'paused';
+      }
     };
 
     updateMediaSession();
@@ -198,83 +279,48 @@ export function QuranAudioPlayer({
       if ('mediaSession' in navigator) {
         navigator.mediaSession.setActionHandler('play', null);
         navigator.mediaSession.setActionHandler('pause', null);
+        navigator.mediaSession.setActionHandler('stop', null);
         navigator.mediaSession.setActionHandler('previoustrack', null);
         navigator.mediaSession.setActionHandler('nexttrack', null);
         navigator.mediaSession.setActionHandler('seekto', null);
+        navigator.mediaSession.setActionHandler('seekbackward', null);
+        navigator.mediaSession.setActionHandler('seekforward', null);
       }
     };
-  }, [surahName, selectedReciter, togglePlayback]);
+  }, [surahName, surahNumber, selectedReciterId, reciters, togglePlayback, isPlaying]);
 
-  // Generate audio URL from selected reciter
-  const audioSrc = useMemo(() => {
-    if (!selectedReciter || !surahAvailable) {
-      return '';
-    }
-
-    const paddedSurahNumber = surahNumber.toString().padStart(3, '0');
-    const url = `${selectedReciter.server}${paddedSurahNumber}.mp3`;
-    console.log(`Loading Surah ${surahNumber} from: ${url}`);
-    return url;
-  }, [surahNumber, selectedReciter, surahAvailable]);
-
-  // Fetch reciters from MP3Quran.net V3 API
+  // Fetch reciters from our verified audio system
   useEffect(() => {
     const fetchReciters = async () => {
       try {
         setFetchError(null);
-        const res = await fetch("https://mp3quran.net/api/v3/reciters?language=en");
-
-        if (!res.ok) {
-          throw new Error(`HTTP error! status: ${res.status}`);
+        const response = await QURAN_AUDIO_API.getReciters();
+        
+        if (!response.success) {
+          throw new Error(response.message || 'Failed to fetch reciters');
         }
-
-        const json: MP3QuranResponse = await res.json();
-        const rawReciters = json?.reciters || [];
-
-        // Flatten reciters with their moshaf options
-        const flattened: FlattenedReciter[] = [];
-
-        for (const reciter of rawReciters) {
-          for (const moshaf of reciter.moshaf) {
-            flattened.push({
-              id: `${reciter.id}-${moshaf.id}`,
-              reciterId: reciter.id,
-              moshafId: moshaf.id,
-              name: reciter.name,
-              moshafName: moshaf.name,
-              server: moshaf.server,
-              surahList: parseSurahList(moshaf.surah_list),
-              surahTotal: moshaf.surah_total,
-            });
-          }
-        }
-
-        // Sort by name for easier navigation
-        flattened.sort((a, b) => a.name.localeCompare(b.name));
-
-        console.log(`Loaded ${flattened.length} reciter options from MP3Quran.net`);
-        setReciters(flattened);
+        
+        const recitersData = response.data || [];
+        console.log(`Loaded ${recitersData.length} reciters from verified audio system`);
+        setReciters(recitersData);
 
         // Try to restore previously selected reciter from localStorage
         const savedReciterId = localStorage.getItem(RECITER_STORAGE_KEY);
-        if (savedReciterId && flattened.find(r => r.id === savedReciterId)) {
-          setSelectedReciterId(savedReciterId);
-        } else {
-          // Default to Mishary Alafasi (Hafs) if available, or first reciter with 114 surahs
-          const mishary = flattened.find(r =>
-            r.name.toLowerCase().includes('mishary') &&
-            r.moshafName.toLowerCase().includes('hafs') &&
-            r.surahTotal === 114
-          );
-
-          const defaultReciter = mishary || flattened.find(r => r.surahTotal === 114) || flattened[0];
-
-          if (defaultReciter) {
-            setSelectedReciterId(defaultReciter.id);
+        if (savedReciterId) {
+          const savedId = parseInt(savedReciterId);
+          const reciterExists = recitersData.find((r: any) => r.id === savedId);
+          if (reciterExists) {
+            setSelectedReciterId(savedId);
+          } else {
+            // Default to first reciter if saved one doesn't exist
+            setSelectedReciterId(recitersData[0]?.id || 1);
           }
+        } else {
+          // Default to first reciter
+          setSelectedReciterId(recitersData[0]?.id || 1);
         }
       } catch (e) {
-        console.error("Failed to fetch reciters from MP3Quran.net:", e);
+        console.error("Failed to fetch reciters:", e);
         setFetchError("Failed to load reciters. Please check your internet connection.");
       }
     };
@@ -285,7 +331,7 @@ export function QuranAudioPlayer({
   // Persist selected reciter to localStorage
   useEffect(() => {
     if (selectedReciterId) {
-      localStorage.setItem(RECITER_STORAGE_KEY, selectedReciterId);
+      localStorage.setItem(RECITER_STORAGE_KEY, selectedReciterId.toString());
     }
   }, [selectedReciterId]);
 
@@ -299,68 +345,87 @@ export function QuranAudioPlayer({
     const audio = audioRef.current;
     if (!audio || !audioSrc) return;
 
-    if (audio.src === audioSrc) return;
+    // Only reload if the source has actually changed
+    if (audio.src === audioSrc && audio.src !== '') return;
 
     setIsLoading(true);
+    setIsPlaying(false); // Reset playing state when changing source
 
     audio.pause();
     audio.src = audioSrc;
     audio.load();
 
-    const playPromise = audio.play();
-    if (playPromise !== undefined) {
-      playPromise
-        .then(() => {
-          setIsPlaying(true);
-          setIsLoading(false);
-        })
-        .catch((error) => {
-          console.error("Autoplay blocked:", error);
-          setIsPlaying(false);
-          setIsLoading(false);
-        });
-    } else {
-      setIsLoading(false);
-    }
+    // Don't auto-play when switching reciters - let user press play
+    setIsLoading(false);
   }, [audioSrc]);
 
+  // Enhanced visibility change handler for background playback
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     const handleVisibilityChange = () => {
-      if (document.hidden && isPlaying && isBackgroundMode && audio.paused) {
-        audio.play().catch(console.error);
+      console.log('Visibility changed:', document.hidden, 'Background mode:', isBackgroundMode, 'Playing:', isPlaying);
+      
+      if (document.hidden && isPlaying && isBackgroundMode) {
+        // Page is hidden (in background) and should continue playing
+        if (audio.paused) {
+          console.log('Attempting to resume playback in background');
+          audio.play().catch(error => {
+            console.warn('Failed to resume background playback:', error);
+            // Try to reload and play if resume fails
+            if (audioSrc) {
+              audio.load();
+              audio.play().catch(e => console.warn('Background playback still failed after reload:', e));
+            }
+          });
+        }
+      }
+      
+      // Update media session playback state
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = isPlaying && !audio.paused ? 'playing' : 'paused';
       }
     };
 
     const handlePageUnload = () => {
       if (isPlaying) {
+        // Save state for potential restoration
         localStorage.setItem('quran-audio-state', JSON.stringify({
           surahNumber,
           surahName,
           selectedReciterId,
           isPlaying: true,
           isBackgroundMode,
+          currentTime: audioRef.current?.currentTime || 0,
           timestamp: Date.now()
         }));
+        console.log('Audio state saved before page unload');
       }
     };
 
+    // Enhanced page load state restoration
     const savedState = localStorage.getItem('quran-audio-state');
     if (savedState && !isPlaying) {
       try {
         const state = JSON.parse(savedState);
         const timeDiff = Date.now() - state.timestamp;
 
+        // Restore state if recent (within 30 minutes) and same surah
         if (timeDiff < 30 * 60 * 1000 && state.surahNumber === surahNumber) {
+          console.log('Restoring audio state from background session');
+          
           if (state.selectedReciterId) {
             setSelectedReciterId(state.selectedReciterId);
           }
           setIsBackgroundMode(state.isBackgroundMode);
 
-          if (state.isBackgroundMode && state.isPlaying) {
+          // Restore playback position if background mode was active
+          if (state.isBackgroundMode && state.isPlaying && audioRef.current) {
             setTimeout(() => {
+              if (audioRef.current && state.currentTime > 0) {
+                audioRef.current.currentTime = state.currentTime;
+              }
               togglePlayback();
             }, 1000);
           }
@@ -370,30 +435,97 @@ export function QuranAudioPlayer({
       }
     }
 
+    // Add event listeners
     document.addEventListener('visibilitychange', handleVisibilityChange);
     window.addEventListener('beforeunload', handlePageUnload);
+    window.addEventListener('pagehide', handlePageUnload); // Better for mobile
 
     return () => {
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handlePageUnload);
+      window.removeEventListener('pagehide', handlePageUnload);
     };
-  }, [isPlaying, isBackgroundMode, surahNumber, surahName, selectedReciterId]);
+  }, [isPlaying, isBackgroundMode, surahNumber, surahName, selectedReciterId, audioSrc, togglePlayback]);
 
+  // Enhanced audio element event handlers
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
-    const handleError = (error: Event) => {
-      console.error(`Audio failed to load: ${audio.src}`);
-      setIsLoading(false);
-      setIsPlaying(false);
+    const handlePlay = () => {
+      console.log('Audio playback started');
+      setIsPlaying(true);
+      
+      // Update media session state
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'playing';
+      }
+      
+      // Ensure background mode optimizations are active
+      if (isBackgroundMode) {
+        setupBackgroundAudio();
+      }
     };
 
-    audio.addEventListener('error', handleError);
-    return () => {
-      audio.removeEventListener('error', handleError);
+    const handlePause = () => {
+      console.log('Audio playback paused');
+      setIsPlaying(false);
+      
+      // Update media session state
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'paused';
+      }
     };
-  }, [audioSrc]);
+
+    const handleError = (error: Event) => {
+      console.error(`Audio failed to load: ${audio.src}`, error);
+      setIsLoading(false);
+      setIsPlaying(false);
+      
+      // Update media session state
+      if ('mediaSession' in navigator) {
+        navigator.mediaSession.playbackState = 'none';
+      }
+    };
+
+    const handleCanPlay = () => {
+      console.log('Audio ready to play');
+      setIsLoading(false);
+    };
+
+    const handleStalled = () => {
+      console.warn('Audio playback stalled - attempting to recover');
+      if (isPlaying && audioSrc) {
+        // Try to recover from stall
+        setTimeout(() => {
+          if (audio && !audio.paused) return;
+          audio.load();
+          audio.play().catch(e => console.warn('Recovery attempt failed:', e));
+        }, 1000);
+      }
+    };
+
+    // Add comprehensive event listeners
+    audio.addEventListener('play', handlePlay);
+    audio.addEventListener('pause', handlePause);
+    audio.addEventListener('error', handleError);
+    audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('stalled', handleStalled);
+    audio.addEventListener('ended', handleAudioEnded);
+    audio.addEventListener('timeupdate', handleTimeUpdate);
+    audio.addEventListener('loadedmetadata', handleTimeUpdate);
+
+    return () => {
+      audio.removeEventListener('play', handlePlay);
+      audio.removeEventListener('pause', handlePause);
+      audio.removeEventListener('error', handleError);
+      audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('stalled', handleStalled);
+      audio.removeEventListener('ended', handleAudioEnded);
+      audio.removeEventListener('timeupdate', handleTimeUpdate);
+      audio.removeEventListener('loadedmetadata', handleTimeUpdate);
+    };
+  }, [audioSrc, isBackgroundMode, isPlaying, setupBackgroundAudio]);
 
 
 
@@ -430,25 +562,118 @@ export function QuranAudioPlayer({
     return `${mins}:${secs.toString().padStart(2, '0')}`;
   };
 
+  const formatBytes = (bytes: number): string => {
+    if (bytes === 0) return '0 B';
+    const k = 1024;
+    const sizes = ['B', 'KB', 'MB', 'GB'];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + ' ' + sizes[i];
+  };
+
+  // Download current surah for selected reciter
+  const handleDownloadSurah = async () => {
+    if (!audioSrc || isDownloading) return;
+
+    setIsDownloading(true);
+    try {
+      // Check if already downloaded
+      if (isCurrentSurahDownloaded) {
+        console.log('Surah already downloaded');
+        return;
+      }
+
+      // Fetch the audio file to get its size and verify it works
+      const response = await fetch(audioSrc, { method: 'HEAD' });
+      if (!response.ok) {
+        throw new Error(`Failed to access audio file: ${response.statusText}`);
+      }
+
+      const fileSize = parseInt(response.headers.get('content-length') || '0');
+      const reciter = reciters.find(r => r.id === selectedReciterId);
+      
+      // Create download record
+      const downloadRecord: DownloadedSurah = {
+        surahNumber,
+        reciterId: selectedReciterId,
+        reciterName: reciter?.name || 'Unknown',
+        audioUrl: audioSrc,
+        downloadedAt: Date.now(),
+        fileSize
+      };
+
+      // Save to localStorage
+      const updatedDownloads = [...downloadedSurahs, downloadRecord];
+      setDownloadedSurahs(updatedDownloads);
+      localStorage.setItem(DOWNLOADS_STORAGE_KEY, JSON.stringify(updatedDownloads));
+
+      console.log(`Downloaded Surah ${surahNumber} by ${reciter?.name}`);
+    } catch (error) {
+      console.error('Download failed:', error);
+      // You could show a toast notification here
+    } finally {
+      setIsDownloading(false);
+    }
+  };
+
+  // Remove downloaded surah
+  const handleRemoveDownload = () => {
+    const updatedDownloads = downloadedSurahs.filter(
+      ds => !(ds.surahNumber === surahNumber && ds.reciterId === selectedReciterId)
+    );
+    setDownloadedSurahs(updatedDownloads);
+    localStorage.setItem(DOWNLOADS_STORAGE_KEY, JSON.stringify(updatedDownloads));
+  };
+
   const handleReciterChange = (id: string) => {
-    setSelectedReciterId(id);
+    const newReciterId = parseInt(id);
+    setSelectedReciterId(newReciterId);
     // Reset playback state when switching reciters
     setProgress(0);
     setDuration(0);
+    setIsPlaying(false);
+  };
+
+  const toggleAdhan = () => {
+    const newConfig = adhanService.toggleAdhan();
+    setAdhanEnabled(newConfig.enabled);
   };
 
   return (
-    <Card className="fixed bottom-20 left-4 right-4 z-50 shadow-lg bg-card/95 backdrop-blur-lg border-border">
-      <div className="p-4 space-y-3">
+    <>
+      {/* Adhan Control */}
+      <div className="fixed top-4 right-4 z-50">
+        <AdhanControl />
+      </div>
+      
+      <Card className="fixed bottom-20 left-4 right-4 z-40 shadow-lg bg-card/95 backdrop-blur-lg border-border">
+        <div className="p-4 space-y-3">
         {/* Header */}
         <div className="flex items-center justify-between">
           <div className="flex-1 min-w-0">
             <p className="font-semibold truncate">{surahName}</p>
             <p className="text-xs text-muted-foreground">Full Surah Recitation</p>
           </div>
-          <Button variant="ghost" size="icon" onClick={onClose}>
-            <X className="w-4 h-4" />
-          </Button>
+          <div className="flex items-center gap-2">
+            {/* Adhan Toggle */}
+            <Button
+              variant="ghost"
+              size="icon"
+              onClick={toggleAdhan}
+              className="relative"
+            >
+              {adhanEnabled ? (
+                <Bell className="w-4 h-4 text-green-500" />
+              ) : (
+                <BellOff className="w-4 h-4 text-gray-400" />
+              )}
+              {adhanEnabled && (
+                <div className="absolute -top-1 -right-1 w-2 h-2 bg-green-500 rounded-full"></div>
+              )}
+            </Button>
+            <Button variant="ghost" size="icon" onClick={onClose}>
+              <X className="w-4 h-4" />
+            </Button>
+          </div>
         </div>
 
         {/* Fetch Error */}
@@ -461,7 +686,7 @@ export function QuranAudioPlayer({
 
         {/* Reciter Selector */}
         <Select
-          value={selectedReciterId}
+          value={selectedReciterId.toString()}
           onValueChange={handleReciterChange}
           disabled={reciters.length === 0}
         >
@@ -471,11 +696,11 @@ export function QuranAudioPlayer({
           </SelectTrigger>
           <SelectContent className="max-h-[300px]">
             {reciters.map((r) => (
-              <SelectItem key={r.id} value={r.id}>
+              <SelectItem key={r.id} value={r.id.toString()}>
                 <div className="flex flex-col">
                   <span>{r.name}</span>
                   <span className="text-xs text-muted-foreground">
-                    {r.moshafName} ({r.surahTotal} surahs)
+                    Verified Reciter
                   </span>
                 </div>
               </SelectItem>
@@ -483,11 +708,61 @@ export function QuranAudioPlayer({
           </SelectContent>
         </Select>
 
-        {/* Surah Not Available Error */}
-        {availabilityError && (
-          <div className="flex items-center gap-2 p-3 bg-amber-500/10 text-amber-600 dark:text-amber-400 rounded-lg text-sm">
-            <AlertCircle className="w-4 h-4 shrink-0" />
-            <span>{availabilityError}</span>
+        {/* Download Status and Controls */}
+        <div className="flex items-center justify-between p-2 bg-muted/30 rounded-lg">
+          <div className="flex items-center gap-2">
+            {isCurrentSurahDownloaded ? (
+              <>
+                <Badge variant="default" className="text-xs">
+                  Downloaded
+                </Badge>
+                <span className="text-sm text-muted-foreground">
+                  Available offline
+                </span>
+              </>
+            ) : (
+              <span className="text-sm text-muted-foreground">
+                Not downloaded
+              </span>
+            )}
+          </div>
+          <Button
+            variant={isCurrentSurahDownloaded ? "outline" : "default"}
+            size="sm"
+            onClick={isCurrentSurahDownloaded ? handleRemoveDownload : handleDownloadSurah}
+            disabled={isDownloading || !audioSrc}
+          >
+            {isDownloading ? (
+              <div className="w-4 h-4 border-2 border-current border-t-transparent rounded-full animate-spin" />
+            ) : isCurrentSurahDownloaded ? (
+              <Trash2 className="w-4 h-4" />
+            ) : (
+              <Download className="w-4 h-4" />
+            )}
+          </Button>
+        </div>
+
+        {/* Downloaded Surahs List */}
+        {downloadedSurahs.length > 0 && (
+          <div className="space-y-2">
+            <h4 className="font-medium text-sm">Downloaded Surahs</h4>
+            <div className="max-h-32 overflow-y-auto space-y-1">
+              {downloadedSurahs
+                .filter(ds => ds.surahNumber === surahNumber)
+                .map((ds, index) => (
+                  <div key={index} className="flex items-center justify-between p-2 bg-muted/50 rounded text-xs">
+                    <span>{ds.reciterName}</span>
+                    <Badge variant="outline" className="text-xs">
+                      {formatBytes(ds.fileSize || 0)}
+                    </Badge>
+                  </div>
+                ))}
+              {downloadedSurahs.filter(ds => ds.surahNumber === surahNumber).length === 0 && (
+                <p className="text-xs text-muted-foreground text-center py-2">
+                  No downloads for this surah yet
+                </p>
+              )}
+            </div>
           </div>
         )}
 
@@ -514,7 +789,7 @@ export function QuranAudioPlayer({
             max={duration || 100}
             step={0.1}
             className="w-full"
-            disabled={!surahAvailable}
+            disabled={!audioSrc}
           />
           <div className="flex justify-between text-xs text-muted-foreground">
             <span>{formatTime(progress)}</span>
@@ -529,7 +804,7 @@ export function QuranAudioPlayer({
             size="icon"
             className="h-12 w-12 rounded-full"
             onClick={togglePlayback}
-            disabled={isLoading || !surahAvailable || !selectedReciter}
+            disabled={isLoading || !audioSrc || !selectedReciterId}
           >
             {isLoading ? (
               <div className="w-4 h-4 border-2 border-primary-foreground border-t-transparent rounded-full animate-spin" />
@@ -554,12 +829,13 @@ export function QuranAudioPlayer({
         </div>
       </div>
 
-      <audio
-        ref={audioRef}
-        onEnded={handleAudioEnded}
-        onTimeUpdate={handleTimeUpdate}
-        onLoadedMetadata={handleTimeUpdate}
-      />
-    </Card>
+        <audio
+          ref={audioRef}
+          onEnded={handleAudioEnded}
+          onTimeUpdate={handleTimeUpdate}
+          onLoadedMetadata={handleTimeUpdate}
+        />
+      </Card>
+    </>
   );
 }

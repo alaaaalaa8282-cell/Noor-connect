@@ -10,6 +10,7 @@ import {
   type PrayerAlarmStateDetail,
   type PrayerAlarmToggleDetail,
 } from '@/lib/prayer-alarm-events';
+import { adhanService } from '@/lib/adhan-service';
 
 const STORAGE_KEY = 'prayer-alarm-enabled';
 
@@ -77,6 +78,9 @@ export const usePrayerAlarm = () => {
     }
 
     localStorage.setItem(STORAGE_KEY, 'true');
+    // Keep adhan-config in sync with this primary toggle
+    const config = adhanService.getAdhanConfig();
+    adhanService.saveAdhanConfig({ ...config, enabled: true });
     setIsEnabled(true);
     dispatchToggleEvent(true);
     await nativeAdhan.setEnabled(true);
@@ -101,6 +105,8 @@ export const usePrayerAlarm = () => {
 
   const disableAlarm = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, 'false');
+    const config = adhanService.getAdhanConfig();
+    adhanService.saveAdhanConfig({ ...config, enabled: false });
     setIsEnabled(false);
     dispatchToggleEvent(false);
     void nativeAdhan.setEnabled(false);

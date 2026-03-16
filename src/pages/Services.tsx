@@ -2,17 +2,76 @@ import { useNavigate } from "react-router-dom";
 import { AppBar } from "@/components/AppBar";
 import { PageTransition } from "@/components/PageTransition";
 import { useLanguage } from "@/contexts/LanguageContext-new";
+import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import {
     MessageCircle, Radio, Target, Heart, Calculator,
-    Star, Trophy, Coins, Calendar, Library, Tv, Sparkles, HeartHandshake, BookOpen, BookText
+    Star, Trophy, Coins, Calendar, Library, Tv, Sparkles, HeartHandshake, BookOpen, BookText, Moon, Headphones
 } from "lucide-react";
 import { motion } from "framer-motion";
 
 export default function Services() {
     const { t } = useLanguage();
     const navigate = useNavigate();
+    const { isEidAlFitr, isEidAlAdha, islamicInfo, isLoading } = useIslamicCalendar();
 
-    const services = [
+    // Determine if Fitrana Calculator should be shown (1 week before, during, 1 week after Eid)
+    const shouldShowFitranaCalculator = (() => {
+        if (isLoading || !islamicInfo) return false;
+        
+        const hijriMonth = islamicInfo.hijriMonth;
+        const hijriDay = islamicInfo.hijriDay;
+        
+        // 1 week before Eid al-Fitr (23-30 Ramadan)
+        if (hijriMonth === 9 && hijriDay >= 23) return true;
+        
+        // Eid al-Fitr period (1-3 Shawwal)
+        if (isEidAlFitr && hijriMonth === 10 && hijriDay <= 3) return true;
+        
+        // 1 week after Eid al-Fitr (4-10 Shawwal)
+        if (hijriMonth === 10 && hijriDay >= 4 && hijriDay <= 10) return true;
+        
+        // 1 week before Eid al-Adha (3-9 Dhul Hijjah)
+        if (hijriMonth === 12 && hijriDay >= 3 && hijriDay <= 9) return true;
+        
+        // Eid al-Adha period (10-12 Dhul Hijjah)
+        if (isEidAlAdha && hijriMonth === 12 && hijriDay >= 10 && hijriDay <= 12) return true;
+        
+        // 1 week after Eid al-Adha (13-19 Dhul Hijjah)
+        if (hijriMonth === 12 && hijriDay >= 13 && hijriDay <= 19) return true;
+        
+        return false;
+    })();
+
+    // Determine if Eid checklist should be shown (1 week before, during, 1 week after Eid)
+    const shouldShowEidChecklist = (() => {
+        if (isLoading || !islamicInfo) return false;
+        
+        const hijriMonth = islamicInfo.hijriMonth;
+        const hijriDay = islamicInfo.hijriDay;
+        
+        // 1 week before Eid al-Fitr (23-30 Ramadan)
+        if (hijriMonth === 9 && hijriDay >= 23) return true;
+        
+        // Eid al-Fitr period (1-3 Shawwal)
+        if (isEidAlFitr && hijriMonth === 10 && hijriDay <= 3) return true;
+        
+        // 1 week after Eid al-Fitr (4-10 Shawwal)
+        if (hijriMonth === 10 && hijriDay >= 4 && hijriDay <= 10) return true;
+        
+        // 1 week before Eid al-Adha (3-9 Dhul Hijjah)
+        if (hijriMonth === 12 && hijriDay >= 3 && hijriDay <= 9) return true;
+        
+        // Eid al-Adha period (10-12 Dhul Hijjah)
+        if (isEidAlAdha && hijriMonth === 12 && hijriDay >= 10 && hijriDay <= 12) return true;
+        
+        // 1 week after Eid al-Adha (13-19 Dhul Hijjah)
+        if (hijriMonth === 12 && hijriDay >= 13 && hijriDay <= 19) return true;
+        
+        return false;
+    })();
+
+    const baseServices = [
+        { title: "Quran Audio", path: "/quran-audio", icon: Headphones, color: 'text-green-600', bgColor: 'bg-green-600/10' },
         { title: "Live", path: "/live", icon: Tv, color: 'text-rose-500', bgColor: 'bg-rose-500/10' },
         { title: "Hadith Collections", path: "/hadith/collections", icon: BookText, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
         { title: "Radio", path: "/quran-radio", icon: Radio, color: 'text-indigo-500', bgColor: 'bg-indigo-500/10' },
@@ -26,6 +85,28 @@ export default function Services() {
         { title: "Calendar", path: "/calendar", icon: Calendar, color: 'text-blue-500', bgColor: 'bg-blue-500/10' },
         { title: "E-Books", path: "/ebooks", icon: Library, color: 'text-violet-500', bgColor: 'bg-violet-500/10' },
         { title: "Tafsir", path: "/tafsir", icon: BookOpen, color: 'text-emerald-600', bgColor: 'bg-emerald-600/10' },
+    ];
+
+    // Add conditional services based on timing
+    const conditionalServices = [];
+    
+    if (shouldShowFitranaCalculator) {
+        conditionalServices.push(
+            { title: "Fitrana Calculator", path: "/fitrana-calculator", icon: Calculator, color: 'text-green-600', bgColor: 'bg-green-600/10' }
+        );
+    }
+    
+    if (shouldShowEidChecklist) {
+        conditionalServices.push(
+            { title: "Eid Checklist", path: "/eid-checklist", icon: Moon, color: 'text-amber-600', bgColor: 'bg-amber-600/10' }
+        );
+    }
+
+    // Combine base services with conditional ones
+    const services = [
+        ...baseServices.slice(0, 6), // First 6 services
+        ...conditionalServices,
+        ...baseServices.slice(6) // Remaining services
     ];
 
     return (

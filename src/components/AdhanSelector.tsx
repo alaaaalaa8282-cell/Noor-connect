@@ -9,6 +9,7 @@ import {
   SelectValue,
 } from '@/components/ui/select';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
 import {
   getAdhanPreferences,
   setAdhanForPrayer,
@@ -17,6 +18,7 @@ import {
   type PrayerName,
   type AdhanPreferences
 } from '@/lib/adhan-preferences';
+import { adhanService, type AdhanConfig } from '@/lib/adhan-service';
 
 
 
@@ -43,6 +45,7 @@ const PRAYERS: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
 
 export const AdhanSelector = () => {
   const [preferences, setPreferences] = useState<AdhanPreferences>(getAdhanPreferences);
+  const [adhanConfig, setAdhanConfig] = useState<AdhanConfig>(adhanService.getAdhanConfig());
   const [isExpanded, setIsExpanded] = useState(false);
   const [playingPrayer, setPlayingPrayer] = useState<PrayerName | null>(null);
   const [customAdhans, setCustomAdhans] = useState<{ id: string, name: string }[]>([]);
@@ -72,6 +75,7 @@ export const AdhanSelector = () => {
     // Sync preferences when storage changes
     const handleStorage = () => {
       setPreferences(getAdhanPreferences());
+      setAdhanConfig(adhanService.getAdhanConfig());
     };
     window.addEventListener('storage', handleStorage);
 
@@ -161,6 +165,21 @@ export const AdhanSelector = () => {
   };
 
   const combinedOptions = [...ALL_ADHAN_OPTIONS, ...customAdhans];
+  const prayerToggleMap: Record<PrayerName, keyof AdhanConfig> = {
+    Fajr: 'fajrEnabled',
+    Dhuhr: 'dhuhrEnabled',
+    Asr: 'asrEnabled',
+    Maghrib: 'maghribEnabled',
+    Isha: 'ishaEnabled'
+  };
+
+  const handleTogglePrayer = (prayer: PrayerName, enabled: boolean) => {
+    const key = prayerToggleMap[prayer];
+    if (!key) return;
+    const updated = { ...adhanConfig, [key]: enabled };
+    adhanService.saveAdhanConfig(updated);
+    setAdhanConfig(updated);
+  };
 
   return (
     <Card className="p-4 bg-card border-border">
@@ -193,6 +212,11 @@ export const AdhanSelector = () => {
               <span className="w-20 text-sm font-medium text-foreground">
                 {prayer}
               </span>
+              <Switch
+                checked={Boolean(adhanConfig[prayerToggleMap[prayer]])}
+                onCheckedChange={(checked) => handleTogglePrayer(prayer, checked)}
+                className="shrink-0"
+              />
               <Select
                 value={preferences[prayer]}
                 onValueChange={(value) => handleAdhanChange(prayer, value)}

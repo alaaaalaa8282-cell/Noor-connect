@@ -1,362 +1,204 @@
 /**
  * Quran Reader Page
- * Enhanced Quran reading with bookmarks, notes, and progress tracking
+ * Clean text-based Quran reader using quran-json CDN.
+ * Fetches Arabic + English + Urdu per surah on demand.
  */
 
-import { useState, useEffect } from 'react';
-import { useNavigate, useParams } from 'react-router-dom';
-import { BookmarkCheck, Edit3, FileText, ChevronLeft, ChevronRight, Plus, X, Save, Trash2, Settings, Download } from 'lucide-react';
+import { useState, useEffect, useRef, useCallback } from 'react';
+import { useParams } from 'react-router-dom';
+import { BookmarkCheck, Bookmark, Eye, EyeOff, ChevronDown, AlertCircle, Globe } from 'lucide-react';
 import { Button } from '@/components/ui/button';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
-import { Input } from '@/components/ui/input';
-import { Textarea } from '@/components/ui/textarea';
 import { ScrollArea } from '@/components/ui/scroll-area';
 import { Badge } from '@/components/ui/badge';
-import { Progress } from '@/components/ui/progress';
-import { Dialog, DialogContent, DialogHeader, DialogTitle, DialogTrigger } from '@/components/ui/dialog';
-import { useToast } from '@/hooks/use-toast';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { quranFontManager, type QuranFont } from '@/lib/quran-font-manager';
-import { quranFeaturesService, type QuranBookmark, type QuranNote, type RecitationProgress } from '@/lib/quran-features';
 import { AppBar } from '@/components/AppBar';
 import { PageTransition } from '@/components/PageTransition';
-import { useI18n } from '@/hooks/useI18n';
+import { quranService } from '@/lib/quran-service';
+import { useToast } from '@/hooks/use-toast';
 
-// Translation editions
-const TRANSLATIONS = [
-  { id: "en.sahih", name: "English (Sahih)", lang: "English" },
-  { id: "en.pickthall", name: "English (Pickthall)", lang: "English" },
-  { id: "en.yusufali", name: "English (Yusuf Ali)", lang: "English" },
-  { id: "ur.ahmedali", name: "Urdu", lang: "Urdu" },
-  { id: "fr.hamidullah", name: "French", lang: "French" },
-  { id: "id.indonesian", name: "Indonesian", lang: "Indonesian" },
-  { id: "tr.ates", name: "Turkish", lang: "Turkish" },
-  { id: "de.aburida", name: "German", lang: "German" },
-];
-
-interface Ayah {
-  number: number;
+// ─── Types ────────────────────────────────────────────────────
+interface Verse {
+  id: number;
   text: string;
   translation?: string;
-  audio?: string;
 }
 
-interface Surah {
-  number: number;
+interface SurahData {
+  id: number;
   name: string;
-  englishName: string;
-  englishNameTranslation: string;
-  numberOfAyahs: number;
-  revelationType: string;
-  ayahs: Ayah[];
+  transliteration: string;
+  translation: string;
+  type: string;
+  total_verses: number;
+  verses: Verse[];
 }
 
+// ─── Constants ───────────────────────────────────────────────
+const CDN_BASE = 'https://cdn.jsdelivr.net/npm/quran-json@3.1.2/dist/chapters';
+const LS_LAST_SURAH = 'quran-reader-last-surah';
+const LS_LAST_AYAH  = 'quran-reader-last-ayah';
+const LS_SHOW_EN    = 'quran-reader-show-en';
+const LS_SHOW_UR    = 'quran-reader-show-ur';
+
+const allSurahs = quranService.getAllSurahs();
+
+// ─── Fetch helpers ────────────────────────────────────────────
+async function fetchArabic(surahNum: number): Promise<Verse[]> {
+  const res = await fetch(`${CDN_BASE}/${surahNum}.json`);
+  if (!res.ok) throw new Error(`Failed to fetch Arabic (${res.status})`);
+  const data: SurahData = await res.json();
+  return data.verses;
+}
+
+async function fetchTranslation(surahNum: number, lang: 'en' | 'ur'): Promise<Verse[]> {
+  const res = await fetch(`${CDN_BASE}/${lang}/${surahNum}.json`);
+  if (!res.ok) throw new Error(`Failed to fetch ${lang} translation (${res.status})`);
+  const data: SurahData = await res.json();
+  return data.verses;
+}
+
+// ─── Component ────────────────────────────────────────────────
 export default function QuranReader() {
-  const navigate = useNavigate();
-  const { surahNumber } = useParams<{ surahNumber: string }>();
+  const { surahName } = useParams<{ surahName: string }>();
   const { toast } = useToast();
-  const { t: ti18n } = useI18n();
 
-
-  const [surah, setSurah] = useState<Surah | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [currentAyah, setCurrentAyah] = useState(1);
-  const [bookmarks, setBookmarks] = useState<QuranBookmark[]>([]);
-  const [notes, setNotes] = useState<QuranNote[]>([]);
-  const [progress, setProgress] = useState<RecitationProgress | null>(null);
-  const [isPlaying, setIsPlaying] = useState(false);
-  const [showNoteDialog, setShowNoteDialog] = useState(false);
-  const [noteText, setNoteText] = useState('');
-  const [editingNote, setEditingNote] = useState<QuranNote | null>(null);
-
-  // Settings state
-  const [showSettings, setShowSettings] = useState(false);
-  const [selectedTranslation, setSelectedTranslation] = useState(TRANSLATIONS[0]);
-  const [fontSize, setFontSize] = useState(24);
-  const [currentQuranFont, setCurrentQuranFont] = useState<QuranFont>('uthmani');
-
-  useEffect(() => {
-    if (surahNumber) {
-      loadSurah(parseInt(surahNumber));
-      loadFeatures();
-      // Update reading streak when user opens a surah
-      quranFeaturesService.updateReadingStreak();
+  // ── Resolve initial surah from URL param ──
+  const initialSurah = (() => {
+    if (surahName) {
+      const m = surahName.match(/surah-(\d+)/);
+      if (m) return parseInt(m[1]);
     }
-  }, [surahNumber, selectedTranslation]);
+    const saved = localStorage.getItem(LS_LAST_SURAH);
+    return saved ? parseInt(saved) : 1;
+  })();
 
-  // Load preferences
-  useEffect(() => {
-    setCurrentQuranFont(quranFontManager.getCurrentFont());
-    const savedFontSize = localStorage.getItem('quran-font-size');
-    if (savedFontSize) setFontSize(parseInt(savedFontSize));
+  // ── State ──
+  const [surahNum, setSurahNum]       = useState(initialSurah);
+  const [arabicVerses, setArabicVerses] = useState<Verse[]>([]);
+  const [enVerses, setEnVerses]       = useState<Verse[]>([]);
+  const [urVerses, setUrVerses]       = useState<Verse[]>([]);
+  const [loading, setLoading]         = useState(true);
+  const [error, setError]             = useState<string | null>(null);
+  const [showEn, setShowEn]           = useState(() => localStorage.getItem(LS_SHOW_EN) !== 'false');
+  const [showUr, setShowUr]           = useState(() => localStorage.getItem(LS_SHOW_UR) !== 'false');
+  const [bookmarks, setBookmarks]     = useState<number[]>(() => {
+    try { return JSON.parse(localStorage.getItem('quran-ayah-bookmarks') || '[]'); }
+    catch { return []; }
+  });
 
-    const savedTrans = localStorage.getItem('quran-translation');
-    if (savedTrans) {
-      const trans = TRANSLATIONS.find(t => t.id === savedTrans);
-      if (trans) setSelectedTranslation(trans);
-    }
+  const scrollAreaRef = useRef<HTMLDivElement>(null);
+  const ayahRefs      = useRef<Record<number, HTMLDivElement | null>>({});
 
-    quranFontManager.initialize();
-  }, []);
+  const surahInfo = quranService.getSurahInfo(surahNum);
 
-  const loadSurah = async (surahNum: number) => {
+  // ── Persist toggle prefs ──
+  useEffect(() => { localStorage.setItem(LS_SHOW_EN, String(showEn)); }, [showEn]);
+  useEffect(() => { localStorage.setItem(LS_SHOW_UR, String(showUr)); }, [showUr]);
+
+  // ── Load surah data ──
+  const loadSurah = useCallback(async (num: number) => {
+    setLoading(true);
+    setError(null);
+    ayahRefs.current = {};
     try {
-      setLoading(true);
-
-      // Fetch surah details
-      const response = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}`);
-      const data = await response.json();
-
-      if (data.code === 200) {
-        const surahData = data.data;
-
-        // Fetch ayah details with translations
-        const ayahsResponse = await fetch(`https://api.alquran.cloud/v1/surah/${surahNum}/editions/quran-uthmani,${selectedTranslation.id}`);
-        const ayahsData = await ayahsResponse.json();
-
-        if (ayahsData.code === 200) {
-          const quranEdition = ayahsData.data[0];
-          const translationEdition = ayahsData.data[1];
-
-          const ayahs: Ayah[] = quranEdition.ayahs.map((ayah: any, index: number) => ({
-            number: ayah.numberInSurah,
-            text: ayah.text,
-            translation: translationEdition.ayahs[index]?.text,
-            audio: ayah.audio
-          }));
-
-          setSurah({
-            number: surahData.number,
-            name: surahData.name,
-            englishName: surahData.englishName,
-            englishNameTranslation: surahData.englishNameTranslation,
-            numberOfAyahs: surahData.numberOfAyahs,
-            revelationType: surahData.revelationType,
-            ayahs
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error loading surah:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load surah',
-        variant: 'destructive'
-      });
+      const [arabic, en, ur] = await Promise.all([
+        fetchArabic(num),
+        fetchTranslation(num, 'en'),
+        fetchTranslation(num, 'ur'),
+      ]);
+      setArabicVerses(arabic);
+      setEnVerses(en);
+      setUrVerses(ur);
+      localStorage.setItem(LS_LAST_SURAH, String(num));
+    } catch (e: any) {
+      setError(e.message || 'Failed to load surah');
+      toast({ title: 'Error', description: 'Could not load surah data', variant: 'destructive' });
     } finally {
       setLoading(false);
     }
-  };
+  }, [toast]);
 
-  const loadFeatures = async () => {
-    if (!surahNumber) return;
+  useEffect(() => { loadSurah(surahNum); }, [surahNum, loadSurah]);
 
-    const surahNum = parseInt(surahNumber);
-
-    try {
-      const [bookmarksList, notesList, progressList] = await Promise.all([
-        quranFeaturesService.getBookmarks(),
-        quranFeaturesService.getNotes(),
-        quranFeaturesService.getRecitationProgress()
-      ]);
-
-      setBookmarks(bookmarksList.filter(b => b.surahNumber === surahNum));
-      setNotes(notesList.filter(n => n.surahNumber === surahNum));
-      setProgress(progressList.find(p => p.surahNumber === surahNum) || null);
-    } catch (error) {
-      console.error('Error loading Quran features:', error);
-    }
-  };
-
-  const toggleBookmark = async (ayahNumber: number) => {
-    if (!surah) return;
-
-    try {
-      const existingBookmark = bookmarks.find(b => b.ayahNumber === ayahNumber);
-
-      if (existingBookmark) {
-        await quranFeaturesService.removeBookmark(existingBookmark.id);
-        setBookmarks(prev => prev.filter(b => b.id !== existingBookmark.id));
-        toast({
-          title: 'Bookmark Removed',
-          description: `Bookmark removed from Ayah ${ayahNumber}`
-        });
-      } else {
-        const ayah = surah.ayahs.find(a => a.number === ayahNumber);
-        if (ayah) {
-          const bookmark = await quranFeaturesService.addBookmark(
-            surah.number,
-            ayahNumber,
-            surah.name,
-            ayah.text
-          );
-          setBookmarks(prev => [...prev, bookmark]);
-          toast({
-            title: 'Bookmark Added',
-            description: `Ayah ${ayahNumber} bookmarked`
-          });
-        }
-      }
-    } catch (error) {
-      console.error('Error toggling bookmark:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to toggle bookmark',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const saveNote = async () => {
-    if (!surah || !noteText.trim()) return;
-
-    try {
-      if (editingNote) {
-        await quranFeaturesService.updateNote(editingNote.id, noteText);
-        setNotes(prev => prev.map(n =>
-          n.id === editingNote.id
-            ? { ...n, note: noteText, updatedAt: new Date().toISOString() }
-            : n
-        ));
-        toast({
-          title: 'Note Updated',
-          description: 'Your note has been updated'
-        });
-      } else {
-        const ayah = surah.ayahs.find(a => a.number === currentAyah);
-        if (ayah) {
-          const note = await quranFeaturesService.addNote(
-            surah.number,
-            currentAyah,
-            surah.name,
-            ayah.text,
-            noteText
-          );
-          setNotes(prev => [...prev, note]);
-          toast({
-            title: 'Note Added',
-            description: `Note added to Ayah ${currentAyah}`
-          });
-        }
-      }
-
-      setNoteText('');
-      setEditingNote(null);
-      setShowNoteDialog(false);
-    } catch (error) {
-      console.error('Error saving note:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to save note',
-        variant: 'destructive'
-      });
-    }
-  };
-
-  const updateProgress = async (ayahNumber: number) => {
-    if (!surah) return;
-
-    try {
-      const completedAyahs = Math.max(progress?.completedAyahs || 0, ayahNumber);
-      const updatedProgress = await quranFeaturesService.updateRecitationProgress(
-        surah.number,
-        surah.name,
-        surah.numberOfAyahs,
-        completedAyahs,
-        ayahNumber
-      );
-
-      setProgress(updatedProgress);
-
-      if (updatedProgress.isCompleted) {
-        toast({
-          title: 'Surah Completed!',
-          description: `Congratulations! You've completed ${surah.englishName}`,
-        });
-      }
-    } catch (error) {
-      console.error('Error updating progress:', error);
-    }
-  };
-
-  const isBookmarked = (ayahNumber: number) => {
-    return bookmarks.some(b => b.ayahNumber === ayahNumber);
-  };
-
-  const getNotesForAyah = (ayahNumber: number) => {
-    return notes.filter(n => n.ayahNumber === ayahNumber);
-  };
-
-  const progressPercentage = progress ? (progress.completedAyahs / progress.totalAyahs) * 100 : 0;
-
-  // Settings handlers
-  const handleFontChange = async (font: QuranFont) => {
-    setCurrentQuranFont(font);
-    await quranFontManager.setFont(font);
-    toast({ title: "Quran font changed" });
-  };
-
-  const handleTranslationChange = (transId: string) => {
-    const trans = TRANSLATIONS.find(t => t.id === transId);
-    if (trans) {
-      setSelectedTranslation(trans);
-      localStorage.setItem('quran-translation', transId);
-      toast({ title: "Translation updated" });
-      if (surahNumber) {
-        loadSurah(parseInt(surahNumber)); // Reload with new translation
-      }
-    }
-  };
-
-  const handleFontSizeChange = (size: number) => {
-    setFontSize(size);
-    localStorage.setItem('quran-font-size', size.toString());
-  };
-
-  // Check for achievements when surah is completed
-  const checkAchievements = async () => {
-    try {
-      const newAchievements = await quranFeaturesService.checkAndUnlockAchievements();
-      if (newAchievements.length > 0) {
-        newAchievements.forEach(achievement => {
-          toast({
-            title: `🎉 Achievement Unlocked!`,
-            description: `${achievement.title}: ${achievement.description}`,
-          });
-        });
-      }
-    } catch (error) {
-      console.error('Error checking achievements:', error);
-    }
-  };
-
-  // Check achievements when component loads and when progress changes
+  // ── Scroll to last read ayah after load ──
   useEffect(() => {
-    if (surah && progress) {
-      checkAchievements();
+    if (loading) return;
+    const lastAyah = parseInt(localStorage.getItem(LS_LAST_AYAH) || '1');
+    const target = ayahRefs.current[lastAyah];
+    if (target) {
+      setTimeout(() => target.scrollIntoView({ behavior: 'smooth', block: 'center' }), 150);
     }
-  }, [surah, progress]);
+  }, [loading]);
 
-  if (loading) {
-    return (
-      <PageTransition>
-        <div className="min-h-screen bg-background">
-          <AppBar title={ti18n('quranReader')} showBack />
-          <div className="flex items-center justify-center h-96">
-            <div className="animate-spin rounded-full h-8 w-8 border-2 border-primary border-t-transparent" />
-          </div>
-        </div>
-      </PageTransition>
+  // ── Track last-read ayah via IntersectionObserver ──
+  useEffect(() => {
+    if (loading || arabicVerses.length === 0) return;
+    const nodes = Object.entries(ayahRefs.current);
+    if (nodes.length === 0) return;
+
+    const observer = new IntersectionObserver(
+      (entries) => {
+        const visible = entries.filter(e => e.isIntersecting);
+        if (visible.length > 0) {
+          const ids = visible
+            .map(e => parseInt(e.target.getAttribute('data-ayah') || '1'))
+            .filter(Boolean);
+          const max = Math.max(...ids);
+          localStorage.setItem(LS_LAST_AYAH, String(max));
+        }
+      },
+      { threshold: 0.5 }
     );
-  }
 
-  if (!surah) {
+    nodes.forEach(([, el]) => { if (el) observer.observe(el); });
+    return () => observer.disconnect();
+  }, [loading, arabicVerses]);
+
+  // ── Bookmark helpers ──
+  const toggleBookmark = (ayahId: number) => {
+    setBookmarks(prev => {
+      const next = prev.includes(ayahId)
+        ? prev.filter(b => b !== ayahId)
+        : [...prev, ayahId];
+      localStorage.setItem('quran-ayah-bookmarks', JSON.stringify(next));
+      return next;
+    });
+  };
+
+  // ── Surah selector ──
+  const handleSurahChange = (val: string) => {
+    setSurahNum(parseInt(val));
+    localStorage.setItem(LS_LAST_AYAH, '1');
+  };
+
+  // ── Skeleton ──
+  const Skeleton = () => (
+    <div className="space-y-6 p-4 animate-pulse">
+      {[...Array(6)].map((_, i) => (
+        <div key={i} className="space-y-3 p-5 rounded-2xl bg-amber-100/60 dark:bg-amber-900/20">
+          <div className="h-8 bg-amber-200/70 dark:bg-amber-800/40 rounded-xl w-full" />
+          <div className="h-4 bg-amber-100 dark:bg-amber-900/30 rounded w-3/4" />
+          <div className="h-4 bg-amber-100 dark:bg-amber-900/30 rounded w-1/2" />
+        </div>
+      ))}
+    </div>
+  );
+
+  // ── Error state ──
+  if (error && !loading) {
     return (
       <PageTransition>
-        <div className="min-h-screen bg-background">
-          <AppBar title={ti18n('quranReader')} showBack />
-          <div className="flex items-center justify-center h-96">
-            <p className="text-muted-foreground">{ti18n('surahNotFound')}</p>
+        <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/20 dark:via-orange-950/20 dark:to-yellow-950/20">
+          <AppBar title="Quran Reader" showBack />
+          <div className="flex flex-col items-center justify-center h-80 gap-4 p-6 text-center">
+            <AlertCircle className="w-14 h-14 text-red-400" />
+            <p className="text-lg font-semibold text-gray-700 dark:text-gray-300">{error}</p>
+            <Button
+              onClick={() => loadSurah(surahNum)}
+              className="bg-gradient-to-r from-amber-400 to-orange-400 text-white font-bold px-6 rounded-xl"
+            >
+              Try Again
+            </Button>
           </div>
         </div>
       </PageTransition>
@@ -365,272 +207,191 @@ export default function QuranReader() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background quran-reader-container">
-        <AppBar title={`Surah ${surah.englishName}`} showBack />
+      {/* Amiri Quran font */}
+      <style>{`
+        @import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap');
+        .font-quran { font-family: 'Amiri Quran', serif; }
+      `}</style>
 
-        <div className="max-w-2xl mx-auto p-4 space-y-4">
-          {/* Surah Header */}
-          <Card className="quran-card">
-            <CardHeader className="pb-3">
-              <div className="text-center space-y-2">
-                <div className="flex items-center justify-between">
-                  <div className="flex-1">
-                    <h1 className="text-2xl font-bold font-arabic">{surah.name}</h1>
-                  </div>
-                  <div className="flex-1 text-right">
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => setShowSettings(!showSettings)}
-                      className="gap-1"
-                    >
-                      <Settings className="w-4 h-4" />
-                      {ti18n('quranSettingsButton')}
-                    </Button>
-                  </div>
-                </div>
-                <p className="text-lg text-muted-foreground">{surah.englishName}</p>
-                <p className="text-sm text-muted-foreground">{surah.englishNameTranslation}</p>
-                <div className="flex items-center justify-center gap-4 text-sm">
-                  <Badge variant="secondary">{surah.revelationType}</Badge>
-                  <Badge variant="outline">{surah.numberOfAyahs} Ayahs</Badge>
-                </div>
+      <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/20 dark:via-orange-950/20 dark:to-yellow-950/20">
+        <AppBar
+          title={surahInfo ? `${surahInfo.englishName}` : 'Quran Reader'}
+          showBack
+        />
+
+        {/* ── Controls Bar ── */}
+        <div className="sticky top-16 z-20 bg-amber-50/90 dark:bg-amber-950/80 backdrop-blur-md border-b border-amber-200 dark:border-amber-800 px-4 py-2.5 shadow-sm">
+          <div className="max-w-2xl mx-auto flex items-center gap-2 flex-wrap">
+            {/* Surah Selector */}
+            <Select value={String(surahNum)} onValueChange={handleSurahChange}>
+              <SelectTrigger
+                id="surah-selector"
+                className="h-9 flex-1 min-w-[160px] border-2 border-amber-300 dark:border-amber-700 bg-white/70 dark:bg-amber-900/40 rounded-xl text-sm font-semibold text-amber-900 dark:text-amber-100"
+              >
+                <SelectValue>
+                  {surahInfo
+                    ? `${surahNum}. ${surahInfo.englishName}`
+                    : 'Select Surah'}
+                </SelectValue>
+              </SelectTrigger>
+              <SelectContent className="max-h-72">
+                {allSurahs.map(s => (
+                  <SelectItem key={s.number} value={String(s.number)}>
+                    <span className="flex items-center gap-2">
+                      <span className="text-xs text-muted-foreground w-6 shrink-0">{s.number}.</span>
+                      <span>{s.englishName}</span>
+                      <span className="ml-auto font-arabic text-base text-amber-700 dark:text-amber-300">{s.name}</span>
+                    </span>
+                  </SelectItem>
+                ))}
+              </SelectContent>
+            </Select>
+
+            {/* Translation toggles */}
+            <Button
+              id="toggle-english"
+              variant={showEn ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowEn(v => !v)}
+              className={`h-9 rounded-xl gap-1.5 text-xs font-bold border-2 transition-all ${
+                showEn
+                  ? 'bg-teal-600 hover:bg-teal-700 text-white border-teal-600'
+                  : 'border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 bg-white/60 dark:bg-amber-900/40'
+              }`}
+            >
+              {showEn ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+              EN
+            </Button>
+
+            <Button
+              id="toggle-urdu"
+              variant={showUr ? 'default' : 'outline'}
+              size="sm"
+              onClick={() => setShowUr(v => !v)}
+              className={`h-9 rounded-xl gap-1.5 text-xs font-bold border-2 transition-all ${
+                showUr
+                  ? 'bg-emerald-600 hover:bg-emerald-700 text-white border-emerald-600'
+                  : 'border-amber-300 dark:border-amber-700 text-amber-700 dark:text-amber-300 bg-white/60 dark:bg-amber-900/40'
+              }`}
+            >
+              {showUr ? <Eye className="w-3.5 h-3.5" /> : <EyeOff className="w-3.5 h-3.5" />}
+              اردو
+            </Button>
+          </div>
+        </div>
+
+        <div className="max-w-2xl mx-auto px-3 py-4">
+          {/* ── Surah Header ── */}
+          {surahInfo && (
+            <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 via-teal-600 to-teal-700 p-6 mb-4 shadow-xl text-center">
+              <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,white,transparent_70%)]" />
+              <p className="font-quran text-3xl text-white mb-1 leading-loose">{surahInfo.name}</p>
+              <p className="text-teal-100 font-bold text-lg">{surahInfo.englishName}</p>
+              <p className="text-teal-200 text-sm">{surahInfo.englishNameTranslation}</p>
+              <div className="flex items-center justify-center gap-3 mt-3">
+                <Badge className="bg-white/20 text-white border-white/30 text-xs">
+                  {surahInfo.revelationType}
+                </Badge>
+                <Badge className="bg-white/20 text-white border-white/30 text-xs">
+                  {surahInfo.numberOfAyahs} Verses
+                </Badge>
               </div>
-            </CardHeader>
-
-            {/* Progress Bar */}
-            {progress && (
-              <CardContent className="space-y-2">
-                <div className="flex justify-between text-sm">
-                  <span>{ti18n('progress')}</span>
-                  <span>{progress.completedAyahs}/{progress.totalAyahs} ayahs</span>
-                </div>
-                <Progress value={progressPercentage} className="h-2 quran-progress-bar" />
-                <p className="text-xs text-muted-foreground">
-                  {progressPercentage.toFixed(1)}% completed
-                </p>
-              </CardContent>
-            )}
-          </Card>
-
-          {/* Settings Panel */}
-          {showSettings && (
-            <Card className="animate-in slide-in-from-top duration-300">
-              <CardHeader>
-                <CardTitle className="text-base">{ti18n('quranSettings')}</CardTitle>
-              </CardHeader>
-              <CardContent className="space-y-4">
-                <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{ti18n('font')}</label>
-                    <Select value={currentQuranFont} onValueChange={handleFontChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {quranFontManager.getAvailableFonts().map((font) => (
-                          <SelectItem key={font.id} value={font.id}>{font.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                  <div className="space-y-2">
-                    <label className="text-sm font-medium">{ti18n('translation')}</label>
-                    <Select value={selectedTranslation.id} onValueChange={handleTranslationChange}>
-                      <SelectTrigger>
-                        <SelectValue />
-                      </SelectTrigger>
-                      <SelectContent>
-                        {TRANSLATIONS.map((trans) => (
-                          <SelectItem key={trans.id} value={trans.id}>{trans.name}</SelectItem>
-                        ))}
-                      </SelectContent>
-                    </Select>
-                  </div>
-                </div>
-                <div className="space-y-2">
-                  <label className="text-sm font-medium">{ti18n('fontSize')}: {fontSize}px</label>
-                  <div className="flex items-center gap-3">
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFontSizeChange(Math.max(16, fontSize - 2))}>-</Button>
-                    <div className="flex-1 h-1 bg-secondary rounded-full overflow-hidden">
-                      <div className="h-full bg-primary" style={{ width: `${((fontSize - 16) / 26) * 100}%` }} />
-                    </div>
-                    <Button variant="outline" size="icon" className="h-8 w-8" onClick={() => handleFontSizeChange(Math.min(42, fontSize + 2))}>+</Button>
-                  </div>
-                </div>
-                <Button variant="ghost" size="sm" className="w-full" onClick={() => setShowSettings(false)}>{ti18n('closeSettings')}</Button>
-              </CardContent>
-            </Card>
+            </div>
           )}
 
-          {/* All Ayahs in Vertical Scroll */}
-          <Card className="quran-card">
-            <CardContent className="p-6">
-              <ScrollArea className="h-[calc(100vh-300px)]">
-                <div className="space-y-6">
-                  {surah.ayahs.map((ayah, index) => (
+          {/* ── Basmala (for all except Al-Fatiha and At-Tawbah) ── */}
+          {surahNum !== 1 && surahNum !== 9 && !loading && (
+            <div className="text-center py-4 mb-2">
+              <p className="font-quran text-2xl text-amber-800 dark:text-amber-200 leading-loose">
+                بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
+              </p>
+            </div>
+          )}
+
+          {/* ── Loading Skeleton ── */}
+          {loading && <Skeleton />}
+
+          {/* ── Ayah List ── */}
+          {!loading && arabicVerses.length > 0 && (
+            <ScrollArea className="h-[calc(100vh-220px)]" ref={scrollAreaRef}>
+              <div className="space-y-4 pb-24">
+                {arabicVerses.map((verse, idx) => {
+                  const enVerse  = enVerses[idx];
+                  const urVerse  = urVerses[idx];
+                  const isBookmarked = bookmarks.includes(verse.id);
+
+                  return (
                     <div
-                      key={ayah.number}
-                      className={`relative p-4 rounded-lg border transition-colors ${isBookmarked(ayah.number) ? 'bg-primary/5 border-primary/20' : 'bg-muted/30'
-                        }`}
+                      key={verse.id}
+                      id={`ayah-${verse.id}`}
+                      data-ayah={verse.id}
+                      ref={el => { ayahRefs.current[verse.id] = el; }}
+                      className="group relative rounded-2xl bg-white/80 dark:bg-white/5 border border-amber-100 dark:border-amber-900/50 shadow-sm hover:shadow-md hover:border-amber-300 dark:hover:border-amber-700 transition-all duration-200 overflow-hidden"
                     >
-                      {/* Ayah Header */}
-                      <div className="flex items-center justify-between mb-3">
-                        <div className="flex items-center gap-2">
-                          <span className="text-lg font-bold text-primary">{ayah.number}</span>
-                          {progress?.lastReadAyah === ayah.number && (
-                            <Badge variant="secondary" className="text-xs">Last Read</Badge>
-                          )}
+                      {/* Ayah number + bookmark row */}
+                      <div className="flex items-center justify-between px-4 pt-3 pb-1">
+                        <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-orange-400 flex items-center justify-center text-white text-xs font-bold shadow-sm shrink-0">
+                          {verse.id}
                         </div>
-                        <div className="flex items-center gap-2">
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            onClick={() => toggleBookmark(ayah.number)}
-                            className={`gap-1 ${isBookmarked(ayah.number) ? 'text-primary' : 'text-muted-foreground'}`}
-                          >
-                            <BookmarkCheck className="w-4 h-4" />
-                          </Button>
-                          <Dialog open={showNoteDialog && currentAyah === ayah.number} onOpenChange={(open) => {
-                            setShowNoteDialog(open);
-                            if (open) {
-                              setCurrentAyah(ayah.number);
-                              const existingNote = notes.find(n => n.ayahNumber === ayah.number);
-                              if (existingNote) {
-                                setEditingNote(existingNote);
-                                setNoteText(existingNote.note);
-                              } else {
-                                setEditingNote(null);
-                                setNoteText('');
-                              }
-                            }
-                          }}>
-                            <DialogTrigger asChild>
-                              <Button variant="ghost" size="sm" className="gap-1">
-                                <Edit3 className="w-4 h-4" />
-                              </Button>
-                            </DialogTrigger>
-                            <DialogContent>
-                              <DialogHeader>
-                                <DialogTitle>
-                                  {editingNote ? 'Edit Note' : 'Add Note'} - Ayah {ayah.number}
-                                </DialogTitle>
-                              </DialogHeader>
-                              <div className="space-y-4">
-                                <Textarea
-                                  placeholder="Write your note here..."
-                                  value={noteText}
-                                  onChange={(e) => setNoteText(e.target.value)}
-                                  rows={4}
-                                />
-                                <div className="flex justify-end gap-2">
-                                  <Button variant="outline" onClick={() => setShowNoteDialog(false)}>
-                                    Cancel
-                                  </Button>
-                                  <Button onClick={saveNote}>
-                                    <Save className="w-4 h-4 ms-2" />
-                                    Save
-                                  </Button>
-                                </div>
-                              </div>
-                            </DialogContent>
-                          </Dialog>
-                        </div>
-                      </div>
-
-                      {/* Ayah Text */}
-                      <div className="space-y-3">
-                        <p
-                          className="text-2xl font-arabic leading-relaxed text-right"
-                          style={{
-                            fontSize: `${fontSize}px`,
-                            fontFamily: 'var(--quran-font)'
-                          }}
+                        <button
+                          id={`bookmark-ayah-${verse.id}`}
+                          onClick={() => toggleBookmark(verse.id)}
+                          className={`p-1.5 rounded-lg transition-all ${
+                            isBookmarked
+                              ? 'text-amber-500 bg-amber-50 dark:bg-amber-900/30'
+                              : 'text-gray-300 dark:text-gray-600 opacity-0 group-hover:opacity-100 hover:text-amber-400'
+                          }`}
+                          title={isBookmarked ? 'Remove bookmark' : 'Bookmark this ayah'}
                         >
-                          {ayah.text}
-                        </p>
-                        {ayah.translation && (
-                          <p className="text-muted-foreground italic">
-                            {ayah.translation}
-                          </p>
-                        )}
+                          {isBookmarked
+                            ? <BookmarkCheck className="w-4 h-4" />
+                            : <Bookmark className="w-4 h-4" />}
+                        </button>
                       </div>
 
-                      {/* Notes for this Ayah */}
-                      {getNotesForAyah(ayah.number).length > 0 && (
-                        <div className="mt-3 space-y-2">
-                          <h4 className="font-semibold text-sm flex items-center gap-2">
-                            <FileText className="w-4 h-4" />
-                            Notes
-                          </h4>
-                          {getNotesForAyah(ayah.number).map((note) => (
-                            <div key={note.id} className="p-3 bg-muted rounded-lg">
-                              <p className="text-sm">{note.note}</p>
-                              <p className="text-xs text-muted-foreground mt-1">
-                                {new Date(note.updatedAt).toLocaleDateString()}
-                              </p>
-                            </div>
-                          ))}
+                      {/* Arabic text */}
+                      <div className="px-4 pb-3 pt-1">
+                        <p
+                          className="font-quran text-right leading-loose text-gray-900 dark:text-amber-50"
+                          style={{ fontSize: '1.65rem', lineHeight: '3rem' }}
+                          dir="rtl"
+                        >
+                          {verse.text}
+                        </p>
+                      </div>
+
+                      {/* Divider */}
+                      {(showEn || showUr) && (
+                        <div className="h-px bg-amber-100 dark:bg-amber-900/30 mx-4" />
+                      )}
+
+                      {/* English translation */}
+                      {showEn && enVerse?.translation && (
+                        <div className="px-4 py-2.5">
+                          <p className="text-sm text-gray-700 dark:text-gray-300 leading-relaxed">
+                            <span className="text-[10px] font-bold text-amber-500 uppercase tracking-wider mr-1.5">EN</span>
+                            {enVerse.translation}
+                          </p>
+                        </div>
+                      )}
+
+                      {/* Urdu translation */}
+                      {showUr && urVerse?.translation && (
+                        <div className="px-4 pb-3 pt-1">
+                          <p
+                            className="text-sm text-right text-gray-700 dark:text-gray-300 leading-loose"
+                            dir="rtl"
+                            style={{ fontFamily: 'Noto Nastaliq Urdu, serif' }}
+                          >
+                            {urVerse.translation}
+                          </p>
                         </div>
                       )}
                     </div>
-                  ))}
-                </div>
-              </ScrollArea>
-            </CardContent>
-          </Card>
-
-          {/* Mark Surah as Complete Button */}
-          {surah && (
-            <Card className="quran-card">
-              <CardContent className="p-4">
-                {progress?.isCompleted ? (
-                  <div className="flex items-center justify-center gap-2 text-primary py-2">
-                    <BookmarkCheck className="w-5 h-5" />
-                    <span className="font-semibold">Surah Completed ✓</span>
-                  </div>
-                ) : (
-                  <Button
-                    className="w-full gap-2"
-                    onClick={() => updateProgress(surah.numberOfAyahs)}
-                  >
-                    <BookmarkCheck className="w-4 h-4" />
-                    Mark Surah as Complete
-                  </Button>
-                )}
-              </CardContent>
-            </Card>
-          )}
-
-          {/* Bookmarks Summary */}
-          {bookmarks.length > 0 && (
-            <Card className="quran-card">
-              <CardHeader>
-                <CardTitle className="text-base flex items-center gap-2">
-                  <BookmarkCheck className="w-4 h-4" />
-                  Bookmarks ({bookmarks.length})
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {bookmarks.map((bookmark) => (
-                    <div
-                      key={bookmark.id}
-                      className="flex items-center justify-between p-2 bg-muted rounded-lg"
-                    >
-                      <span className="text-sm">Ayah {bookmark.ayahNumber}</span>
-                      <Button
-                        variant="ghost"
-                        size="sm"
-                        onClick={() => toggleBookmark(bookmark.ayahNumber)}
-                      >
-                        <X className="w-4 h-4" />
-                      </Button>
-                    </div>
-                  ))}
-                </div>
-              </CardContent>
-            </Card>
+                  );
+                })}
+              </div>
+            </ScrollArea>
           )}
         </div>
       </div>

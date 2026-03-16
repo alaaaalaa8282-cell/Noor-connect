@@ -1,5 +1,5 @@
 import { AppBar } from "@/components/AppBar";
-import QiblaCompassNative from "@/components/QiblaCompassNative";
+import QiblaCompassModern from "@/components/QiblaCompassModern";
 import { PageTransition } from "@/components/PageTransition";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 
@@ -10,7 +10,7 @@ const Qibla = () => {
     <PageTransition>
       <div className="min-h-screen bg-background">
         <AppBar title={t("qibla") || "Qibla"} />
-        <QiblaCompassNative />
+        <QiblaCompassModern />
       </div>
     </PageTransition>
   );

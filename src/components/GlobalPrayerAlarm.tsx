@@ -3,6 +3,7 @@ import { toast } from 'sonner';
 import { prayerTimesApiResponseSchema, safeParseApiResponse } from '@/lib/api-schemas';
 import { getAdhanUrlForPrayer, type PrayerName } from '@/lib/adhan-preferences';
 import { localNotifications } from '@/lib/local-notifications';
+import { adhanService, type AdhanConfig } from '@/lib/adhan-service';
 import {
   PRAYER_ALARM_CONTROL_EVENT,
   PRAYER_ALARM_STATE_EVENT,
@@ -17,9 +18,24 @@ const LAST_PLAYED_KEY = 'prayer-alarm-last-played';
 const PRAYER_TIMES_KEY = 'cached-prayer-times';
 const REMINDER_MINUTES_KEY = 'prayer-reminder-minutes';
 const LAST_REMINDER_KEY = 'prayer-reminder-last-played';
+const PRAYER_TOGGLE_MAP: Record<PrayerName, keyof AdhanConfig> = {
+  Fajr: 'fajrEnabled',
+  Dhuhr: 'dhuhrEnabled',
+  Asr: 'asrEnabled',
+  Maghrib: 'maghribEnabled',
+  Isha: 'ishaEnabled',
+};
 
-if (!localStorage.getItem(STORAGE_KEY)) {
-  localStorage.setItem(STORAGE_KEY, 'true');
+// Keep initial alarm flag aligned with adhan-config if it exists
+if (typeof window !== 'undefined' && typeof localStorage !== 'undefined') {
+  const existingToggle = localStorage.getItem(STORAGE_KEY);
+  const adhanConfig = adhanService.getAdhanConfig();
+  if (existingToggle === null) {
+    localStorage.setItem(STORAGE_KEY, adhanConfig.enabled ? 'true' : 'false');
+  } else if ((existingToggle === 'true') !== adhanConfig.enabled) {
+    // Favor user-facing toggle stored in localStorage but mirror it into adhan-config
+    adhanService.saveAdhanConfig({ ...adhanConfig, enabled: existingToggle === 'true' });
+  }
 }
 
 interface PrayerTime {
@@ -53,6 +69,17 @@ const normalizePrayerName = (name: string): PrayerName | null => {
 export const GlobalPrayerAlarm = () => {
   const checkIntervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
   const audioRef = useRef<HTMLAudioElement | null>(null);
+
+  const isAdhanEnabledForPrayer = useCallback(
+    (prayerName: PrayerName | null) => {
+      const config = adhanService.getAdhanConfig();
+      if (!config.enabled) return false;
+      if (!prayerName) return config.enabled;
+      const key = PRAYER_TOGGLE_MAP[prayerName];
+      return key ? Boolean((config as any)[key]) : true;
+    },
+    []
+  );
 
   const emitPlaybackState = useCallback((isPlaying: boolean, prayerName: string | null) => {
     const detail: PrayerAlarmStateDetail = { isPlaying, prayerName };
@@ -165,12 +192,17 @@ export const GlobalPrayerAlarm = () => {
 
   const playAdhan = useCallback(
     async (prayerName: string, options?: { force?: boolean }) => {
-      const isEnabled = localStorage.getItem(STORAGE_KEY) === 'true';
-      if (!options?.force && !isEnabled) return;
+      const isAlarmEnabled = localStorage.getItem(STORAGE_KEY) === 'true';
+      const normalizedPrayer = normalizePrayerName(prayerName);
+      const configAllowsPrayer = normalizedPrayer ? isAdhanEnabledForPrayer(normalizedPrayer) : true;
+
+      if (!options?.force) {
+        if (!isAlarmEnabled) return;
+        if (!configAllowsPrayer) return;
+      }
 
       stopCurrentAdhan();
 
-      const normalizedPrayer = normalizePrayerName(prayerName);
       const adhanUrl = normalizedPrayer
         ? await getAdhanUrlForPrayer(normalizedPrayer)
         : isValidPrayerName(prayerName)
@@ -179,7 +211,8 @@ export const GlobalPrayerAlarm = () => {
 
       const audio = new Audio(adhanUrl);
       audioRef.current = audio;
-      audio.volume = 0.8;
+      const { volume } = adhanService.getAdhanConfig();
+      audio.volume = Math.min(Math.max((volume ?? 80) / 100, 0), 1);
       audio.preload = 'auto';
       audio.loop = false;
 
@@ -263,7 +296,8 @@ export const GlobalPrayerAlarm = () => {
 
   const checkPrayerTime = useCallback(() => {
     const isEnabled = localStorage.getItem(STORAGE_KEY) === 'true';
-    if (!isEnabled) return;
+    const config = adhanService.getAdhanConfig();
+    if (!isEnabled || !config.enabled) return;
 
     const cached = readCachedPrayerTimes();
     if (!cached) return;
@@ -289,6 +323,11 @@ export const GlobalPrayerAlarm = () => {
       const prayerTime = normalizeTimeString(prayer.time);
       const prayerKey = `${today}-${prayer.name}`;
       const reminderKey = `${today}-${prayer.name}-reminder`;
+
+      const normalizedPrayer = normalizePrayerName(prayer.name);
+      if (normalizedPrayer && !isAdhanEnabledForPrayer(normalizedPrayer)) {
+        continue;
+      }
 
       if (prayerTime === currentTimeStr && lastPlayed !== prayerKey) {
         localStorage.setItem(LAST_PLAYED_KEY, prayerKey);
@@ -333,7 +372,7 @@ export const GlobalPrayerAlarm = () => {
   }, [stopCurrentAdhan]);
 
   useEffect(() => {
-    if (localStorage.getItem(STORAGE_KEY) === 'true') {
+    if (localStorage.getItem(STORAGE_KEY) === 'true' && adhanService.getAdhanConfig().enabled) {
       startChecking();
     }
 

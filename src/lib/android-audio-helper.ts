@@ -1,11 +1,12 @@
 /**
- * Android Background Audio Helper
- * Provides fallback solutions for Android background playback issues
+ * Enhanced Android Background Audio Helper
+ * Provides comprehensive solutions for background playback across platforms
  */
 
 export class AndroidAudioHelper {
   private static instance: AndroidAudioHelper;
   private wakeLock: WakeLockSentinel | null = null;
+  private pageVisibilityHandler: ((isVisible: boolean) => void) | null = null;
 
   static getInstance(): AndroidAudioHelper {
     if (!AndroidAudioHelper.instance) {
@@ -56,22 +57,60 @@ export class AndroidAudioHelper {
   }
 
   /**
+   * Check if running on iOS
+   */
+  isIOS(): boolean {
+    return /iPad|iPhone|iPod/.test(navigator.userAgent);
+  }
+
+  /**
+   * Check if running on Safari
+   */
+  isSafari(): boolean {
+    return /Safari/.test(navigator.userAgent) && !/Chrome/.test(navigator.userAgent);
+  }
+
+  /**
+   * Setup platform-specific audio optimizations
+   */
+  setupPlatformOptimizations(audio: HTMLAudioElement): void {
+    // Common optimizations for all platforms
+    audio.preload = 'auto';
+    audio.loop = false;
+    
+    // Platform-specific optimizations
+    if (this.isAndroid()) {
+      this.setupAndroidOptimizations(audio);
+    } else if (this.isIOS()) {
+      this.setupIOSOptimizations(audio);
+    } else {
+      this.setupDesktopOptimizations(audio);
+    }
+    
+    console.log(`Platform optimizations applied: ${this.getPlatformName()}`);
+  }
+
+  /**
    * Setup Android-specific audio optimizations
    */
   setupAndroidOptimizations(audio: HTMLAudioElement): void {
-    if (!this.isAndroid()) return;
-
     try {
-      // Set audio properties for better Android background playback
-      audio.preload = 'auto';
-      audio.loop = false;
-      
-      // Enable background playback hints
+      // Android-specific attributes
       (audio as any).setAttribute('playsinline', 'true');
       (audio as any).setAttribute('webkit-playsinline', 'true');
+      (audio as any).setAttribute('x-webkit-airplay', 'allow');
+      
+      // Audio context for better background handling
+      if (!this.audioContext && 'AudioContext' in window) {
+        this.audioContext = new (window as any).AudioContext();
+        this.audioContext.resume();
+      }
       
       // Request wake lock for background playback
       this.requestWakeLock();
+      
+      // Set up visibility change handler for Android
+      this.setupVisibilityHandler();
       
       console.log('Android audio optimizations applied');
     } catch (error) {
@@ -80,10 +119,124 @@ export class AndroidAudioHelper {
   }
 
   /**
-   * Cleanup Android-specific resources
+   * Setup iOS-specific audio optimizations
+   */
+  setupIOSOptimizations(audio: HTMLAudioElement): void {
+    try {
+      // iOS-specific attributes
+      (audio as any).setAttribute('playsinline', 'true');
+      (audio as any).setAttribute('webkit-playsinline', 'true');
+      
+      // Prevent iOS from stopping audio
+      audio.muted = false;
+      audio.volume = 1.0;
+      
+      // Request wake lock
+      this.requestWakeLock();
+      
+      console.log('iOS audio optimizations applied');
+    } catch (error) {
+      console.warn('Failed to apply iOS optimizations:', error);
+    }
+  }
+
+  /**
+   * Setup desktop browser optimizations
+   */
+  setupDesktopOptimizations(audio: HTMLAudioElement): void {
+    try {
+      // Desktop optimizations
+      audio.crossOrigin = 'anonymous';
+      
+      // Request wake lock for desktop
+      this.requestWakeLock();
+      
+      console.log('Desktop audio optimizations applied');
+    } catch (error) {
+      console.warn('Failed to apply desktop optimizations:', error);
+    }
+  }
+
+  /**
+   * Setup visibility change handler for background playback
+   */
+  setupVisibilityHandler(): void {
+    if (this.pageVisibilityHandler) return;
+    
+    this.pageVisibilityHandler = (isVisible: boolean) => {
+      console.log(`Page visibility changed: ${isVisible ? 'visible' : 'hidden'}`);
+      
+      // Handle background/foreground transitions
+      if (!isVisible) {
+        // Page went to background
+        console.log('Page entered background mode');
+      } else {
+        // Page came to foreground
+        console.log('Page entered foreground mode');
+      }
+    };
+    
+    document.addEventListener('visibilitychange', () => {
+      this.pageVisibilityHandler?.(!document.hidden);
+    });
+  }
+
+  /**
+   * Get platform name for logging
+   */
+  getPlatformName(): string {
+    if (this.isAndroid()) return 'Android';
+    if (this.isIOS()) return 'iOS';
+    if (this.isSafari()) return 'Safari';
+    if (/Chrome/.test(navigator.userAgent)) return 'Chrome';
+    if (/Firefox/.test(navigator.userAgent)) return 'Firefox';
+    return 'Unknown';
+  }
+
+  /**
+   * Check if browser supports background playback
+   */
+  supportsBackgroundPlayback(): boolean {
+    // Most modern browsers support background playback with Media Session API
+    return 'mediaSession' in navigator;
+  }
+
+  /**
+   * Get background playback capabilities
+   */
+  getBackgroundCapabilities(): {
+    mediaSession: boolean;
+    wakeLock: boolean;
+    pictureInPicture: boolean;
+    platformOptimizations: boolean;
+  } {
+    return {
+      mediaSession: 'mediaSession' in navigator,
+      wakeLock: 'wakeLock' in navigator,
+      pictureInPicture: 'documentPictureInPicture' in window,
+      platformOptimizations: this.isAndroid() || this.isIOS()
+    };
+  }
+
+  /**
+   * Cleanup platform-specific resources
    */
   cleanup(): void {
     this.releaseWakeLock();
+    
+    // Clean up audio context
+    if (this.audioContext && this.audioContext.state !== 'closed') {
+      this.audioContext.close();
+      this.audioContext = null;
+    }
+    
+    // Clean up visibility handler
+    if (this.pageVisibilityHandler) {
+      document.removeEventListener('visibilitychange', () => {});
+      this.pageVisibilityHandler = null;
+    }
+    
+    console.log('Background audio cleanup complete');
   }
 
   /**
@@ -124,6 +277,9 @@ This plugin provides:
 ✅ Small footprint (~15KB)
     `;
   }
+
+  // Private audio context for better background handling
+  private audioContext: AudioContext | null = null;
 }
 
 // Export singleton instance

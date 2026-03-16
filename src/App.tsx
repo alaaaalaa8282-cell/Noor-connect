@@ -2,7 +2,7 @@ import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { BrowserRouter, Routes, Route, useLocation } from "react-router-dom";
+import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
 import { BottomNav } from "@/components/BottomNav";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { notificationManager } from "@/lib/notification-manager";
@@ -22,6 +22,8 @@ const AppUpdatePrompt = lazy(() => import("@/components/AppUpdatePrompt").then(m
 // Global Radio and Quran Players - imported directly (not lazy loaded to avoid double wrapping)
 import { GlobalRadioPlayer } from "@/components/GlobalRadioPlayer";
 import { GlobalQuranPlayer } from "@/components/GlobalQuranPlayer";
+import { EidChecklistNotification } from "@/components/EidChecklistNotification";
+import { FitranaCalculatorNotification } from "@/components/FitranaCalculatorNotification";
 
 // Set default theme to light if no preference saved
 if (!localStorage.getItem("theme")) {
@@ -32,7 +34,7 @@ if (!localStorage.getItem("theme")) {
 
 // Lazy load route components for code splitting - INCLUDING Dashboard for better LCP
 const Dashboard = lazy(() => import("./pages/Dashboard"));
-const Quran = lazy(() => import("./pages/Quran"));
+const SurahList = lazy(() => import("./pages/SurahList"));
 const QuranReader = lazy(() => import("./pages/QuranReader"));
 const QuranProgress = lazy(() => import("./pages/QuranProgress"));
 const Tasbeeh = lazy(() => import("./pages/Tasbeeh"));
@@ -55,11 +57,14 @@ const IslamicQuiz = lazy(() => import("./pages/EnhancedIslamicQuiz"));
 const PrayerStats = lazy(() => import("./pages/PrayerStats"));
 const HabitTracker = lazy(() => import("./pages/HabitTracker"));
 const QuranRadio = lazy(() => import("./pages/QuranRadio"));
+const QuranAudio = lazy(() => import("./pages/QuranAudio"));
 const LiveStreams = lazy(() => import("./pages/LiveStreams"));
 const Services = lazy(() => import("./pages/Services"));
 const IslamicRemedies = lazy(() => import("./pages/IslamicRemedies"));
 const RemedyFavorites = lazy(() => import("./pages/RemedyFavorites"));
 const Tafsir = lazy(() => import("./pages/Tafsir-New"));
+const EidChecklist = lazy(() => import("./pages/EidChecklist"));
+const FitranaCalculator = lazy(() => import("./pages/FitranaCalculator"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
 import { prefetchCriticalChunks } from "@/lib/build-optimization";
@@ -130,8 +135,11 @@ function AppRoutes() {
         {/* Home/Dashboard */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
-        <Route path="/quran" element={<Quran />} />
-        <Route path="/quran-reader/:surahNumber" element={<QuranReader />} />
+        <Route path="/quran" element={<SurahList />} />
+        <Route path="/quran-reader/:surahNumber" element={<Navigate to="/quran" replace />} />
+        <Route path="/mushaf/:surahNumber" element={<Navigate to="/quran" replace />} />
+        <Route path="/mushaf-viewer" element={<Navigate to="/quran" replace />} />
+        <Route path="/quran/:surahName" element={<QuranReader />} />
         <Route path="/quran-progress" element={<QuranProgress />} />
         <Route path="/tasbeeh" element={<Tasbeeh />} />
         <Route path="/qibla" element={<Qibla />} />
@@ -153,11 +161,14 @@ function AppRoutes() {
         <Route path="/prayer-stats" element={<PrayerStats />} />
         <Route path="/habit-tracker" element={<HabitTracker />} />
         <Route path="/quran-radio" element={<QuranRadio />} />
+        <Route path="/quran-audio" element={<QuranAudio />} />
         <Route path="/live" element={<LiveStreams />} />
         <Route path="/services" element={<Services />} />
         <Route path="/islamic-remedies" element={<IslamicRemedies />} />
         <Route path="/remedy-favorites" element={<RemedyFavorites />} />
         <Route path="/tafsir" element={<Tafsir />} />
+        <Route path="/eid-checklist" element={<EidChecklist />} />
+        <Route path="/fitrana-calculator" element={<FitranaCalculator />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
@@ -283,6 +294,8 @@ const App = () => {
               <FestivePopup />
               <PWAInstallPrompt />
               <AppUpdatePrompt />
+              <EidChecklistNotification />
+              <FitranaCalculatorNotification />
             </Suspense>
           </div>
 
