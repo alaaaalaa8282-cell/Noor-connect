@@ -2,7 +2,8 @@ import { useState, useEffect, useCallback, useMemo, Suspense, lazy, type MouseEv
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight, Sparkles, MessageCircle, Settings } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight, Sparkles, MessageCircle, Settings, Clock, TrendingUp, Award, Grid3X3, Building } from "lucide-react";
+import { motion, AnimatePresence } from "framer-motion";
 import { AppBar } from "@/components/AppBar";
 const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
 const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
@@ -39,12 +40,52 @@ import { PageTransition } from "@/components/PageTransition";
 import { widgetRefreshManager } from "@/lib/widget-refresh";
 
 const prayerIcons: Record<string, React.ReactNode> = {
-  Fajr: <Moon className="w-5 h-5" />,
-  Dhuhr: <Sun className="w-5 h-5" />,
-  Asr: <Cloud className="w-5 h-5" />,
-  Maghrib: <Sunset className="w-5 h-5" />,
-  Isha: <CloudMoon className="w-5 h-5" />,
+  Fajr: <Moon className="w-5 h-5 text-indigo-400" />,
+  Dhuhr: <Sun className="w-5 h-5 text-amber-400" />,
+  Asr: <Cloud className="w-5 h-5 text-blue-400" />,
+  Maghrib: <Sunset className="w-5 h-5 text-orange-400" />,
+  Isha: <CloudMoon className="w-5 h-5 text-purple-400" />,
 };
+
+// Premium gradient cards for main features
+const featureCards = [
+  {
+    id: 'quran',
+    title: 'Quran',
+    description: 'Read & Listen',
+    icon: BookOpen,
+    gradient: 'from-emerald-500 to-teal-600',
+    route: '/quran',
+    stats: '114 Surahs'
+  },
+  {
+    id: 'prayer',
+    title: 'Prayer',
+    description: 'Times & Qibla',
+    icon: Building,
+    gradient: 'from-blue-500 to-indigo-600',
+    route: '/qibla',
+    stats: '5 Daily'
+  },
+  {
+    id: 'tasbeeh',
+    title: 'Tasbeeh',
+    description: 'Dhikr Counter',
+    icon: Sparkles,
+    gradient: 'from-purple-500 to-pink-600',
+    route: '/tasbeeh',
+    stats: 'Track'
+  },
+  {
+    id: 'services',
+    title: 'Services',
+    description: 'All Features',
+    icon: Grid3X3,
+    gradient: 'from-amber-500 to-orange-600',
+    route: '/services',
+    stats: '20+ Tools'
+  }
+];
 
 export default function Dashboard() {
   const navigate = useNavigate();
@@ -507,85 +548,155 @@ export default function Dashboard() {
 
 
 
-          {/* Islamic Greeting (shows on special days) */}
-          <Suspense fallback={null}>
-            <IslamicGreeting />
-          </Suspense>
+          {/* Premium Feature Cards Grid */}
+          <div className="grid grid-cols-2 gap-4">
+            <AnimatePresence>
+              {featureCards.map((card, index) => {
+                const Icon = card.icon;
+                return (
+                  <motion.div
+                    key={card.id}
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.1, duration: 0.5 }}
+                    whileHover={{ scale: 1.02, y: -2 }}
+                    whileTap={{ scale: 0.98 }}
+                    onClick={() => handleCardClick({} as any, card.route)}
+                    className="relative overflow-hidden rounded-2xl cursor-pointer group"
+                  >
+                    {/* Gradient Background */}
+                    <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient}`} />
+                    
+                    {/* Glass Overlay */}
+                    <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+                    
+                    {/* Content */}
+                    <div className="relative z-10 p-4 h-24 flex flex-col justify-between">
+                      <div className="flex items-start justify-between">
+                        <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
+                          <Icon className="w-5 h-5 text-white" />
+                        </div>
+                        <div className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
+                          <span className="text-[10px] font-semibold text-white">{card.stats}</span>
+                        </div>
+                      </div>
+                      
+                      <div>
+                        <h3 className="font-bold text-white text-lg">{card.title}</h3>
+                        <p className="text-white/80 text-xs">{card.description}</p>
+                      </div>
+                    </div>
+                    
+                    {/* Hover Effect */}
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
+                  </motion.div>
+                );
+              })}
+            </AnimatePresence>
+          </div>
 
-          {/* Islamic Events Widget */}
-          <Suspense fallback={<div className="h-[120px] bg-muted/20 animate-pulse rounded-lg" />}>
-            <IslamicEventsWidget />
-          </Suspense>
-
-          {/* Prayer Countdown Widget */}
-          <ErrorBoundary>
-            <Suspense fallback={<div className="h-[320px] bg-muted/20 animate-pulse rounded-lg" />}>
-              <PrayerCountdown
-                timings={prayerTimesHook.prayerTimesWithEnd}
-                location={prayerTimesHook.location}
-                isLoading={prayerTimesHook.isLoading}
-                error={prayerTimesHook.error}
-                needsManualLocation={prayerTimesHook.needsManualLocation}
-                refresh={prayerTimesHook.refresh}
-                setManualLocation={prayerTimesHook.setManualLocation}
-                timeZone={timezoneLabel}
-              />
-            </Suspense>
-          </ErrorBoundary>
-
-          {/* Salah Tracker */}
-          <Suspense fallback={
-            <div className="h-40 card-premium skeleton-premium" />
-          }>
-            <SalahTracker />
-          </Suspense>
-
-
-          {/* Prayer Times List */}
-          <ErrorBoundary>
-            <Suspense fallback={<div className="space-y-3">
-              <div className="h-6 bg-muted/20 animate-pulse rounded-lg w-32" />
-              {Array.from({ length: 5 }).map((_, i) => (
-                <div key={i} className="h-[72px] bg-muted/20 animate-pulse rounded-lg" />
+          {/* Premium Prayer Times Card */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.4, duration: 0.5 }}
+            className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-3xl p-6 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
+          >
+            <div className="flex items-center justify-between mb-4">
+              <div className="flex items-center gap-3">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
+                  <Building className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Prayer Times</h3>
+                  <p className="text-sm text-slate-600 dark:text-slate-400">{locationLabel}</p>
+                </div>
+              </div>
+              <div className="text-right">
+                <p className="text-xs text-slate-500 dark:text-slate-400">Next Prayer</p>
+                <p className="font-bold text-lg text-blue-600 dark:text-blue-400">{nextPrayerName || 'Loading...'}</p>
+              </div>
+            </div>
+            
+            <div className="space-y-3">
+              {prayers.slice(0, 3).map((prayer, index) => (
+                <motion.div
+                  key={prayer.name}
+                  initial={{ opacity: 0, x: -20 }}
+                  animate={{ opacity: 1, x: 0 }}
+                  transition={{ delay: 0.5 + index * 0.1 }}
+                  className="flex items-center justify-between p-3 bg-white/50 dark:bg-slate-800/50 rounded-2xl backdrop-blur-sm border border-slate-200/30 dark:border-slate-700/30"
+                >
+                  <div className="flex items-center gap-3">
+                    <div className="p-2 bg-white dark:bg-slate-700 rounded-xl shadow-sm">
+                      {prayerIcons[prayer.name]}
+                    </div>
+                    <div>
+                      <p className="font-semibold text-slate-900 dark:text-white">{prayer.name}</p>
+                      <p className="text-xs text-slate-500 dark:text-slate-400">Prayer Time</p>
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <p className="font-bold text-lg text-slate-900 dark:text-white font-mono">{prayer.time}</p>
+                  </div>
+                </motion.div>
               ))}
-            </div>}>
-              <PrayerTimesList
-                timings={prayerTimesHook.prayerTimesWithEnd}
-                location={prayerTimesHook.location}
-                isLoading={prayerTimesHook.isLoading}
-                error={prayerTimesHook.error}
-                needsManualLocation={prayerTimesHook.needsManualLocation}
-                refresh={prayerTimesHook.refresh}
-                setManualLocation={prayerTimesHook.setManualLocation}
-                timeZone={timezoneLabel}
-              />
-            </Suspense>
-          </ErrorBoundary>
+            </div>
+            
+            <motion.button
+              whileHover={{ scale: 1.02 }}
+              whileTap={{ scale: 0.98 }}
+              onClick={() => navigate('/qibla')}
+              className="w-full mt-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
+            >
+              View All Prayer Times
+            </motion.button>
+          </motion.div>
 
-          {/* Daily Ayah */}
-          <Suspense fallback={<div className="h-52 rounded-xl bg-muted/20 animate-pulse" />}>
-            <DailyAyah />
-          </Suspense>
+          {/* Premium Daily Content Section */}
+          <div className="grid grid-cols-1 gap-4">
+            {/* Daily Ayah Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.6, duration: 0.5 }}
+              className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-3xl p-6 shadow-lg border border-emerald-200/50 dark:border-emerald-700/50"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg">
+                  <BookOpen className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Daily Ayah</h3>
+                  <p className="text-sm text-emerald-600 dark:text-emerald-400">Quranic Inspiration</p>
+                </div>
+              </div>
+              <Suspense fallback={<div className="h-32 bg-emerald-100/50 dark:bg-emerald-800/50 rounded-2xl animate-pulse" />}>
+                <DailyAyah />
+              </Suspense>
+            </motion.div>
 
-          {/* Weather Widget */}
-          <Suspense fallback={<div className="h-48 rounded-xl bg-muted/20 animate-pulse" />}>
-            <WeatherWidget />
-          </Suspense>
-
-          {/* Prayer Stats Widget */}
-          <Suspense fallback={<div className="h-64 rounded-xl bg-muted/20 animate-pulse" />}>
-            <PrayerStatsWidget />
-          </Suspense>
-
-          {/* Quran Progress Widget */}
-          <Suspense fallback={<div className="h-20 bg-muted/20 animate-pulse rounded-lg" />}>
-            <QuranProgressWidget />
-          </Suspense>
-
-          {/* Daily Hadith */}
-          <Suspense fallback={<div className="h-52 rounded-xl bg-muted/20 animate-pulse" />}>
-            <DailyHadith />
-          </Suspense>
+            {/* Daily Hadith Card */}
+            <motion.div
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.7, duration: 0.5 }}
+              className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-3xl p-6 shadow-lg border border-blue-200/50 dark:border-blue-700/50"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
+                  <MessageCircle className="w-6 h-6 text-white" />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Daily Hadith</h3>
+                  <p className="text-sm text-blue-600 dark:text-blue-400">Prophetic Wisdom</p>
+                </div>
+              </div>
+              <Suspense fallback={<div className="h-32 bg-blue-100/50 dark:bg-blue-800/50 rounded-2xl animate-pulse" />}>
+                <DailyHadith />
+              </Suspense>
+            </motion.div>
+          </div>
 
 
 

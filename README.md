@@ -20,6 +20,7 @@
 - Localization-based prayer timings worldwide (offline fallback support)
 - Customizable Adhan notifications with multiple sounds
 - Global prayer alarm system
+- Per-prayer enable/disable switches so you can silence specific Adhans without affecting others
 - Prayer method & Madhab calculation selection (Hanafi, Shafi'i)
 
 ### 🕋 Qibla Finder
@@ -96,6 +97,7 @@ npx cap open android
 - **Tafsir & Hadith Capabilities**: Integrated a robust Tafsir Explorer and comprehensive new Hadith collection features.
 - **UI/UX Revolution**: Reordered the Dashboard for better user experience, optimized home-screen widgets with a premium glassmorphism design, and removed unnecessary splash screens.
 - **Notification & Interactivity Fixes**: Heavily improved the adhan and notification system for greater reliability, fixing background execution and alarm scheduling bugs.
+- **Adhan Controls**: Added per-prayer Adhan on/off switches and synced them with the global alarm so silencing a prayer also stops any in-progress playback.
 - **Data Protection**: Implemented a comprehensive Backup and Restore feature allowing users to export and import all settings, progress, and books to a single file.
 - **Performance & Cleanup**: Engineered a massive optimization to the Hadith UI to prevent lag with large books, pruned unused app code, and polished the translation architecture.
 
