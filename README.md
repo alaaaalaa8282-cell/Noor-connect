@@ -97,8 +97,7 @@ This project is generously licensed under the [MIT License](LICENSE).
 
 <p align="center">
   <i>"Indeed, in the remembrance of Allah do hearts find rest." (Ar-Ra'd 13:28)</i>
-
-<img width="2048" height="6116" alt="ao2r6ooztsbzqzs0gyot" src="https://github.com/user-attachments/assets/9d5f585c-c981-4ec3-b76b-98db58e326ed" />
-<img width="2048" height="16452" alt="kz29bm528tqdlrkdllka" src="https://github.com/user-attachments/assets/68ff891a-99b1-4906-8e5e-7ae040d501a9" />
-<img width="2048" height="21008" alt="p2nplsqzwlfgltgpwcyv" src="https://github.com/user-attachments/assets/ba728807-a52c-4178-ad78-ad0350edbf88" />
+<img width="800" alt="ao2r6ooztsbzqzs0gyot" src="https://github.com/user-attachments/assets/9d5f585c-c981-4ec3-b76b-98db58e326ed" />
+<img width="800" alt="kz29bm528tqdlrkdllka" src="https://github.com/user-attachments/assets/68ff891a-99b1-4906-8e5e-7ae040d501a9" />
+<img width="800" alt="p2nplsqzwlfgltgpwcyv" src="https://github.com/user-attachments/assets/ba728807-a52c-4178-ad78-ad0350edbf88" />
 
