@@ -149,7 +149,10 @@ export default function RamadanMode() {
       setSuhoorTime(formatTime(timings.Imsak || timings.Fajr));
       setIftarTime(formatTime(timings.Maghrib));
       setFastingDuration(calculateDuration(timings.Imsak || timings.Fajr, timings.Maghrib));
-      setHijriDate(islamicInfo?.currentDate.hijri_readable || "Calculating...");
+      const hijri = islamicInfo?.currentDate?.hijri;
+      setHijriDate(
+        hijri ? `${hijri.day} ${hijri.month.en} ${hijri.year}` : "Calculating..."
+      );
       setDailyDua(null);
       setDailyHadith(null);
 
@@ -416,7 +419,8 @@ export default function RamadanMode() {
       tarawihPrayers: [],
       charityAmount: 0,
       goodDeeds: 0,
-      eidCountdown: 30
+      eidCountdown: 30,
+      waterRemindersEnabled: data.waterRemindersEnabled
     };
     saveData(newData);
     setCurrentDay(1);

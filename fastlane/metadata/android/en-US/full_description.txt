@@ -1,0 +1,11 @@
+Noor Connect is a comprehensive, beautiful, and privacy-focused Islamic application designed to help you stay connected with your faith. Built with modern web technologies and optimized for mobile experiences via Capacitor, it serves as your digital companion for daily spiritual growth.
+
+Key Features:
+• Holy Quran & Tafsir
+• Accurate Prayer Times & Adhan
+• High-precision Qibla Finder
+• Quran Radio & E-books
+• Ramadan Fasting & Suhoor/Iftar timings
+• Spiritual & Gamified Tracking (Tasbeeh, Habits, Qaza)
+
+Noor Connect is built with "Privacy First" principles. Your personal data and prayer habits are never tracked. All states and data are stored strictly via local storage. There are absolutely zero third-party analytics or data collection scripts. Open source and transparent code you can trust.

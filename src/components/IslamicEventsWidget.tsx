@@ -4,12 +4,11 @@
  */
 
 import { useState, useEffect } from 'react';
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Badge } from '@/components/ui/badge';
 import { Calendar, Bell, Clock, Star } from 'lucide-react';
 import { islamicEventsService } from '@/lib/islamic-events-service';
-import { islamicCalendarService } from '@/lib/islamic-calendar-service';
-import { importantIslamicDates } from '@/data/islamic-dates';
 import { Button } from '@/components/ui/button';
 import { useToast } from '@/hooks/use-toast';
 
@@ -24,6 +23,7 @@ interface IslamicEvent {
 }
 
 export function IslamicEventsWidget() {
+  const navigate = useNavigate();
   const [todayEvent, setTodayEvent] = useState<IslamicEvent | null>(null);
   const [upcomingEvents, setUpcomingEvents] = useState<IslamicEvent[]>([]);
   const [loading, setLoading] = useState(true);
@@ -55,6 +55,8 @@ export function IslamicEventsWidget() {
           ...todaysEvent,
           isToday: true
         });
+      } else {
+        setTodayEvent(null);
       }
 
       // Get upcoming events
@@ -128,97 +130,103 @@ export function IslamicEventsWidget() {
   }
 
   return (
-    <div className="space-y-4">
-      {/* Today's Islamic Event */}
-      {todayEvent && (
-        <Card className={`border-2 ${getEventColor(todayEvent.type)}`}>
-          <CardHeader className="pb-3">
-            <CardTitle className="flex items-center gap-2 text-base">
-              {getEventIcon(todayEvent.type)}
-              Today's Islamic Event
-            </CardTitle>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            <div>
-              <h3 className="font-bold text-lg">{todayEvent.name}</h3>
-              <p className="font-arabic text-sm text-muted-foreground mt-1">
-                {todayEvent.arabicName}
-              </p>
+    <Card className="relative overflow-hidden border-amber-200/60 bg-gradient-to-br from-amber-50/70 via-card to-transparent dark:from-amber-950/20 dark:via-card dark:to-transparent">
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-amber-400/50 to-transparent" />
+
+      <CardHeader className="pb-3">
+        <div className="flex items-center justify-between">
+          <CardTitle className="flex items-center gap-2 text-base">
+            <Calendar className="w-4 h-4 text-amber-700 dark:text-amber-400" />
+            Islamic Events
+          </CardTitle>
+
+          <Button
+            variant="ghost"
+            size="sm"
+            onClick={scheduleNotifications}
+            className="h-8 px-3 rounded-xl gap-2"
+          >
+            <Bell className="w-4 h-4" />
+            Notify
+          </Button>
+        </div>
+        <p className="text-xs text-muted-foreground">Upcoming holidays & special days</p>
+      </CardHeader>
+
+      <CardContent className="space-y-4">
+        {/* Today */}
+        {todayEvent ? (
+          <div className={`p-3 rounded-2xl border ${getEventColor(todayEvent.type)}`}>
+            <div className="flex items-start justify-between gap-3">
+              <div className="flex-1 min-w-0">
+                <div className="flex items-center gap-2">
+                  {getEventIcon(todayEvent.type)}
+                  <p className="text-sm font-semibold text-foreground truncate">{todayEvent.name}</p>
+                </div>
+                <p className="font-arabic text-xs text-muted-foreground mt-1 truncate">
+                  {todayEvent.arabicName}
+                </p>
+              </div>
+              <Badge variant="secondary" className="rounded-full text-[10px]">
+                Today
+              </Badge>
             </div>
-            <p className="text-sm text-muted-foreground">
+            <p className="text-xs text-muted-foreground mt-2">
               {todayEvent.description}
             </p>
-            <Badge variant="secondary" className="w-fit">
-              {todayEvent.type.charAt(0).toUpperCase() + todayEvent.type.slice(1)}
-            </Badge>
-          </CardContent>
-        </Card>
-      )}
+          </div>
+        ) : (
+          <div className="p-3 rounded-2xl bg-muted/30 border border-border/50 text-xs text-muted-foreground">
+            No special events today.
+          </div>
+        )}
 
-      {/* Upcoming Events */}
-      {upcomingEvents.length > 0 && (
-        <Card>
-          <CardHeader className="pb-3">
-            <div className="flex items-center justify-between">
-              <CardTitle className="flex items-center gap-2 text-base">
-                <Calendar className="w-4 h-4" />
-                Upcoming Events
-              </CardTitle>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={scheduleNotifications}
-                className="gap-2"
-              >
-                <Bell className="w-4 h-4" />
-                Schedule Notifications
-              </Button>
-            </div>
-          </CardHeader>
-          <CardContent className="space-y-3">
-            {upcomingEvents.map((event) => (
-              <div
-                key={event.id}
-                className={`p-3 rounded-lg border ${getEventColor(event.type)}`}
-              >
-                <div className="flex items-start justify-between gap-3">
-                  <div className="flex-1">
-                    <div className="flex items-center gap-2 mb-1">
-                      {getEventIcon(event.type)}
-                      <h4 className="font-semibold text-sm">{event.name}</h4>
+        {/* Upcoming */}
+        {upcomingEvents.length > 0 ? (
+          <div className="space-y-2">
+            <p className="text-[10px] text-muted-foreground uppercase tracking-wider font-semibold">
+              Next up
+            </p>
+            <div className="space-y-2">
+              {upcomingEvents.slice(0, 2).map((event) => (
+                <div
+                  key={event.id}
+                  className={`p-3 rounded-2xl border ${getEventColor(event.type)}`}
+                >
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="flex-1 min-w-0">
+                      <div className="flex items-center gap-2">
+                        {getEventIcon(event.type)}
+                        <p className="text-xs font-semibold text-foreground truncate">{event.name}</p>
+                      </div>
+                      <p className="font-arabic text-[10px] text-muted-foreground mt-1 truncate">
+                        {event.arabicName}
+                      </p>
                     </div>
-                    <p className="font-arabic text-xs text-muted-foreground">
-                      {event.arabicName}
-                    </p>
-                    <p className="text-xs text-muted-foreground mt-1">
-                      {event.description}
-                    </p>
-                  </div>
-                  <div className="text-right">
-                    <Badge variant="outline" className="text-xs">
-                      {event.daysUntil === 1 ? 'Tomorrow' : `${event.daysUntil} days`}
+                    <Badge variant="outline" className="rounded-full text-[10px]">
+                      {event.daysUntil === 1 ? "Tomorrow" : `${event.daysUntil}d`}
                     </Badge>
                   </div>
                 </div>
-              </div>
-            ))}
-          </CardContent>
-        </Card>
-      )}
+              ))}
+            </div>
+          </div>
+        ) : (
+          <div className="text-xs text-muted-foreground">
+            No upcoming events in the next 7 days.
+          </div>
+        )}
 
-      {/* No Events */}
-      {!todayEvent && upcomingEvents.length === 0 && (
-        <Card>
-          <CardContent className="p-6 text-center">
-            <Calendar className="w-8 h-8 mx-auto mb-3 text-muted-foreground" />
-            <h3 className="font-semibold mb-2">No Special Events This Week</h3>
-            <p className="text-sm text-muted-foreground">
-              Check back later for upcoming Islamic events and holidays
-            </p>
-          </CardContent>
-        </Card>
-      )}
-    </div>
+        <Button
+          variant="outline"
+          size="sm"
+          className="w-full rounded-xl"
+          onClick={() => navigate("/calendar")}
+        >
+          View Calendar
+        </Button>
+      </CardContent>
+    </Card>
   );
 }
 

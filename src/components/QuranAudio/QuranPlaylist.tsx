@@ -1,7 +1,6 @@
-import { useState } from 'react';
 import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
-import { List, Play, Plus, X } from 'lucide-react';
+import { List, Play, X } from 'lucide-react';
 import { SurahAudio } from '@/lib/quran-audio';
 
 interface QuranPlaylistProps {
@@ -36,9 +35,9 @@ export function QuranPlaylist({
         ) : (
           playlist.map((surah) => (
             <div
-              key={surah.surah}
+              key={surah.sequence}
               className={`flex items-center justify-between p-3 rounded-lg border transition-colors ${
-                currentSurah === surah.surah 
+                currentSurah === surah.sequence 
                   ? 'bg-primary/10 border-primary' 
                   : 'bg-muted/30 hover:bg-muted/50'
               }`}
@@ -46,11 +45,11 @@ export function QuranPlaylist({
               <div className="flex items-center gap-3">
                 <Button
                   size="sm"
-                  variant={currentSurah === surah.surah ? "default" : "outline"}
-                  onClick={() => onPlaySurah(surah.surah)}
+                  variant={currentSurah === surah.sequence ? "default" : "outline"}
+                  onClick={() => onPlaySurah(surah.sequence)}
                   className="w-8 h-8 p-0"
                 >
-                  {currentSurah === surah.surah ? (
+                  {currentSurah === surah.sequence ? (
                     <div className="w-2 h-2 bg-current rounded-full animate-pulse" />
                   ) : (
                     <Play className="w-3 h-3" />
@@ -58,9 +57,9 @@ export function QuranPlaylist({
                 </Button>
                 
                 <div>
-                  <p className="font-medium text-sm">{surah.englishName}</p>
+                  <p className="font-medium text-sm">{surah.name.latin.short}</p>
                   <p className="text-xs text-muted-foreground">
-                    {surah.name} • {surah.numberOfAyahs} verses
+                    {surah.translation} • {surah.ayahCount} verses
                   </p>
                 </div>
               </div>
@@ -68,7 +67,7 @@ export function QuranPlaylist({
               <Button
                 size="sm"
                 variant="ghost"
-                onClick={() => onRemoveFromPlaylist(surah.surah)}
+                onClick={() => onRemoveFromPlaylist(surah.sequence)}
                 className="w-8 h-8 p-0 text-muted-foreground hover:text-destructive"
               >
                 <X className="w-3 h-3" />

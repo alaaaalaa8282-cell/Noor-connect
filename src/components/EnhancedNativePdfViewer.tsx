@@ -1,10 +1,11 @@
 import { useEffect, useRef, useState } from 'react';
 import { Button } from '@/components/ui/button';
-import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2, ExternalLink, Scroll } from 'lucide-react';
+import { ArrowLeft, Download, ZoomIn, ZoomOut, RotateCw, Loader2, ExternalLink, Scroll, Share2, Link, BookmarkPlus } from 'lucide-react';
 import * as pdfjsLib from 'pdfjs-dist';
 import { getPdfBlobUrl } from '@/lib/ebooks-storage';
 import { getReadingProgress, saveReadingProgress } from '@/lib/reading-progress';
 import PdfAudioPlayer from '@/components/PdfAudioPlayer';
+import { useToast } from '@/hooks/use-toast';
 
 // Configure PDF.js worker
 pdfjsLib.GlobalWorkerOptions.workerSrc = `//cdnjs.cloudflare.com/ajax/libs/pdf.js/${pdfjsLib.version}/pdf.worker.min.js`;
@@ -18,6 +19,164 @@ interface NativePdfViewerProps {
 }
 
 type ViewerMode = 'loading' | 'pdfjs' | 'iframe' | 'error';
+
+// --- URL Persistence & Sharing ---
+const useEbookUrl = (url: string, title: string) => {
+  const { toast } = useToast();
+  
+  // Update URL when opening ebook
+  const updateUrl = () => {
+    const bookId = btoa(url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+    const newUrl = `${window.location.pathname}?book=${bookId}&title=${encodeURIComponent(title)}`;
+    window.history.replaceState({ bookUrl: url, bookTitle: title }, '', newUrl);
+  };
+  
+  // Share ebook URL
+  const shareEbook = async () => {
+    const bookId = btoa(url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+    const shareUrl = `${window.location.origin}${window.location.pathname}?book=${bookId}&title=${encodeURIComponent(title)}`;
+    
+    const shareText = `Check out this Islamic book: "${title}"`;
+    
+    try {
+      if (navigator.share) {
+        await navigator.share({
+          title: title,
+          text: shareText,
+          url: shareUrl
+        });
+      } else {
+        // Fallback: copy to clipboard
+        await navigator.clipboard.writeText(`${shareText}\n${shareUrl}`);
+        toast({
+          title: "Link copied!",
+          description: "Share this link with others to open this ebook directly."
+        });
+      }
+    } catch (error) {
+      console.error('Error sharing:', error);
+      toast({
+        title: "Share failed",
+        description: "Could not share the ebook link.",
+        variant: "destructive"
+      });
+    }
+  };
+  
+  // Copy direct link
+  const copyDirectLink = async () => {
+    const bookId = btoa(url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+    const directUrl = `${window.location.origin}${window.location.pathname}?book=${bookId}&title=${encodeURIComponent(title)}`;
+    
+    try {
+      await navigator.clipboard.writeText(directUrl);
+      toast({
+        title: "Direct link copied!",
+        description: "Anyone with this link can open this ebook directly."
+      });
+    } catch (error) {
+      console.error('Error copying link:', error);
+    }
+  };
+  
+  return { updateUrl, shareEbook, copyDirectLink };
+};
+
+// --- Enhanced Header with Sharing ---
+const EnhancedPdfHeader = ({ 
+  title, 
+  onClose, 
+  onShare, 
+  onCopyLink, 
+  showAudioPlayer, 
+  setShowAudioPlayer, 
+  isVertical, 
+  toggleLayout, 
+  downloadPdf 
+}: {
+  title: string;
+  onClose: () => void;
+  onShare: () => void;
+  onCopyLink: () => void;
+  showAudioPlayer: boolean;
+  setShowAudioPlayer: (show: boolean) => void;
+  isVertical: boolean;
+  toggleLayout: () => void;
+  downloadPdf: () => void;
+}) => {
+  return (
+    <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
+      <Button size="icon" variant="ghost" onClick={onClose}>
+        <ArrowLeft className="w-5 h-5" />
+      </Button>
+      <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
+      
+      <div className="flex items-center gap-1">
+        {/* Share Button */}
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onShare}
+          title="Share ebook"
+        >
+          <Share2 className="w-4 h-4" />
+        </Button>
+        
+        {/* Copy Link Button */}
+        <Button
+          size="icon"
+          variant="ghost"
+          onClick={onCopyLink}
+          title="Copy direct link"
+        >
+          <Link className="w-4 h-4" />
+        </Button>
+        
+        {/* Layout Toggle */}
+        <Button
+          size="icon"
+          variant={isVertical ? "secondary" : "ghost"}
+          onClick={toggleLayout}
+          title={isVertical ? "Switch to Page View" : "Switch to Vertical Scroll"}
+        >
+          <Scroll className="w-4 h-4" />
+        </Button>
+        
+        {/* Download Button */}
+        <Button size="icon" variant="ghost" onClick={downloadPdf}>
+          <Download className="w-4 h-4" />
+        </Button>
+      </div>
+    </header>
+  );
+};
+
+// --- Ebook URL Parser ---
+const parseEbookUrl = (): { url?: string; title?: string } | null => {
+  const params = new URLSearchParams(window.location.search);
+  const bookId = params.get('book');
+  const bookTitle = params.get('title');
+  
+  if (!bookId) return null;
+  
+  // Try to decode the book ID to get the original URL
+  // This would need a mapping or decoding logic
+  // For now, we'll use a simple approach with localStorage mapping
+  
+  const storedBook = localStorage.getItem(`ebook-${bookId}`);
+  if (storedBook) {
+    return JSON.parse(storedBook);
+  }
+  
+  return null;
+};
+
+// --- Store Ebook Mapping ---
+const storeEbookMapping = (url: string, title: string): string => {
+  const bookId = btoa(url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
+  localStorage.setItem(`ebook-${bookId}`, JSON.stringify({ url, title }));
+  return bookId;
+};
 
 // Sub-component for rendering individual pages in vertical mode
 function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; scale: number }) {
@@ -58,30 +217,22 @@ function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; sca
         const context = canvas.getContext('2d');
         if (!context) return;
 
-        // Only resize if different to avoid flickering
-        if (canvas.height !== viewport.height || canvas.width !== viewport.width) {
-          canvas.height = viewport.height;
-          canvas.width = viewport.width;
-        }
+        canvas.height = viewport.height;
+        canvas.width = viewport.width;
 
-        // Cancel previous render if any
+        // Cancel any previous render task
         if (renderTaskRef.current) {
           renderTaskRef.current.cancel();
         }
 
-        const renderContext = {
+        renderTaskRef.current = page.render({
           canvasContext: context,
-          viewport: viewport,
-        };
+          viewport: viewport
+        });
 
-        const renderTask = page.render(renderContext);
-        renderTaskRef.current = renderTask;
-
-        await renderTask.promise;
-      } catch (error: any) {
-        if (error.name !== 'RenderingCancelledException') {
-          console.error('Error rendering page', pageNumber, error);
-        }
+        await renderTaskRef.current.promise;
+      } catch (error) {
+        console.error(`Failed to render page ${pageNumber}:`, error);
       }
     };
 
@@ -96,102 +247,64 @@ function PdfPage({ pdf, pageNumber, scale }: { pdf: any; pageNumber: number; sca
   }, [inView, pdf, pageNumber, scale]);
 
   return (
-    <div ref={containerRef} className="flex justify-center my-4 min-h-[400px]">
-      <canvas ref={canvasRef} className="border border-border shadow-lg bg-white" />
+    <div ref={containerRef} className="pdf-page-container mb-4">
+      <canvas
+        ref={canvasRef}
+        className="border border-border shadow-lg bg-white mx-auto"
+        style={{ maxWidth: '100%', height: 'auto' }}
+      />
     </div>
   );
 }
 
+// Main NativePdfViewer Component
 export default function NativePdfViewer({ url, title, localKey, progressKey, onClose }: NativePdfViewerProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
-  const objectUrlRef = useRef<string | null>(null);
+  const [viewerMode, setViewerMode] = useState<ViewerMode>('loading');
   const [pdfDocument, setPdfDocument] = useState<any>(null);
   const [currentPage, setCurrentPage] = useState(1);
   const [totalPages, setTotalPages] = useState(0);
-  const [scale, setScale] = useState(1.0);
-  const [viewerMode, setViewerMode] = useState<ViewerMode>('loading');
-  const [error, setError] = useState<string | null>(null);
+  const [scale, setScale] = useState(1.5);
   const [isVertical, setIsVertical] = useState(false);
-  const [showAudioPlayer, setShowAudioPlayer] = useState(false); // New state for vertical scroll mode
-  const [resolvedPdfSource, setResolvedPdfSource] = useState(url);
-  const effectiveProgressKey = progressKey || (localKey ? `local:${localKey}` : url);
+  const [error, setError] = useState<string | null>(null);
+  const [resolvedPdfSource, setResolvedPdfSource] = useState<string | null>(null);
+  const [showAudioPlayer, setShowAudioPlayer] = useState(false);
+  const { toast } = useToast();
 
+  // URL persistence and sharing
+  const { updateUrl, shareEbook, copyDirectLink } = useEbookUrl(url, title);
+
+  // Update URL when component mounts
   useEffect(() => {
-    void loadPdf();
-  }, [url, localKey]);
+    updateUrl();
+    // Store mapping for URL parsing
+    storeEbookMapping(url, title);
+  }, [url, title]);
 
-  useEffect(() => {
-    if (!effectiveProgressKey || totalPages <= 0) return;
-    saveReadingProgress(effectiveProgressKey, currentPage, totalPages);
-  }, [effectiveProgressKey, currentPage, totalPages]);
+  const effectiveProgressKey = progressKey || localKey || url;
+  const initialProgress = getReadingProgress(effectiveProgressKey);
+      const initialPage = typeof initialProgress === 'number' ? initialProgress : 1;
 
-  useEffect(() => {
-    return () => {
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-    };
-  }, []);
-
-
+  // Load PDF
   const loadPdf = async () => {
     try {
       setViewerMode('loading');
       setError(null);
 
-      let pdfUrl = url;
+      // Try to get blob URL first for local files
+      const blobUrl = await getPdfBlobUrl(url);
+      const pdfSource = blobUrl || url;
+      setResolvedPdfSource(pdfSource);
 
-      if (objectUrlRef.current) {
-        URL.revokeObjectURL(objectUrlRef.current);
-        objectUrlRef.current = null;
-      }
-
-      // If we have a localKey, get the blob URL from storage
-      if (localKey) {
-        console.log('Loading local PDF from storage:', localKey);
-        const blobUrl = await getPdfBlobUrl(localKey);
-        if (blobUrl) {
-          pdfUrl = blobUrl;
-          objectUrlRef.current = blobUrl;
-        } else if (!url) {
-          throw new Error('Local PDF not found in storage');
-        }
-      }
-
-      if (!pdfUrl) {
-        throw new Error('No PDF URL available');
-      }
-
-      console.log('Loading PDF from:', pdfUrl);
-      setResolvedPdfSource(pdfUrl);
-
-      // Configure PDF.js with proper settings
-      const loadingTask = pdfjsLib.getDocument({
-        url: pdfUrl,
-        cMapUrl: 'https://cdn.jsdelivr.net/npm/pdfjs-dist@3.11.174/cmaps/',
-        cMapPacked: true,
-        enableXfa: true,
-        // Add withCredentials: false to avoid credential issues
-        withCredentials: false,
-      });
-
+      const loadingTask = pdfjsLib.getDocument(pdfSource);
       const pdf = await loadingTask.promise;
-      const savedProgress = getReadingProgress(effectiveProgressKey);
-      const initialPage = savedProgress && savedProgress.currentPage >= 1 && savedProgress.currentPage <= pdf.numPages
-        ? savedProgress.currentPage
-        : 1;
-
+      
       setPdfDocument(pdf);
       setTotalPages(pdf.numPages);
       setCurrentPage(initialPage);
       setViewerMode('pdfjs');
 
-      // Only render page 1 if we remain in single-page mode or want to init
-      if (!isVertical) {
-        await renderPage(pdf, initialPage, scale);
-      }
-
+      // Save initial reading progress
       saveReadingProgress(effectiveProgressKey, initialPage, pdf.numPages);
     } catch (err: any) {
       console.error('Failed to load PDF with pdf.js:', err);
@@ -211,6 +324,10 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
       }
     }
   };
+
+  useEffect(() => {
+    loadPdf();
+  }, []);
 
   const renderPage = async (pdf: any, pageNum: number, scaleValue: number) => {
     try {
@@ -244,6 +361,8 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
     if (!isVertical) {
       renderPage(pdfDocument, newPage, scale);
     }
+    // Save reading progress
+    saveReadingProgress(effectiveProgressKey, newPage, totalPages);
   };
 
   const zoomIn = () => {
@@ -289,12 +408,17 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
   if (viewerMode === 'loading') {
     return (
       <div className="fixed inset-0 bg-background z-[1000] flex flex-col">
-        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
-          <Button size="icon" variant="ghost" onClick={onClose}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
-        </header>
+        <EnhancedPdfHeader
+          title={title}
+          onClose={onClose}
+          onShare={shareEbook}
+          onCopyLink={copyDirectLink}
+          showAudioPlayer={showAudioPlayer}
+          setShowAudioPlayer={setShowAudioPlayer}
+          isVertical={isVertical}
+          toggleLayout={toggleLayout}
+          downloadPdf={downloadPdf}
+        />
         <div className="flex-1 flex items-center justify-center">
           <div className="text-center">
             <Loader2 className="w-8 h-8 animate-spin text-primary mx-auto mb-2" />
@@ -309,12 +433,17 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
   if (viewerMode === 'error') {
     return (
       <div className="fixed inset-0 bg-background z-[1000] flex flex-col">
-        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
-          <Button size="icon" variant="ghost" onClick={onClose}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
-        </header>
+        <EnhancedPdfHeader
+          title={title}
+          onClose={onClose}
+          onShare={shareEbook}
+          onCopyLink={copyDirectLink}
+          showAudioPlayer={showAudioPlayer}
+          setShowAudioPlayer={setShowAudioPlayer}
+          isVertical={isVertical}
+          toggleLayout={toggleLayout}
+          downloadPdf={downloadPdf}
+        />
         <div className="flex-1 flex items-center justify-center px-4">
           <div className="text-center max-w-md">
             <p className="text-destructive mb-2 text-sm">{error}</p>
@@ -361,20 +490,17 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
     return (
       <div className="fixed inset-0 bg-background z-[1000] flex flex-col">
         {/* Header */}
-        <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
-          <Button size="icon" variant="ghost" onClick={onClose}>
-            <ArrowLeft className="w-5 h-5" />
-          </Button>
-          <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
-          <Button
-            variant="ghost"
-            size="icon"
-            onClick={() => window.open(viewerUrl, '_blank', 'noopener,noreferrer')}
-            title="Open in browser"
-          >
-            <ExternalLink className="w-4 h-4" />
-          </Button>
-        </header>
+        <EnhancedPdfHeader
+          title={title}
+          onClose={onClose}
+          onShare={shareEbook}
+          onCopyLink={copyDirectLink}
+          showAudioPlayer={showAudioPlayer}
+          setShowAudioPlayer={setShowAudioPlayer}
+          isVertical={isVertical}
+          toggleLayout={toggleLayout}
+          downloadPdf={downloadPdf}
+        />
 
         {/* Content - Embedded online reader */}
         <div className="flex-1 bg-muted/20">
@@ -396,26 +522,18 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
   // PDF.js canvas viewer mode (for PDFs without CORS issues)
   return (
     <div className="fixed inset-0 bg-background z-[1000] flex flex-col animate-in fade-in slide-in-from-bottom-5 duration-300">
-      {/* Header */}
-      <header className="flex items-center gap-2 px-3 py-2 bg-card border-b border-border shrink-0 safe-area-top">
-        <Button size="icon" variant="ghost" onClick={onClose}>
-          <ArrowLeft className="w-5 h-5" />
-        </Button>
-        <h1 className="flex-1 font-medium text-sm truncate">{title}</h1>
-        <div className="flex items-center gap-1">
-          <Button
-            size="icon"
-            variant={isVertical ? "secondary" : "ghost"}
-            onClick={toggleLayout}
-            title={isVertical ? "Switch to Page View" : "Switch to Vertical Scroll"}
-          >
-            <Scroll className="w-4 h-4" />
-          </Button>
-          <Button size="icon" variant="ghost" onClick={downloadPdf}>
-            <Download className="w-4 h-4" />
-          </Button>
-        </div>
-      </header>
+      {/* Enhanced Header with Sharing */}
+      <EnhancedPdfHeader
+        title={title}
+        onClose={onClose}
+        onShare={shareEbook}
+        onCopyLink={copyDirectLink}
+        showAudioPlayer={showAudioPlayer}
+        setShowAudioPlayer={setShowAudioPlayer}
+        isVertical={isVertical}
+        toggleLayout={toggleLayout}
+        downloadPdf={downloadPdf}
+      />
 
       {/* PDF Controls */}
       <div className="flex items-center justify-between px-4 py-2 bg-card border-b border-border">
@@ -512,3 +630,5 @@ export default function NativePdfViewer({ url, title, localKey, progressKey, onC
   );
 }
 
+// Export helper functions for use in other components
+export { parseEbookUrl, storeEbookMapping };

@@ -62,6 +62,7 @@ export interface QuranEdition {
   language: string;
   languageCode: string;
   direction: "ltr" | "rtl";
+  comments?: string;
 }
 
 interface CacheEntry<T> {

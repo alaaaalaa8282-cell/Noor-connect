@@ -34,6 +34,7 @@ if (!localStorage.getItem("theme")) {
 
 // Lazy load route components for code splitting - INCLUDING Dashboard for better LCP
 const Dashboard = lazy(() => import("./pages/Dashboard"));
+const DashboardWidgets = lazy(() => import("./pages/DashboardWidgets"));
 const SurahList = lazy(() => import("./pages/SurahList"));
 const QuranReader = lazy(() => import("./pages/QuranReader"));
 const QuranProgress = lazy(() => import("./pages/QuranProgress"));
@@ -135,6 +136,7 @@ function AppRoutes() {
         {/* Home/Dashboard */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
+        <Route path="/dashboard-widgets" element={<DashboardWidgets />} />
         <Route path="/quran" element={<SurahList />} />
         <Route path="/quran-reader/:surahNumber" element={<Navigate to="/quran" replace />} />
         <Route path="/mushaf/:surahNumber" element={<Navigate to="/quran" replace />} />

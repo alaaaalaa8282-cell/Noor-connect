@@ -3,156 +3,79 @@
  * Shows prayer tracking statistics and achievements
  */
 
-import { useState, useEffect, useCallback } from "react";
+import { useState, useEffect, useCallback, useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Progress } from "@/components/ui/progress";
-import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
-import { Calendar, TrendingUp, Award, Target, Clock, CheckCircle, Trophy } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
+import { Calendar, TrendingUp, Award, Target, CheckCircle, Trophy, Flame, Medal } from "lucide-react";
+import { getPrayerHistory, getSalahStats } from "@/lib/salah-tracker";
 
-interface PrayerStats {
-  totalPrayers: number;
-  onTimePrayers: number;
-  missedPrayers: number;
+const PRAYER_KEYS = ["fajr", "dhuhr", "asr", "maghrib", "isha"] as const;
+
+type RangeKey = "week" | "month";
+
+interface PrayerStatsSummary {
+  rangeKey: RangeKey;
+  rangeDays: number;
+  completed: number;
+  totalPossible: number;
+  completionRate: number;
+  averagePerDay: number;
   currentStreak: number;
   longestStreak: number;
-  weeklyAverage: number;
-  monthlyProgress: number;
-  achievements: Achievement[];
+  todayCompleted: number;
 }
-
-interface Achievement {
-  id: string;
-  title: string;
-  description: string;
-  icon: string;
-  unlockedAt?: string;
-}
-
-const STATS_STORAGE_KEY = "prayer-stats-data";
 
 export function PrayerStatsWidget() {
-  const [stats, setStats] = useState<PrayerStats | null>(null);
+  const navigate = useNavigate();
+  const [stats, setStats] = useState<PrayerStatsSummary | null>(null);
   const [loading, setLoading] = useState(true);
-  const [timeRange, setTimeRange] = useState<'week' | 'month'>('week');
-  const { toast } = useToast();
-
-  const calculateStats = useCallback((): PrayerStats => {
-    // This would typically integrate with your prayer tracking system
-    // For now, we'll simulate with localStorage data
-    const storedData = localStorage.getItem('prayer-tracking-data');
-    const prayerData = storedData ? JSON.parse(storedData) : {};
-    
-    const today = new Date();
-    const weekAgo = new Date(today.getTime() - 7 * 24 * 60 * 60 * 1000);
-    const monthAgo = new Date(today.getTime() - 30 * 24 * 60 * 60 * 1000);
-    
-    let totalPrayers = 0;
-    let onTimePrayers = 0;
-    let missedPrayers = 0;
-    let currentStreak = 0;
-    let longestStreak = 0;
-    
-    // Calculate stats from stored prayer data
-    Object.entries(prayerData).forEach(([date, dayPrayers]: [string, any]) => {
-      const prayerDate = new Date(date);
-      
-      if (prayerDate >= weekAgo) {
-        Object.values(dayPrayers).forEach((prayer: any) => {
-          if (prayer && typeof prayer === 'object') {
-            totalPrayers++;
-            if (prayer.status === 'on-time') {
-              onTimePrayers++;
-            } else if (prayer.status === 'missed') {
-              missedPrayers++;
-            }
-          }
-        });
-      }
-    });
-    
-    // Calculate streak (simplified)
-    currentStreak = Math.floor(Math.random() * 15) + 1; // Simulated
-    longestStreak = Math.floor(Math.random() * 30) + currentStreak; // Simulated
-    
-    const weeklyAverage = totalPrayers / 7;
-    const monthlyProgress = (onTimePrayers / Math.max(totalPrayers, 1)) * 100;
-    
-    // Generate achievements based on stats
-    const achievements: Achievement[] = [
-      {
-        id: 'first-week',
-        title: 'Consistent Worshipper',
-        description: 'Completed all prayers for a week',
-        icon: '🏆',
-        unlockedAt: currentStreak >= 7 ? new Date().toISOString() : undefined
-      },
-      {
-        id: 'on-time-master',
-        title: 'Punctual Muslim',
-        description: '80% prayers on time this month',
-        icon: '⏰',
-        unlockedAt: monthlyProgress >= 80 ? new Date().toISOString() : undefined
-      },
-      {
-        id: 'streak-warrior',
-        title: 'Streak Master',
-        description: '15 day prayer streak',
-        icon: '🔥',
-        unlockedAt: currentStreak >= 15 ? new Date().toISOString() : undefined
-      }
-    ];
-    
-    return {
-      totalPrayers,
-      onTimePrayers,
-      missedPrayers,
-      currentStreak,
-      longestStreak,
-      weeklyAverage,
-      monthlyProgress,
-      achievements
-    };
-  }, []);
+  const [timeRange, setTimeRange] = useState<RangeKey>("week");
 
   const loadStats = useCallback(() => {
     setLoading(true);
     try {
-      const calculatedStats = calculateStats();
-      setStats(calculatedStats);
-      localStorage.setItem(STATS_STORAGE_KEY, JSON.stringify(calculatedStats));
+      const rangeDays = timeRange === "week" ? 7 : 30;
+      const history = getPrayerHistory(rangeDays);
+      const completionCounts = history.map((day) => PRAYER_KEYS.filter((k) => day[k]).length);
+
+      const completed = completionCounts.reduce((sum, n) => sum + n, 0);
+      const totalPossible = history.length * 5;
+      const completionRate = totalPossible > 0 ? Math.round((completed / totalPossible) * 100) : 0;
+      const averagePerDay = history.length > 0 ? Math.round((completed / history.length) * 10) / 10 : 0;
+
+      const salahStats = getSalahStats();
+
+      setStats({
+        rangeKey: timeRange,
+        rangeDays,
+        completed,
+        totalPossible,
+        completionRate,
+        averagePerDay,
+        currentStreak: salahStats.currentStreak,
+        longestStreak: salahStats.longestStreak,
+        todayCompleted: salahStats.todayCompleted,
+      });
     } catch (error) {
       console.error('Error loading prayer stats:', error);
-      toast({
-        title: 'Error',
-        description: 'Failed to load prayer statistics',
-        variant: 'destructive'
-      });
+      setStats(null);
     } finally {
       setLoading(false);
     }
-  }, [calculateStats, toast]);
+  }, [timeRange]);
 
   useEffect(() => {
     loadStats();
 
     // Listen for prayer tracking updates
-    const handlePrayerUpdate = () => {
-      loadStats();
-    };
-
-    // Listen for widget refresh events
-    const handleRefresh = () => {
-      loadStats();
-    };
-
-    window.addEventListener('prayer-tracked', handlePrayerUpdate);
-    window.addEventListener('widget-refresh', handleRefresh);
+    window.addEventListener('salah-updated', loadStats);
+    window.addEventListener('widget-refresh', loadStats);
 
     return () => {
-      window.removeEventListener('prayer-tracked', handlePrayerUpdate);
-      window.removeEventListener('widget-refresh', handleRefresh);
+      window.removeEventListener('salah-updated', loadStats);
+      window.removeEventListener('widget-refresh', loadStats);
     };
   }, [loadStats]);
 
@@ -163,12 +86,35 @@ export function PrayerStatsWidget() {
     return 'text-gray-600 bg-gray-50 border-gray-200';
   };
 
-  const getProgressColor = (progress: number) => {
-    if (progress >= 90) return 'bg-green-500';
-    if (progress >= 70) return 'bg-blue-500';
-    if (progress >= 50) return 'bg-yellow-500';
-    return 'bg-gray-500';
-  };
+  const achievements = useMemo(() => {
+    if (!stats) return [];
+
+    const rangeIsWeek = stats.rangeKey === "week";
+
+    return [
+      {
+        id: "perfect-range",
+        title: rangeIsWeek ? "Perfect Week" : "Perfect Month",
+        description: rangeIsWeek ? "Completed all prayers this week" : "Completed all prayers this month",
+        icon: Trophy,
+        unlocked: stats.completionRate === 100 && stats.totalPossible > 0,
+      },
+      {
+        id: "streak-7",
+        title: "Consistency",
+        description: "Maintain a 7‑day streak",
+        icon: Flame,
+        unlocked: stats.currentStreak >= 7,
+      },
+      {
+        id: "rate-80",
+        title: "Momentum",
+        description: rangeIsWeek ? "80%+ completion this week" : "80%+ completion this month",
+        icon: Medal,
+        unlocked: stats.completionRate >= 80 && stats.totalPossible > 0,
+      },
+    ].filter((a) => a.unlocked);
+  }, [stats]);
 
   if (loading) {
     return (
@@ -186,6 +132,8 @@ export function PrayerStatsWidget() {
   }
 
   if (!stats) return null;
+
+  const missed = Math.max(0, stats.totalPossible - stats.completed);
 
   return (
     <Card className="relative overflow-hidden border-purple-200 bg-gradient-to-br from-purple-50/50 to-transparent transition-all duration-500 hover:shadow-lg hover:shadow-purple-100">
@@ -226,26 +174,26 @@ export function PrayerStatsWidget() {
           <div className="p-3 rounded-xl bg-purple-50/50 border border-purple-200/50">
             <div className="flex items-center gap-2 mb-1">
               <CheckCircle className="w-4 h-4 text-green-600" />
-              <span className="text-xs font-medium text-muted-foreground">On Time</span>
+              <span className="text-xs font-medium text-muted-foreground">Completed</span>
             </div>
             <p className="text-lg font-bold text-foreground">
-              {stats.onTimePrayers}
+              {stats.completed}
             </p>
             <p className="text-xs text-muted-foreground">
-              {Math.round((stats.onTimePrayers / Math.max(stats.totalPrayers, 1)) * 100)}% rate
+              {stats.completionRate}% rate
             </p>
           </div>
           
           <div className="p-3 rounded-xl bg-purple-50/50 border border-purple-200/50">
             <div className="flex items-center gap-2 mb-1">
               <Target className="w-4 h-4 text-purple-600" />
-              <span className="text-xs font-medium text-muted-foreground">Total</span>
+              <span className="text-xs font-medium text-muted-foreground">Remaining</span>
             </div>
             <p className="text-lg font-bold text-foreground">
-              {stats.totalPrayers}
+              {missed}
             </p>
             <p className="text-xs text-muted-foreground">
-              {timeRange === 'week' ? 'This week' : 'This month'}
+              of {stats.totalPossible}
             </p>
           </div>
         </div>
@@ -272,17 +220,18 @@ export function PrayerStatsWidget() {
         {/* Progress Bar */}
         <div className="space-y-2">
           <div className="flex justify-between text-sm">
-            <span className="font-medium">Prayer Performance</span>
+            <span className="font-medium">Completion Rate</span>
             <span className="text-muted-foreground">
-              {Math.round(stats.monthlyProgress)}%
+              {stats.completionRate}%
             </span>
           </div>
           <Progress 
-            value={stats.monthlyProgress} 
+            value={stats.completionRate} 
             className="h-2"
-            // @ts-expect-error - CSS custom property type not recognized
-            style={{ '--progress-background': getProgressColor(stats.monthlyProgress) }}
           />
+          <p className="text-[10px] text-muted-foreground text-center">
+            Avg {stats.averagePerDay}/5 per day • Today {stats.todayCompleted}/5
+          </p>
         </div>
 
         {/* Achievements */}
@@ -292,18 +241,24 @@ export function PrayerStatsWidget() {
             Recent Achievements
           </h4>
           <div className="space-y-2">
-            {stats.achievements
-              .filter(achievement => achievement.unlockedAt)
-              .slice(0, 2)
-              .map(achievement => (
-                <div key={achievement.id} className="flex items-center gap-2 p-2 rounded-lg bg-yellow-50/50 border border-yellow-200/50">
-                  <span className="text-lg">{achievement.icon}</span>
+            {achievements.length > 0 ? (
+              achievements.slice(0, 2).map((achievement) => (
+                <div
+                  key={achievement.id}
+                  className="flex items-center gap-2 p-2 rounded-lg bg-yellow-50/50 border border-yellow-200/50"
+                >
+                  <achievement.icon className="w-4 h-4 text-yellow-700" />
                   <div className="flex-1 min-w-0">
                     <p className="text-xs font-medium truncate">{achievement.title}</p>
                     <p className="text-xs text-muted-foreground truncate">{achievement.description}</p>
                   </div>
                 </div>
-              ))}
+              ))
+            ) : (
+              <div className="text-xs text-muted-foreground p-2 rounded-lg bg-muted/30 border border-border/50">
+                Keep checking in your prayers to unlock achievements.
+              </div>
+            )}
           </div>
         </div>
 
@@ -312,7 +267,7 @@ export function PrayerStatsWidget() {
           variant="outline"
           size="sm"
           className="w-full gap-2 border-purple-300 hover:bg-purple-50"
-          onClick={() => window.location.href = '/salah-tracker'}
+          onClick={() => navigate('/prayer-stats')}
         >
           <Calendar className="w-4 h-4" />
           View Detailed Stats

@@ -27,10 +27,32 @@ if (rootElement) {
 // Service worker is handled automatically by vite-plugin-pwa (injectRegister: 'auto')
 // in production. In development, we forcefully unregister to prevent console spam.
 if (import.meta.env.DEV && 'serviceWorker' in navigator) {
-  navigator.serviceWorker.getRegistrations().then(registrations => {
-    for (const registration of registrations) {
-      registration.unregister();
-      console.log('Service Worker unregistered in development mode to prevent console spam');
+  (async () => {
+    try {
+      const registrations = await navigator.serviceWorker.getRegistrations();
+      if (registrations.length === 0) return;
+
+      await Promise.all(registrations.map((r) => r.unregister()));
+      console.log(
+        `Service Worker unregistered in development mode (${registrations.length})`
+      );
+
+      // Remove any PWA caches that can interfere with Vite dev (stale chunks/assets).
+      if ("caches" in window) {
+        const keys = await caches.keys();
+        await Promise.all(keys.map((k) => caches.delete(k)));
+      }
+
+      // A controlling SW continues until reload; reload once to fully detach.
+      if (navigator.serviceWorker.controller) {
+        const reloadKey = "dev-sw-detach-reload";
+        if (!sessionStorage.getItem(reloadKey)) {
+          sessionStorage.setItem(reloadKey, "1");
+          window.location.reload();
+        }
+      }
+    } catch (err) {
+      console.warn("Failed to unregister Service Worker in development mode:", err);
     }
-  });
+  })();
 }

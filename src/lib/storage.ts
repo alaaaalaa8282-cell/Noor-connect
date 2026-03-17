@@ -23,7 +23,8 @@ const STORAGE_KEYS = {
 // ... (skipping some exports for brevity)
 
 export const getShowExtraPrayers = (): boolean => {
-  return localStorage.getItem(STORAGE_KEYS.SHOW_EXTRA_PRAYERS) === 'true';
+  const stored = localStorage.getItem(STORAGE_KEYS.SHOW_EXTRA_PRAYERS);
+  return stored === null ? true : stored === 'true'; // Default to true (show all prayers 24/7)
 };
 
 export const setShowExtraPrayers = (show: boolean): void => {
@@ -98,6 +99,7 @@ export const getTasbeehTotal = (): number => {
 
 export const setTasbeehTotal = (total: number): void => {
   localStorage.setItem(STORAGE_KEYS.TASBEEH_TOTAL, total.toString());
+  window.dispatchEvent(new CustomEvent('tasbeeh-updated'));
 };
 
 export const getTasbeehHistory = (): TasbeehEntry[] => {

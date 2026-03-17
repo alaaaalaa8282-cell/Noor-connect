@@ -55,7 +55,7 @@ import { useI18n } from "@/hooks/useI18n";
 import { PageTransition } from "@/components/PageTransition";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppBar } from "@/components/AppBar";
-import { fetchTafsir, TAFSIR_EDITIONS, type TafsirEdition } from "@/lib/tafsir";
+import { fetchSurahTafsir, TAFSIR_EDITIONS, type TafsirEdition } from "@/lib/tafsir";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
@@ -72,6 +72,8 @@ interface TafsirData {
   surah: number;
   ayah: number;
   text: string;
+  arabic?: string;
+  translation?: string;
 }
 
 interface SurahTafsir {
@@ -205,7 +207,7 @@ const Tafsir = () => {
       // 1. Fetch complete Tafsir for the surah in ONE request (much faster)
       // 2. Fetch Arabic text & Translation for complete context (UX)
       const [tafsirData, quranData] = await Promise.all([
-        fetch(`https://cdn.jsdelivr.net/gh/spa5k/tafsir_api@main/tafsir/${selectedEdition}/${surah.number}.json`).then(res => res.json()),
+        fetchSurahTafsir(surah.number, selectedEdition),
         fetch(`https://api.alquran.cloud/v1/surah/${surah.number}/editions/quran-uthmani,en.sahih`).then(res => res.json())
       ]);
 
@@ -217,11 +219,35 @@ const Tafsir = () => {
       const translationEdition = quranData.data[1];
 
       // Merge Tafsir with Arabic and Translation for a "Premium" reading experience
-      const mergedTafsirs: any[] = tafsirData.map((t: any, idx: number) => ({
-        ...t,
-        arabic: arabicEdition.ayahs[idx]?.text,
-        translation: translationEdition.ayahs[idx]?.text
-      }));
+      const arabicByAyah = new Map<number, string>();
+      const translationByAyah = new Map<number, string>();
+
+      if (Array.isArray(arabicEdition?.ayahs)) {
+        arabicEdition.ayahs.forEach((a: any, idx: number) => {
+          const n = Number(a?.numberInSurah ?? a?.number ?? idx + 1);
+          if (Number.isFinite(n) && typeof a?.text === "string") {
+            arabicByAyah.set(n, a.text);
+          }
+        });
+      }
+
+      if (Array.isArray(translationEdition?.ayahs)) {
+        translationEdition.ayahs.forEach((a: any, idx: number) => {
+          const n = Number(a?.numberInSurah ?? a?.number ?? idx + 1);
+          if (Number.isFinite(n) && typeof a?.text === "string") {
+            translationByAyah.set(n, a.text);
+          }
+        });
+      }
+
+      const mergedTafsirs: TafsirData[] = tafsirData.map((t, idx) => {
+        const ayahNumber = Number(t.ayah ?? idx + 1);
+        return {
+          ...t,
+          arabic: arabicByAyah.get(ayahNumber),
+          translation: translationByAyah.get(ayahNumber),
+        };
+      });
 
       const surahTafsir: SurahTafsir = {
         surah: surah.number,
@@ -714,7 +740,7 @@ const Tafsir = () => {
 
               {/* Tafsir Content List */}
               <div className="space-y-12">
-                {getFilteredTafsirs().map((tafsir: any, idx) => {
+                {getFilteredTafsirs().map((tafsir: TafsirData, idx) => {
                   const noteKey = `${tafsir.surah}:${tafsir.ayah}`;
                   const hasNote = personalNotes[noteKey];
                   return (

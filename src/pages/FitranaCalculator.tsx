@@ -94,15 +94,6 @@ export default function FitranaCalculator() {
     // 1 week after Eid al-Fitr (4-10 Shawwal)
     if (hijriMonth === 10 && hijriDay >= 4 && hijriDay <= 10) return true;
     
-    // 1 week before Eid al-Adha (3-9 Dhul Hijjah)
-    if (hijriMonth === 12 && hijriDay >= 3 && hijriDay <= 9) return true;
-    
-    // Eid al-Adha period (10-12 Dhul Hijjah)
-    if (isEidAlAdha && hijriMonth === 12 && hijriDay >= 10 && hijriDay <= 12) return true;
-    
-    // 1 week after Eid al-Adha (13-19 Dhul Hijjah)
-    if (hijriMonth === 12 && hijriDay >= 13 && hijriDay <= 19) return true;
-    
     return false;
   }, [isLoading, islamicInfo, isEidAlFitr, isEidAlAdha]);
 
@@ -270,28 +261,31 @@ export default function FitranaCalculator() {
   if (!shouldShow) {
     return (
       <PageTransition>
-        <div className="min-h-screen bg-background pb-32">
+        <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32">
           <AppBar title="Fitrana Calculator" showBack={true} />
           
-          <div className="max-w-lg mx-auto p-4">
-            <Card className="text-center p-8">
-              <div className="flex flex-col items-center space-y-4">
-                <div className="p-4 rounded-full bg-muted">
-                  <Calculator className="w-8 h-8 text-muted-foreground" />
+          <div className="max-w-lg mx-auto p-4 sm:p-5">
+            <div className="relative overflow-hidden rounded-[24px] p-8 text-center bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-xl shadow-slate-900/5 min-h-[50vh] flex flex-col items-center justify-center">
+              <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-emerald-500 to-transparent opacity-50" />
+              
+              <div className="flex flex-col items-center space-y-5">
+                <div className="p-5 rounded-3xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 shadow-inner">
+                  <Calculator className="w-10 h-10 text-slate-500 dark:text-slate-400" strokeWidth={1.5} />
                 </div>
-                <h2 className="text-xl font-semibold">Fitrana Calculator Not Available</h2>
-                <p className="text-muted-foreground">
-                  The Fitrana Calculator is available 1 week before Eid and stays available for 1 week after Eid.
-                </p>
+                <div>
+                  <h2 className="text-2xl font-black text-slate-900 dark:text-white tracking-tight">Calculator Unavailable</h2>
+                  <p className="text-sm font-medium text-slate-500 dark:text-slate-400 mt-2 max-w-sm">
+                    The Zakat al-Fitr Calculator is only available during the end of Ramadan until Eid al-Fitr prayer.
+                  </p>
+                </div>
                 <Button 
-                  variant="outline" 
                   onClick={() => navigate('/services')}
-                  className="mt-4"
+                  className="mt-6 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 font-bold px-8"
                 >
                   Back to Services
                 </Button>
               </div>
-            </Card>
+            </div>
           </div>
         </div>
       </PageTransition>
@@ -300,52 +294,55 @@ export default function FitranaCalculator() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background pb-32">
-        <AppBar title="Fitrana Calculator" showBack={true} />
+      <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32">
+        <AppBar title="Overview" showBack={true} />
 
-        <div className="max-w-lg mx-auto p-4 space-y-4">
-          {/* Info Card */}
-          <Card className="bg-primary/10 border-primary/20">
-            <CardContent className="p-4">
-              <div className="flex items-start gap-3">
-                <Info className="w-5 h-5 text-primary mt-0.5" />
-                <div className="space-y-1">
-                  <p className="text-sm font-medium">About Zakat al-Fitr</p>
-                  <p className="text-xs text-muted-foreground">
-                    Zakat al-Fitr is compulsory charity given before Eid prayer to purify fasting Muslims. 
-                    It's typically calculated as 2.5kg of wheat or equivalent value per family member.
-                  </p>
-                </div>
+        <div className="max-w-lg mx-auto p-4 sm:p-5 space-y-5">
+          {/* Enhanced Info Card */}
+          <div className="relative overflow-hidden rounded-[24px] p-5 bg-gradient-to-br from-emerald-500/15 via-emerald-600/5 to-transparent border border-emerald-500/20 shadow-lg shadow-emerald-900/5">
+            <div className="flex items-start gap-4">
+              <div className="p-3 rounded-2xl bg-emerald-500/20 text-emerald-600 dark:text-emerald-400 shrink-0">
+                <Info className="w-5 h-5" strokeWidth={2.5} />
               </div>
-            </CardContent>
-          </Card>
+              <div className="space-y-1.5">
+                <p className="text-sm font-bold text-slate-900 dark:text-white">About Zakat al-Fitr</p>
+                <p className="text-xs font-medium text-slate-600 dark:text-slate-400 leading-relaxed">
+                  Zakat al-Fitr is compulsory charity given before Eid prayer to purify fasting Muslims. 
+                  It's typically calculated as 2.5kg of wheat or equivalent value per family member.
+                </p>
+              </div>
+            </div>
+          </div>
 
           {/* Calculator Settings */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Calculator className="w-4 h-4 text-primary" />
-                Calculator Settings
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-4">
+          <div className="relative overflow-hidden rounded-[24px] p-6 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-xl shadow-slate-900/5 group">
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-colors duration-500 pointer-events-none" />
+            
+            <div className="relative z-10 space-y-5">
+              <div className="flex items-center gap-3 mb-2">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#6366f1] to-[#4338ca] shadow-md shadow-indigo-500/30 text-white shrink-0">
+                  <Calculator className="w-5 h-5" strokeWidth={2.5} />
+                </div>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Calculator Settings</h3>
+              </div>
+
               <div className="space-y-2">
-                <Label className="text-xs">Calculation Method</Label>
+                <Label className="text-[11px] uppercase tracking-wider font-bold text-slate-500">Calculation Method</Label>
                 <Select 
                   value={fitranaData.calculationMethod} 
                   onValueChange={(value: 'weight' | 'saa' | 'amount') => 
                     setFitranaData(prev => ({ ...prev, calculationMethod: value }))
                   }
                 >
-                  <SelectTrigger>
+                  <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 font-medium">
                     <SelectValue />
                   </SelectTrigger>
-                  <SelectContent>
+                  <SelectContent className="rounded-xl border-slate-200 dark:border-slate-700 shadow-xl">
                     {CALCULATION_METHODS.map(method => (
-                      <SelectItem key={method.value} value={method.value}>
+                      <SelectItem key={method.value} value={method.value} className="py-3 focus:bg-slate-100 dark:focus:bg-slate-800 rounded-lg cursor-pointer">
                         <div>
-                          <div className="font-medium">{method.label}</div>
-                          <div className="text-xs text-muted-foreground">{method.description}</div>
+                          <div className="font-bold">{method.label}</div>
+                          <div className="text-xs font-medium text-slate-500">{method.description}</div>
                         </div>
                       </SelectItem>
                     ))}
@@ -353,27 +350,27 @@ export default function FitranaCalculator() {
                 </Select>
               </div>
 
-              <div className="grid grid-cols-2 gap-3">
+              <div className="grid grid-cols-2 gap-4">
                 <div>
-                  <Label className="text-xs">Currency</Label>
+                  <Label className="text-[11px] uppercase tracking-wider font-bold text-slate-500">Currency</Label>
                   <Select 
                     value={fitranaData.currency} 
                     onValueChange={(value) => setFitranaData(prev => ({ ...prev, currency: value }))}
                   >
-                    <SelectTrigger>
+                    <SelectTrigger className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 font-medium">
                       <SelectValue />
                     </SelectTrigger>
-                    <SelectContent>
+                    <SelectContent className="rounded-xl border-slate-200 dark:border-slate-700 shadow-xl">
                       {CURRENCIES.map(currency => (
-                        <SelectItem key={currency.value} value={currency.value}>
-                          {currency.label}
+                        <SelectItem key={currency.value} value={currency.value} className="py-2.5 rounded-lg cursor-pointer">
+                          <span className="font-medium">{currency.label}</span>
                         </SelectItem>
                       ))}
                     </SelectContent>
                   </Select>
                 </div>
                 <div>
-                  <Label className="text-xs">Price per kg ({fitranaData.currency})</Label>
+                  <Label className="text-[11px] uppercase tracking-wider font-bold text-slate-500">Price per kg ({fitranaData.currency})</Label>
                   <Input
                     type="number"
                     value={fitranaData.pricePerKg}
@@ -381,250 +378,250 @@ export default function FitranaCalculator() {
                       ...prev, 
                       pricePerKg: parseFloat(e.target.value) || 0 
                     }))}
-                    placeholder="Enter price per kg"
+                    placeholder="Enter price"
+                    className="h-12 rounded-xl border-slate-200 dark:border-slate-700 bg-white/50 dark:bg-slate-800/50 font-bold"
                   />
                 </div>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Family Members */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Users className="w-4 h-4 text-primary" />
-                Family Members ({fitranaData.familyMembers.length})
-              </CardTitle>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {fitranaData.familyMembers.map((member, index) => (
-                <motion.div
-                  key={member.id}
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-center gap-3 p-3 border rounded-lg"
-                >
-                  <div className="p-2 rounded-full bg-primary/10">
-                    <User className="w-4 h-4 text-primary" />
-                  </div>
-                  <div className="flex-1 space-y-2">
-                    <div className="grid grid-cols-2 gap-2">
-                      <div>
-                        <Label className="text-xs">Name</Label>
-                        <Input
-                          value={member.name}
-                          onChange={(e) => updateFamilyMember(member.id, 'name', e.target.value)}
-                          placeholder="Enter name"
-                        />
-                      </div>
-                      <div>
-                        <Label className="text-xs">Age Type</Label>
-                        <Select 
-                          value={member.age}
-                          onValueChange={(value: 'adult' | 'child') => 
-                            updateFamilyMember(member.id, 'age', value)
-                          }
-                        >
-                          <SelectTrigger>
-                            <SelectValue />
-                          </SelectTrigger>
-                          <SelectContent>
-                            <SelectItem value="adult">Adult</SelectItem>
-                            <SelectItem value="child">Child</SelectItem>
-                          </SelectContent>
-                        </Select>
-                      </div>
+          <div className="relative overflow-hidden rounded-[24px] p-6 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-xl shadow-slate-900/5 group">
+            <div className="absolute -top-10 -left-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors duration-500 pointer-events-none" />
+            
+            <div className="relative z-10 space-y-4">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-gradient-to-br from-[#3b82f6] to-[#1d4ed8] shadow-md shadow-blue-500/30 text-white shrink-0">
+                  <Users className="w-5 h-5" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Family Members</h3>
+                  <p className="text-xs font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">{fitranaData.familyMembers.length} Person(s)</p>
+                </div>
+              </div>
+
+              <div className="space-y-3">
+                {fitranaData.familyMembers.map((member, index) => (
+                  <motion.div
+                    key={member.id}
+                    initial={{ opacity: 0, y: 10 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    transition={{ delay: index * 0.05 }}
+                    className="flex flex-col sm:flex-row items-start sm:items-stretch gap-3 p-4 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm"
+                  >
+                    <div className="hidden sm:flex p-2.5 h-10 w-10 items-center justify-center rounded-xl bg-slate-100 dark:bg-slate-700 text-slate-500">
+                      <User className="w-5 h-5" strokeWidth={2} />
                     </div>
-                    {fitranaData.calculationMethod === 'amount' && (
-                      <div>
-                        <Label className="text-xs">Fitrana Amount ({fitranaData.currency})</Label>
-                        <Input
-                          type="number"
-                          value={member.fitranaAmount || ''}
-                          onChange={(e) => updateFamilyMember(member.id, 'fitranaAmount', parseFloat(e.target.value) || 0)}
-                          placeholder="Enter amount"
-                        />
+                    
+                    <div className="flex-1 w-full space-y-3">
+                      <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Name</Label>
+                          <Input
+                            value={member.name}
+                            onChange={(e) => updateFamilyMember(member.id, 'name', e.target.value)}
+                            placeholder="Enter name"
+                            className="h-10 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium text-sm"
+                          />
+                        </div>
+                        <div className="space-y-1.5">
+                          <Label className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Age Type</Label>
+                          <Select 
+                            value={member.age}
+                            onValueChange={(value: 'adult' | 'child') => 
+                              updateFamilyMember(member.id, 'age', value)
+                            }
+                          >
+                            <SelectTrigger className="h-10 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium text-sm">
+                              <SelectValue />
+                            </SelectTrigger>
+                            <SelectContent className="rounded-xl shadow-lg border-slate-200 dark:border-slate-700">
+                              <SelectItem value="adult" className="cursor-pointer">Adult</SelectItem>
+                              <SelectItem value="child" className="cursor-pointer">Child</SelectItem>
+                            </SelectContent>
+                          </Select>
+                        </div>
                       </div>
-                    )}
-                  </div>
-                  <div className="text-right">
-                    <p className="text-sm font-medium">
-                      {formatCurrency(calculateFitrana[index]?.fitranaAmount || 0)}
-                    </p>
-                    <Button
-                      variant="ghost"
-                      size="sm"
-                      onClick={() => removeFamilyMember(member.id)}
-                      className="text-destructive hover:text-destructive"
-                    >
-                      <Minus className="w-4 h-4" />
-                    </Button>
-                  </div>
-                </motion.div>
-              ))}
+                      
+                      {fitranaData.calculationMethod === 'amount' && (
+                        <div className="space-y-1.5 pt-1">
+                          <Label className="text-[10px] uppercase tracking-wider font-bold text-slate-500">Fitrana Amount ({fitranaData.currency})</Label>
+                          <Input
+                            type="number"
+                            value={member.fitranaAmount || ''}
+                            onChange={(e) => updateFamilyMember(member.id, 'fitranaAmount', parseFloat(e.target.value) || 0)}
+                            placeholder="Enter amount"
+                            className="h-10 rounded-lg border-slate-200 dark:border-slate-700 bg-white dark:bg-slate-900 font-medium text-sm"
+                          />
+                        </div>
+                      )}
+                    </div>
+
+                    <div className="flex flex-row sm:flex-col items-center sm:items-end justify-between sm:justify-center w-full sm:w-auto mt-2 sm:mt-0 pt-3 sm:pt-0 border-t sm:border-t-0 border-slate-200 dark:border-slate-700">
+                      <p className="text-base sm:text-lg font-black text-slate-900 dark:text-white tracking-tight">
+                        {formatCurrency(calculateFitrana[index]?.fitranaAmount || 0)}
+                      </p>
+                      <Button
+                        variant="ghost"
+                        size="sm"
+                        onClick={() => removeFamilyMember(member.id)}
+                        className="h-8 px-2 text-rose-500 hover:text-rose-600 hover:bg-rose-50 dark:hover:bg-rose-500/10 rounded-lg mt-0 sm:mt-1 hidden sm:flex"
+                      >
+                        <Minus className="w-4 h-4" />
+                      </Button>
+                      <Button
+                        variant="outline"
+                        size="sm"
+                        onClick={() => removeFamilyMember(member.id)}
+                        className="h-8 px-3 text-rose-500 border-rose-200 dark:border-rose-900/50 hover:bg-rose-50 dark:hover:bg-rose-900/20 rounded-lg sm:hidden flex items-center gap-1"
+                      >
+                        <Minus className="w-3.5 h-3.5" /> Remove
+                      </Button>
+                    </div>
+                  </motion.div>
+                ))}
+              </div>
               
               <Button
                 variant="outline"
                 onClick={addFamilyMember}
-                className="w-full"
+                className="w-full h-12 rounded-xl border-dashed border-2 border-slate-300 dark:border-slate-700 text-slate-600 dark:text-slate-400 font-bold hover:bg-slate-100 dark:hover:bg-slate-800 transition-all"
               >
-                <Plus className="w-4 h-4 mr-2" />
+                <Plus className="w-5 h-5 mr-2" strokeWidth={2.5} />
                 Add Family Member
               </Button>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
-          {/* Total Result */}
-          <Card className="bg-gradient-to-r from-primary/10 to-primary/5 border-primary/20">
-            <CardContent className="p-6">
-              <div className="text-center space-y-2">
-                <h3 className="text-lg font-semibold">Total Fitrana Amount</h3>
-                <div className="text-3xl font-bold text-primary">
-                  {formatCurrency(totalFitrana)}
-                </div>
-                <p className="text-xs text-muted-foreground">
-                  For {fitranaData.familyMembers.length} family members
+          {/* Premium Total Result Card */}
+          <div className="relative overflow-hidden rounded-[24px] p-8 bg-gradient-to-br from-[#10b981] via-[#059669] to-[#047857] shadow-xl shadow-emerald-900/20 group text-white text-center">
+            {/* Elegant Light Gradients */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-white/20 rounded-full blur-3xl opacity-50 pointer-events-none" />
+            <div className="absolute -bottom-10 -left-10 w-40 h-40 bg-black/20 rounded-full blur-2xl pointer-events-none" />
+            
+            <div className="relative z-10 space-y-2">
+              <h3 className="text-sm font-bold uppercase tracking-widest text-emerald-100">Total Fitrana Amount</h3>
+              <div className="text-5xl font-black tracking-tight drop-shadow-md py-2">
+                {formatCurrency(totalFitrana)}
+              </div>
+              <div className="inline-flex items-center gap-2 px-3 py-1 bg-black/20 backdrop-blur-md rounded-full mt-2 border border-white/10">
+                <Users className="w-3.5 h-3.5" />
+                <p className="text-xs font-bold uppercase tracking-wider">
+                  For {fitranaData.familyMembers.length} person(s)
                 </p>
               </div>
-            </CardContent>
-          </Card>
+            </div>
+          </div>
 
           {/* Action Buttons */}
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 gap-3 sm:gap-4">
             <Button
               onClick={markAsPaid}
-              className="flex items-center gap-2"
+              className="h-14 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 font-bold tracking-wide active:scale-95 transition-all text-[13px] sm:text-sm"
             >
-              <CheckCircle className="w-4 h-4" />
+              <CheckCircle className="w-5 h-5 mr-2" />
               Mark as Paid
             </Button>
             <Button
               variant="outline"
               onClick={shareCalculation}
-              className="flex items-center gap-2"
+              className="h-14 rounded-xl bg-white/80 dark:bg-slate-900/80 backdrop-blur-md border-slate-200 dark:border-slate-700 font-bold tracking-wide hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm active:scale-95 transition-all text-[13px] sm:text-sm"
             >
-              <Share2 className="w-4 h-4" />
-              Share
+              <Share2 className="w-5 h-5 mr-2 text-slate-500" />
+              Share Details
             </Button>
           </div>
 
-          {/* FAQ Section */}
-          <Card>
-            <CardHeader className="pb-2">
-              <CardTitle className="text-base flex items-center gap-2">
-                <Info className="w-4 h-4 text-primary" />
-                Frequently Asked Questions
-              </CardTitle>
-            </CardHeader>
-            <CardContent>
-              <Accordion type="single" collapsible className="w-full">
-                <AccordionItem value="q1">
-                  <AccordionTrigger>Who is obligated to pay Fitrana?</AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-sm text-muted-foreground">
-                      Every Muslim who possesses wealth above the Nisab threshold is obligated to pay Fitrana. 
-                      This includes adults who have enough food for their family for one day and night. 
-                      Parents should pay on behalf of their minor children.
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="q2">
-                  <AccordionTrigger>How much Fitrana per person?</AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-sm text-muted-foreground">
-                      The standard amount is 2.5kg of wheat, barley, dates, or equivalent value. 
-                      In monetary terms, it's the value of 2.5kg of staple food in your local area. 
-                      Some scholars suggest 3kg for those who can afford it.
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="q3">
-                  <AccordionTrigger>What if I can't afford the standard amount?</AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-sm text-muted-foreground">
-                      If someone cannot afford the standard amount, they should pay what they can afford. 
-                      The obligation is lifted for those in genuine financial hardship. 
-                      Allah does not burden a soul beyond its capacity.
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="q4">
-                  <AccordionTrigger>Can I pay more than the calculated amount?</AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-sm text-muted-foreground">
-                      Yes, you can pay more than the calculated amount. 
-                      Additional Fitrana is considered voluntary charity (Sadaqa) and carries extra rewards. 
-                      Many people give extra to help those in greater need.
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="q5">
-                  <AccordionTrigger>When should Fitrana be paid?</AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-sm text-muted-foreground">
-                      Fitrana must be paid before Eid prayer begins. 
-                      It's recommended to pay 1-2 days before Eid to ensure it reaches the needy in time. 
-                      Some scholars allow payment until the end of Ramadan.
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-                
-                <AccordionItem value="q6">
-                  <AccordionTrigger>What items can be given as Fitrana?</AccordionTrigger>
-                  <AccordionContent>
-                    <p className="text-sm text-muted-foreground">
-                      Fitrana can be given as: wheat, barley, dates, raisins, cheese, or money. 
-                      Money is preferred in modern times as it gives recipients flexibility to buy what they need. 
-                      The amount should be equivalent to 2.5kg of staple food.
-                    </p>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </CardContent>
-          </Card>
+          {/* Premium FAQ Section */}
+          <div className="relative overflow-hidden rounded-[24px] p-6 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-xl shadow-slate-900/5">
+            <div className="flex items-center gap-3 mb-4">
+              <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700">
+                <Info className="w-5 h-5" strokeWidth={2.5} />
+              </div>
+              <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Frequently Asked Questions</h3>
+            </div>
+            
+            <Accordion type="single" collapsible className="w-full space-y-2">
+              <AccordionItem value="q1" className="border border-slate-200 dark:border-slate-800 rounded-xl px-4 bg-white/50 dark:bg-black/20 shadow-sm">
+                <AccordionTrigger className="font-bold text-sm hover:no-underline py-4">Who is obligated to pay Fitrana?</AccordionTrigger>
+                <AccordionContent className="text-sm font-medium text-slate-600 dark:text-slate-400 pb-4 leading-relaxed">
+                  Every Muslim who possesses wealth above the Nisab threshold is obligated to pay Fitrana. 
+                  This includes adults who have enough food for their family for one day and night. 
+                  Parents should pay on behalf of their minor children.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="q2" className="border border-slate-200 dark:border-slate-800 rounded-xl px-4 bg-white/50 dark:bg-black/20 shadow-sm">
+                <AccordionTrigger className="font-bold text-sm hover:no-underline py-4">How much is Fitrana per person?</AccordionTrigger>
+                <AccordionContent className="text-sm font-medium text-slate-600 dark:text-slate-400 pb-4 leading-relaxed">
+                  The standard amount is 2.5kg of wheat, barley, dates, or equivalent value. 
+                  In monetary terms, it's the value of 2.5kg of staple food in your local area. 
+                  Some scholars suggest 3kg for those who can afford it.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="q3" className="border border-slate-200 dark:border-slate-800 rounded-xl px-4 bg-white/50 dark:bg-black/20 shadow-sm">
+                <AccordionTrigger className="font-bold text-sm hover:no-underline py-4">What if I can't afford it?</AccordionTrigger>
+                <AccordionContent className="text-sm font-medium text-slate-600 dark:text-slate-400 pb-4 leading-relaxed">
+                  If someone cannot afford the standard amount, they should pay what they can afford. 
+                  The obligation is lifted for those in genuine financial hardship. 
+                  Allah does not burden a soul beyond its capacity.
+                </AccordionContent>
+              </AccordionItem>
+              
+              <AccordionItem value="q4" className="border border-slate-200 dark:border-slate-800 rounded-xl px-4 bg-white/50 dark:bg-black/20 shadow-sm">
+                <AccordionTrigger className="font-bold text-sm hover:no-underline py-4">When should it be paid?</AccordionTrigger>
+                <AccordionContent className="text-sm font-medium text-slate-600 dark:text-slate-400 pb-4 leading-relaxed">
+                  Fitrana must be paid before Eid prayer begins. 
+                  It's recommended to pay 1-2 days before Eid to ensure it reaches the needy in time.
+                </AccordionContent>
+              </AccordionItem>
+            </Accordion>
+          </div>
 
           {/* Payment History */}
           {fitranaData.paymentHistory.length > 0 && (
-            <Card>
-              <CardHeader className="pb-2">
-                <CardTitle className="text-base flex items-center gap-2">
-                  <History className="w-4 h-4 text-primary" />
-                  Payment History
-                </CardTitle>
-              </CardHeader>
-              <CardContent>
-                <div className="space-y-2">
-                  {fitranaData.paymentHistory.slice(-3).reverse().map(record => (
-                    <div key={record.id} className="flex items-center justify-between p-2 border rounded">
-                      <div>
-                        <p className="text-sm font-medium">{record.year}</p>
-                        <p className="text-xs text-muted-foreground">
-                          {record.familyMembers} members • {formatCurrency(record.totalAmount)}
-                        </p>
-                      </div>
-                      <div className={`px-2 py-1 rounded text-xs ${
-                        record.paid ? 'bg-green-100 text-green-800' : 'bg-yellow-100 text-yellow-800'
-                      }`}>
-                        {record.paid ? 'Paid' : 'Pending'}
-                      </div>
-                    </div>
-                  ))}
-                  <Button
-                    variant="outline"
-                    onClick={exportHistory}
-                    className="w-full flex items-center gap-2"
-                  >
-                    <Download className="w-4 h-4" />
-                    Export Full History
-                  </Button>
+            <div className="relative overflow-hidden rounded-[24px] p-6 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-xl shadow-slate-900/5">
+              <div className="flex items-center gap-3 mb-4">
+                <div className="p-2.5 rounded-xl bg-slate-100 dark:bg-slate-800 text-slate-700 dark:text-slate-300 shadow-sm border border-slate-200 dark:border-slate-700">
+                  <History className="w-5 h-5" strokeWidth={2.5} />
                 </div>
-              </CardContent>
-            </Card>
+                <h3 className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">Payment History</h3>
+              </div>
+              
+              <div className="space-y-3">
+                {fitranaData.paymentHistory.slice(-3).reverse().map(record => (
+                  <div key={record.id} className="flex flex-col sm:flex-row sm:items-center justify-between p-4 bg-white/50 dark:bg-slate-800/50 border border-slate-200 dark:border-slate-700 rounded-2xl shadow-sm gap-2">
+                    <div>
+                      <div className="flex items-center gap-2 mb-1">
+                        <span className="font-black text-slate-900 dark:text-white">{record.year}</span>
+                        <div className={`px-2 py-0.5 rounded-md text-[10px] font-bold uppercase tracking-wider ${
+                          record.paid ? 'bg-emerald-100 text-emerald-800 dark:bg-emerald-500/20 dark:text-emerald-400' : 'bg-yellow-100 text-yellow-800'
+                        }`}>
+                          {record.paid ? 'Paid' : 'Pending'}
+                        </div>
+                      </div>
+                      <p className="text-xs font-medium text-slate-500">
+                        {record.familyMembers} members
+                      </p>
+                    </div>
+                    <div className="font-bold text-lg text-slate-900 dark:text-white tracking-tight">
+                       {formatCurrency(record.totalAmount)}
+                    </div>
+                  </div>
+                ))}
+                
+                <Button
+                  variant="outline"
+                  onClick={exportHistory}
+                  className="w-full h-12 mt-2 rounded-xl border-slate-200 dark:border-slate-700 font-bold bg-white/50 dark:bg-slate-800/50 hover:bg-slate-100 dark:hover:bg-slate-800 transition-all flex items-center justify-center gap-2 shadow-sm"
+                >
+                  <Download className="w-4 h-4 text-slate-500" strokeWidth={2.5} />
+                  Export Full History
+                </Button>
+              </div>
+            </div>
           )}
         </div>
       </div>

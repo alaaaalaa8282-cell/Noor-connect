@@ -10,135 +10,25 @@ import { Badge } from "@/components/ui/badge";
 import { Switch } from "@/components/ui/switch";
 import { Grip, Settings, Eye, EyeOff, RotateCcw } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
-
-interface WidgetConfig {
-  id: string;
-  name: string;
-  description: string;
-  visible: boolean;
-  order: number;
-  category: 'essential' | 'optional' | 'premium';
-}
-
-const WIDGET_CONFIG_KEY = "widget-customization";
-
-const defaultWidgets: WidgetConfig[] = [
-  {
-    id: 'prayer-times',
-    name: 'Prayer Times',
-    description: 'Daily prayer schedule and countdown',
-    visible: true,
-    order: 1,
-    category: 'essential'
-  },
-  {
-    id: 'daily-ayah',
-    name: 'Daily Ayah',
-    description: 'Quranic verse of the day',
-    visible: true,
-    order: 2,
-    category: 'essential'
-  },
-  {
-    id: 'daily-hadith',
-    name: 'Daily Hadith',
-    description: 'Prophetic tradition of the day',
-    visible: true,
-    order: 3,
-    category: 'essential'
-  },
-  {
-    id: 'quran-progress',
-    name: 'Quran Progress',
-    description: 'Track your Quran reading progress',
-    visible: true,
-    order: 4,
-    category: 'optional'
-  },
-  {
-    id: 'weather',
-    name: 'Weather',
-    description: 'Current weather and prayer conditions',
-    visible: true,
-    order: 5,
-    category: 'optional'
-  },
-  {
-    id: 'prayer-stats',
-    name: 'Prayer Statistics',
-    description: 'Your prayer tracking analytics',
-    visible: true,
-    order: 6,
-    category: 'optional'
-  },
-  {
-    id: 'islamic-events',
-    name: 'Islamic Events',
-    description: 'Upcoming Islamic holidays and events',
-    visible: true,
-    order: 7,
-    category: 'optional'
-  },
-  {
-    id: 'salah-tracker',
-    name: 'Salah Tracker',
-    description: 'Track daily prayer performance',
-    visible: true,
-    order: 8,
-    category: 'optional'
-  },
-  {
-    id: 'weekly-chart',
-    name: 'Weekly Progress Chart',
-    description: 'Visual prayer performance chart',
-    visible: true,
-    order: 9,
-    category: 'optional'
-  },
-  {
-    id: 'qaza-tracker',
-    name: 'Qaza Tracker',
-    description: 'Track missed prayers',
-    visible: true,
-    order: 10,
-    category: 'optional'
-  },
-  {
-    id: 'dhikr-reminder',
-    name: 'Dhikr Reminder',
-    description: 'Daily remembrance reminders',
-    visible: true,
-    order: 11,
-    category: 'premium'
-  }
-];
+import {
+  DEFAULT_DASHBOARD_WIDGETS,
+  loadDashboardWidgetConfig,
+  persistDashboardWidgetConfig,
+  type DashboardWidgetConfig,
+} from "@/lib/dashboard-widget-config";
 
 export function WidgetCustomizer() {
-  const [widgets, setWidgets] = useState<WidgetConfig[]>(defaultWidgets);
-  const [draggedWidget, setDraggedWidget] = useState<WidgetConfig | null>(null);
+  const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(DEFAULT_DASHBOARD_WIDGETS);
+  const [draggedWidget, setDraggedWidget] = useState<DashboardWidgetConfig | null>(null);
   const { toast } = useToast();
 
   useEffect(() => {
-    const savedConfig = localStorage.getItem(WIDGET_CONFIG_KEY);
-    if (savedConfig) {
-      try {
-        const parsed = JSON.parse(savedConfig);
-        setWidgets(parsed);
-      } catch (error) {
-        console.error('Error loading widget config:', error);
-      }
-    }
+    setWidgets(loadDashboardWidgetConfig());
   }, []);
 
-  const saveConfig = (newWidgets: WidgetConfig[]) => {
-    setWidgets(newWidgets);
-    localStorage.setItem(WIDGET_CONFIG_KEY, JSON.stringify(newWidgets));
-    
-    // Dispatch event to notify dashboard of changes
-    window.dispatchEvent(new CustomEvent('widget-config-changed', { 
-      detail: { widgets: newWidgets } 
-    }));
-    
+  const saveConfig = (newWidgets: DashboardWidgetConfig[]) => {
+    const persisted = persistDashboardWidgetConfig(newWidgets);
+    setWidgets(persisted);
     toast({
       title: "Widget Layout Updated",
       description: "Your dashboard has been customized",
@@ -148,17 +38,17 @@ export function WidgetCustomizer() {
   const toggleWidgetVisibility = (widgetId: string) => {
     const newWidgets = widgets.map(widget =>
       widget.id === widgetId
-        ? { ...widget, visible: !widget.visible }
+        ? (widget.category === 'essential' ? widget : { ...widget, visible: !widget.visible })
         : widget
     );
     saveConfig(newWidgets);
   };
 
   const resetToDefault = () => {
-    saveConfig(defaultWidgets);
+    saveConfig(DEFAULT_DASHBOARD_WIDGETS);
   };
 
-  const handleDragStart = (widget: WidgetConfig) => {
+  const handleDragStart = (widget: DashboardWidgetConfig) => {
     setDraggedWidget(widget);
   };
 
@@ -166,8 +56,9 @@ export function WidgetCustomizer() {
     e.preventDefault();
   };
 
-  const handleDrop = (e: React.DragEvent, targetWidget: WidgetConfig) => {
+  const handleDrop = (e: React.DragEvent, targetWidget: DashboardWidgetConfig) => {
     e.preventDefault();
+    if (targetWidget.category === 'essential') return;
     if (!draggedWidget || draggedWidget.id === targetWidget.id) return;
 
     const newWidgets = [...widgets];

@@ -35,17 +35,44 @@ const Tasbeeh = () => {
     setDailyHistory(getTasbeehHistory());
   }, []);
 
+  // Enhanced haptic feedback patterns
+  const triggerHapticFeedback = (type: 'increment' | 'milestone' | 'reset' | 'select' = 'increment') => {
+    if (!('vibrate' in navigator)) return;
+
+    switch (type) {
+      case 'increment':
+        // Single tap for normal increment
+        navigator.vibrate(8);
+        break;
+      case 'milestone':
+        // Double pulse for milestone achievements
+        navigator.vibrate([10, 50, 10]);
+        break;
+      case 'reset':
+        // Long vibration for reset confirmation
+        navigator.vibrate([15, 30, 15, 30, 15]);
+        break;
+      case 'select':
+        // Short pulse for selection changes
+        navigator.vibrate(5);
+        break;
+    }
+  };
+
   const handleIncrement = () => {
     const newCount = count + 1;
+    const previousCount = count;
     setCount(newCount);
     addTasbeehEntry(label);
     setTotalCount(getTasbeehTotal());
     setDailyHistory(getTasbeehHistory());
     setIsAnimating(true);
 
-    // Haptic feedback
-    if ('vibrate' in navigator) {
-      navigator.vibrate(10);
+    // Enhanced haptic feedback with milestone detection
+    if (newCount === 33 || newCount === 99 || newCount === 100 || (newCount % 100 === 0 && newCount > 0)) {
+      triggerHapticFeedback('milestone');
+    } else {
+      triggerHapticFeedback('increment');
     }
 
     setTimeout(() => setIsAnimating(false), 100);
@@ -54,7 +81,14 @@ const Tasbeeh = () => {
   const handleReset = () => {
     if (confirm(t('resetCurrentCounter'))) {
       setCount(0);
+      triggerHapticFeedback('reset');
     }
+  };
+
+  const handleDhikrChange = (value: string) => {
+    setSelectedDhikr(value);
+    setCount(0);
+    triggerHapticFeedback('select');
   };
 
   const nextMilestone = count < 33 ? 33 : count < 99 ? 99 : count < 100 ? 100 : Math.ceil((count + 1) / 100) * 100;
@@ -83,7 +117,7 @@ const Tasbeeh = () => {
                 </div>
               </div>
 
-              <Select value={selectedDhikr} onValueChange={(v) => { setSelectedDhikr(v); setCount(0); }}>
+              <Select value={selectedDhikr} onValueChange={handleDhikrChange}>
                 <SelectTrigger className="h-16 rounded-2xl bg-card border-border/40 text-left px-5">
                   <div className="flex flex-col">
                     <span className="font-arabic text-lg text-primary leading-tight">{currentDhikr.label}</span>
@@ -142,6 +176,7 @@ const Tasbeeh = () => {
               {/* Main Counter Hub */}
               <button
                 onClick={handleIncrement}
+                onTouchStart={() => triggerHapticFeedback('increment')}
                 className="relative w-[210px] h-[210px] rounded-full bg-card shadow-[0_20px_50px_rgba(0,0,0,0.1)] border border-border/10 flex flex-col items-center justify-center group active:scale-[0.9] transition-all duration-150"
               >
                 {/* Background reflection */}

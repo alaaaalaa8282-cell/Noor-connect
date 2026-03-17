@@ -271,11 +271,11 @@ export function HadithBookContent() {
         {/* Hadith List */}
         {!loading && (
           <div className="space-y-4">
-            {displayedHadith.map((hadith) => {
+            {displayedHadith.map((hadith, index) => {
               const tags = Array.isArray(hadith.tags) ? hadith.tags : [];
               return (
                 <Card
-                  key={hadith.id}
+                  key={`${hadith.id}-${hadith.bookNumber}-${hadith.hadithNumber}-${index}`}
                   className="group cursor-pointer transition-all duration-300 hover:shadow-lg hover:scale-[1.01] border-border/50 hover:border-primary/30"
                   onClick={() => {
                     // Individual hadith route can be added later.
@@ -319,8 +319,8 @@ export function HadithBookContent() {
                         {/* Tags */}
                         {tags.length > 0 && (
                           <div className="flex flex-wrap gap-1 mt-2">
-                            {tags.map((tag) => (
-                              <Badge key={tag} variant="outline" className="text-xs">
+                            {tags.map((tag, tagIndex) => (
+                              <Badge key={`${tag}-${tagIndex}`} variant="outline" className="text-xs">
                                 {tag}
                               </Badge>
                             ))}

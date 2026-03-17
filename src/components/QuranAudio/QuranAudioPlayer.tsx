@@ -1,10 +1,13 @@
 import React, { useState, useRef, useEffect } from 'react';
-import { Card, CardContent, CardHeader, CardTitle } from '@/components/ui/card';
+import { Card, CardContent } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '@/components/ui/select';
-import { Play, Pause, SkipBack, SkipForward, Volume2, Download, Loader2 } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { Play, Pause, SkipBack, SkipForward, Volume2, Download, Loader2, User, BookOpen, Clock, Wifi, WifiOff, Headphones, Sparkles, Heart } from 'lucide-react';
 import { QURAN_AUDIO_API, Reciter, SurahAudio } from '@/lib/quran-audio';
 import { useToast } from '@/hooks/use-toast';
+import { motion, AnimatePresence } from 'framer-motion';
+import { Badge } from '@/components/ui/badge';
 
 interface QuranAudioPlayerProps {
   className?: string;
@@ -281,171 +284,280 @@ export function QuranAudioPlayer({ className }: QuranAudioPlayerProps) {
   };
   
   return (
-    <Card className={`w-full max-w-2xl mx-auto ${className}`}>
-      <CardHeader className="pb-4">
-        <CardTitle className="flex items-center gap-2 text-xl">
-          <span className="text-2xl">📖</span>
-          Quran Audio Player
-        </CardTitle>
-      </CardHeader>
-      
-      <CardContent className="space-y-6">
-        {/* Reciter and Surah Selection */}
-        <div className="grid grid-cols-2 gap-4">
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Reciter</label>
-            <Select value={selectedReciter?.id?.toString() || ""} onValueChange={handleReciterChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select reciter" />
-              </SelectTrigger>
-              <SelectContent>
-                {reciterList.map((reciter) => (
-                  <SelectItem key={reciter.id} value={reciter.id.toString()}>
-                    <div className="flex flex-col">
-                      <span>{reciter.name}</span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          <div className="space-y-2">
-            <label className="text-sm font-medium">Surah</label>
-            <Select value={selectedSurah.toString()} onValueChange={handleSurahChange}>
-              <SelectTrigger>
-                <SelectValue placeholder="Select Surah" />
-              </SelectTrigger>
-              <SelectContent className="max-h-60">
-                {surahList.map((surah) => (
-                  <SelectItem key={surah.sequence} value={surah.sequence.toString()}>
-                    <div className="flex flex-col">
-                      <span>{surah.name?.latin?.short || surah.name?.latin?.long}</span>
-                      <span className="text-xs text-muted-foreground">
-                        {surah.ayahCount} verses • {surah.type?.latin}
-                      </span>
-                    </div>
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-        </div>
+    <motion.div 
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.5 }}
+      className="w-full max-w-4xl mx-auto"
+    >
+      <Card className="relative overflow-hidden border-0 shadow-[var(--elevation-6)] bg-gradient-to-br from-emerald-50/80 via-teal-50/80 to-cyan-50/80 dark:from-emerald-950/40 dark:via-teal-950/40 dark:to-cyan-950/40 backdrop-blur-xl">
+        {/* Animated Background Pattern */}
+        <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 via-transparent to-cyan-500/5 animate-pulse" />
+        <div className="absolute top-[-100px] right-[-100px] w-80 h-80 bg-emerald-400/10 rounded-full blur-3xl" />
+        <div className="absolute bottom-[-80px] left-[-80px] w-64 h-64 bg-cyan-400/10 rounded-full blur-3xl" />
         
-        {/* Current Surah Info */}
-        {currentAudio && (
-          <div className="text-center p-4 bg-muted/50 rounded-lg">
-            <h3 className="text-lg font-semibold">
-              {currentSurahInfo?.name?.latin?.short || `Surah ${selectedSurah}`}
-            </h3>
-            <p className="text-sm text-muted-foreground">
-              {currentSurahInfo?.name?.arabic?.short || ''} • {currentAudio.ayahCount} verses
-            </p>
-            <p className="text-xs text-muted-foreground mt-1">
-              {currentAudio.type?.latin}
-            </p>
-            {currentAudio.recitation && (
-              <div className="mt-2 text-xs text-muted-foreground">
-                <p>Duration: {Math.floor(currentAudio.recitation.duration / 60)}:{(currentAudio.recitation.duration % 60).toString().padStart(2, '0')}</p>
-                <p>Size: {(currentAudio.recitation.fileSize / (1024 * 1024)).toFixed(1)} MB • {currentAudio.recitation.format}</p>
-                <p>Reciter: {currentAudio.recitation.reciterName}</p>
-              </div>
-            )}
-          </div>
-        )}
+        {/* Glassmorphism Overlay */}
+        <div className="absolute inset-0 bg-white/20 dark:bg-black/20 backdrop-blur-sm" />
         
-        {/* Audio Player */}
-        <div className="space-y-4">
-          {/* Progress Bar */}
-          <div className="space-y-2">
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>{formatTime(currentTime)}</span>
-              <span>{formatTime(duration)}</span>
-            </div>
-            <div className="w-full bg-secondary rounded-full h-2">
-              <div 
-                className="bg-primary h-2 rounded-full transition-all"
-                style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
-              />
-            </div>
-          </div>
-          
-          {/* Controls */}
-          <div className="flex items-center justify-center gap-4">
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={playPreviousSurah}
-              disabled={selectedSurah <= 1 || isLoading}
-            >
-              <SkipBack className="w-4 h-4" />
-            </Button>
-            
-            <Button
-              size="lg"
-              onClick={togglePlayPause}
-              disabled={!currentAudio || isLoading}
-              className="w-16 h-16 rounded-full"
-            >
-              {isLoading ? (
-                <Loader2 className="w-6 h-6 animate-spin" />
-              ) : isPlaying ? (
-                <Pause className="w-6 h-6" />
-              ) : (
-                <Play className="w-6 h-6 ml-1" />
-              )}
-            </Button>
-            
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={playNextSurah}
-              disabled={selectedSurah >= 114 || isLoading}
-            >
-              <SkipForward className="w-4 h-4" />
-            </Button>
-          </div>
-          
-          {/* Additional Controls */}
+        {/* Content */}
+        <CardContent className="relative z-10 p-8 space-y-8">
+          {/* Premium Header */}
           <div className="flex items-center justify-between">
+            <div className="flex items-center gap-4">
+              <div className="p-4 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg border border-white/20">
+                <BookOpen className="w-8 h-8 text-white" />
+              </div>
+              <div>
+                <h2 className="text-2xl font-bold text-slate-900 dark:text-white tracking-tight">Quran Audio Player</h2>
+                <p className="text-slate-600 dark:text-slate-400 text-sm flex items-center gap-2 mt-1">
+                  <Sparkles className="w-4 h-4 text-emerald-500" />
+                  Premium Divine Recitations
+                </p>
+              </div>
+            </div>
             <div className="flex items-center gap-2">
-              <Volume2 className="w-4 h-4" />
-              <input
-                type="range"
-                min="0"
-                max="1"
-                step="0.1"
-                value={volume}
-                onChange={(e) => {
-                  const newVolume = parseFloat(e.target.value);
-                  setVolume(newVolume);
-                  if (audioRef.current) {
-                    audioRef.current.volume = newVolume;
-                  }
-                }}
-                className="w-20"
-              />
+              {isPlaying && (
+                <motion.div
+                  initial={{ scale: 0 }}
+                  animate={{ scale: 1 }}
+                  className="flex items-center gap-2 px-3 py-1 bg-emerald-500/20 rounded-full"
+                >
+                  <div className="w-2 h-2 bg-emerald-500 rounded-full animate-pulse" />
+                  <span className="text-xs font-medium text-emerald-700 dark:text-emerald-300">Playing</span>
+                </motion.div>
+              )}
+            </div>
+          </div>
+          
+          {/* Premium Selection Controls */}
+          <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
+            {/* Reciter Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <User className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <label className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Reciter</label>
+              </div>
+              <Select value={selectedReciter?.id?.toString() || ""} onValueChange={handleReciterChange}>
+                <SelectTrigger className="h-12 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-emerald-200 dark:border-emerald-700 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <Headphones className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <SelectValue placeholder="Select Master Reciter" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="backdrop-blur-sm border-emerald-200 dark:border-emerald-700">
+                  {reciterList.map((reciter) => (
+                    <SelectItem key={reciter.id} value={reciter.id.toString()}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{reciter.name}</span>
+                        <span className="text-xs text-muted-foreground">Expert Recitation</span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
             </div>
             
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleDownload}
-              disabled={!currentAudio}
-            >
-              <Download className="w-4 h-4 mr-1" />
-              Download
-            </Button>
+            {/* Surah Selection */}
+            <div className="space-y-3">
+              <div className="flex items-center gap-2">
+                <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                <label className="text-sm font-semibold text-slate-900 dark:text-white uppercase tracking-wider">Surah</label>
+              </div>
+              <Select value={selectedSurah.toString()} onValueChange={handleSurahChange}>
+                <SelectTrigger className="h-12 bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-emerald-200 dark:border-emerald-700 rounded-xl">
+                  <div className="flex items-center gap-3">
+                    <BookOpen className="w-4 h-4 text-emerald-600 dark:text-emerald-400" />
+                    <SelectValue placeholder="Select Divine Surah" />
+                  </div>
+                </SelectTrigger>
+                <SelectContent className="max-h-80 backdrop-blur-sm border-emerald-200 dark:border-emerald-700">
+                  {surahList.map((surah) => (
+                    <SelectItem key={surah.sequence} value={surah.sequence.toString()}>
+                      <div className="flex flex-col">
+                        <span className="font-medium">{surah.name?.latin?.short || surah.name?.latin?.long}</span>
+                        <span className="text-xs text-muted-foreground">
+                          {surah.ayahCount} verses • {surah.type?.latin} • {surah.name?.arabic?.short}
+                        </span>
+                      </div>
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
           </div>
-        </div>
-        
-        {/* Hidden Audio Element */}
-        <audio
-          ref={audioRef}
-          onPlay={() => setIsPlaying(true)}
-          onPause={() => setIsPlaying(false)}
-        />
-      </CardContent>
-    </Card>
+          
+          {/* Current Surah Premium Display */}
+          <AnimatePresence>
+            {currentAudio && (
+              <motion.div
+                initial={{ opacity: 0, scale: 0.95 }}
+                animate={{ opacity: 1, scale: 1 }}
+                exit={{ opacity: 0, scale: 0.95 }}
+                transition={{ duration: 0.3 }}
+                className="relative overflow-hidden rounded-2xl bg-gradient-to-br from-emerald-500/10 to-teal-500/10 backdrop-blur-sm border border-emerald-500/20 p-6"
+              >
+                <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/5 to-transparent opacity-50" />
+                <div className="relative z-10 text-center space-y-4">
+                  <div className="flex items-center justify-center gap-3">
+                    <div className="p-2 bg-emerald-500/20 rounded-xl backdrop-blur-sm">
+                      <Heart className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                    </div>
+                    <h3 className="text-2xl font-bold text-slate-900 dark:text-white">
+                      {currentSurahInfo?.name?.latin?.short || `Surah ${selectedSurah}`}
+                    </h3>
+                  </div>
+                  <p className="text-lg text-emerald-700 dark:text-emerald-300 font-arabic">
+                    {currentSurahInfo?.name?.arabic?.short || ''}
+                  </p>
+                  <div className="flex items-center justify-center gap-6 text-sm text-slate-600 dark:text-slate-400">
+                    <div className="flex items-center gap-1">
+                      <BookOpen className="w-4 h-4" />
+                      <span>{currentAudio.ayahCount} Verses</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Clock className="w-4 h-4" />
+                      <span>{Math.floor(currentAudio.recitation.duration / 60)}:{(currentAudio.recitation.duration % 60).toString().padStart(2, '0')}</span>
+                    </div>
+                    <div className="flex items-center gap-1">
+                      <Wifi className="w-4 h-4" />
+                      <span>HD Quality</span>
+                    </div>
+                  </div>
+                  <div className="flex items-center justify-center gap-2">
+                    <Badge variant="outline" className="bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300">
+                      {currentAudio.recitation.reciterName}
+                    </Badge>
+                    <Badge variant="outline" className="bg-teal-500/10 border-teal-500/30 text-teal-700 dark:text-teal-300">
+                      {currentAudio.type?.latin}
+                    </Badge>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </AnimatePresence>
+          
+          {/* Premium Audio Player */}
+          <div className="space-y-6">
+            {/* Progress Bar */}
+            <div className="space-y-3">
+              <div className="flex justify-between text-sm font-medium text-slate-700 dark:text-slate-300">
+                <span>{formatTime(currentTime)}</span>
+                <span>{formatTime(duration)}</span>
+              </div>
+              <div className="relative">
+                <div className="w-full bg-slate-200/50 dark:bg-slate-700/50 rounded-full h-3 backdrop-blur-sm">
+                  <motion.div 
+                    className="bg-gradient-to-r from-emerald-500 to-teal-500 h-3 rounded-full shadow-lg"
+                    style={{ width: `${(currentTime / duration) * 100 || 0}%` }}
+                    initial={{ width: 0 }}
+                    animate={{ width: `${(currentTime / duration) * 100 || 0}%` }}
+                    transition={{ duration: 0.3 }}
+                  />
+                </div>
+                <div 
+                  className="absolute top-1/2 -translate-y-1/2 w-4 h-4 bg-white rounded-full shadow-lg border-2 border-emerald-500 cursor-pointer"
+                  style={{ left: `calc(${(currentTime / duration) * 100 || 0}% - 8px)` }}
+                  onClick={(e) => {
+                    const rect = e.currentTarget.parentElement?.getBoundingClientRect();
+                    if (rect && audioRef.current) {
+                      const x = e.clientX - rect.left;
+                      const percentage = x / rect.width;
+                      audioRef.current.currentTime = percentage * duration;
+                    }
+                  }}
+                />
+              </div>
+            </div>
+            
+            {/* Premium Controls */}
+            <div className="flex items-center justify-center gap-6">
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={playPreviousSurah}
+                  disabled={selectedSurah <= 1 || isLoading}
+                  className="w-12 h-12 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-emerald-200 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                >
+                  <SkipBack className="w-5 h-5" />
+                </Button>
+              </motion.div>
+              
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  size="lg"
+                  onClick={togglePlayPause}
+                  disabled={!currentAudio || isLoading}
+                  className="w-20 h-20 rounded-full bg-gradient-to-br from-emerald-500 to-teal-600 shadow-lg hover:shadow-xl border-2 border-white/20 dark:border-white/10"
+                >
+                  {isLoading ? (
+                    <Loader2 className="w-8 h-8 animate-spin text-white" />
+                  ) : isPlaying ? (
+                    <Pause className="w-8 h-8 text-white" />
+                  ) : (
+                    <Play className="w-8 h-8 text-white ml-1" />
+                  )}
+                </Button>
+              </motion.div>
+              
+              <motion.div whileHover={{ scale: 1.1 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={playNextSurah}
+                  disabled={selectedSurah >= 114 || isLoading}
+                  className="w-12 h-12 rounded-full bg-white/50 dark:bg-slate-800/50 backdrop-blur-sm border-emerald-200 dark:border-emerald-700 hover:bg-emerald-50 dark:hover:bg-emerald-900/20"
+                >
+                  <SkipForward className="w-5 h-5" />
+                </Button>
+              </motion.div>
+            </div>
+            
+            {/* Advanced Controls */}
+            <div className="flex items-center justify-between p-4 bg-white/30 dark:bg-slate-800/30 backdrop-blur-sm rounded-xl border border-emerald-200 dark:border-emerald-700">
+              <div className="flex items-center gap-3">
+                <Volume2 className="w-5 h-5 text-emerald-600 dark:text-emerald-400" />
+                <Slider
+                  value={[volume * 100]}
+                  onValueChange={(v) => {
+                    const newVolume = v[0] / 100;
+                    setVolume(newVolume);
+                    if (audioRef.current) {
+                      audioRef.current.volume = newVolume;
+                    }
+                  }}
+                  max={100}
+                  step={1}
+                  className="w-32"
+                />
+                <span className="text-sm font-medium text-slate-700 dark:text-slate-300 w-10">
+                  {Math.round(volume * 100)}%
+                </span>
+              </div>
+              
+              <motion.div whileHover={{ scale: 1.05 }} whileTap={{ scale: 0.95 }}>
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={handleDownload}
+                  disabled={!currentAudio}
+                  className="bg-emerald-500/10 border-emerald-500/30 text-emerald-700 dark:text-emerald-300 hover:bg-emerald-500/20"
+                >
+                  <Download className="w-4 h-4 mr-2" />
+                  Download
+                </Button>
+              </motion.div>
+            </div>
+          </div>
+          
+          {/* Hidden Audio Element */}
+          <audio
+            ref={audioRef}
+            onPlay={() => setIsPlaying(true)}
+            onPause={() => setIsPlaying(false)}
+          />
+        </CardContent>
+      </Card>
+    </motion.div>
   );
 }

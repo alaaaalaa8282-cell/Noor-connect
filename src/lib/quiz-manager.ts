@@ -287,13 +287,13 @@ export class QuizManager {
   }
 
   // Get level progress
-  getLevelProgress(): { current: number; next: number; progress: number } {
+  getLevelProgress(): { current: number; next: number; progress: number; remaining: number } {
     const stats = this.getStats();
     const currentLevel = LEVEL_THRESHOLDS.find(l => l.level === stats.level);
     const nextLevel = LEVEL_THRESHOLDS.find(l => l.level === stats.level + 1);
     
-    if (!currentLevel) return { current: 0, next: 100, progress: 0 };
-    if (!nextLevel) return { current: currentLevel.xp, next: currentLevel.xp, progress: 100 };
+    if (!currentLevel) return { current: 0, next: 100, progress: 0, remaining: 100 };
+    if (!nextLevel) return { current: currentLevel.xp, next: currentLevel.xp, progress: 100, remaining: 0 };
     
     const currentXP = stats.xp - currentLevel.xp;
     const neededXP = nextLevel.xp - currentLevel.xp;
@@ -302,7 +302,8 @@ export class QuizManager {
     return {
       current: currentXP,
       next: neededXP,
-      progress: Math.min(100, Math.max(0, progress))
+      progress: Math.min(100, Math.max(0, progress)),
+      remaining: Math.max(0, neededXP - currentXP)
     };
   }
 

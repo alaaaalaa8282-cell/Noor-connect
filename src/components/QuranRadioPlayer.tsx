@@ -6,6 +6,8 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { Slider } from "@/components/ui/slider";
 import { useToast } from "@/hooks/use-toast";
 import { quranRadio, type RadioStation } from "@/lib/quran-radio";
+import { audioNotificationService, type AudioNotificationData } from "@/lib/audio-notifications";
+import { NotificationContentGenerator } from "@/lib/notification-content";
 
 interface QuranRadioPlayerProps {
   onClose: () => void;
@@ -41,6 +43,23 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
   const [currentTrackInfo, setCurrentTrackInfo] = useState<string>('');
   const [stationValue, setStationValue] = useState<string>(''); // Controlled value for Select
 
+  // Setup notification service on mount
+  useEffect(() => {
+    // Request notification permission for radio playback
+    audioNotificationService.requestPermission().then(granted => {
+      if (granted) {
+        console.log('Radio notifications permission granted');
+      } else {
+        console.warn('Radio notifications permission denied');
+      }
+    });
+
+    // Cleanup notifications on unmount
+    return () => {
+      audioNotificationService.closeNotification();
+    };
+  }, []);
+
   // Load radio stations
   useEffect(() => {
     loadRadioStations();
@@ -71,19 +90,38 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
     }
   };
 
-  // Setup audio element
+  // Setup audio element with enhanced background support and notifications
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
 
     audio.volume = isMuted ? 0 : volume / 100;
 
-    const handlePlay = () => setIsPlaying(true);
-    const handlePause = () => setIsPlaying(false);
+    const handlePlay = () => {
+      setIsPlaying(true);
+      // Show notification when radio starts playing
+      if (selectedStation) {
+        audioNotificationService.showNotification({
+          type: 'quran-radio',
+          title: selectedStation.name,
+          artist: 'Quran Radio Live',
+          album: 'Noor Connect Radio',
+          isPlaying: true
+        });
+      }
+    };
+    
+    const handlePause = () => {
+      setIsPlaying(false);
+      // Update notification when paused
+      audioNotificationService.updateNotification({ isPlaying: false });
+    };
+    
     const handleError = (e: Event) => {
       console.error('Audio error:', e);
       setIsPlaying(false);
       setIsLoading(false);
+      audioNotificationService.closeNotification();
       
       // Get more detailed error information
       const audio = e.target as HTMLAudioElement;
@@ -114,14 +152,50 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
         variant: "destructive"
       });
     };
+    
     const handleLoadStart = () => setIsLoading(true);
     const handleCanPlay = () => setIsLoading(false);
+    const handleEnded = () => {
+      setIsPlaying(false);
+      audioNotificationService.closeNotification();
+    };
+
+    // Enhanced visibility change handler for background playback
+    const handleVisibilityChange = () => {
+      if (document.hidden && isPlaying && audio.paused) {
+        console.log('Attempting to resume radio playback in background');
+        audio.play().then(() => {
+          // Ensure notification is shown when going to background with rich content
+          const notificationContent = NotificationContentGenerator.generateQuranRadioContent({
+            stationName: selectedStation.name,
+            stationLanguage: selectedStation.language || 'Arabic',
+            isPlaying: true,
+            bitrate: selectedStation.bitrate || '128kbps',
+            location: selectedStation.country || 'Global'
+          });
+          
+          audioNotificationService.showNotification({
+            type: 'quran-radio',
+            title: selectedStation.name,
+            artist: 'Quran Radio Live',
+            album: 'Noor Connect Radio',
+            isPlaying: true
+          });
+        }).catch(error => {
+          console.warn('Failed to resume background radio playback:', error);
+        });
+      } else if (!document.hidden && !isPlaying) {
+        audioNotificationService.closeNotification();
+      }
+    };
 
     audio.addEventListener('play', handlePlay);
     audio.addEventListener('pause', handlePause);
     audio.addEventListener('error', handleError);
     audio.addEventListener('loadstart', handleLoadStart);
     audio.addEventListener('canplay', handleCanPlay);
+    audio.addEventListener('ended', handleEnded);
+    document.addEventListener('visibilitychange', handleVisibilityChange);
 
     return () => {
       audio.removeEventListener('play', handlePlay);
@@ -129,8 +203,10 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
       audio.removeEventListener('error', handleError);
       audio.removeEventListener('loadstart', handleLoadStart);
       audio.removeEventListener('canplay', handleCanPlay);
+      audio.removeEventListener('ended', handleEnded);
+      document.removeEventListener('visibilitychange', handleVisibilityChange);
     };
-  }, [volume, isMuted, toast]);
+  }, [volume, isMuted, toast, isPlaying, selectedStation]);
 
   // Update volume
   useEffect(() => {
@@ -146,6 +222,8 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
       if (isPlaying) {
         audioRef.current.pause();
         setIsPlaying(false);
+        // Update notification when paused
+        audioNotificationService.updateNotification({ isPlaying: false });
       } else {
         setIsLoading(true);
         
@@ -174,6 +252,23 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
         clearTimeout(loadTimeout);
         setIsPlaying(true);
         setCurrentTrackInfo(selectedStation.name);
+        
+        // Show persistent notification for radio playback with rich content
+        const notificationContent = NotificationContentGenerator.generateQuranRadioContent({
+          stationName: selectedStation.name,
+          stationLanguage: selectedStation.language || 'Arabic',
+          isPlaying: true,
+          bitrate: selectedStation.bitrate || '128kbps',
+          location: selectedStation.country || 'Global'
+        });
+        
+        audioNotificationService.showNotification({
+          type: 'quran-radio',
+          title: selectedStation.name,
+          artist: 'Quran Radio Live',
+          album: 'Noor Connect Radio',
+          isPlaying: true
+        });
         
         toast({
           title: "Radio Playing",
@@ -210,6 +305,7 @@ export function QuranRadioPlayer({ onClose }: QuranRadioPlayerProps) {
       setSelectedStation(station);
       setIsPlaying(false);
       setCurrentTrackInfo('');
+      audioNotificationService.closeNotification();
       
       // Reset audio
       if (audioRef.current) {

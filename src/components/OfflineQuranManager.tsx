@@ -92,8 +92,12 @@ export function OfflineQuranManager() {
     }
   };
 
-  const handleRemoveSurah = async (surahNumber: number) => {
-    await removeAudio(surahNumber);
+  const handleRemoveSurah = async (
+    surahNumber: number,
+    fromVerse?: number,
+    toVerse?: number
+  ) => {
+    await removeAudio(surahNumber, fromVerse, toVerse);
   };
 
   const formatLastSync = (timestamp: number) => {

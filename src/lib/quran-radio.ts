@@ -7,6 +7,9 @@ export interface RadioStation {
   id: string;
   name: string;
   url: string;
+  language?: string;
+  bitrate?: string;
+  country?: string;
 }
 
 export interface RadioApiResponse {
@@ -45,12 +48,18 @@ class QuranRadio {
       {
         id: "108",
         name: "-Main Radio-",
-        url: "https://backup.qurango.net/radio/mix"
+        url: "https://backup.qurango.net/radio/mix",
+        language: 'Arabic',
+        bitrate: '128kbps',
+        country: 'Global'
       },
       {
         id: "109",
         name: "-Beautiful Recitations-",
-        url: "https://backup.qurango.net/radio/salma"
+        url: "https://backup.qurango.net/radio/salma",
+        language: 'Arabic',
+        bitrate: '128kbps',
+        country: 'Global'
       },
       {
         id: "115",

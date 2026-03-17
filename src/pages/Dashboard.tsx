@@ -2,22 +2,12 @@ import { useState, useEffect, useCallback, useMemo, Suspense, lazy, type MouseEv
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight, Sparkles, MessageCircle, Settings, Clock, TrendingUp, Award, Grid3X3, Building } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight, Sparkles, MessageCircle, Clock, TrendingUp, Award, Grid3X3, Building } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppBar } from "@/components/AppBar";
-const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
-const WeeklySalahChart = lazy(() => import("@/components/WeeklySalahChart").then(module => ({ default: module.WeeklySalahChart })));
 const DailyAyah = lazy(() => import("@/components/EnhancedDailyAyah").then(module => ({ default: module.EnhancedDailyAyah })));
 const DailyHadith = lazy(() => import("@/components/EnhancedDailyHadith").then(module => ({ default: module.EnhancedDailyHadith })));
-const PrayerCountdown = lazy(() => import("@/components/PrayerCountdown"));
 const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
-const QazaTracker = lazy(() => import("@/components/QazaTracker").then(module => ({ default: module.QazaTracker })));
-
-const IslamicGreeting = lazy(() => import("@/components/IslamicGreeting").then(module => ({ default: module.IslamicGreeting })));
-const IslamicEventsWidget = lazy(() => import("@/components/IslamicEventsWidget").then(module => ({ default: module.IslamicEventsWidget })));
-const QuranProgressWidget = lazy(() => import("@/components/QuranProgressWidget").then(module => ({ default: module.QuranProgressWidget })));
-const WeatherWidget = lazy(() => import("@/components/WeatherWidget").then(module => ({ default: module.WeatherWidget })));
-const PrayerStatsWidget = lazy(() => import("@/components/PrayerStatsWidget").then(module => ({ default: module.PrayerStatsWidget })));
 import { LocationSearch } from "@/components/LocationSearch";
 import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext-new";
@@ -32,7 +22,7 @@ import { useLocationState } from "@/lib/location-state";
 import { AladhanAPI } from "@/lib/aladhan-api";
 import { type PrayerTime } from "@/lib/local-notifications";
 import { useToast } from "@/hooks/use-toast";
-import { LocationCardSkeleton, PrayerTimeSkeleton, CountdownCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
+import { LocationCardSkeleton, LoadingSpinner } from "@/components/LoadingSkeleton";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { GeocodingService } from "@/lib/geocoding";
 import { PRAYER_ALARM_CONTROL_EVENT, PRAYER_ALARM_TOGGLE_EVENT } from "@/lib/prayer-alarm-events";
@@ -47,14 +37,14 @@ const prayerIcons: Record<string, React.ReactNode> = {
   Isha: <CloudMoon className="w-5 h-5 text-purple-400" />,
 };
 
-// Premium gradient cards for main features
+// Premium high-fidelity gradient definitions for main features
 const featureCards = [
   {
     id: 'quran',
     title: 'Quran',
     description: 'Read & Listen',
     icon: BookOpen,
-    gradient: 'from-emerald-500 to-teal-600',
+    gradient: 'from-[#10b981] via-[#059669] to-[#047857]', // Rich emerald
     route: '/quran',
     stats: '114 Surahs'
   },
@@ -63,27 +53,18 @@ const featureCards = [
     title: 'Prayer',
     description: 'Times & Qibla',
     icon: Building,
-    gradient: 'from-blue-500 to-indigo-600',
+    gradient: 'from-[#3b82f6] via-[#2563eb] to-[#1d4ed8]', // Deep blue
     route: '/qibla',
     stats: '5 Daily'
-  },
-  {
-    id: 'tasbeeh',
-    title: 'Tasbeeh',
-    description: 'Dhikr Counter',
-    icon: Sparkles,
-    gradient: 'from-purple-500 to-pink-600',
-    route: '/tasbeeh',
-    stats: 'Track'
   },
   {
     id: 'services',
     title: 'Services',
     description: 'All Features',
     icon: Grid3X3,
-    gradient: 'from-amber-500 to-orange-600',
+    gradient: 'from-[#f59e0b] via-[#d97706] to-[#b45309]', // Vibrant amber
     route: '/services',
-    stats: '20+ Tools'
+    stats: '15+ Features'
   }
 ];
 
@@ -96,7 +77,7 @@ export default function Dashboard() {
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
   // Use Islamic calendar hook for accurate Hijri dates
-  const { hijriDate, isRamadan } = useIslamicCalendar();
+  const { hijriDate } = useIslamicCalendar();
   const [timeFormat, setTimeFormat] = useState<'12' | '24'>('24');
   const [nextPrayerName, setNextPrayerName] = useState<string>("");
   const [nextEventCountdown, setNextEventCountdown] = useState<{ name: string; time: string; countdown: string } | null>(null);
@@ -112,12 +93,6 @@ export default function Dashboard() {
   const [showManualLocationDialog, setShowManualLocationDialog] = useState(false);
   const [menstrualModeData, setMenstrualModeData] = useState(getMenstrualModeData());
 
-
-
-  // Navigate on card click — no DOM style mutation for better INP
-  const handleCardClick = (_event: MouseEvent<HTMLDivElement>, route: string) => {
-    navigate(route);
-  };
 
   const prayerTimesHook = usePrayerTimes();
 
@@ -155,6 +130,7 @@ export default function Dashboard() {
     // Fallback to default location timezone
     return location.timeZone;
   }, [location, prayerLocation]);
+
 
   useEffect(() => {
     const currentFormat = getTimeFormat();
@@ -444,10 +420,13 @@ export default function Dashboard() {
     return () => clearInterval(interval);
   }, [targetTime]);
 
+
   return (
     <PageTransition>
       <div className="min-h-screen bg-background">
-        <AppBar title={t('appTitle')} />
+        <AppBar
+          title={t('appTitle')}
+        />
 
         <div className="max-w-lg mx-auto p-4 space-y-4">
           {/* Header */}
@@ -548,47 +527,68 @@ export default function Dashboard() {
 
 
 
-          {/* Premium Feature Cards Grid */}
-          <div className="grid grid-cols-2 gap-4">
+          {/* Enhanced Premium Feature Cards Grid */}
+          <div className="grid grid-cols-2 gap-4 sm:gap-5">
             <AnimatePresence>
               {featureCards.map((card, index) => {
                 const Icon = card.icon;
+                const isFullWidth = index === 2; // Making the 3rd card span full width for better symmetry
+                
                 return (
                   <motion.div
                     key={card.id}
                     initial={{ opacity: 0, y: 20 }}
                     animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: index * 0.1, duration: 0.5 }}
-                    whileHover={{ scale: 1.02, y: -2 }}
+                    transition={{ delay: index * 0.1, duration: 0.5, ease: "easeOut" }}
+                    whileHover={{ scale: 1.02, y: -4 }}
                     whileTap={{ scale: 0.98 }}
-                    onClick={() => handleCardClick({} as any, card.route)}
-                    className="relative overflow-hidden rounded-2xl cursor-pointer group"
+                    onClick={() => navigate(card.route)}
+                    className={`relative overflow-hidden rounded-[24px] cursor-pointer group shadow-lg sm:shadow-xl shadow-${card.gradient.split('-')[1]}/20 ${isFullWidth ? 'col-span-2' : ''}`}
                   >
-                    {/* Gradient Background */}
+                    {/* Base Vivid Gradient */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient}`} />
                     
-                    {/* Glass Overlay */}
-                    <div className="absolute inset-0 bg-white/10 backdrop-blur-sm" />
+                    {/* Dynamic Lighting Effects */}
+                    <div className="absolute -top-16 -right-16 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:bg-white/30 transition-all duration-700" />
+                    <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-black/20 rounded-full blur-xl group-hover:bg-black/10 transition-all duration-700" />
+                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/5 opacity-80" />
                     
-                    {/* Content */}
-                    <div className="relative z-10 p-4 h-24 flex flex-col justify-between">
-                      <div className="flex items-start justify-between">
-                        <div className="p-2 rounded-xl bg-white/20 backdrop-blur-sm">
-                          <Icon className="w-5 h-5 text-white" />
+                    {/* Premium Noise / Pattern Overlay */}
+                    <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(ellipse_at_center,_#ffffff_1px,_transparent_1px)] bg-[length:12px_12px]" />
+
+                    {/* Content Container */}
+                    <div className={`relative z-10 p-5 ${isFullWidth ? 'flex flex-row items-center justify-between h-28' : 'flex flex-col h-36 justify-between'}`}>
+                      {/* Top / Left Section: Icon & Stat */}
+                      <div className={`flex ${isFullWidth ? 'flex-col items-start gap-3' : 'items-start justify-between w-full'}`}>
+                        <div className="w-10 h-10 rounded-xl bg-white/20 backdrop-blur-md flex items-center justify-center border border-white/20 shadow-inner shrink-0 group-hover:scale-110 group-hover:rotate-3 transition-transform duration-500">
+                          <Icon className="w-5 h-5 text-white drop-shadow-md" strokeWidth={2.5} />
                         </div>
-                        <div className="bg-white/20 backdrop-blur-sm px-2 py-1 rounded-full">
-                          <span className="text-[10px] font-semibold text-white">{card.stats}</span>
-                        </div>
+                        {isFullWidth && (
+                           <div>
+                             <h3 className="font-bold text-white text-xl tracking-tight leading-none mb-1">{card.title}</h3>
+                             <p className="text-white/80 text-xs font-medium uppercase tracking-wider">{card.description}</p>
+                           </div>
+                        )}
+                        {!isFullWidth && (
+                          <div className="bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 shadow-sm">
+                            <span className="text-[10px] uppercase tracking-wider font-bold text-white shadow-black/10 drop-shadow-sm">{card.stats}</span>
+                          </div>
+                        )}
                       </div>
                       
-                      <div>
-                        <h3 className="font-bold text-white text-lg">{card.title}</h3>
-                        <p className="text-white/80 text-xs">{card.description}</p>
-                      </div>
+                      {/* Bottom / Right Section: Title & Description */}
+                      {!isFullWidth && (
+                        <div className="pt-2">
+                          <h3 className="font-bold text-white text-lg tracking-tight leading-none mb-1">{card.title}</h3>
+                          <p className="text-white/80 text-xs font-medium">{card.description}</p>
+                        </div>
+                      )}
+                      {isFullWidth && (
+                        <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-sm shrink-0">
+                           <span className="text-xs uppercase tracking-wider font-bold text-white shadow-black/10 drop-shadow-sm">{card.stats}</span>
+                        </div>
+                      )}
                     </div>
-                    
-                    {/* Hover Effect */}
-                    <div className="absolute inset-0 bg-gradient-to-t from-black/20 to-transparent opacity-0 group-hover:opacity-100 transition-opacity duration-300" />
                   </motion.div>
                 );
               })}
@@ -599,129 +599,129 @@ export default function Dashboard() {
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            transition={{ delay: 0.4, duration: 0.5 }}
-            className="bg-gradient-to-br from-slate-50 to-slate-100 dark:from-slate-800 dark:to-slate-900 rounded-3xl p-6 shadow-lg border border-slate-200/50 dark:border-slate-700/50"
+            transition={{ delay: 0.4, duration: 0.5, ease: "easeOut" }}
+            className="relative overflow-hidden rounded-[24px] p-6 shadow-xl shadow-blue-900/5 group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50"
           >
-            <div className="flex items-center justify-between mb-4">
-              <div className="flex items-center gap-3">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-                  <Building className="w-6 h-6 text-white" />
+            {/* Subtle background flair */}
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors duration-500 pointer-events-none" />
+            
+            <div className="relative z-10">
+              <div className="flex items-center justify-between mb-6">
+                <div className="flex items-center gap-4">
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#3b82f6] via-[#2563eb] to-[#1d4ed8] shadow-lg shadow-blue-500/30 text-white shrink-0 group-hover:scale-105 group-hover:rotate-3 transition-transform duration-500">
+                    <Building className="w-6 h-6" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Prayer Times</h3>
+                    <p className="text-sm font-medium text-slate-500 dark:text-slate-400">{locationLabel}</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Prayer Times</h3>
-                  <p className="text-sm text-slate-600 dark:text-slate-400">{locationLabel}</p>
+                <div className="text-right bg-blue-50 dark:bg-blue-900/30 px-3 py-1.5 sm:px-4 sm:py-2 rounded-2xl border border-blue-100 dark:border-blue-800">
+                  <p className="text-[10px] uppercase tracking-widest font-bold text-blue-600 dark:text-blue-400 mb-0.5">Next Prayer</p>
+                  <p className="font-bold text-lg text-blue-700 dark:text-blue-300 leading-none">{nextPrayerName || '---'}</p>
                 </div>
               </div>
-              <div className="text-right">
-                <p className="text-xs text-slate-500 dark:text-slate-400">Next Prayer</p>
-                <p className="font-bold text-lg text-blue-600 dark:text-blue-400">{nextPrayerName || 'Loading...'}</p>
-              </div>
+              
+              {/* Full Prayer Times List - Always Show All Prayers */}
+              <Suspense fallback={
+                <div className="space-y-3">
+                  {Array.from({ length: 5 }).map((_, i) => (
+                    <div key={`skeleton-${i}`} className="h-14 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl animate-pulse" />
+                  ))}
+                </div>
+              }>
+                <div className="bg-white/40 dark:bg-black/20 rounded-[20px] p-2 border border-white/50 dark:border-white/5 shadow-inner">
+                  <PrayerTimesList
+                    timings={prayerTimesHook.prayerTimesWithEnd}
+                    location={prayerTimesHook.location}
+                    isLoading={prayerTimesHook.isLoading}
+                    error={prayerTimesHook.error}
+                    needsManualLocation={prayerTimesHook.needsManualLocation}
+                    refresh={prayerTimesHook.refresh}
+                    setManualLocation={prayerTimesHook.setManualLocation}
+                    timeZone={timezoneLabel}
+                  />
+                </div>
+              </Suspense>
             </div>
-            
-            <div className="space-y-3">
-              {prayers.slice(0, 3).map((prayer, index) => (
-                <motion.div
-                  key={prayer.name}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: 0.5 + index * 0.1 }}
-                  className="flex items-center justify-between p-3 bg-white/50 dark:bg-slate-800/50 rounded-2xl backdrop-blur-sm border border-slate-200/30 dark:border-slate-700/30"
-                >
-                  <div className="flex items-center gap-3">
-                    <div className="p-2 bg-white dark:bg-slate-700 rounded-xl shadow-sm">
-                      {prayerIcons[prayer.name]}
-                    </div>
-                    <div>
-                      <p className="font-semibold text-slate-900 dark:text-white">{prayer.name}</p>
-                      <p className="text-xs text-slate-500 dark:text-slate-400">Prayer Time</p>
-                    </div>
-                  </div>
-                  <div className="text-right">
-                    <p className="font-bold text-lg text-slate-900 dark:text-white font-mono">{prayer.time}</p>
-                  </div>
-                </motion.div>
-              ))}
-            </div>
-            
-            <motion.button
-              whileHover={{ scale: 1.02 }}
-              whileTap={{ scale: 0.98 }}
-              onClick={() => navigate('/qibla')}
-              className="w-full mt-4 py-3 bg-gradient-to-r from-blue-500 to-indigo-600 text-white font-semibold rounded-2xl shadow-lg hover:shadow-xl transition-all duration-300"
-            >
-              View All Prayer Times
-            </motion.button>
           </motion.div>
 
           {/* Premium Daily Content Section */}
-          <div className="grid grid-cols-1 gap-4">
+          <div className="grid grid-cols-1 gap-5">
             {/* Daily Ayah Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.6, duration: 0.5 }}
-              className="bg-gradient-to-br from-emerald-50 to-teal-50 dark:from-emerald-900/20 dark:to-teal-900/20 rounded-3xl p-6 shadow-lg border border-emerald-200/50 dark:border-emerald-700/50"
+              transition={{ delay: 0.6, duration: 0.5, ease: "easeOut" }}
+              className="relative overflow-hidden rounded-[24px] p-6 shadow-xl shadow-emerald-900/5 group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50"
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-2xl shadow-lg">
-                  <BookOpen className="w-6 h-6 text-white" />
+              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors duration-500 pointer-events-none" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#10b981] via-[#059669] to-[#047857] shadow-lg shadow-emerald-500/30 text-white shrink-0 group-hover:scale-105 group-hover:rotate-3 transition-transform duration-500">
+                    <BookOpen className="w-6 h-6" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Daily Ayah</h3>
+                    <p className="text-sm font-medium text-emerald-600 dark:text-emerald-400">Quranic Inspiration</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Daily Ayah</h3>
-                  <p className="text-sm text-emerald-600 dark:text-emerald-400">Quranic Inspiration</p>
-                </div>
+                <Suspense fallback={<div className="h-32 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl animate-pulse" />}>
+                  <DailyAyah />
+                </Suspense>
               </div>
-              <Suspense fallback={<div className="h-32 bg-emerald-100/50 dark:bg-emerald-800/50 rounded-2xl animate-pulse" />}>
-                <DailyAyah />
-              </Suspense>
             </motion.div>
 
             {/* Daily Hadith Card */}
             <motion.div
               initial={{ opacity: 0, y: 20 }}
               animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.7, duration: 0.5 }}
-              className="bg-gradient-to-br from-blue-50 to-indigo-50 dark:from-blue-900/20 dark:to-indigo-900/20 rounded-3xl p-6 shadow-lg border border-blue-200/50 dark:border-blue-700/50"
+              transition={{ delay: 0.7, duration: 0.5, ease: "easeOut" }}
+              className="relative overflow-hidden rounded-[24px] p-6 shadow-xl shadow-indigo-900/5 group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50"
             >
-              <div className="flex items-center gap-3 mb-4">
-                <div className="p-3 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-2xl shadow-lg">
-                  <MessageCircle className="w-6 h-6 text-white" />
+              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-colors duration-500 pointer-events-none" />
+              
+              <div className="relative z-10">
+                <div className="flex items-center gap-4 mb-6">
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] shadow-lg shadow-indigo-500/30 text-white shrink-0 group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-500">
+                    <MessageCircle className="w-6 h-6" strokeWidth={2.5} />
+                  </div>
+                  <div>
+                    <h3 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Daily Hadith</h3>
+                    <p className="text-sm font-medium text-indigo-600 dark:text-indigo-400">Prophetic Wisdom</p>
+                  </div>
                 </div>
-                <div>
-                  <h3 className="font-bold text-lg text-slate-900 dark:text-white">Daily Hadith</h3>
-                  <p className="text-sm text-blue-600 dark:text-blue-400">Prophetic Wisdom</p>
-                </div>
+                <Suspense fallback={<div className="h-32 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl animate-pulse" />}>
+                  <DailyHadith />
+                </Suspense>
               </div>
-              <Suspense fallback={<div className="h-32 bg-blue-100/50 dark:bg-blue-800/50 rounded-2xl animate-pulse" />}>
-                <DailyHadith />
-              </Suspense>
             </motion.div>
           </div>
-
-
 
           {/* Menstrual Mode Toggle - Only show for female users */}
           {shouldShowMenstrualFeatures() && (
             <div
-              className={`relative overflow-hidden rounded-[20px] border border-border/50 p-4 transition-all duration-300 ${menstrualModeData.isActive
-                ? 'bg-gradient-to-br from-rose-500/15 to-rose-600/5 border-rose-500/20'
-                : 'bg-card'
+              className={`relative overflow-hidden rounded-[24px] p-5 transition-all duration-500 shadow-xl ${menstrualModeData.isActive
+                ? 'bg-gradient-to-br from-rose-50/90 to-rose-100/50 border border-rose-200/50 shadow-rose-900/5'
+                : 'bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-slate-900/5'
                 }`}
             >
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className={`p-3 rounded-2xl ${menstrualModeData.isActive
-                    ? 'bg-rose-500/20'
-                    : 'bg-rose-500/10'
-                    } shadow-sm`}>
-                    <Heart className={`w-6 h-6 ${menstrualModeData.isActive
-                      ? 'text-rose-600'
-                      : 'text-rose-500'
-                      }`} strokeWidth={2} />
+              {menstrualModeData.isActive && (
+                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+              )}
+              
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
+                <div className="flex items-center gap-4">
+                  <div className={`p-3.5 rounded-2xl shadow-sm border ${menstrualModeData.isActive
+                    ? 'bg-rose-500 border-rose-400 shadow-rose-500/30 text-white'
+                    : 'bg-white border-slate-100 text-rose-500 shadow-slate-200/50'
+                    } transition-colors duration-300`}>
+                    <Heart className="w-6 h-6" strokeWidth={2.5} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm">{t('menstrualMode')}</h3>
-                    <p className="text-[10px] text-muted-foreground uppercase tracking-wider">
+                    <h3 className={`font-bold text-xl tracking-tight ${menstrualModeData.isActive ? 'text-rose-950' : 'text-slate-900 dark:text-white'}`}>{t('menstrualMode')}</h3>
+                    <p className={`text-[10px] uppercase tracking-wider font-bold ${menstrualModeData.isActive ? 'text-rose-600' : 'text-slate-500'}`}>
                       {menstrualModeData.isActive ? 'Active' : 'Inactive'}
                     </p>
                   </div>
@@ -729,17 +729,16 @@ export default function Dashboard() {
                 <Button
                   onClick={handleMenstrualModeToggle}
                   variant={menstrualModeData.isActive ? "destructive" : "default"}
-                  size="sm"
-                  className="rounded-xl"
+                  className={`rounded-xl font-bold shadow-lg transition-all active:scale-95 ${menstrualModeData.isActive ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20' : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'} w-full sm:w-auto h-12 sm:h-auto`}
                 >
                   {menstrualModeData.isActive ? (
                     <>
-                      <ToggleLeft className="w-4 h-4 me-2" />
+                      <ToggleLeft className="w-5 h-5 me-2" />
                       End
                     </>
                   ) : (
                     <>
-                      <ToggleRight className="w-4 h-4 me-2" />
+                      <ToggleRight className="w-5 h-5 me-2" />
                       Start
                     </>
                   )}
@@ -747,7 +746,8 @@ export default function Dashboard() {
               </div>
 
               {menstrualModeData.isActive && menstrualModeData.startedAt && (
-                <div className="mt-3 text-xs text-rose-600 dark:text-rose-400">
+                <div className="mt-4 pt-3 border-t border-rose-200/50 text-[11px] font-bold uppercase tracking-wider text-rose-500 flex items-center gap-2 relative z-10">
+                  <span className="w-1.5 h-1.5 rounded-full bg-rose-500 animate-pulse" />
                   Started: {new Date(menstrualModeData.startedAt).toLocaleDateString()}
                 </div>
               )}
@@ -758,51 +758,36 @@ export default function Dashboard() {
 
 
 
-          {/* Weekly Progress Chart */}
-          <Suspense fallback={
-            <div className="h-60 card-premium skeleton-premium" />
-          }>
-            <WeeklySalahChart />
-          </Suspense>
-
-          {/* Qaza Tracker (compact view) */}
-          <Suspense fallback={
-            <div className="h-40 card-premium skeleton-premium" />
-          }>
-            <QazaTracker compact />
-          </Suspense>
-
           {/* Location Detection Card */}
           {initialLoad ? (
             <LocationCardSkeleton />
           ) : (
-            <Card className="p-4 border-border/50 hover:shadow-[var(--card-premium-shadow-hover)] transition-shadow duration-300">
-              <div className="flex items-center justify-between">
-                <div className="flex items-center gap-3">
-                  <div className="p-2 rounded-xl bg-primary/10">
-                    <MapPin className="w-5 h-5 text-primary" />
+            <div className="relative overflow-hidden rounded-[24px] p-5 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-xl shadow-slate-900/5 group">
+              <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-slate-500/10 rounded-full blur-2xl group-hover:bg-slate-500/20 transition-colors duration-500 pointer-events-none" />
+              
+              <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
+                <div className="flex items-center gap-4">
+                  <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 text-slate-700 dark:text-slate-200 shadow-sm border border-white/50 dark:border-slate-600 shrink-0 group-hover:scale-105 transition-transform duration-500">
+                    <MapPin className="w-6 h-6" strokeWidth={2.5} />
                   </div>
                   <div>
-                    <h3 className="font-semibold text-sm">{t('location')}</h3>
-                    <p className="text-xs text-muted-foreground">{location.locationName}</p>
+                    <h3 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">{t('location')}</h3>
+                    <p className="text-sm font-medium text-slate-500 line-clamp-1">{location.locationName}</p>
                   </div>
                 </div>
-                <div className="flex gap-2">
+                <div className="flex gap-3 w-full sm:w-auto">
                   <Button
-                    variant="ghost"
-                    size="sm"
+                    variant="outline"
                     onClick={() => setShowManualLocationDialog(true)}
-                    className="gap-2 rounded-xl hover:bg-primary/10"
+                    className="flex-1 sm:flex-none gap-2 rounded-xl bg-white/50 dark:bg-slate-800/50 border-slate-200 dark:border-slate-700 font-semibold hover:bg-slate-100 dark:hover:bg-slate-800 shadow-sm h-12 sm:h-10"
                   >
-                    <MapPin className="w-4 h-4" />
+                    <MapPin className="w-4 h-4 text-slate-500" />
                     {t('manual')}
                   </Button>
                   <Button
-                    variant="outline"
-                    size="sm"
                     onClick={handleDetectLocation}
                     disabled={location.isDetecting}
-                    className="gap-2 rounded-xl border-primary/30 hover:bg-primary/10 hover:border-primary/50"
+                    className="flex-1 sm:flex-none gap-2 rounded-xl bg-slate-900 hover:bg-slate-800 text-white shadow-lg shadow-slate-900/20 font-semibold active:scale-95 transition-all h-12 sm:h-10"
                   >
                     {location.isDetecting ? (
                       <>
@@ -812,13 +797,13 @@ export default function Dashboard() {
                     ) : (
                       <>
                         <Navigation className="w-4 h-4" />
-                        {t('location')}
+                        Detect
                       </>
                     )}
                   </Button>
                 </div>
               </div>
-            </Card>
+            </div>
           )}
 
 
@@ -894,34 +879,34 @@ export default function Dashboard() {
           )}
 
           {/* Footer */}
-          <Card className="relative overflow-hidden border-border/50 bg-gradient-to-br from-card via-card to-muted/20">
-            {/* Decorative gradient accent */}
-            <div className="absolute top-0 left-0 right-0 h-1 bg-gradient-to-r from-transparent via-primary/50 to-transparent" />
-
-            <CardHeader className="pb-2 pt-4">
-              <div className="flex items-center justify-center gap-2 mb-1">
-                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse" />
-                <CardTitle className="text-center text-base font-semibold">
-                  <span className="text-gradient-gold">100% Private</span>
-                  <span className="text-muted-foreground mx-2">•</span>
-                  <span className="text-gradient-gold">Offline-first</span>
-                </CardTitle>
+          <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 shadow-inner p-6 text-center">
+            {/* Decorative Top Line */}
+            <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-50" />
+            
+            <div className="flex flex-col items-center gap-3">
+              <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-white/50 dark:bg-slate-800/50 shadow-sm border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
+                <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
+                <span className="text-xs font-bold uppercase tracking-widest text-[#b8860b]">100% Private</span>
+                <span className="text-slate-300 dark:text-slate-600">•</span>
+                <span className="text-xs font-bold uppercase tracking-widest text-[#b8860b]">Offline-first</span>
               </div>
-              <CardDescription className="text-center text-xs font-medium uppercase tracking-wider">
+              
+              <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mt-1">
                 No tracking • FOSS Architecture
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="pb-4">
-              <div className="glass-card px-4 py-3 rounded-xl mb-3">
-                <p className="text-center text-xs text-muted-foreground italic font-arabic">
-                  "In the remembrance of Allah do hearts find rest." — 13:28
-                </p>
-              </div>
-              <p className="text-center text-[10px] text-muted-foreground/60 font-medium tracking-widest uppercase">
-                App Version 1.1
               </p>
-            </CardContent>
-          </Card>
+
+              <div className="w-full h-px bg-gradient-to-r from-transparent via-slate-200 dark:via-slate-700 to-transparent my-3" />
+
+              <p className="text-sm text-slate-500 dark:text-slate-400 italic font-medium leading-relaxed max-w-sm">
+                "In the remembrance of Allah do hearts find rest." <span className="not-italic text-xs font-bold text-slate-400">— 13:28</span>
+              </p>
+
+              <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-200/50 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-widest text-slate-500">
+                <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
+                App Version 1.1.2
+              </div>
+            </div>
+          </div>
         </div>
       </div>
     </PageTransition>

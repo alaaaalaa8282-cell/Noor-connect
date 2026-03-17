@@ -14,6 +14,88 @@ export interface TafsirEdition {
     author?: string; // Optional author field for additional context
 }
 
+function isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === "object" && value !== null;
+}
+
+function coerceNumber(value: unknown): number | null {
+    if (typeof value === "number" && Number.isFinite(value)) return value;
+    if (typeof value === "string") {
+        const n = Number.parseInt(value, 10);
+        return Number.isFinite(n) ? n : null;
+    }
+    return null;
+}
+
+function coerceString(value: unknown): string | null {
+    if (typeof value === "string") return value;
+    return null;
+}
+
+function extractTafsirItems(raw: unknown): unknown[] {
+    if (Array.isArray(raw)) return raw;
+
+    if (isRecord(raw)) {
+        const candidateKeys = ["tafsir", "tafsirs", "items", "data", "verses", "ayahs"];
+        for (const key of candidateKeys) {
+            const candidate = raw[key];
+            if (Array.isArray(candidate)) return candidate;
+        }
+
+        // Some datasets are keyed by ayah number: { "1": "...", "2": "..." }
+        const numericKeys = Object.keys(raw).filter((k) => /^\d+$/.test(k));
+        if (numericKeys.length > 0) {
+            return numericKeys
+                .sort((a, b) => Number(a) - Number(b))
+                .map((k) => raw[k]);
+        }
+    }
+
+    return [];
+}
+
+function normalizeSurahTafsir(raw: unknown, surah: number): TafsirResponse[] {
+    const items = extractTafsirItems(raw);
+
+    const entries: TafsirResponse[] = [];
+    for (let index = 0; index < items.length; index++) {
+        const item = items[index];
+        const fallbackAyah = index + 1;
+
+        if (typeof item === "string") {
+            entries.push({ surah, ayah: fallbackAyah, text: item });
+            continue;
+        }
+
+        if (!isRecord(item)) continue;
+
+        const text =
+            coerceString(item.text) ??
+            coerceString(item.tafsir) ??
+            coerceString(item.commentary) ??
+            coerceString(item.value);
+
+        if (!text) continue;
+
+        const ayah =
+            coerceNumber(item.ayah) ??
+            coerceNumber(item.aya) ??
+            coerceNumber(item.verse) ??
+            coerceNumber(item.number) ??
+            fallbackAyah;
+
+        const itemSurah =
+            coerceNumber(item.surah) ??
+            coerceNumber(item.sura) ??
+            coerceNumber(item.chapter) ??
+            surah;
+
+        entries.push({ surah: itemSurah, ayah, text });
+    }
+
+    return entries.sort((a, b) => a.ayah - b.ayah);
+}
+
 // Available Tafsir editions from spa5k API
 export const TAFSIR_EDITIONS: TafsirEdition[] = [
     // English Tafsirs
@@ -107,5 +189,12 @@ export async function fetchSurahTafsir(
     }
 
     const data = await response.json();
-    return data as TafsirResponse[];
+    const normalized = normalizeSurahTafsir(data, surah);
+    if (normalized.length === 0) {
+        if (import.meta.env.DEV) {
+            console.error("[fetchSurahTafsir] Unexpected tafsir payload:", data);
+        }
+        throw new Error("Invalid tafsir data format");
+    }
+    return normalized;
 }

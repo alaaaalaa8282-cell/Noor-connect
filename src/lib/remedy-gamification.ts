@@ -352,13 +352,13 @@ export class RemedyGamification {
   }
 
   // Get level progress
-  getLevelProgress(): { current: number; next: number; progress: number } {
+  getLevelProgress(): { current: number; next: number; progress: number; remaining: number } {
     const stats = this.getStats();
     const thresholds = [0, 50, 150, 300, 500, 750, 1000, 1500, 2000, 3000];
     const currentLevelIndex = stats.level - 1;
     
     if (currentLevelIndex >= thresholds.length - 1) {
-      return { current: stats.xp, next: stats.xp, progress: 100 };
+      return { current: stats.xp, next: stats.xp, progress: 100, remaining: 0 };
     }
     
     const currentXP = stats.xp - thresholds[currentLevelIndex];
@@ -368,7 +368,8 @@ export class RemedyGamification {
     return {
       current: currentXP,
       next: neededXP,
-      progress: Math.min(100, Math.max(0, progress))
+      progress: Math.min(100, Math.max(0, progress)),
+      remaining: Math.max(0, neededXP - currentXP)
     };
   }
 

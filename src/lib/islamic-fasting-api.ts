@@ -161,7 +161,7 @@ export class IslamicRamadanAPI {
       shifting?: -2 | -1 | 0 | 1 | 2;
     }
   ): Promise<RamadanResponse> {
-    const apiKey = METAL_PRICE_CONSTANTS.ISLAMIC_API_KEY;
+    const apiKey: string = METAL_PRICE_CONSTANTS.ISLAMIC_API_KEY;
     
     // Skip API call if no API key is configured
     if (apiKey === 'YOUR_API_KEY') {

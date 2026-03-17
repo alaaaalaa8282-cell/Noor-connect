@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Compass, Loader2, LocateFixed, RefreshCw, Navigation, MapPin } from 'lucide-react';
+import { Card, CardContent } from "@/components/ui/card";
 import { GeolocationService, type LocationCoordinates } from '@/lib/geolocation-service';
 import {
   calculateDistanceToKaabaKm,
@@ -12,8 +13,11 @@ import {
   formatDistance,
   formatBearing,
   type QiblaResult,
+  KAABA_COORDINATES,
 } from '@/lib/qibla';
 import { useI18n } from '@/hooks/useI18n';
+import { cn } from "@/lib/utils";
+import { motion } from "framer-motion";
 
 // ─── Types ────────────────────────────────────────────────────
 type CompassState =
@@ -419,9 +423,13 @@ const QiblaCompassModern = () => {
   }, [alignment?.isAligned, deviceHeading, qiblaResult]);
 
   // ── Dial & Needle Rotation ────────────────────────────────────
-  const dialRotation = deviceHeading === null ? 0 : -deviceHeading;
-  // Convert mathematical degrees (0°=East) to compass degrees (0°=North)
-  const needleRotation = qiblaResult ? qiblaResult.bearing : 0;
+  // In 'Locked Needle' mode, the arrow always points straight UP (0deg).
+  // The background dial rotates relative to the device heading AND the Qibla bearing.
+  const dialRotation = deviceHeading === null 
+    ? 0 
+    : -deviceHeading + (qiblaResult?.bearing || 0);
+  
+  const needleRotation = 0; 
 
   // ── Loading State ─────────────────────────────────────────────
   if (isLoadingLocation && !location) {
@@ -673,55 +681,101 @@ const QiblaCompassModern = () => {
         {/* Info Cards */}
         <div className="space-y-3">
           {/* Enhanced Distance Card */}
-          <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-amber-100 shadow-sm relative overflow-hidden">
-            {/* Distance indicator decoration */}
-            <div className="absolute top-0 right-0 w-16 h-16 opacity-10">
-              <svg viewBox="0 0 24 24" fill="currentColor">
-                <path d="M12 2C8.13 2 5 5.13 5 9c0 5.25 7 13 7 13s7-7.75 7-13c0-3.87-3.13-7-7-7zm0 9.5c-1.38 0-2.5-1.12-2.5-2.5s1.12-2.5 2.5-2.5 2.5 1.12 2.5 2.5-1.12 2.5-2.5 2.5z"/>
-              </svg>
-            </div>
-            
-            <div className="relative z-10">
-              <p className="text-amber-700/60 text-xs uppercase tracking-wider mb-2 flex items-center gap-1">
-                <span>🕋</span> Distance to Kaaba
-              </p>
-              <div className="flex items-baseline gap-1">
-                <span className="text-2xl font-bold text-amber-900">
-                  {qiblaResult.formattedDistance.split(' ')[0]}
-                </span>
-                <span className="text-sm text-amber-700/60 font-medium">
-                  {qiblaResult.formattedDistance.split(' ')[1] || 'km'}
-                </span>
-              </div>
-              
-              {/* Distance Progress Bar */}
-              <div className="mt-3">
-                <div className="flex justify-between text-xs text-amber-700/50 mb-1">
-                  <span>Very Near</span>
-                  <span>Very Far</span>
+          {/* Enhanced Distance Card */}
+          <Card className="bg-white/70 backdrop-blur-md border-amber-200/50 shadow-lg shadow-amber-900/5 overflow-hidden">
+            <CardContent className="p-5">
+              <div className="flex justify-between items-start mb-6">
+                <div className="space-y-1">
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-[0.2em] flex items-center gap-1.5">
+                    <span className="p-1 rounded-md bg-amber-100/50">🕋</span>
+                    Distance to Baitullah
+                  </p>
+                  <div className="flex items-baseline gap-1.5">
+                    <span className="text-4xl font-black text-amber-950 tracking-tighter">
+                      {qiblaResult.formattedDistance.split(' ')[0]}
+                    </span>
+                    <span className="text-lg font-bold text-amber-700/70">
+                      {qiblaResult.formattedDistance.split(' ')[1] || 'km'}
+                    </span>
+                  </div>
                 </div>
-                <div className="h-2 bg-amber-200/30 rounded-full overflow-hidden">
-                  <div 
-                    className="h-full bg-gradient-to-r from-amber-400 to-amber-600 rounded-full transition-all duration-1000"
-                    style={{ 
-                      width: `${Math.min(100, Math.max(5, (qiblaResult.distanceKm / 15000) * 100))}%` 
-                    }}
-                  />
+                
+                <div className="text-right space-y-1">
+                  <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">
+                    Travel Mode
+                  </p>
+                  <div className="inline-flex items-center gap-2 px-3 py-1.5 rounded-xl bg-amber-50 text-amber-700 font-bold text-xs border border-amber-100/50">
+                    {qiblaResult.distanceKm < 5000 ? '🚗 Road' : '✈️ Air'}
+                  </div>
                 </div>
               </div>
-              
-              <p className="text-amber-700/40 text-xs mt-2">
-                {qiblaResult.distanceKm < 100 
-                  ? `Very close! Only ${Math.round(qiblaResult.distanceKm * 1000)} meters away`
-                  : qiblaResult.distanceKm < 1000
-                  ? `${Math.round(qiblaResult.distanceKm * 1000)} meters away`
-                  : qiblaResult.distanceKm < 5000
-                  ? `${Math.round(qiblaResult.distanceKm / 50)} hours by car`
-                  : `Approximately ${Math.round(qiblaResult.distanceKm / 800)} hours by plane`
-                }
-              </p>
-            </div>
-          </div>
+
+              {/* Travel Path Visualization */}
+              <div className="relative pt-6 pb-2">
+                <div className="flex items-center w-full">
+                  {/* Origin (Dynamic Emoji based on Distance) */}
+                  <div className="flex flex-col items-center z-10">
+                    <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center border-2 border-amber-300 shadow-sm text-lg relative overflow-hidden group">
+                      {qiblaResult.distanceKm < 50 
+                        ? '🥰' // Overjoyed (within Mecca)
+                        : qiblaResult.distanceKm < 500
+                        ? '🥹' // Emotional (very close)
+                        : qiblaResult.distanceKm < 1500
+                        ? '😃' // Very Happy (regional)
+                        : qiblaResult.distanceKm < 4000
+                        ? '😊' // Happy (like Karachi range)
+                        : '🙂' // Content (far)
+                      }
+                      
+                      {/* Subtle pulse effect for the emoji */}
+                      <div className="absolute inset-0 bg-amber-200/40 rounded-full scale-0 group-hover:scale-100 transition-transform duration-500" />
+                    </div>
+                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mt-2">You</span>
+                  </div>
+
+                  {/* Connective Line */}
+                  <div className="flex-1 relative flex items-center justify-center mx-2">
+                    <div className="w-full border-t-2 border-dashed border-amber-200"></div>
+                    
+                    {/* Floating Distance Badge */}
+                    <div className="absolute bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full border border-amber-100 shadow-sm text-xs font-bold text-amber-600 flex items-center gap-1.5 transform -translate-y-1/2">
+                      <span>{qiblaResult.distanceKm < 5000 ? '🚗' : '✈️'}</span>
+                      <span>{Math.round(qiblaResult.distanceKm)} km</span>
+                    </div>
+                  </div>
+
+                  {/* Destination */}
+                  <div className="flex flex-col items-center z-10">
+                    <div className="w-8 h-8 rounded-full bg-gradient-to-br from-amber-400 to-amber-600 flex items-center justify-center shadow-md shadow-amber-500/30 border-2 border-white/50">
+                      <span className="text-sm">🕋</span>
+                    </div>
+                    <span className="text-[10px] font-bold text-amber-700 uppercase tracking-wider mt-2">Kaaba</span>
+                  </div>
+                </div>
+
+                {/* Bottom Journey Insight */}
+                <div className="mt-5 p-3 rounded-2xl bg-amber-50/50 border border-amber-100/50 space-y-1.5 relative group overflow-hidden">
+                   <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 transition-transform group-hover:rotate-45">
+                     <MapPin className="w-12 h-12 text-amber-900" />
+                   </div>
+                   
+                   <p className="text-xs font-bold text-amber-900 flex items-center gap-2">
+                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                     The Journey Estimate
+                   </p>
+                   
+                   <p className="text-[11px] text-amber-800/80 leading-relaxed font-medium">
+                    {qiblaResult.distanceKm < 100 
+                      ? `Subhanallah, you are extremely close! Just ${Math.round(qiblaResult.distanceKm * 1000)}m to the Holy Kaaba.`
+                      : qiblaResult.distanceKm < 5000
+                      ? `A spiritual road trip would take roughly ${Math.round(qiblaResult.distanceKm / 50)} hours of driving.`
+                      : `You are a flight of approximately ${Math.round(qiblaResult.distanceKm / 800)} hours away from the House of Allah.`
+                    }
+                   </p>
+                </div>
+              </div>
+            </CardContent>
+          </Card>
 
           {/* Heading Card */}
           <div className="bg-white/60 backdrop-blur-sm rounded-2xl p-4 border border-amber-100 shadow-sm">

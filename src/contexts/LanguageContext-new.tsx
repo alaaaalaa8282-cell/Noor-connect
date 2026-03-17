@@ -155,7 +155,6 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     };
 
     bootstrap();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, []);
 
   // ── Apply side effects whenever language changes ──

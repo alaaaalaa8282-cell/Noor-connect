@@ -152,7 +152,7 @@ const PrayerTimesListComponent = function PrayerTimesList(props: PrayerTimesList
   const refresh = props.refresh ?? prayerTimesHook.refresh;
   const setManualLocation = props.setManualLocation ?? prayerTimesHook.setManualLocation;
 
-  const [showExtra, setShowExtra] = useState(getShowExtraPrayers());
+  const [showExtra, setShowExtra] = useState(getShowExtraPrayers() ?? true); // Default to true for 24/7 display
 
   const handleToggleExtra = (val: boolean) => {
     setShowExtra(val);

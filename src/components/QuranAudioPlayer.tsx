@@ -12,6 +12,8 @@ import { useGlobalRadio } from "@/lib/global-radio";
 import { QURAN_AUDIO_API } from "@/lib/quran-audio";
 import { AdhanControl } from "./AdhanControl";
 import { adhanService } from "@/lib/adhan-service";
+import { audioNotificationService, type AudioNotificationData } from "@/lib/audio-notifications";
+import { NotificationContentGenerator } from "@/lib/notification-content";
 
 // Download storage interface
 interface DownloadedSurah {
@@ -58,6 +60,7 @@ export function QuranAudioPlayer({
   const [downloadedSurahs, setDownloadedSurahs] = useState<DownloadedSurah[]>([]);
   const [isDownloading, setIsDownloading] = useState(false);
   const [adhanEnabled, setAdhanEnabled] = useState(false);
+  const [currentAudio, setCurrentAudio] = useState<any>(null);
   const { updateRadioState, isPlaying: isRadioPlaying } = useGlobalRadio();
 
   // Load Adhan config and downloaded surahs from localStorage
@@ -134,10 +137,9 @@ export function QuranAudioPlayer({
     );
   }, [downloadedSurahs, surahNumber, selectedReciterId]);
 
-  // Enhanced background audio setup
+  // Enhanced background audio setup with notifications
   useEffect(() => {
     if (isBackgroundMode && audioRef.current) {
-      // Setup background audio for all platforms
       setupBackgroundAudio();
     } else {
       cleanupBackgroundAudio();
@@ -148,7 +150,7 @@ export function QuranAudioPlayer({
     };
   }, [isBackgroundMode, audioSrc]);
 
-  // Setup background audio with enhanced features
+  // Setup background audio with enhanced features and notifications
   const setupBackgroundAudio = useCallback(() => {
     if (!audioRef.current) return;
     
@@ -156,6 +158,18 @@ export function QuranAudioPlayer({
     
     // Use enhanced platform-specific optimizations
     androidAudioHelper.setupPlatformOptimizations(audio);
+    
+    // Setup notification service
+    audioNotificationService.setupBackgroundAudio(audio);
+    
+    // Request notification permission
+    audioNotificationService.requestPermission().then(granted => {
+      if (granted) {
+        console.log('Audio notifications permission granted');
+      } else {
+        console.warn('Audio notifications permission denied');
+      }
+    });
     
     // Check and log background capabilities
     const capabilities = androidAudioHelper.getBackgroundCapabilities();
@@ -178,10 +192,11 @@ export function QuranAudioPlayer({
 
   const cleanupBackgroundAudio = useCallback(() => {
     androidAudioHelper.cleanup();
+    audioNotificationService.closeNotification();
     console.log('Background audio cleanup complete');
   }, []);
 
-  // Enhanced Media Session API for robust background playback
+  // Enhanced Media Session API for robust background playback with notifications
   useEffect(() => {
     if (!('mediaSession' in navigator)) {
       console.warn('Media Session API not available - background controls limited');
@@ -190,6 +205,32 @@ export function QuranAudioPlayer({
 
     const updateMediaSession = () => {
       const reciterName = reciters.find(r => r.id === selectedReciterId)?.name || 'Quran Recitation';
+      
+      // Show persistent notification when playing with rich content
+      if (isPlaying) {
+        const notificationContent = NotificationContentGenerator.generateQuranRecitationContent({
+          surahNumber,
+          surahName,
+          reciterName,
+          isPlaying,
+          currentTime: progress,
+          duration,
+          verses: totalAyahs,
+          type: currentAudio?.type?.latin || 'Quran Recitation'
+        });
+        
+        audioNotificationService.showNotification({
+          type: 'quran-recitation',
+          title: `Surah ${surahNumber}: ${surahName}`,
+          artist: reciterName,
+          album: 'Holy Quran - Noor Connect',
+          isPlaying,
+          currentTime: progress,
+          duration
+        });
+      } else {
+        audioNotificationService.updateNotification({ isPlaying: false });
+      }
       
       navigator.mediaSession.metadata = new MediaMetadata({
         title: `Surah ${surahNumber}: ${surahName}`,
@@ -224,6 +265,7 @@ export function QuranAudioPlayer({
         }
         setIsPlaying(false);
         setProgress(0);
+        audioNotificationService.closeNotification();
       });
 
       navigator.mediaSession.setActionHandler('previoustrack', () => {
@@ -266,11 +308,7 @@ export function QuranAudioPlayer({
       });
 
       // Set playback state for better integration
-      if (audioRef.current && isPlaying) {
-        navigator.mediaSession.playbackState = 'playing';
-      } else {
-        navigator.mediaSession.playbackState = 'paused';
-      }
+      navigator.mediaSession.playbackState = isPlaying ? 'playing' : 'paused';
     };
 
     updateMediaSession();
@@ -287,7 +325,7 @@ export function QuranAudioPlayer({
         navigator.mediaSession.setActionHandler('seekforward', null);
       }
     };
-  }, [surahName, surahNumber, selectedReciterId, reciters, togglePlayback, isPlaying]);
+  }, [surahName, surahNumber, selectedReciterId, reciters, togglePlayback, isPlaying, progress, duration]);
 
   // Fetch reciters from our verified audio system
   useEffect(() => {
@@ -359,7 +397,7 @@ export function QuranAudioPlayer({
     setIsLoading(false);
   }, [audioSrc]);
 
-  // Enhanced visibility change handler for background playback
+  // Enhanced visibility change handler for background playback with notifications
   useEffect(() => {
     const audio = audioRef.current;
     if (!audio) return;
@@ -371,7 +409,19 @@ export function QuranAudioPlayer({
         // Page is hidden (in background) and should continue playing
         if (audio.paused) {
           console.log('Attempting to resume playback in background');
-          audio.play().catch(error => {
+          audio.play().then(() => {
+            // Ensure notification is shown when going to background
+            const reciterName = reciters.find(r => r.id === selectedReciterId)?.name || 'Quran Recitation';
+            audioNotificationService.showNotification({
+              type: 'quran-recitation',
+              title: `Surah ${surahNumber}: ${surahName}`,
+              artist: reciterName,
+              album: 'Holy Quran - Noor Connect',
+              isPlaying: true,
+              currentTime: audio.currentTime,
+              duration: audio.duration
+            });
+          }).catch(error => {
             console.warn('Failed to resume background playback:', error);
             // Try to reload and play if resume fails
             if (audioSrc) {
@@ -380,6 +430,9 @@ export function QuranAudioPlayer({
             }
           });
         }
+      } else if (!document.hidden && !isPlaying) {
+        // Page is visible and not playing - close notification
+        audioNotificationService.closeNotification();
       }
       
       // Update media session playback state
@@ -402,6 +455,8 @@ export function QuranAudioPlayer({
         }));
         console.log('Audio state saved before page unload');
       }
+      // Clean up notification on page unload
+      audioNotificationService.closeNotification();
     };
 
     // Enhanced page load state restoration
@@ -444,6 +499,8 @@ export function QuranAudioPlayer({
       document.removeEventListener('visibilitychange', handleVisibilityChange);
       window.removeEventListener('beforeunload', handlePageUnload);
       window.removeEventListener('pagehide', handlePageUnload);
+      // Clean up notifications on unmount
+      audioNotificationService.closeNotification();
     };
   }, [isPlaying, isBackgroundMode, surahNumber, surahName, selectedReciterId, audioSrc, togglePlayback]);
 
@@ -532,6 +589,7 @@ export function QuranAudioPlayer({
   const handleAudioEnded = () => {
     console.log(`Surah ${surahName} playback completed`);
     setIsPlaying(false);
+    audioNotificationService.closeNotification();
   };
 
   const handleTimeUpdate = () => {
@@ -539,6 +597,14 @@ export function QuranAudioPlayer({
     if (!audio || isNaN(audio.duration) || audio.duration === 0) return;
     setProgress(audio.currentTime);
     setDuration(audio.duration || 0);
+
+    // Update notification with current progress
+    if (isPlaying) {
+      audioNotificationService.updateNotification({
+        currentTime: audio.currentTime,
+        duration: audio.duration
+      });
+    }
 
     if ('mediaSession' in navigator && navigator.mediaSession.setPositionState) {
       navigator.mediaSession.setPositionState({

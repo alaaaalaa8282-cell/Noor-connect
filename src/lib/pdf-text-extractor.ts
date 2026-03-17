@@ -19,7 +19,11 @@ export async function extractTextFromPage(
 ): Promise<string> {
   try {
     // Load the PDF document
-    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    const source =
+      typeof pdfUrl === 'string'
+        ? pdfUrl
+        : { data: new Uint8Array(await pdfUrl.arrayBuffer()) };
+    const loadingTask = pdfjsLib.getDocument(source);
     const pdf = await loadingTask.promise;
     
     // Get the specific page
@@ -52,7 +56,11 @@ export async function extractTextFromAllPages(
   pdfUrl: string | Blob
 ): Promise<ExtractedText[]> {
   try {
-    const loadingTask = pdfjsLib.getDocument(pdfUrl);
+    const source =
+      typeof pdfUrl === 'string'
+        ? pdfUrl
+        : { data: new Uint8Array(await pdfUrl.arrayBuffer()) };
+    const loadingTask = pdfjsLib.getDocument(source);
     const pdf = await loadingTask.promise;
     
     const totalPages = pdf.numPages;
@@ -94,7 +102,11 @@ export class PdfTextCache {
   
   async preload(pdfUrl: string | Blob, cacheKey: string): Promise<void> {
     try {
-      const loadingTask = pdfjsLib.getDocument(pdfUrl);
+      const source =
+        typeof pdfUrl === 'string'
+          ? pdfUrl
+          : { data: new Uint8Array(await pdfUrl.arrayBuffer()) };
+      const loadingTask = pdfjsLib.getDocument(source);
       const pdf = await loadingTask.promise;
       this.cache.set(cacheKey, pdf);
       this.textCache.set(cacheKey, new Map());

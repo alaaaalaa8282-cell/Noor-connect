@@ -72,7 +72,7 @@ export class ZakatNisabService {
     standard: 'classical' | 'common',
     unit: 'g' | 'oz'
   ): Promise<ZakatNisabResponse> {
-    const apiKey = METAL_PRICE_CONSTANTS.ISLAMIC_API_KEY;
+    const apiKey: string = METAL_PRICE_CONSTANTS.ISLAMIC_API_KEY;
     
     // Skip API call if no API key is configured
     if (apiKey === 'YOUR_API_KEY') {

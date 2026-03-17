@@ -1,0 +1,60 @@
+License: MIT
+SourceCode: https://github.com/darkmaster0345/Noor-connect
+IssueTracker: https://github.com/darkmaster0345/Noor-connect/issues
+Changelog: https://github.com/darkmaster0345/Noor-connect/releases
+Donate: https://github.com/sponsors/darkmaster0345
+
+Summary: Your Ultimate Islamic Companion
+Description: |-
+    Noor Connect is a comprehensive, beautiful, and privacy-focused Islamic application designed to help you stay connected with your faith. Built with modern web technologies and optimized for mobile experiences via Capacitor, it serves as your digital companion for daily spiritual growth.
+    
+    Features:
+    * Complete Holy Quran with Tafsir Explorer (25+ commentary editions)
+    * Accurate prayer times with Adhan notifications
+    * High-precision Qibla compass
+    * Quran Radio & E-books library
+    * Ramadan mode with fasting tracker
+    * Spiritual tracking (Tasbeeh, Salah chart, Qaza tracker)
+    * Menstrual mode for women
+    * Privacy-first design with 100% local storage
+    * Multilingual support (English, Arabic, Urdu, Bengali, Russian, Kurdish)
+
+RepoType: git
+Repo: https://github.com/darkmaster0345/Noor-connect.git
+
+AntiFeatures:
+  - NonFreeNet
+  - Tracking
+
+Categories:
+  - Spirituality
+  - Religion
+
+Name: Noor Connect
+WebSite: https://github.com/darkmaster0345/Noor-connect
+Author: darkmaster0345
+Email: 
+
+AutoName: Noor Connect
+
+Builds:
+  - versionName: 1.1.2
+    versionCode: 3
+    commit: v1.1.2
+    subdir: android
+    sudo:
+      - apt-get update
+      - apt-get install -y openjdk-17-jdk
+      - update-alternatives --auto java
+    gradle:
+      - yes
+    prebuild:
+      - npm install
+      - npm run build
+      - npx cap sync android
+    ndk: r21e
+
+AutoUpdateMode: Version v%v
+UpdateCheckMode: Tags
+CurrentVersion: 1.1.2
+CurrentVersionCode: 3

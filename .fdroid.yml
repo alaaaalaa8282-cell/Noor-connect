@@ -1,0 +1,41 @@
+Builds:
+  - versionName: 1.1.2
+    versionCode: 3
+    commit: HEAD
+    subdir: android
+    sudo:
+      - apt-get update || true
+      - apt-get install -y nodejs npm || true
+    gradle:
+      - yes
+    gradleProps:
+      - foss=true
+    prebuild:
+      - cd ..
+      - sed -i 's/"@capacitor\/background-runner": "[^"]*",//' package.json
+      - npm install
+      - npx cap sync android
+
+MaintainerNotes: |
+  Uses Capacitor. background-runner is removed to avoid prebuilt .so files.
+  'foss' property disables play-services dependency.
+  
+Categories:
+  - Religion
+  - Lifestyle
+
+License: MIT
+
+SourceCode: https://github.com/darkmaster0345/Noor-connect
+IssueTracker: https://github.com/darkmaster0345/Noor-connect/issues
+AutoName: Noor Connect
+Summary: Privacy-focused Islamic app with prayer times, Qibla, and Quran
+Description: |-
+  Noor Connect is a comprehensive, beautiful, and privacy-focused Islamic application designed to help you stay connected with your faith. Built with modern web technologies and optimized for mobile experiences, it serves as your digital companion for daily spiritual growth.
+
+  Features include:
+  • Accurate Prayer Times with Adhan notifications
+  • Interactive and precise Qibla compass
+  • Full Quran accessibility with translations and Tafsir
+  • Clean, beautiful, and intuitive interface
+  • Privacy-focused design – no tracking, no analytics

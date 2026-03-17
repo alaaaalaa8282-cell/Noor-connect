@@ -152,7 +152,7 @@ const HabitTracker = () => {
 
     // Delete old habit and create new one with same ID
     const oldHabitId = editingHabit.id;
-    habitTracker.deleteCustomHabit(oldHabitId);
+    habitTracker.deleteHabit(oldHabitId);
     
     habitTracker.addCustomHabit({
       ...editingHabit,

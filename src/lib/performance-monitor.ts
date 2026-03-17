@@ -132,8 +132,9 @@ class MinimalPerformanceMonitor {
     else if (value > threshold.good) rating = 'needs-improvement';
 
     // Only log in development
-    if (process.env.NODE_ENV === 'development') {
-      console.log(`🚀 ${name}: ${value.toFixed(2)}ms (${rating})`);
+    if (import.meta.env.DEV) {
+      const unit = name === 'CLS' ? '' : 'ms';
+      console.log(`🚀 ${name}: ${value.toFixed(2)}${unit} (${rating})`);
     }
   }
 
@@ -143,7 +144,7 @@ class MinimalPerformanceMonitor {
 
   public getPerformanceScore(): number {
     const { fcp, lcp, fid, cls } = this.metrics;
-    if (!fcp || !lcp || !fid || !cls) return 0;
+    if (fcp === null || lcp === null || fid === null || cls === null) return 0;
 
     let score = 100;
     
