@@ -96,15 +96,19 @@ public class WidgetPlugin extends Plugin {
 
             // All-5 prayers from JSON array: [{name:"Fajr",time:"05:15",status:"passed"},
             // ...]
-            JSONArray allPrayers = call.getArray("allPrayers", new JSONArray()).toJSONArray();
-            if (allPrayers != null) {
-                String[] prayerKeys = { "fajr", "dhuhr", "asr", "maghrib", "isha" };
-                for (int i = 0; i < Math.min(prayerKeys.length, allPrayers.length()); i++) {
-                    JSONObject p = allPrayers.getJSONObject(i);
-                    String key = prayerKeys[i];
-                    editor.putString(key + "_time", p.optString("time", "—"));
-                    editor.putString(key + "_status", p.optString("status", "upcoming"));
+            try {
+                org.json.JSONArray allPrayers = call.getArray("allPrayers");
+                if (allPrayers != null) {
+                    String[] prayerKeys = { "fajr", "dhuhr", "asr", "maghrib", "isha" };
+                    for (int i = 0; i < Math.min(prayerKeys.length, allPrayers.length()); i++) {
+                        JSONObject p = allPrayers.getJSONObject(i);
+                        String key = prayerKeys[i];
+                        editor.putString(key + "_time", p.optString("time", "—"));
+                        editor.putString(key + "_status", p.optString("status", "upcoming"));
+                    }
                 }
+            } catch (Exception ex) {
+                Log.w(TAG, "Could not parse allPrayers array: " + ex.getMessage());
             }
 
             // Quran verse
