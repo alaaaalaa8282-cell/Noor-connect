@@ -3,22 +3,39 @@ import { Play, Pause, Music, Volume2, SkipForward, X, Info } from "lucide-react"
 import { Button } from "@/components/ui/button";
 import { motion, AnimatePresence } from "framer-motion";
 import { cn } from "@/lib/utils";
+import { useToast } from "@/hooks/use-toast";
 
-const TAKBIRAT_URL = "https://www.duas.org/mp3/Takbeerat_Eid.mp3";
+const TAKBIRAT_URL = "https://archive.org/download/TakbeeratEid/Takbeerat%20Eid.mp3";
 
 export function TakbiratPlayer() {
   const [isPlaying, setIsPlaying] = useState(false);
   const [progress, setProgress] = useState(0);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  const togglePlay = () => {
+  const { toast } = useToast();
+  const [loadError, setLoadError] = useState(false);
+
+  const togglePlay = async () => {
     if (audioRef.current) {
       if (isPlaying) {
         audioRef.current.pause();
+        setIsPlaying(false);
       } else {
-        audioRef.current.play();
+        try {
+          setLoadError(false);
+          await audioRef.current.play();
+          setIsPlaying(true);
+        } catch (err) {
+          console.error("Playback failed:", err);
+          setLoadError(true);
+          setIsPlaying(false);
+          toast({ 
+            title: "Playback Error", 
+            description: "Could not load the Takbirat audio. It might be blocked or unavailable.", 
+            variant: "destructive" 
+          });
+        }
       }
-      setIsPlaying(!isPlaying);
     }
   };
 
@@ -93,7 +110,7 @@ export function TakbiratPlayer() {
                   className="flex flex-col items-center gap-1 opacity-40"
                 >
                   <p className="text-white text-lg font-arabic">Allahu Akbar, Allahu Akbar...</p>
-                  <p className="text-xs">Tap play to hear the vibe of Eid</p>
+                  <p className="text-xs">Celebrate the spirit of Eid</p>
                 </motion.div>
               )}
             </AnimatePresence>
@@ -140,7 +157,16 @@ export function TakbiratPlayer() {
           </div>
         </div>
 
-        <audio ref={audioRef} src={TAKBIRAT_URL} preload="none" />
+        <audio 
+          ref={audioRef} 
+          src={TAKBIRAT_URL} 
+          preload="metadata" 
+          crossOrigin="anonymous" 
+          onError={() => {
+            setLoadError(true);
+            setIsPlaying(false);
+          }}
+        />
       </div>
     </div>
   );

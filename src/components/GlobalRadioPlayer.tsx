@@ -44,8 +44,10 @@ export function GlobalRadioPlayer() {
       if (typeof message === 'string' && 
           (message.includes('chrome-extension://') || 
            message.includes('sdk.script.js') ||
-           message.includes('net::ERR_FAILED'))) {
-        return; // Suppress chrome extension errors
+           message.includes('net::ERR_FAILED') ||
+           message.includes('GeolocationPositionError') ||
+           message.includes('google-services.json not found'))) {
+        return; // Suppress chrome extension and harmless build/telemetry errors
       }
       originalConsoleError.apply(console, args);
     };

@@ -15,7 +15,6 @@ import { useI18n } from "@/hooks/useI18n";
 import { shouldShowMenstrualFeatures } from "@/lib/gender-settings";
 import { isMenstrualModeActive, getMenstrualModeData, activateMenstrualMode, deactivateMenstrualMode } from "@/lib/menstrual-mode";
 import { cn } from "@/lib/utils";
-import { TakbiratPlayer } from "@/components/TakbiratPlayer";
 import { EidCelebrationOverlay } from "@/components/EidCelebrationOverlay";
 
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
@@ -260,8 +259,15 @@ export default function Dashboard() {
   const handleDetectLocation = async () => {
     const success = await location.detectLocation();
     if (success) {
-      toast({ title: ti18n('locationDetected'), description: `Updated to ${location.locationName}` });
-
+      // Show appropriate message based on detection method
+      if (location.isIpBased) {
+        toast({
+          title: ti18n('locationDetected'),
+          description: `Location approximated from IP. Enable GPS for accurate results.`,
+        });
+      } else {
+        toast({ title: ti18n('locationDetected'), description: `Updated to ${location.locationName}` });
+      }
 
       // Reload prayer times with new location
       await loadPrayerTimes();
@@ -361,6 +367,27 @@ export default function Dashboard() {
 
   // Clear stale location data on mount to prevent ISTRES issue
   useEffect(() => {
+    // Guard against reload loops - only allow one reload per session
+    const ISTRES_RELOAD_GUARD = 'istres-reload-guard';
+    const hasReloaded = sessionStorage.getItem(ISTRES_RELOAD_GUARD);
+
+    // Helper function to handle ISTRES cleanup and reload
+    const cleanupIstresAndReload = (reason: string) => {
+      if (hasReloaded) {
+        console.warn('ISTRES cleanup skipped - already reloaded this session:', reason);
+        // Clear the problematic data without reloading
+        localStorage.removeItem('user-location-data');
+        localStorage.removeItem('location-storage');
+        return;
+      }
+
+      sessionStorage.setItem(ISTRES_RELOAD_GUARD, 'true');
+      localStorage.removeItem('user-location-data');
+      localStorage.removeItem('location-storage');
+      console.log('Cleared location data due to ISTRES:', reason);
+      window.location.reload();
+    };
+
     // Clear any stale IP-based location that might show wrong city
     const staleKeys = ['user-location-data', 'location-storage'];
     staleKeys.forEach(key => {
@@ -371,10 +398,7 @@ export default function Dashboard() {
           // Clear if it contains ISTRES or other problematic location data
           if (parsed.city === 'Istres' || parsed.locationName?.includes('Istres') ||
             parsed.city === 'ISTRES' || parsed.locationName?.includes('ISTRES')) {
-            localStorage.removeItem(key);
-            console.log('Cleared stale location data containing ISTRES');
-            // Force reload page to refresh location
-            window.location.reload();
+            cleanupIstresAndReload('localStorage contains ISTRES');
           }
         }
       } catch (error) {
@@ -384,11 +408,7 @@ export default function Dashboard() {
 
     // Also force clear any problematic data if location is showing ISTRES
     if (location.locationName?.includes('Istres') || location.locationName?.includes('ISTRES')) {
-      localStorage.removeItem('user-location-data');
-      localStorage.removeItem('location-storage');
-      console.log('Cleared location data due to ISTRES detection');
-      // Force reload to get fresh location
-      window.location.reload();
+      cleanupIstresAndReload('location state contains ISTRES');
     }
   }, []);
 
@@ -440,9 +460,9 @@ export default function Dashboard() {
           <div className="relative overflow-hidden rounded-[28px] shadow-[var(--elevation-4)] transition-all duration-500 hover:shadow-[var(--elevation-6)] group">
             {/* Animated Mesh Gradient Background - Changes to festive gold on Eid */}
             <div className={cn(
-               "absolute inset-0 transition-all duration-1000",
-               isEid 
-                ? "bg-gradient-to-br from-[#1a237e] via-[#0d1b40] to-[#e0c097]/40" 
+              "absolute inset-0 transition-all duration-1000",
+              isEid
+                ? "bg-gradient-to-br from-[#1a237e] via-[#0d1b40] to-[#e0c097]/40"
                 : "bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-[#b38b5d]"
             )}></div>
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-transparent opacity-60 animate-pulse"></div>
@@ -544,17 +564,6 @@ export default function Dashboard() {
             <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/20 rounded-br-lg"></div>
           </div>
 
-          {/* Special Eid Features */}
-          {isEid && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.2 }}
-            >
-              <TakbiratPlayer />
-            </motion.div>
-          )}
-
           <EidCelebrationOverlay />
 
 
@@ -565,7 +574,7 @@ export default function Dashboard() {
               {featureCards.map((card, index) => {
                 const Icon = card.icon;
                 const isFullWidth = index === 2; // Making the 3rd card span full width for better symmetry
-                
+
                 return (
                   <motion.div
                     key={card.id}
@@ -579,12 +588,12 @@ export default function Dashboard() {
                   >
                     {/* Base Vivid Gradient */}
                     <div className={`absolute inset-0 bg-gradient-to-br ${card.gradient}`} />
-                    
+
                     {/* Dynamic Lighting Effects */}
                     <div className="absolute -top-16 -right-16 w-32 h-32 bg-white/20 rounded-full blur-2xl group-hover:bg-white/30 transition-all duration-700" />
                     <div className="absolute -bottom-12 -left-12 w-28 h-28 bg-black/20 rounded-full blur-xl group-hover:bg-black/10 transition-all duration-700" />
                     <div className="absolute inset-0 bg-gradient-to-t from-black/20 via-transparent to-white/5 opacity-80" />
-                    
+
                     {/* Premium Noise / Pattern Overlay */}
                     <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(ellipse_at_center,_#ffffff_1px,_transparent_1px)] bg-[length:12px_12px]" />
 
@@ -596,10 +605,10 @@ export default function Dashboard() {
                           <Icon className="w-5 h-5 text-white drop-shadow-md" strokeWidth={2.5} />
                         </div>
                         {isFullWidth && (
-                           <div>
-                             <h3 className="font-bold text-white text-xl tracking-tight leading-none mb-1">{card.title}</h3>
-                             <p className="text-white/80 text-xs font-medium uppercase tracking-wider">{card.description}</p>
-                           </div>
+                          <div>
+                            <h3 className="font-bold text-white text-xl tracking-tight leading-none mb-1">{card.title}</h3>
+                            <p className="text-white/80 text-xs font-medium uppercase tracking-wider">{card.description}</p>
+                          </div>
                         )}
                         {!isFullWidth && (
                           <div className="bg-white/10 backdrop-blur-md px-2.5 py-1 rounded-full border border-white/20 shadow-sm">
@@ -607,7 +616,7 @@ export default function Dashboard() {
                           </div>
                         )}
                       </div>
-                      
+
                       {/* Bottom / Right Section: Title & Description */}
                       {!isFullWidth && (
                         <div className="pt-2">
@@ -617,7 +626,7 @@ export default function Dashboard() {
                       )}
                       {isFullWidth && (
                         <div className="bg-white/10 backdrop-blur-md px-3 py-1.5 rounded-full border border-white/20 shadow-sm shrink-0">
-                           <span className="text-xs uppercase tracking-wider font-bold text-white shadow-black/10 drop-shadow-sm">{card.stats}</span>
+                          <span className="text-xs uppercase tracking-wider font-bold text-white shadow-black/10 drop-shadow-sm">{card.stats}</span>
                         </div>
                       )}
                     </div>
@@ -636,7 +645,7 @@ export default function Dashboard() {
           >
             {/* Subtle background flair */}
             <div className="absolute -top-10 -right-10 w-32 h-32 bg-blue-500/10 rounded-full blur-2xl group-hover:bg-blue-500/20 transition-colors duration-500 pointer-events-none" />
-            
+
             <div className="relative z-10">
               <div className="flex items-center justify-between mb-6">
                 <div className="flex items-center gap-4">
@@ -653,7 +662,7 @@ export default function Dashboard() {
                   <p className="font-bold text-lg text-blue-700 dark:text-blue-300 leading-none">{nextPrayerName || '---'}</p>
                 </div>
               </div>
-              
+
               {/* Full Prayer Times List - Always Show All Prayers */}
               <Suspense fallback={
                 <div className="space-y-3">
@@ -688,7 +697,7 @@ export default function Dashboard() {
               className="relative overflow-hidden rounded-[24px] p-6 shadow-xl shadow-emerald-900/5 group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50"
             >
               <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-emerald-500/10 rounded-full blur-2xl group-hover:bg-emerald-500/20 transition-colors duration-500 pointer-events-none" />
-              
+
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#10b981] via-[#059669] to-[#047857] shadow-lg shadow-emerald-500/30 text-white shrink-0 group-hover:scale-105 group-hover:rotate-3 transition-transform duration-500">
@@ -713,7 +722,7 @@ export default function Dashboard() {
               className="relative overflow-hidden rounded-[24px] p-6 shadow-xl shadow-indigo-900/5 group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50"
             >
               <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-indigo-500/10 rounded-full blur-2xl group-hover:bg-indigo-500/20 transition-colors duration-500 pointer-events-none" />
-              
+
               <div className="relative z-10">
                 <div className="flex items-center gap-4 mb-6">
                   <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#6366f1] via-[#4f46e5] to-[#4338ca] shadow-lg shadow-indigo-500/30 text-white shrink-0 group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-500">
@@ -740,9 +749,9 @@ export default function Dashboard() {
                 }`}
             >
               {menstrualModeData.isActive && (
-                 <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
+                <div className="absolute -top-10 -right-10 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl pointer-events-none" />
               )}
-              
+
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
                 <div className="flex items-center gap-4">
                   <div className={`p-3.5 rounded-2xl shadow-sm border ${menstrualModeData.isActive
@@ -796,7 +805,7 @@ export default function Dashboard() {
           ) : (
             <div className="relative overflow-hidden rounded-[24px] p-5 bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50 shadow-xl shadow-slate-900/5 group">
               <div className="absolute -bottom-10 -right-10 w-32 h-32 bg-slate-500/10 rounded-full blur-2xl group-hover:bg-slate-500/20 transition-colors duration-500 pointer-events-none" />
-              
+
               <div className="relative z-10 flex flex-col sm:flex-row sm:items-center justify-between gap-5">
                 <div className="flex items-center gap-4">
                   <div className="p-3.5 rounded-2xl bg-gradient-to-br from-slate-100 to-slate-200 dark:from-slate-800 dark:to-slate-700 text-slate-700 dark:text-slate-200 shadow-sm border border-white/50 dark:border-slate-600 shrink-0 group-hover:scale-105 transition-transform duration-500">
@@ -914,7 +923,7 @@ export default function Dashboard() {
           <div className="relative overflow-hidden rounded-[24px] bg-gradient-to-br from-slate-100 to-slate-50 dark:from-slate-800 dark:to-slate-900/50 border border-slate-200/50 dark:border-slate-700/50 shadow-inner p-6 text-center">
             {/* Decorative Top Line */}
             <div className="absolute top-0 inset-x-0 h-1 bg-gradient-to-r from-transparent via-amber-400 to-transparent opacity-50" />
-            
+
             <div className="flex flex-col items-center gap-3">
               <div className="inline-flex items-center justify-center gap-2 px-4 py-2 rounded-full bg-white/50 dark:bg-slate-800/50 shadow-sm border border-slate-200/50 dark:border-slate-700/50 backdrop-blur-sm">
                 <div className="w-2 h-2 rounded-full bg-emerald-500 animate-pulse shadow-[0_0_8px_rgba(16,185,129,0.5)]" />
@@ -922,7 +931,7 @@ export default function Dashboard() {
                 <span className="text-slate-300 dark:text-slate-600">•</span>
                 <span className="text-xs font-bold uppercase tracking-widest text-[#b8860b]">Offline-first</span>
               </div>
-              
+
               <p className="text-[10px] font-bold uppercase tracking-[0.2em] text-slate-400 dark:text-slate-500 mt-1">
                 No tracking • FOSS Architecture
               </p>

@@ -115,17 +115,39 @@ public class PrayerWidget extends AppWidgetProvider {
 
         // Determine which layout this widget uses
         android.appwidget.AppWidgetProviderInfo info = mgr.getAppWidgetInfo(appWidgetId);
-        if (info == null)
-            return;
+
+        // Use widget class name as fallback if info is null
+        String widgetClassName = null;
+        if (info != null && info.provider != null) {
+            widgetClassName = info.provider.getClassName();
+        }
+
+        Log.d(TAG, "Updating widget ID " + appWidgetId + " (class: " + widgetClassName + ")");
 
         RemoteViews views;
 
-        if (info.initialLayout == R.layout.prayer_widget_large) {
+        // Determine widget type by class name for reliability
+        boolean isLarge = widgetClassName != null && widgetClassName.contains("PrayerWidgetLarge");
+        boolean isMedium = widgetClassName != null && widgetClassName.contains("PrayerWidgetMedium");
+        boolean isSmall = widgetClassName != null && widgetClassName.contains("PrayerWidgetSmall");
+
+        // Fallback to layout check if class name detection fails
+        if (info != null) {
+            if (info.initialLayout == R.layout.prayer_widget_large)
+                isLarge = true;
+            else if (info.initialLayout == R.layout.prayer_widget_medium)
+                isMedium = true;
+            else if (info.initialLayout == R.layout.prayer_widget_small)
+                isSmall = true;
+        }
+
+        if (isLarge) {
             // ──────── LARGE widget ────────
             views = new RemoteViews(context.getPackageName(), R.layout.prayer_widget_large);
 
             // Header
-            views.setTextViewText(R.id.widget_hijri_date, hijriDate);
+            views.setTextViewText(R.id.widget_hijri_date,
+                    hijriDate.isEmpty() ? context.getString(R.string.widget_hijri_default) : hijriDate);
             if (!currentTime.isEmpty()) {
                 views.setTextViewText(R.id.widget_clock, currentTime);
             }
@@ -155,18 +177,24 @@ public class PrayerWidget extends AppWidgetProvider {
             highlightActiveRow(views, fajrStatus, dhuhrStatus, asrStatus, maghribStatus, ishaStatus);
 
             // Footer
-            views.setTextViewText(R.id.widget_location, location);
-            views.setTextViewText(R.id.widget_time_remaining, remaining);
+            views.setTextViewText(R.id.widget_location,
+                    location.isEmpty() ? context.getString(R.string.widget_location_default) : location);
+            views.setTextViewText(R.id.widget_time_remaining,
+                    remaining.isEmpty() ? context.getString(R.string.widget_time_remaining_default) : remaining);
 
-        } else if (info.initialLayout == R.layout.prayer_widget_medium) {
+        } else if (isMedium) {
             // ──────── MEDIUM widget ────────
             views = new RemoteViews(context.getPackageName(), R.layout.prayer_widget_medium);
 
-            views.setTextViewText(R.id.widget_location, location);
-            views.setTextViewText(R.id.widget_hijri_date, hijriDate);
+            views.setTextViewText(R.id.widget_location,
+                    location.isEmpty() ? context.getString(R.string.widget_location_default) : location);
+            views.setTextViewText(R.id.widget_hijri_date,
+                    hijriDate.isEmpty() ? context.getString(R.string.widget_hijri_default) : hijriDate);
             views.setTextViewText(R.id.widget_prayer_name, name != null ? name : "Noor Connect");
-            views.setTextViewText(R.id.widget_prayer_time, time != null ? time : "—");
-            views.setTextViewText(R.id.widget_time_remaining, remaining);
+            views.setTextViewText(R.id.widget_prayer_time,
+                    time != null ? time : context.getString(R.string.widget_time_default));
+            views.setTextViewText(R.id.widget_time_remaining,
+                    remaining.isEmpty() ? context.getString(R.string.widget_time_remaining_default) : remaining);
 
             // Dots
             views.setImageViewResource(R.id.dot_fajr, dotDrawable(fajrStatus));
@@ -176,12 +204,13 @@ public class PrayerWidget extends AppWidgetProvider {
             views.setImageViewResource(R.id.dot_isha, dotDrawable(ishaStatus));
 
         } else {
-            // ──────── SMALL widget ────────
+            // ──────── SMALL widget (default) ────────
             views = new RemoteViews(context.getPackageName(), R.layout.prayer_widget_small);
             views.setTextViewText(R.id.widget_prayer_name, name != null ? name : "Noor Connect");
             views.setTextViewText(R.id.widget_prayer_time,
-                    time != null ? time : context.getString(R.string.widget_no_data));
-            views.setTextViewText(R.id.widget_time_remaining, remaining);
+                    time != null ? time : context.getString(R.string.widget_time_default));
+            views.setTextViewText(R.id.widget_time_remaining,
+                    remaining.isEmpty() ? context.getString(R.string.widget_time_remaining_default) : remaining);
         }
 
         // ──── Tap intent: open app ────
@@ -189,7 +218,17 @@ public class PrayerWidget extends AppWidgetProvider {
         tapIntent.setFlags(Intent.FLAG_ACTIVITY_NEW_TASK | Intent.FLAG_ACTIVITY_CLEAR_TOP);
         PendingIntent pendingIntent = PendingIntent.getActivity(context, 0, tapIntent,
                 PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE);
-        views.setOnClickPendingIntent(R.id.widget_prayer_name, pendingIntent);
+
+        // Set click listener based on widget type
+        int clickViewId;
+        if (isLarge) {
+            clickViewId = R.id.widget_header; // Use header for large widget
+        } else if (isMedium) {
+            clickViewId = R.id.widget_root; // Use root for medium widget
+        } else {
+            clickViewId = R.id.widget_root; // Use root for small widget
+        }
+        views.setOnClickPendingIntent(clickViewId, pendingIntent);
 
         mgr.updateAppWidget(appWidgetId, views);
     }

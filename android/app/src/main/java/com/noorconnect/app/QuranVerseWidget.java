@@ -73,6 +73,6 @@ public class QuranVerseWidget extends AppWidgetProvider {
         views.setOnClickPendingIntent(R.id.quran_widget_root, pi);
 
         mgr.updateAppWidget(widgetId, views);
-        Log.d(TAG, "Quran widget updated: " + ref);
+        Log.d(TAG, "Quran widget updated: ref=" + ref);
     }
 }

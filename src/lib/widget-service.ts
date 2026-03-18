@@ -4,10 +4,10 @@
  */
 import { registerPlugin } from '@capacitor/core';
 import { calculatePrayerTimes, formatPrayerTime, getNextPrayer } from './prayer-calculator';
-import type { WidgetPluginInterface, PrayerEntry } from './widgetPlugin';
+import type { WidgetPluginInterface, PrayerEntry, WidgetStrings } from './widgetPlugin';
 
 /* Re-export the plugin type for convenience */
-export type { WidgetPluginInterface, PrayerEntry };
+export type { WidgetPluginInterface, PrayerEntry, WidgetStrings };
 
 const WidgetPlugin = registerPlugin<WidgetPluginInterface>('WidgetPlugin');
 

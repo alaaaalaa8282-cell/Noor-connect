@@ -13,6 +13,7 @@ export interface LocationState {
   isDetecting: boolean;
   timeZone?: string;
   lastUpdated: string;
+  isIpBased?: boolean; // true if location was detected via IP fallback
 }
 
 const DEFAULT_LOCATION: LocationState = {
@@ -21,6 +22,7 @@ const DEFAULT_LOCATION: LocationState = {
   locationName: 'Karachi, Pakistan',
   isDetecting: false,
   timeZone: 'Asia/Karachi',
+  isIpBased: false,
   lastUpdated: new Date().toISOString()
 };
 
@@ -92,37 +94,55 @@ export const useLocationState = () => {
     setLocationState(prev => ({ ...prev, isDetecting: true }));
 
     try {
-      // Check if geolocation is supported
+      // --- STEP 1: IP-BASED DETECTION (Private, No Google API) ---
+      try {
+        const response = await fetch('https://ipapi.co/json/', {
+          signal: AbortSignal.timeout(5000)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.latitude && data.longitude) {
+            const newLocation: LocationState = {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              locationName: `${data.city}, ${data.country_name}`,
+              timeZone: data.timezone,
+              isDetecting: false,
+              lastUpdated: new Date().toISOString()
+            };
+
+            setLocationState(newLocation);
+            saveLocation(newLocation);
+            return true;
+          }
+        }
+      } catch (ipError) {
+        console.warn('IP-based detection failed, falling back to system GPS:', ipError);
+      }
+
+      // --- STEP 2: SYSTEM GPS (Fallback, may trigger Google API in browser) ---
       if (!GeolocationService.isSupported()) {
         throw new Error('Geolocation not supported');
       }
 
-      // Check permissions first
-      const permissions = await GeolocationService.checkPermissions();
-      console.log('Location permissions:', permissions);
-
-      if (permissions.location !== 'granted' && permissions.coarseLocation !== 'granted') {
-        // Request permissions
-        const granted = await GeolocationService.requestPermissions();
-        if (!granted) {
-          throw new Error('Location permission denied. Please enable location access in your device settings.');
-        }
-      }
-
       const position = await GeolocationService.getCurrentPosition({
-        enableHighAccuracy: true,
-        timeout: 10000,
-        maximumAge: 300000 // 5 minutes
+        enableHighAccuracy: false, // Low accuracy avoids Google Network Provider in some browsers
+        timeout: 5000,
+        maximumAge: 300000
       });
 
       const { latitude, longitude } = position;
 
-      // Get location name using reverse geocoding (optional)
+      // Get location name using reverse geocoding
       let locationName = 'Current Location';
       try {
         const response = await fetch(
           `https://nominatim.openstreetmap.org/reverse?format=json&lat=${latitude}&lon=${longitude}`,
-          { headers: { 'User-Agent': 'IslamicCompanion/1.0' } }
+          {
+            headers: { 'User-Agent': 'Noor-Connect-Islamic-App/1.0' },
+            signal: AbortSignal.timeout(5000)
+          }
         );
 
         if (response.ok) {
@@ -132,7 +152,7 @@ export const useLocationState = () => {
           }
         }
       } catch {
-        // Keep default name if geocoding fails
+        // Keep default name
       }
 
       const newLocation: LocationState = {
@@ -140,6 +160,7 @@ export const useLocationState = () => {
         longitude,
         locationName,
         isDetecting: false,
+        isIpBased: false, // GPS-based location
         lastUpdated: new Date().toISOString()
       };
 
@@ -147,7 +168,36 @@ export const useLocationState = () => {
       saveLocation(newLocation);
       return true;
     } catch (error) {
-      console.error('Location detection failed:', error);
+      console.warn('Geolocation detection failed, trying IP-based fallback:', error);
+
+      try {
+        // IP-based fallback (no key required for basic usage)
+        const response = await fetch('https://ipapi.co/json/', {
+          signal: AbortSignal.timeout(5000)
+        });
+
+        if (response.ok) {
+          const data = await response.json();
+          if (data.latitude && data.longitude) {
+            const newLocation: LocationState = {
+              latitude: data.latitude,
+              longitude: data.longitude,
+              locationName: `${data.city}, ${data.country_name} (IP)`,
+              timeZone: data.timezone,
+              isDetecting: false,
+              isIpBased: true, // Flag to indicate IP-based detection
+              lastUpdated: new Date().toISOString()
+            };
+
+            setLocationState(newLocation);
+            saveLocation(newLocation);
+            return true;
+          }
+        }
+      } catch (ipError) {
+        console.error('IP-based location detection also failed:', ipError);
+      }
+
       setLocationState(prev => ({ ...prev, isDetecting: false }));
       return false;
     }

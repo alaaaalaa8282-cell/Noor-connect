@@ -144,27 +144,43 @@ class MinimalPerformanceMonitor {
 
   public getPerformanceScore(): number {
     const { fcp, lcp, fid, cls } = this.metrics;
-    if (fcp === null || lcp === null || fid === null || cls === null) return 0;
+
+    // Count how many valid metrics we have
+    const validMetrics = [fcp, lcp, fid, cls].filter(metric => metric !== null).length;
+    if (validMetrics === 0) return 0;
 
     let score = 100;
-    
-    // FCP scoring
-    if (fcp > 3000) score -= 25;
-    else if (fcp > 1800) score -= 15;
-    
-    // LCP scoring  
-    if (lcp > 4000) score -= 25;
-    else if (lcp > 2500) score -= 15;
-    
-    // FID scoring
-    if (fid > 300) score -= 25;
-    else if (fid > 100) score -= 15;
-    
-    // CLS scoring
-    if (cls > 0.25) score -= 25;
-    else if (cls > 0.1) score -= 15;
+    let deductions = 0;
 
-    return Math.max(0, score);
+    // FCP scoring
+    if (fcp !== null) {
+      if (fcp > 3000) deductions += 25;
+      else if (fcp > 1800) deductions += 15;
+    }
+
+    // LCP scoring  
+    if (lcp !== null) {
+      if (lcp > 4000) deductions += 25;
+      else if (lcp > 2500) deductions += 15;
+    }
+
+    // FID scoring
+    if (fid !== null) {
+      if (fid > 300) deductions += 25;
+      else if (fid > 100) deductions += 15;
+    }
+
+    // CLS scoring
+    if (cls !== null) {
+      if (cls > 0.25) deductions += 25;
+      else if (cls > 0.1) deductions += 15;
+    }
+
+    // Calculate score based on valid metrics
+    const averageDeduction = deductions / validMetrics;
+    score -= averageDeduction;
+
+    return Math.max(0, Math.round(score));
   }
 
   public destroy() {

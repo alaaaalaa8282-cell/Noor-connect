@@ -129,15 +129,48 @@ export const GlobalPrayerAlarm = () => {
         return; // Cache is fresh, no need to hit geolocation API
       }
 
-      const position = await new Promise<GeolocationPosition>((resolve, reject) => {
-        navigator.geolocation.getCurrentPosition(resolve, reject, {
-          enableHighAccuracy: false,
-          timeout: 10000,
-          maximumAge: 300000,
-        });
-      });
+      // --- STEP 1: PRIVATE IP-BASED DETECTION (No Google API) ---
+      let latitude: number;
+      let longitude: number;
 
-      const { latitude, longitude } = position.coords;
+      try {
+        // Try IP-based geolocation with a CORS-friendly service
+        const ipResponse = await fetch('https://ipinfo.io/json?token=YOUR_TOKEN_HERE', {
+          signal: AbortSignal.timeout(5000)
+        });
+
+        if (ipResponse.ok) {
+          const ipData = await ipResponse.json();
+          if (ipData.loc) {
+            const [lat, lon] = ipData.loc.split(',').map(parseFloat);
+            latitude = lat;
+            longitude = lon;
+          } else {
+            throw new Error('IP location data not available');
+          }
+        } else {
+          throw new Error('IP detection failed');
+        }
+      } catch (e) {
+        // Try user's saved location first
+        const savedLocation = localStorage.getItem('user-location');
+        if (savedLocation) {
+          try {
+            const { latitude: savedLat, longitude: savedLon } = JSON.parse(savedLocation);
+            latitude = savedLat;
+            longitude = savedLon;
+          } catch (parseError) {
+            console.warn('Failed to parse saved location:', parseError);
+          }
+        }
+
+        // If no saved location, use default coordinates (Kaaba, Mecca) as fallback
+        if (!latitude || !longitude) {
+          latitude = 21.4225;
+          longitude = 39.8262;
+        }
+      }
+
       const response = await fetch(
         `https://api.aladhan.com/v1/timings?latitude=${latitude}&longitude=${longitude}&method=2`
       );

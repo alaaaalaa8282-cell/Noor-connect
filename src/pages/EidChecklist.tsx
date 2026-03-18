@@ -330,26 +330,23 @@ export default function EidChecklist() {
   if (!currentEidType && !isLoading) {
     return (
       <PageTransition>
-        <div className="min-h-screen bg-[#0a0a0c] flex flex-col">
-          <AppBar title="Eid Checklist" showBack={true} transparent border-0 />
+        <div className="min-h-screen bg-[#f8f9fa] flex flex-col">
+          <AppBar title="Eid Checklist" showBack={true} />
           
           <div className="flex-1 flex items-center justify-center p-6">
             <motion.div 
               initial={{ opacity: 0, scale: 0.9 }}
               animate={{ opacity: 1, scale: 1 }}
-              className="w-full max-w-sm relative overflow-hidden rounded-[40px] p-8 text-center"
+              className="w-full max-w-sm relative overflow-hidden rounded-[40px] p-8 text-center bg-white shadow-xl border border-slate-100"
             >
-              {/* Background */}
-              <div className="absolute inset-0 bg-gradient-to-br from-[#1a237e]/20 via-[#0d1b40]/20 to-black/40 backdrop-blur-xl border border-white/10"></div>
-              
               <div className="relative z-10 space-y-6">
-                <div className="inline-flex p-5 bg-[#e0c097]/10 rounded-3xl border border-[#e0c097]/20">
-                  <Calendar className="w-10 h-10 text-[#e0c097]" />
+                <div className="inline-flex p-5 bg-amber-50 rounded-3xl border border-amber-100">
+                  <Calendar className="w-10 h-10 text-amber-600" />
                 </div>
                 
                 <div className="space-y-2">
-                  <h2 className="text-2xl font-bold text-white">Soon, InshaAllah!</h2>
-                  <p className="text-white/60 text-sm leading-relaxed">
+                  <h2 className="text-2xl font-bold text-slate-900">Soon, InshaAllah!</h2>
+                  <p className="text-slate-500 text-sm leading-relaxed">
                     The Eid checklist becomes available on the last day of Ramadan and during the days of Eid.
                   </p>
                 </div>
@@ -358,7 +355,7 @@ export default function EidChecklist() {
                   <Button 
                     variant="outline" 
                     onClick={() => navigate('/services')}
-                    className="w-full h-12 rounded-2xl border-white/10 hover:bg-white/5 text-[#e0c097]"
+                    className="w-full h-12 rounded-2xl border-slate-200 hover:bg-slate-50 text-amber-600"
                   >
                     Explore other services
                   </Button>
@@ -374,10 +371,10 @@ export default function EidChecklist() {
   if (isLoading || !eidInfo) {
     return (
       <PageTransition>
-        <div className="min-h-screen bg-background pb-32">
+        <div className="min-h-screen bg-[#f8f9fa] pb-32">
           <AppBar title="Eid Checklist" showBack={true} />
           <div className="flex items-center justify-center h-64">
-            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-amber-600"></div>
           </div>
         </div>
       </PageTransition>
@@ -385,39 +382,38 @@ export default function EidChecklist() {
   }
 
   const categories = [
-    { id: 'mandatory', label: 'Mandatory', icon: CheckCircle2, color: 'text-red-500 bg-red-500/10' },
-    { id: 'sunnah', label: 'Sunnah', icon: Sparkles, color: 'text-amber-500 bg-amber-500/10' },
-    { id: 'prep', label: 'Preparation', icon: Clock, color: 'text-blue-500 bg-blue-500/10' },
+    { id: 'mandatory', label: 'Mandatory', icon: CheckCircle2, color: 'text-rose-600 bg-rose-50' },
+    { id: 'sunnah', label: 'Sunnah', icon: Sparkles, color: 'text-amber-600 bg-amber-50' },
+    { id: 'prep', label: 'Preparation', icon: Clock, color: 'text-blue-600 bg-blue-50' },
   ];
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#0a0a0c] pb-32">
-        <AppBar title="Eid Checklist" showBack={true} transparent className="border-0" />
+      <div className="min-h-screen bg-[#f8f9fa] pb-32">
+        <AppBar title="Eid Checklist" showBack={true} />
 
         <div className="max-w-xl mx-auto p-4 space-y-8 mt-2">
           {/* Eid Header Card */}
           <motion.div 
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
-            className="relative overflow-hidden rounded-[40px] shadow-2xl p-8 group"
+            className="relative overflow-hidden rounded-[40px] shadow-lg p-8 group bg-white border border-slate-100"
           >
-            {/* Animated Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#1a237e] via-[#0d1b40] to-black"></div>
-            <div className="absolute top-0 right-0 w-64 h-64 bg-[#e0c097]/10 rounded-full blur-[100px] animate-pulse"></div>
-            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] animate-pulse delay-1000"></div>
+            {/* Soft decorative elements for light theme */}
+            <div className="absolute top-0 right-0 w-64 h-64 bg-amber-50 rounded-full blur-[80px] opacity-60"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-blue-50 rounded-full blur-[80px] opacity-40"></div>
 
             {/* Content */}
             <div className="relative z-10 text-center space-y-4">
               <div className="flex justify-center mb-2">
-                <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
-                  <Moon className="w-8 h-8 text-[#e0c097]" />
+                <div className="p-3 bg-amber-50 rounded-2xl border border-amber-100">
+                  <Moon className="w-8 h-8 text-amber-600" />
                 </div>
               </div>
-              <h1 className="text-4xl font-bold tracking-tight text-white">
+              <h1 className="text-3xl font-bold tracking-tight text-slate-900">
                 {eidInfo.greeting}
               </h1>
-              <p className="text-[#e0c097]/80 text-lg italic">
+              <p className="text-slate-500 text-lg">
                 {eidInfo.subtitle}
               </p>
 
@@ -432,7 +428,7 @@ export default function EidChecklist() {
                       stroke="currentColor"
                       strokeWidth="8"
                       fill="transparent"
-                      className="text-white/5"
+                      className="text-slate-100"
                     />
                     <motion.circle
                       cx="64"
@@ -444,13 +440,13 @@ export default function EidChecklist() {
                       strokeDasharray="364.4"
                       initial={{ strokeDashoffset: 364.4 }}
                       animate={{ strokeDashoffset: 364.4 - (364.4 * completionPercentage) / 100 }}
-                      className="text-[#e0c097]"
+                      className="text-amber-600"
                       strokeLinecap="round"
                     />
                   </svg>
                   <div className="absolute inset-0 flex flex-col items-center justify-center">
-                    <span className="text-2xl font-black text-white">{completionPercentage}%</span>
-                    <span className="text-[10px] uppercase tracking-tighter text-white/40">Complete</span>
+                    <span className="text-2xl font-black text-slate-900">{completionPercentage}%</span>
+                    <span className="text-[10px] uppercase tracking-widest font-bold text-slate-400">Complete</span>
                   </div>
                 </div>
 
@@ -458,37 +454,37 @@ export default function EidChecklist() {
                 <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
                   <DialogTrigger asChild>
                     <Button 
-                      className="bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl px-6 backdrop-blur-md"
+                      className="bg-slate-900 text-white hover:bg-slate-800 rounded-2xl px-8 py-6 shadow-lg shadow-slate-200 transition-all active:scale-95"
                     >
-                      <Plus className="w-4 h-4 mr-2" />
+                      <Plus className="w-5 h-5 mr-2" />
                       Add Personal Task
                     </Button>
                   </DialogTrigger>
-                  <DialogContent className="bg-[#121217] border-white/10 text-white rounded-[32px] sm:max-w-md">
+                  <DialogContent className="bg-white border-slate-100 text-slate-900 rounded-[32px] sm:max-w-md shadow-2xl">
                     <DialogHeader>
-                      <DialogTitle>Add Custom Preparation</DialogTitle>
+                      <DialogTitle className="text-2xl font-bold">New Preparation</DialogTitle>
                     </DialogHeader>
                     <div className="space-y-6 py-4">
                       <div className="space-y-2">
-                        <Label htmlFor="task-text">What needs to be done?</Label>
+                        <Label htmlFor="task-text" className="text-slate-500">What needs to be done?</Label>
                         <Input 
                           id="task-text"
                           placeholder="e.g. Call relatives, Buy sweets..."
                           value={newTaskText}
                           onChange={(e) => setNewTaskText(e.target.value)}
-                          className="bg-white/5 border-white/10 rounded-xl"
+                          className="bg-slate-50 border-slate-200 rounded-xl focus:ring-amber-500 h-12"
                         />
                       </div>
                       <div className="space-y-2">
-                        <Label>Category</Label>
+                        <Label className="text-slate-500">Category</Label>
                         <Select 
                           value={newTaskCategory} 
                           onValueChange={(v: any) => setNewTaskCategory(v)}
                         >
-                          <SelectTrigger className="bg-white/5 border-white/10 rounded-xl">
+                          <SelectTrigger className="bg-slate-50 border-slate-200 rounded-xl h-12">
                             <SelectValue placeholder="Select category" />
                           </SelectTrigger>
-                          <SelectContent className="bg-[#121217] border-white/10 text-white">
+                          <SelectContent className="bg-white border-slate-100">
                             <SelectItem value="mandatory">Mandatory</SelectItem>
                             <SelectItem value="sunnah">Sunnah</SelectItem>
                             <SelectItem value="prep">General Preparation</SelectItem>
@@ -499,7 +495,7 @@ export default function EidChecklist() {
                     <DialogFooter>
                       <Button 
                         onClick={addTask}
-                        className="bg-[#e0c097] text-black hover:bg-[#d4af37] w-full rounded-xl"
+                        className="bg-amber-600 text-white hover:bg-amber-700 w-full rounded-xl py-6 text-lg font-bold"
                       >
                         Add to Checklist
                       </Button>
@@ -522,39 +518,34 @@ export default function EidChecklist() {
                     <div className={cn("p-2 rounded-xl", cat.color)}>
                       <cat.icon className="w-4 h-4" />
                     </div>
-                    <h2 className="text-sm font-bold uppercase tracking-widest text-[#e0c097]">{cat.label}</h2>
-                    <div className="flex-1 h-[1px] bg-[#e0c097]/10"></div>
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-slate-900">{cat.label}</h2>
+                    <div className="flex-1 h-[1px] bg-slate-200"></div>
                   </div>
 
-                  <div className="grid gap-3">
+                  <div className="grid gap-4">
                     <AnimatePresence mode="popLayout">
                       {items.map((item, idx) => (
                         <motion.div
                           key={item.id}
-                          initial={{ opacity: 0, x: -20 }}
-                          animate={{ opacity: 1, x: 0 }}
+                          initial={{ opacity: 0, y: 10 }}
+                          animate={{ opacity: 1, y: 0 }}
                           exit={{ opacity: 0, scale: 0.95 }}
-                          transition={{ delay: (catIdx * 0.2) + (idx * 0.1) }}
+                          transition={{ delay: (catIdx * 0.1) + (idx * 0.05) }}
                           className={cn(
-                            "group relative overflow-hidden rounded-[24px] p-[1px] transition-all duration-300",
-                            item.checked ? "opacity-60" : "scale-100"
+                            "group relative overflow-hidden rounded-[24px] transition-all duration-300",
+                            item.checked ? "opacity-60" : "hover:shadow-md"
                           )}
                         >
-                          {/* Animated Border */}
-                          <div className={cn(
-                            "absolute inset-0 bg-gradient-to-r transition-opacity duration-300",
-                            item.checked 
-                              ? "from-emerald-500/20 to-emerald-500/10" 
-                              : "from-white/10 to-transparent hover:from-[#e0c097]/30"
-                          )}></div>
-
                           <div 
-                            className="relative bg-[#16161a] rounded-[23px] p-5 flex items-center gap-4 cursor-pointer"
+                            className={cn(
+                                "relative bg-white rounded-[24px] p-5 flex items-center gap-4 cursor-pointer border transition-all",
+                                item.checked ? "border-slate-100 bg-slate-50/50" : "border-slate-100 hover:border-amber-200 shadow-sm"
+                            )}
                             onClick={() => handleCheckboxChange(item.id, !item.checked)}
                           >
                             <div className={cn(
                               "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
-                              item.checked ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-white/40 group-hover:text-white"
+                              item.checked ? "bg-emerald-100 text-emerald-600" : "bg-slate-50 text-slate-400 group-hover:text-amber-600"
                             )}>
                               {item.checked ? (
                                 <CheckCircle2 className="w-6 h-6 animate-in zoom-in duration-300" />
@@ -565,25 +556,25 @@ export default function EidChecklist() {
 
                             <div className="flex-1 min-w-0">
                               <p className={cn(
-                                "text-base font-medium transition-all duration-300",
-                                item.checked ? "text-white/20 line-through" : "text-white"
+                                "text-base font-semibold transition-all duration-300",
+                                item.checked ? "text-slate-400 line-through" : "text-slate-900"
                               )}>
                                 {item.text}
                               </p>
                             </div>
 
-                            {/* Action Area (Hover or Right Side) */}
+                            {/* Action Area */}
                             <div className="flex items-center gap-2">
                               {!item.checked && (
-                                <div className="w-6 h-6 rounded-full border border-white/10 flex items-center justify-center group-hover:border-[#e0c097]/50 transition-colors">
-                                  <div className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-[#e0c097]"></div>
+                                <div className="w-6 h-6 rounded-full border border-slate-200 flex items-center justify-center group-hover:border-amber-400 transition-colors">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-slate-100 group-hover:bg-amber-400"></div>
                                 </div>
                               )}
                               
                               <Button
                                 size="icon"
                                 variant="ghost"
-                                className="w-8 h-8 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                className="w-10 h-10 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
                                 onClick={(e) => deleteTask(e, item.id)}
                               >
                                 <Trash2 className="w-4 h-4" />
@@ -605,17 +596,17 @@ export default function EidChecklist() {
               <motion.div
                 initial={{ scale: 0 }}
                 animate={{ scale: 1 }}
-                className="flex flex-col items-center gap-2"
+                className="flex flex-col items-center gap-3 bg-white p-6 rounded-[32px] shadow-xl shadow-amber-100 border border-amber-50 mb-4"
               >
-                <PartyPopper className="w-12 h-12 text-[#e0c097]" />
-                <p className="text-white font-bold text-center">Truly a Blessed Eid!</p>
+                <PartyPopper className="w-12 h-12 text-amber-600" />
+                <p className="text-slate-900 font-bold text-lg text-center">Truly a Blessed Eid!</p>
               </motion.div>
             )}
 
             <Button
-              variant="ghost"
+              variant="outline"
               onClick={resetChecklist}
-              className="text-[#e0c097]/40 hover:text-[#e0c097] hover:bg-white/5 rounded-2xl px-8"
+              className="border-slate-200 text-slate-400 hover:text-rose-600 hover:bg-rose-50 rounded-2xl px-8 h-12 transition-all"
             >
               <RotateCcw className="w-3 h-3 mr-2" />
               Reset All Tasks

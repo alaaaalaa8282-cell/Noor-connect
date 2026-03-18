@@ -7,6 +7,18 @@ export interface PrayerEntry {
   status: 'passed' | 'active' | 'upcoming';
 }
 
+/** Widget strings for localization */
+export interface WidgetStrings {
+  fajr?: string;
+  dhuhr?: string;
+  asr?: string;
+  maghrib?: string;
+  isha?: string;
+  sunrise?: string;
+  nextPrayer?: string;
+  inMin?: string;
+}
+
 /** Full widget data interface */
 export interface WidgetPluginInterface {
   /** Legacy fast-path — basic next-prayer only */
@@ -35,6 +47,11 @@ export interface WidgetPluginInterface {
     quranTranslit?: string;
     /** Reference e.g. "Al-Baqarah 2:255" */
     quranRef?: string;
+  }): Promise<{ status: string }>;
+
+  /** Set localized widget strings (prayer labels, UI text) */
+  setWidgetStrings(options: {
+    strings: string; // JSON string of WidgetStrings
   }): Promise<{ status: string }>;
 }
 
