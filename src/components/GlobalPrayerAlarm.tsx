@@ -409,7 +409,21 @@ export const GlobalPrayerAlarm = () => {
       }
     };
 
+    const handleConfigChange = () => {
+      // Re-read enabled status
+      const isEnabled = localStorage.getItem(STORAGE_KEY) === 'true';
+      const config = adhanService.getAdhanConfig();
+      if (isEnabled && config.enabled) {
+        startChecking();
+      } else {
+        stopChecking();
+      }
+    };
+
     window.addEventListener('storage', handleStorageChange);
+    window.addEventListener('adhan-config-changed' as any, handleConfigChange);
+    window.addEventListener('adhan-preferences-changed' as any, handleConfigChange);
+    window.addEventListener('prayer-method-changed' as any, handleConfigChange);
     window.addEventListener(PRAYER_ALARM_TOGGLE_EVENT, handleToggle as EventListener);
     window.addEventListener(PRAYER_ALARM_CONTROL_EVENT, handleControl as EventListener);
 
@@ -417,6 +431,7 @@ export const GlobalPrayerAlarm = () => {
       stopChecking();
       emitPlaybackState(false, null);
       window.removeEventListener('storage', handleStorageChange);
+      window.removeEventListener('adhan-config-changed' as any, handleConfigChange);
       window.removeEventListener(PRAYER_ALARM_TOGGLE_EVENT, handleToggle as EventListener);
       window.removeEventListener(PRAYER_ALARM_CONTROL_EVENT, handleControl as EventListener);
     };

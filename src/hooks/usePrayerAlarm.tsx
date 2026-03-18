@@ -80,9 +80,28 @@ export const usePrayerAlarm = () => {
     localStorage.setItem(STORAGE_KEY, 'true');
     // Keep adhan-config in sync with this primary toggle
     const config = adhanService.getAdhanConfig();
-    adhanService.saveAdhanConfig({ ...config, enabled: true });
+    
+    // If all prayers were off, turn them all on when enabling the master switch
+    const allOff = !config.fajrEnabled && !config.dhuhrEnabled && !config.asrEnabled && 
+                   !config.maghribEnabled && !config.ishaEnabled && !config.jummahEnabled;
+    
+    const updated = { 
+      ...config, 
+      enabled: true,
+      ...(allOff ? {
+        fajrEnabled: true,
+        dhuhrEnabled: true,
+        asrEnabled: true,
+        maghribEnabled: true,
+        ishaEnabled: true,
+        jummahEnabled: true
+      } : {})
+    };
+    
+    adhanService.saveAdhanConfig(updated);
     setIsEnabled(true);
     dispatchToggleEvent(true);
+    window.dispatchEvent(new CustomEvent('adhan-config-changed', { detail: updated }));
     await nativeAdhan.setEnabled(true);
 
     // Re-sync native alarms immediately when the user enables adhan.
@@ -106,13 +125,29 @@ export const usePrayerAlarm = () => {
   const disableAlarm = useCallback(() => {
     localStorage.setItem(STORAGE_KEY, 'false');
     const config = adhanService.getAdhanConfig();
-    adhanService.saveAdhanConfig({ ...config, enabled: false });
+    
+    // When master switch is off, also turn off all individual toggles
+    const updated = { 
+      ...config, 
+      enabled: false,
+      fajrEnabled: false,
+      dhuhrEnabled: false,
+      asrEnabled: false,
+      maghribEnabled: false,
+      ishaEnabled: false,
+      jummahEnabled: false
+    };
+    
+    adhanService.saveAdhanConfig(updated);
     setIsEnabled(false);
     dispatchToggleEvent(false);
+    window.dispatchEvent(new CustomEvent('adhan-config-changed', { detail: updated }));
     void nativeAdhan.setEnabled(false);
     stopAdhan();
 
-    toast.success('Prayer Alarm Disabled');
+    toast.success('Adhan Silence Mode Active', {
+      description: 'Master switch and all individual adhan alerts have been turned OFF.'
+    });
   }, [stopAdhan]);
 
   const testAdhan = useCallback(() => {

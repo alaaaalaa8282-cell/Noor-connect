@@ -58,15 +58,46 @@ export default function IslamicCalendar() {
       setLoading(true);
       const offset = parseInt(localStorage.getItem('hijri-date-offset') || '0', 10);
       const response = await fetch(
-        `https://api.aladhan.com/v1/gToHCalendar/${month}/${year}?adjustment=${offset}`
+        `https://api.aladhan.com/v1/gToHCalendar/${month}/${year}`
       );
       const rawData = await response.json();
 
       const parseResult = safeParseApiResponse(calendarApiResponseSchema, rawData);
 
       if (parseResult.success && parseResult.data.code === 200) {
-        setMonthData(parseResult.data.data[0]);
-        generateCalendarDays(parseResult.data.data);
+        let dataToProcess = parseResult.data.data;
+        
+        if (offset !== 0) {
+           dataToProcess = dataToProcess.map((dayData: any, index: number) => {
+              const sourceIndex = index + offset;
+              if (sourceIndex >= 0 && sourceIndex < dataToProcess.length) {
+                 return { ...dayData, hijri: dataToProcess[sourceIndex].hijri };
+              } else {
+                 const newHijri = JSON.parse(JSON.stringify(dayData.hijri));
+                 let newDay = parseInt(newHijri.day) + offset;
+                 if (newDay <= 0) {
+                    newDay = 30 + newDay;
+                    newHijri.month.number -= 1;
+                    if (newHijri.month.number === 0) {
+                       newHijri.month.number = 12;
+                       newHijri.year = (parseInt(newHijri.year) - 1).toString();
+                    }
+                 } else if (newDay > 30) {
+                    newDay -= 30;
+                    newHijri.month.number += 1;
+                    if (newHijri.month.number === 13) {
+                       newHijri.month.number = 1;
+                       newHijri.year = (parseInt(newHijri.year) + 1).toString();
+                    }
+                 }
+                 newHijri.day = newDay.toString().padStart(2, '0');
+                 return { ...dayData, hijri: newHijri };
+              }
+           });
+        }
+        
+        setMonthData(dataToProcess[0]);
+        generateCalendarDays(dataToProcess);
       } else {
         throw new Error("Invalid API response");
       }

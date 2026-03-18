@@ -46,11 +46,18 @@ export function AdhanControl({ className }: AdhanControlProps) {
         setConfig(merged);
       }
     };
+    
     loadConfig();
 
-    // Listen for config changes
-    const interval = setInterval(loadConfig, 1000);
-    return () => clearInterval(interval);
+    // Listen for config changes across components
+    const handleSync = () => loadConfig();
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('adhan-config-changed' as any, handleSync);
+
+    return () => {
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('adhan-config-changed' as any, handleSync);
+    };
   }, []);
 
   // Check if Adhan is playing
@@ -68,12 +75,16 @@ export function AdhanControl({ className }: AdhanControlProps) {
     adhanService.saveAdhanConfig(newConfig);
     syncAlarmToggle(newEnabled);
     setConfig(newConfig);
+    // Notify other components
+    window.dispatchEvent(new CustomEvent('adhan-config-changed', { detail: newConfig }));
   };
 
   const updateConfig = (updates: Partial<AdhanConfig>) => {
     const newConfig = { ...config, ...updates };
     adhanService.saveAdhanConfig(newConfig);
     setConfig(newConfig);
+    // Notify other components
+    window.dispatchEvent(new CustomEvent('adhan-config-changed', { detail: newConfig }));
   };
 
   const playTestAdhan = async (prayerName: string) => {

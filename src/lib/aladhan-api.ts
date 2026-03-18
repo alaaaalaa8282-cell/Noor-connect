@@ -116,8 +116,7 @@ export class AladhanAPI {
     month: number = new Date().getMonth() + 1,
     method: number = 1 // Pakistan/Karachi (1), ISNA (2)
   ): Promise<AladhanMonthlyData> {
-    const offset = parseInt(localStorage.getItem('hijri-date-offset') || '0', 10);
-    const url = `${API_BASE}/calendar/${year}/${month}?latitude=${latitude}&longitude=${longitude}&method=${method}&adjustment=${offset}`;
+    const url = `${API_BASE}/calendar/${year}/${month}?latitude=${latitude}&longitude=${longitude}&method=${method}`;
 
     try {
       const response = await fetch(url);

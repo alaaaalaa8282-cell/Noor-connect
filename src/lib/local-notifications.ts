@@ -9,6 +9,7 @@ import { AladhanAPI, type AladhanPrayerTime } from './aladhan-api';
 import { Capacitor } from '@capacitor/core';
 import { getAdhanUrlForPrayer, type PrayerName } from './adhan-preferences';
 import { nativeAdhan, type NativeAdhanAlarm } from './native-adhan';
+import { adhanService, type AdhanConfig } from './adhan-service';
 
 // Task 2: Use SW registration for more robust "Native" notifications
 let swRegistration: ServiceWorkerRegistration | null = null;
@@ -175,6 +176,7 @@ export class LocalNotificationManager {
       const now = new Date();
       const method = 1; // Muslim World League method
       const adhanPreferenceSignature = localStorage.getItem('adhan-preferences') || 'default';
+      const adhanConfigText = localStorage.getItem('adhan-config') || '{}';
       const adhanEnabledSignature = this.isPrayerAlarmEnabled() ? 'adhan-on' : 'adhan-off';
       const signature = [
         now.toDateString(),
@@ -184,6 +186,7 @@ export class LocalNotificationManager {
         `window-${SCHEDULE_WINDOW_DAYS}`,
         adhanPreferenceSignature,
         adhanEnabledSignature,
+        adhanConfigText
       ].join('|');
 
       const previousSignature = localStorage.getItem(LAST_SCHEDULE_SIGNATURE_KEY);
@@ -228,7 +231,23 @@ export class LocalNotificationManager {
           continue;
         }
 
+        const adhanConfig = adhanService.getAdhanConfig();
+        const prayerToggleMap: Record<string, keyof AdhanConfig> = {
+          'Fajr': 'fajrEnabled',
+          'Dhuhr': 'dhuhrEnabled',
+          'Asr': 'asrEnabled',
+          'Maghrib': 'maghribEnabled',
+          'Isha': 'ishaEnabled'
+        };
+
         for (const prayerName of PRAYER_NAMES) {
+          // Check if this prayer is enabled
+          const toggleKey = prayerToggleMap[prayerName];
+          if (toggleKey && !adhanConfig[toggleKey]) {
+            console.log(`Skipping notification for ${prayerName} as it is disabled in settings`);
+            continue;
+          }
+
           const prayerTime = dayData.timings[prayerName];
           const cleaned = prayerTime.replace(/\s*\(.*?\)\s*/g, '').trim();
           const [hours, minutes] = cleaned.split(':').map(Number);
@@ -336,8 +355,20 @@ export class LocalNotificationManager {
       const now = new Date();
       const notifications: LocalNotificationSchema[] = [];
 
+      const adhanConfig = adhanService.getAdhanConfig();
+      const prayerToggleMap: Record<string, keyof AdhanConfig> = {
+        'Fajr': 'fajrEnabled',
+        'Dhuhr': 'dhuhrEnabled',
+        'Asr': 'asrEnabled',
+        'Maghrib': 'maghribEnabled',
+        'Isha': 'ishaEnabled'
+      };
+
       for (const prayer of prayerTimes) {
-        // Only schedule future prayers for today
+        // Only schedule future prayers for today if enabled in settings
+        const toggleKey = prayerToggleMap[prayer.name as any];
+        if (toggleKey && !adhanConfig[toggleKey]) continue;
+
         if (prayer.date > now) {
           const notificationId = this.getNotificationId(prayer.name, prayer.date);
 
@@ -385,6 +416,28 @@ export class LocalNotificationManager {
           swTimings[p.name.toLowerCase()] = { time: p.time };
         }
         this.syncWithServiceWorker(swTimings);
+
+        // Native Alarm scheduling (Audio)
+        if (Capacitor.isNativePlatform()) {
+          const nativeAlarms: NativeAdhanAlarm[] = [];
+          for (const prayer of prayerTimes) {
+             const key = prayerToggleMap[prayer.name as any];
+             if (key && !adhanConfig[key]) continue;
+             
+             if (prayer.date > now) {
+                nativeAlarms.push({
+                   id: this.getNotificationId(prayer.name, prayer.date),
+                   triggerAt: prayer.date.getTime(),
+                   prayerName: prayer.name,
+                   adhanUrl: await getAdhanUrlForPrayer(prayer.name as PrayerName),
+                });
+             }
+          }
+          
+          if (this.isPrayerAlarmEnabled()) {
+             await nativeAdhan.schedule(nativeAlarms, true);
+          }
+        }
 
         console.log(`Scheduled ${notifications.length} prayer notifications`);
       }
@@ -788,14 +841,18 @@ declare global {
 if (typeof window !== 'undefined' && !window.__noorConnectAdhanPrefsListenerAttached) {
   window.__noorConnectAdhanPrefsListenerAttached = true;
 
-  window.addEventListener('adhan-preferences-changed', () => {
+  // Listen for preference or config changes to reschedule background tasks
+  const handleReschedule = () => {
     if (window.__noorConnectAdhanPrefsRescheduleTimer) {
       window.clearTimeout(window.__noorConnectAdhanPrefsRescheduleTimer);
     }
     window.__noorConnectAdhanPrefsRescheduleTimer = window.setTimeout(() => {
       localNotifications.schedulePrayerNotificationsFromAPI().catch((error) => {
-        console.warn('Failed to reschedule after adhan preference change:', error);
+        console.warn('Failed to reschedule after setting change:', error);
       });
     }, 600);
-  });
+  };
+
+  window.addEventListener('adhan-preferences-changed', handleReschedule);
+  window.addEventListener('adhan-config-changed' as any, handleReschedule);
 }

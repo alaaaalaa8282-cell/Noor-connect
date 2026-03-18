@@ -26,97 +26,95 @@ export const BottomNav = memo(function BottomNav() {
 
   return (
     <nav
-      className="w-full fixed bottom-0 left-0 right-0 z-[100] pointer-events-none pb-6 px-4 pb-safe flex justify-center"
+      className="w-full fixed bottom-0 left-0 right-0 z-[100] pointer-events-none flex justify-center"
       style={{
         willChange: 'transform, opacity',
         transform: 'translateZ(0)',
-        paddingBottom: 'env(safe-area-inset-bottom, 24px)'
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
+        paddingLeft: '16px',
+        paddingRight: '16px'
       }}
     >
       {/* Premium Floating Island with enhanced glassmorphism */}
-      <div className="w-full max-w-md bg-gradient-to-b from-background/90 to-background/70 backdrop-blur-2xl border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.3),0_0_0_1px_rgba(255,255,255,0.1)] pointer-events-auto rounded-[40px] overflow-hidden relative">
+      <div className="w-full max-w-md bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-3xl border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.1)] pointer-events-auto rounded-[32px] relative">
         {/* Subtle animated gradient overlay */}
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-60" />
+        <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-60 rounded-[32px] overflow-hidden" />
         
-        <div className="relative z-10 flex flex-row items-center justify-between h-[80px] px-3 sm:px-5">
+        <div className="relative z-10 flex flex-row items-center justify-between h-[76px] px-2 sm:px-4">
           {navItems.map((item, index) => (
             <NavLink
               key={item.path}
               to={item.path}
               end={item.path === "/"}
               onClick={triggerHapticFeedback}
-              className="group flex-1 flex flex-col items-center justify-center h-full relative px-1"
+              className="group flex-1 flex flex-col items-center justify-center h-full relative"
             >
               {({ isActive }) => (
                 <motion.div 
-                  className="flex flex-col items-center justify-center gap-2 relative z-10"
-                  whileHover={{ scale: 1.05 }}
-                  whileTap={{ scale: 0.95 }}
+                   className="flex flex-col items-center justify-center gap-1.5 relative z-10 w-full"
+                   whileTap={{ scale: 0.9 }}
                 >
                   {/* Premium Active Indicator */}
-                  <div className="relative flex items-center justify-center w-[60px] h-[40px] rounded-2xl">
+                  <div className="relative flex items-center justify-center w-full min-w-[48px] h-[36px]">
                     <AnimatePresence>
                       {isActive && (
                         <motion.div
                           layoutId="nav-bg-glow"
-                          className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-20 rounded-2xl shadow-[0_8px_20px_rgba(0,0,0,0.2)]`}
-                          initial={{ opacity: 0, scale: 0.8 }}
+                          className={`absolute inset-0 bg-gradient-to-br ${item.gradient} opacity-20 rounded-xl`}
+                          initial={{ opacity: 0, scale: 0.9 }}
                           animate={{ opacity: 1, scale: 1 }}
-                          exit={{ opacity: 0, scale: 0.8 }}
-                          transition={{ type: "spring", stiffness: 400, damping: 32 }}
+                          exit={{ opacity: 0, scale: 0.9 }}
+                          transition={{ type: "spring", stiffness: 500, damping: 35 }}
                         />
                       )}
                     </AnimatePresence>
-
+ 
                     <motion.div
-                      className={`p-2 rounded-2xl transition-all duration-500 ${isActive
-                        ? `bg-gradient-to-br ${item.gradient} shadow-lg`
-                        : "bg-transparent"
+                      className={`p-1.5 rounded-xl transition-all duration-500 ${isActive
+                        ? `bg-gradient-to-br ${item.gradient} shadow-md`
+                        : "bg-transparent group-hover:bg-muted/10"
                         }`}
                     >
                       <item.icon
-                        className={`w-[24px] h-[24px] transition-all duration-500 ${isActive
-                          ? "text-white scale-110 drop-shadow-[0_2px_8px_rgba(0,0,0,0.3)]"
+                        className={`w-[22px] h-[22px] transition-all duration-500 ${isActive
+                          ? "text-white scale-110"
                           : "text-muted-foreground group-hover:text-foreground"
                           }`}
                         strokeWidth={isActive ? 2.5 : 2}
                       />
                     </motion.div>
                   </div>
-
+ 
                   <motion.span 
-                    className={`text-[10px] font-bold uppercase tracking-wide transition-all duration-300 truncate w-full px-1 text-center ${isActive
-                      ? "text-foreground scale-105"
-                      : "text-muted-foreground/60 group-hover:text-foreground"
+                    className={`text-[9px] font-bold uppercase tracking-tight transition-all duration-300 truncate w-full px-1 text-center ${isActive
+                      ? "text-foreground"
+                      : "text-muted-foreground/50 group-hover:text-foreground"
                       }`}
-                    animate={{
-                      scale: isActive ? 1.05 : 1,
-                      opacity: isActive ? 1 : 0.7
-                    }}
                   >
                     {item.title}
                   </motion.span>
-
                 </motion.div>
               )}
             </NavLink>
           ))}
         </div>
-
+ 
         {/* Premium home indicator with glow */}
-        <div className="relative z-10 flex justify-center mb-3">
-          <motion.div 
-            className="h-[3px] w-24 bg-gradient-to-r from-primary/40 via-primary to-primary/40 rounded-full"
-            animate={{
-              opacity: [0.5, 0.8, 0.5],
-              scale: [1, 1.05, 1]
-            }}
-            transition={{
-              duration: 3,
-              repeat: Infinity,
-              ease: "easeInOut"
-            }}
-          />
+        <div className="relative z-10 flex justify-center pb-2">
+          <div className="h-[4px] w-12 bg-muted/20 rounded-full overflow-hidden">
+             <motion.div 
+                className="h-full w-full bg-gradient-to-r from-primary/20 via-primary to-primary/20"
+                animate={{
+                  x: [-40, 40],
+                  opacity: [0.3, 0.7, 0.3]
+                }}
+                transition={{
+                  duration: 3,
+                  repeat: Infinity,
+                  ease: "linear"
+                }}
+             />
+          </div>
         </div>
       </div>
     </nav>

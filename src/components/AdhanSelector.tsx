@@ -20,8 +20,6 @@ import {
 } from '@/lib/adhan-preferences';
 import { adhanService, type AdhanConfig } from '@/lib/adhan-service';
 
-
-
 const ADHAN_STORAGE_KEY = 'selected-adhan-id';
 
 export const getSelectedAdhanUrl = (): string => {
@@ -72,12 +70,14 @@ export const AdhanSelector = () => {
 
     loadCustomMetadata();
 
-    // Sync preferences when storage changes
-    const handleStorage = () => {
+    // Sync preferences when storage changes or external events fire
+    const handleSync = () => {
       setPreferences(getAdhanPreferences());
       setAdhanConfig(adhanService.getAdhanConfig());
     };
-    window.addEventListener('storage', handleStorage);
+
+    window.addEventListener('storage', handleSync);
+    window.addEventListener('adhan-config-changed' as any, handleSync);
 
     return () => {
       stopAllAdhanPreviews();
@@ -85,7 +85,8 @@ export const AdhanSelector = () => {
         clearTimeout(timeoutRef.current);
       }
       setPlayingPrayer(null);
-      window.removeEventListener('storage', handleStorage);
+      window.removeEventListener('storage', handleSync);
+      window.removeEventListener('adhan-config-changed' as any, handleSync);
     };
   }, []);
 
@@ -179,6 +180,12 @@ export const AdhanSelector = () => {
     const updated = { ...adhanConfig, [key]: enabled };
     adhanService.saveAdhanConfig(updated);
     setAdhanConfig(updated);
+
+    // Notify other components (GlobalAlarm, Profile, etc.)
+    window.dispatchEvent(new CustomEvent('adhan-config-changed', { detail: updated }));
+    
+    // Also trigger notification reschedule for background alarms
+    window.dispatchEvent(new Event('prayer-method-changed'));
   };
 
   return (

@@ -50,29 +50,34 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
 
   // Premium Styles
   const containerClasses = isCurrent
-    ? "bg-primary/10 border-primary shadow-[0_8px_32px_rgba(var(--primary),0.15)] ring-1 ring-primary/20 scale-[1.02] z-10"
+    ? "bg-primary/10 border-primary shadow-[0_15px_40px_-10px_rgba(var(--primary),0.2)] ring-2 ring-primary/20 z-20"
     : isNext
-      ? "bg-secondary/20 border-border/60 shadow-sm"
-      : "bg-card border-border/40 hover:border-primary/30 transition-all duration-300";
+      ? "bg-cyan-500/5 border-cyan-500/30 shadow-[0_0_20px_rgba(6,182,212,0.15)] dark:bg-cyan-500/5"
+      : "bg-card border-border/40 hover:border-primary/30 transition-all duration-300 opacity-80 hover:opacity-100";
 
   return (
     <div className={`relative overflow-hidden rounded-2xl border p-4 transition-all duration-500 group ${containerClasses}`}>
       {/* Active Glow Effect */}
       {isCurrent && (
-        <div className="absolute inset-0 bg-gradient-to-r from-primary/10 via-transparent to-transparent animate-pulse"></div>
+        <div className="absolute inset-0 bg-gradient-to-br from-primary/30 via-transparent to-transparent animate-pulse -z-10"></div>
+      )}
+      
+      {/* Upcoming Glow Effect */}
+      {isNext && (
+        <div className="absolute inset-0 bg-cyan-500/10 animate-pulse -z-10 shadow-[inner_0_0_40px_rgba(6,182,212,0.2)]"></div>
       )}
 
       <div className="relative z-10 flex items-center justify-between">
         <div className="flex items-center gap-4">
-          <div className={`w-12 h-12 rounded-xl flex items-center justify-center transition-all duration-500
-                ${isCurrent ? 'bg-primary text-primary-foreground shadow-lg shadow-primary/25 scale-110' : 'bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'}
+          <div className={`rounded-2xl flex items-center justify-center transition-all duration-1000
+                ${isCurrent ? 'w-16 h-16 bg-primary text-primary-foreground shadow-xl shadow-primary/30' : 'w-12 h-12 bg-muted/50 text-muted-foreground group-hover:bg-primary/10 group-hover:text-primary'}
              `}>
-            {prayerIcons[prayer.name] || <Clock className="w-5 h-5" />}
+            {prayerIcons[prayer.name] || <Clock className={isCurrent ? "w-7 h-7" : "w-5 h-5"} />}
           </div>
 
           <div className="flex flex-col">
             <div className="flex items-center gap-2">
-              <h3 className={`font-bold text-sm sm:text-base tracking-tight ${isCurrent ? 'text-primary' : 'text-foreground'}`}>
+              <h3 className={`font-black tracking-tight ${isCurrent ? 'text-2xl text-primary' : 'text-sm sm:text-base text-foreground'}`}>
                 {t(prayer.name.toLowerCase() as any)}
               </h3>
               {isCurrent && (
@@ -83,7 +88,10 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
               )}
             </div>
             {isNext && !isCurrent && (
-              <span className="text-[10px] font-bold text-blue-500 uppercase tracking-widest mt-0.5">{t('upcoming')}</span>
+              <div className="flex items-center gap-2 mt-1 px-2 py-0.5 rounded-full bg-cyan-500/20 border border-cyan-500/20 w-fit">
+                <span className="flex h-2 w-2 rounded-full bg-cyan-500 animate-ping" />
+                <span className="text-[10px] font-black text-cyan-600 dark:text-cyan-400 uppercase tracking-[0.2em]">{t('upcoming')}</span>
+              </div>
             )}
             {!isCurrent && !isNext && (
               <span className="text-[10px] text-muted-foreground/60 font-medium uppercase tracking-widest mt-0.5">
@@ -100,12 +108,18 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
 
           {/* Countdown or End Time */}
           {isCurrent && countdown ? (
-            <div className={`text-[10px] font-bold uppercase tracking-widest ${isEndingSoon ? 'text-red-500 animate-pulse' : 'text-primary/70'}`}>
-              {t('endsIn') || 'Ends In'} {countdown.formattedTime}
+            <div className={`flex flex-col items-end`}>
+              <div className={`text-[10px] font-black uppercase tracking-[0.2em] mb-0.5 ${isEndingSoon ? 'text-red-500 animate-pulse' : 'text-primary/70'}`}>
+                {t('endsIn') || 'Ends In'}
+              </div>
+              <div className={`font-mono text-xl sm:text-2xl font-black tabular-nums tracking-tighter ${isEndingSoon ? 'text-red-500 animate-pulse' : 'text-primary'}`}>
+                {countdown.formattedTime}
+              </div>
             </div>
           ) : (
-            <div className="text-[10px] text-muted-foreground/50 font-bold uppercase tracking-widest">
-              {t('end')} {formatPrayerTime(prayer.endTime, timeFormat, timeZone)}
+            <div className={`text-right ${isNext ? 'text-cyan-600 dark:text-cyan-400' : 'text-muted-foreground/50'} font-bold uppercase tracking-widest`}>
+              <div className="text-[10px] opacity-60 mb-0.5">{t('end')}</div>
+              <div className="text-xs font-mono">{formatPrayerTime(prayer.endTime, timeFormat, timeZone)}</div>
             </div>
           )}
         </div>

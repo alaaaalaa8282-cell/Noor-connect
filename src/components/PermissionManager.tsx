@@ -1,5 +1,8 @@
 import { useState, useEffect } from 'react';
 import { Shield, ShieldCheck, ShieldOff, MapPin, Bell, BellOff, Smartphone, Globe, AlertTriangle, RefreshCw, Settings, Info } from 'lucide-react';
+import { Capacitor } from '@capacitor/core';
+import { LocalNotifications } from '@capacitor/local-notifications';
+import { Geolocation } from '@capacitor/geolocation';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { Badge } from '@/components/ui/badge';
@@ -93,12 +96,25 @@ const PermissionManager = ({ className }: PermissionManagerProps) => {
     }
   };
 
-  const handleOpenSettings = (type: PermissionType) => {
+  const handleOpenSettings = async (type: PermissionType) => {
     if (platform === 'mobile') {
-      if (type === 'location') {
-        window.open('android-app://settings');
-      } else if (type === 'notifications') {
-        window.open('android-app://settings/android.permission.POST_NOTIFICATIONS');
+      try {
+        if (type === 'notifications') {
+          // In Android, requesting permission when it's already denied officially triggers 
+          // a deep link to the app details in OS settings.
+          await LocalNotifications.requestPermissions();
+        } else if (type === 'location') {
+          await Geolocation.requestPermissions();
+        }
+        
+        toast({
+          title: 'Opening Settings',
+          description: 'Taking you to your system settings. Please find "Noor Connect" permissions.',
+        });
+      } catch (error) {
+        console.error('Failed to open app settings:', error);
+        // Fallback for older Android / iOS
+        window.open('package:com.noorconnect.app'); 
       }
     } else {
       // Web platform - show guidance

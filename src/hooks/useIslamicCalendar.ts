@@ -105,7 +105,30 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
       // The API already returns the correct Hijri date for each Gregorian date.
       // No Maghrib-based advancement — that was double-counting.
       if (todayData) {
-        const h = todayData.date.hijri;
+        let h = todayData.date.hijri;
+        const offset = parseInt(localStorage.getItem('hijri-date-offset') || '0', 10);
+        
+        if (offset !== 0) {
+           const offsetDate = new Date(today);
+           offsetDate.setDate(offsetDate.getDate() + offset);
+           const offsetData = AladhanAPI.getPrayerTimesForDate(offsetDate, location.latitude, location.longitude);
+           if (offsetData) {
+             h = offsetData.date.hijri;
+           } else {
+             // Fallback approximate calculation
+             const newHijri = JSON.parse(JSON.stringify(h));
+             let newDay = parseInt(newHijri.day) + offset;
+             if (newDay <= 0) {
+               newDay = 30 + newDay; 
+               newHijri.month.number -= 1;
+             } else if (newDay > 30) {
+               newDay = newDay - 30;
+               newHijri.month.number += 1;
+             }
+             newHijri.day = newDay.toString().padStart(2, '0');
+             h = newHijri;
+           }
+        }
 
         setHijriDay(h.day);
         setHijriMonthNum(h.month.number);
@@ -114,7 +137,7 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
         setHijriYear(h.year);
         setHijriWeekday(h.weekday);
         setHijriHolidays(h.holidays || []);
-        console.log(`[useIslamicCalendar] Using API Hijri date: ${h.day} ${h.month.en} ${h.year}`);
+        console.log(`[useIslamicCalendar] Using API Hijri date: ${h.day} ${h.month.en} ${h.year} (Offset: ${offset})`);
       } else {
         // Fallback: use the gToH API directly
         console.log('[useIslamicCalendar] No cached data, falling back to gToH API');
@@ -169,8 +192,8 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
 
   const isRamadan = hijriMonthNumber === 9;
   const ramadanDay = isRamadan ? hijriDayNumber : 0;
-  const isEidAlFitr = hijriMonthNumber === 10 && hijriDayNumber === 1;
-  const isEidAlAdha = hijriMonthNumber === 12 && hijriDayNumber === 10;
+  const isEidAlFitr = hijriMonthNumber === 10 && (hijriDayNumber >= 1 && hijriDayNumber <= 3);
+  const isEidAlAdha = hijriMonthNumber === 12 && (hijriDayNumber >= 10 && hijriDayNumber <= 13);
 
   const hijriDate = hijriDay ? `${hijriDay} ${hijriMonthEn} ${hijriYear}` : '';
 

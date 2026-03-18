@@ -709,6 +709,7 @@ const Profile = () => {
                   <div>
                     <Label className="text-sm font-bold">{t('prayerAlarmAdhan')}</Label>
                     <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tight">{t('prayerAlarmDescription')}</p>
+                    <p className="text-[9px] text-primary/60 font-medium italic mt-1 leading-tight">{t('prayerAlarmNote')}</p>
                   </div>
                 </div>
                 <Switch
@@ -777,54 +778,7 @@ const Profile = () => {
           <CustomAdhanUpload />
         </div>
 
-        {/* Battery Optimization (Muslim Pro style) */}
-        {isCapacitorApp && (
-          <div className="space-y-3">
-            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
-              {t('batteryOptimization')}
-            </h3>
-            <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5 space-y-4 bg-amber-500/5 border-amber-500/10">
-              <div className="flex items-start gap-4">
-                <div className="p-3 rounded-2xl bg-amber-500/10 text-amber-600 flex-shrink-0">
-                  <Smartphone className="w-6 h-6" />
-                </div>
-                <div className="space-y-1">
-                  <p className="text-sm font-bold text-amber-900 dark:text-amber-200">{t('batteryOptimization')}</p>
-                  <p className="text-xs text-amber-800/70 dark:text-amber-300/60 leading-relaxed font-medium">
-                    {t('batteryOptimizationWarning')}
-                  </p>
-                </div>
-              </div>
 
-              <div className="bg-amber-500/10 rounded-xl p-3 border border-amber-500/10">
-                <p className="text-[10px] font-bold text-amber-700 dark:text-amber-400 uppercase tracking-wider mb-1">💡 {ti18n('optimizationTip') || 'Pro Tip:'}</p>
-                <p className="text-[11px] text-amber-800/80 dark:text-amber-300/80 leading-snug">
-                  {t('optimizationTip')}
-                </p>
-              </div>
-
-              <Button
-                variant="outline"
-                className="w-full bg-background/50 border-amber-500/20 hover:bg-amber-500 text-amber-700 hover:text-white transition-all duration-300 h-11 rounded-xl font-bold"
-                onClick={async () => {
-                  try {
-                    const { Capacitor } = await import('@capacitor/core');
-                    if (Capacitor.isNativePlatform()) {
-                      // Open Android App Settings
-                      window.open('package:' + 'com.noorconnect.app'); // This usually triggers the chooser on Android
-                      toast({ title: t('batterySettingsOpened') });
-                    }
-                  } catch (e) {
-                    console.error('Failed to open settings', e);
-                  }
-                }}
-              >
-                <Smartphone className="w-4 h-4 mr-2" />
-                {t('openBatterySettings')}
-              </Button>
-            </Card>
-          </div>
-        )}
 
 
         {/* Storage & Backup */}

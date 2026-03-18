@@ -12,18 +12,55 @@ import {
   Sparkles, 
   Moon, 
   Star, 
-  CheckCircle, 
+  CheckCircle2, 
   RotateCcw,
   Calendar,
-  Clock
+  Clock,
+  Heart,
+  Shirt,
+  ShoppingBag,
+  Users,
+  Utensils,
+  PartyPopper,
+  Zap,
+  Coffee,
+  Sun,
+  Droplets,
+  Coins,
+  Trash2,
+  Plus,
+  X,
+  ClipboardList
 } from "lucide-react";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
+import { cn } from "@/lib/utils";
+import confetti from "canvas-confetti";
+import { 
+  Dialog, 
+  DialogContent, 
+  DialogHeader, 
+  DialogTitle, 
+  DialogTrigger,
+  DialogFooter,
+} from "@/components/ui/dialog";
+import { Input } from "@/components/ui/input";
+import { 
+  Select, 
+  SelectContent, 
+  SelectItem, 
+  SelectTrigger, 
+  SelectValue 
+} from "@/components/ui/select";
+import { Label } from "@/components/ui/label";
 
 interface ChecklistItem {
   id: string;
   text: string;
   checked: boolean;
+  category: 'sunnah' | 'mandatory' | 'prep';
+  icon: any;
   eidSpecific?: 'fitr' | 'adha' | 'both';
+  isCustom?: boolean;
 }
 
 interface EidChecklistData {
@@ -32,14 +69,17 @@ interface EidChecklistData {
 }
 
 const defaultChecklistItems: Omit<ChecklistItem, 'checked'>[] = [
-  { id: 'ghusl', text: 'Perform Ghusl (ritual bath)', eidSpecific: 'both' },
-  { id: 'eid-prayer', text: 'Attend Eid prayer', eidSpecific: 'both' },
-  { id: 'fitrana', text: 'Pay Fitrana (Zakat al-Fitr)', eidSpecific: 'fitr' },
-  { id: 'best-clothes', text: 'Wear best clothes', eidSpecific: 'both' },
-  { id: 'ittar', text: 'Apply ittar (perfume)', eidSpecific: 'both' },
-  { id: 'dates', text: 'Eat dates before prayer', eidSpecific: 'both' },
-  { id: 'greet-family', text: 'Greet family with "Eid Mubarak"', eidSpecific: 'both' },
-  { id: 'charity', text: 'Give charity (Sadaqa)', eidSpecific: 'both' },
+  { id: 'ghusl', text: 'Perform Ghusl (ritual bath)', category: 'sunnah', icon: Droplets, eidSpecific: 'both' },
+  { id: 'dates', text: 'Eat an odd number of dates before prayer', category: 'sunnah', icon: Coffee, eidSpecific: 'fitr' },
+  { id: 'best-clothes', text: 'Wear your best available clothes', category: 'sunnah', icon: Shirt, eidSpecific: 'both' },
+  { id: 'ittar', text: 'Apply ittar or perfume', category: 'sunnah', icon: Sparkles, eidSpecific: 'both' },
+  { id: 'fitrana', text: 'Pay Zakat al-Fitr (before prayer)', category: 'mandatory', icon: Coins, eidSpecific: 'fitr' },
+  { id: 'eid-prayer', text: 'Attend the Eid prayer congregation', category: 'mandatory', icon: Users, eidSpecific: 'both' },
+  { id: 'takbirat', text: 'Recite Takbirat loudly on the way', category: 'sunnah', icon: Zap, eidSpecific: 'both' },
+  { id: 'different-way', text: 'Return from prayer using a different path', category: 'sunnah', icon: Sun, eidSpecific: 'both' },
+  { id: 'greet-family', text: 'Greet everyone with "Eid Mubarak"', category: 'prep', icon: Heart, eidSpecific: 'both' },
+  { id: 'charity', text: 'Give additional Sadaqa to those in need', category: 'prep', icon: ShoppingBag, eidSpecific: 'both' },
+  { id: 'adha-meat', text: 'Eat from your Udhiyah (Qurbani) meat', category: 'sunnah', icon: Utensils, eidSpecific: 'adha' },
 ];
 
 export default function EidChecklist() {
@@ -65,13 +105,35 @@ export default function EidChecklist() {
     try {
       const stored = localStorage.getItem('eid-checklist-data');
       if (stored) {
-        return JSON.parse(stored);
+        const parsed = JSON.parse(stored);
+        
+        const mergeData = (type: 'fitr' | 'adha') => {
+          const storedItems = parsed[type] || [];
+          
+          // 1. Start with all current default items
+          const defaults = defaultChecklistItems
+            .filter(d => d.eidSpecific === 'both' || d.eidSpecific === type)
+            .map(d => {
+              const stored = storedItems.find((s: any) => s.id === d.id);
+              return { ...d, checked: stored ? stored.checked : false };
+            });
+          
+          // 2. Add custom items that aren't in defaults
+          const customs = storedItems.filter((s: any) => s.isCustom);
+          
+          return [...defaults, ...customs];
+        };
+
+        return {
+          fitr: mergeData('fitr'),
+          adha: mergeData('adha')
+        };
       }
     } catch (error) {
       console.error('Error loading checklist data:', error);
     }
     
-    // Return default data
+    // Return default data if nothing stored
     return {
       fitr: defaultChecklistItems.map(item => ({ ...item, checked: false })),
       adha: defaultChecklistItems.map(item => ({ ...item, checked: false }))
@@ -79,13 +141,63 @@ export default function EidChecklist() {
   };
 
   const [checklistData, setChecklistData] = useState<EidChecklistData>(loadChecklistData);
+  const [isAddDialogOpen, setIsAddDialogOpen] = useState(false);
+  const [newTaskText, setNewTaskText] = useState("");
+  const [newTaskCategory, setNewTaskCategory] = useState<'sunnah' | 'mandatory' | 'prep'>('prep');
+
+  // Logic to add a task
+  const addTask = () => {
+    if (!currentEidType || !newTaskText.trim()) return;
+
+    const newItem: ChecklistItem = {
+      id: `custom-${Date.now()}`,
+      text: newTaskText,
+      checked: false,
+      category: newTaskCategory,
+      icon: ClipboardList,
+      isCustom: true,
+      eidSpecific: 'both'
+    };
+
+    const updatedData = {
+      ...checklistData,
+      [currentEidType]: [...checklistData[currentEidType], newItem]
+    };
+
+    setChecklistData(updatedData);
+    saveChecklistData(updatedData);
+    setNewTaskText("");
+    setIsAddDialogOpen(false);
+    
+    toast({
+      title: "Task Added",
+      description: "Your custom Eid task has been created.",
+    });
+  };
+
+  // Logic to delete a task
+  const deleteTask = (e: React.MouseEvent, itemId: string) => {
+    e.stopPropagation();
+    if (!currentEidType) return;
+
+    const updatedData = {
+      ...checklistData,
+      [currentEidType]: checklistData[currentEidType].filter(item => item.id !== itemId)
+    };
+
+    setChecklistData(updatedData);
+    saveChecklistData(updatedData);
+    
+    toast({
+      title: "Task Removed",
+      description: "The task has been removed from your list.",
+    });
+  };
 
   // Get current checklist based on Eid type
   const currentChecklist = useMemo(() => {
     if (!currentEidType) return [];
-    return checklistData[currentEidType].filter(item => 
-      item.eidSpecific === 'both' || item.eidSpecific === currentEidType
-    );
+    return checklistData[currentEidType];
   }, [currentEidType, checklistData]);
 
   // Calculate completion percentage
@@ -115,11 +227,27 @@ export default function EidChecklist() {
       setChecklistData(updatedData);
       saveChecklistData(updatedData);
       
-      // Show completion toast if all items are checked
-      if (checked && completionPercentage === 100) {
+      // Calculate completion count for immediate celebration
+      const updatedList = updatedData[currentEidType].filter(item => 
+        item.eidSpecific === 'both' || item.eidSpecific === currentEidType
+      );
+      const checkedCount = updatedList.filter(item => item.checked).length;
+      
+      // Haptic feedback if available
+      if (checked && 'vibrate' in navigator) navigator.vibrate(10);
+
+      // Show completion celebration if all items are checked
+      if (checked && checkedCount === updatedList.length) {
+        confetti({
+          particleCount: 150,
+          spread: 70,
+          origin: { y: 0.6 },
+          colors: ['#e0c097', '#d4af37', '#b38b5d', '#0a1128']
+        });
+
         toast({
           title: "🎉 Eid Mubarak!",
-          description: "You've completed all Eid preparations!",
+          description: "You've completed all Eid preparations! May Allah accept it from us and you.",
         });
       }
     }
@@ -129,14 +257,18 @@ export default function EidChecklist() {
   const resetChecklist = () => {
     if (!currentEidType) return;
     
+    // Completely restore defaults
     const updatedData = { ...checklistData };
-    updatedData[currentEidType] = updatedData[currentEidType].map(item => ({ ...item, checked: false }));
+    updatedData[currentEidType] = defaultChecklistItems
+      .filter(item => item.eidSpecific === 'both' || item.eidSpecific === currentEidType)
+      .map(item => ({ ...item, checked: false }));
+      
     setChecklistData(updatedData);
     saveChecklistData(updatedData);
-    
+
     toast({
-      title: "Checklist Reset",
-      description: "Eid checklist has been reset.",
+      title: "Restored Defaults",
+      description: "Custom tasks removed and official tasks reset.",
     });
   };
 
@@ -198,28 +330,41 @@ export default function EidChecklist() {
   if (!currentEidType && !isLoading) {
     return (
       <PageTransition>
-        <div className="min-h-screen bg-background pb-32">
-          <AppBar title="Eid Checklist" showBack={true} />
+        <div className="min-h-screen bg-[#0a0a0c] flex flex-col">
+          <AppBar title="Eid Checklist" showBack={true} transparent border-0 />
           
-          <div className="max-w-lg mx-auto p-4">
-            <Card className="text-center p-8">
-              <div className="flex flex-col items-center space-y-4">
-                <div className="p-4 rounded-full bg-muted">
-                  <Calendar className="w-8 h-8 text-muted-foreground" />
+          <div className="flex-1 flex items-center justify-center p-6">
+            <motion.div 
+              initial={{ opacity: 0, scale: 0.9 }}
+              animate={{ opacity: 1, scale: 1 }}
+              className="w-full max-w-sm relative overflow-hidden rounded-[40px] p-8 text-center"
+            >
+              {/* Background */}
+              <div className="absolute inset-0 bg-gradient-to-br from-[#1a237e]/20 via-[#0d1b40]/20 to-black/40 backdrop-blur-xl border border-white/10"></div>
+              
+              <div className="relative z-10 space-y-6">
+                <div className="inline-flex p-5 bg-[#e0c097]/10 rounded-3xl border border-[#e0c097]/20">
+                  <Calendar className="w-10 h-10 text-[#e0c097]" />
                 </div>
-                <h2 className="text-xl font-semibold">Eid Checklist Not Available</h2>
-                <p className="text-muted-foreground">
-                  The Eid checklist is only available during Eid periods and on the last night of Ramadan.
-                </p>
-                <Button 
-                  variant="outline" 
-                  onClick={() => navigate('/services')}
-                  className="mt-4"
-                >
-                  Back to Services
-                </Button>
+                
+                <div className="space-y-2">
+                  <h2 className="text-2xl font-bold text-white">Soon, InshaAllah!</h2>
+                  <p className="text-white/60 text-sm leading-relaxed">
+                    The Eid checklist becomes available on the last day of Ramadan and during the days of Eid.
+                  </p>
+                </div>
+
+                <div className="pt-4">
+                  <Button 
+                    variant="outline" 
+                    onClick={() => navigate('/services')}
+                    className="w-full h-12 rounded-2xl border-white/10 hover:bg-white/5 text-[#e0c097]"
+                  >
+                    Explore other services
+                  </Button>
+                </div>
               </div>
-            </Card>
+            </motion.div>
           </div>
         </div>
       </PageTransition>
@@ -239,123 +384,242 @@ export default function EidChecklist() {
     );
   }
 
+  const categories = [
+    { id: 'mandatory', label: 'Mandatory', icon: CheckCircle2, color: 'text-red-500 bg-red-500/10' },
+    { id: 'sunnah', label: 'Sunnah', icon: Sparkles, color: 'text-amber-500 bg-amber-500/10' },
+    { id: 'prep', label: 'Preparation', icon: Clock, color: 'text-blue-500 bg-blue-500/10' },
+  ];
+
   return (
     <PageTransition>
-      <div className="min-h-screen bg-background pb-32">
-        <AppBar title="Eid Checklist" showBack={true} />
+      <div className="min-h-screen bg-[#0a0a0c] pb-32">
+        <AppBar title="Eid Checklist" showBack={true} transparent className="border-0" />
 
-        <div className="max-w-lg mx-auto p-4 space-y-4">
+        <div className="max-w-xl mx-auto p-4 space-y-8 mt-2">
           {/* Eid Header Card */}
-          <div className="relative overflow-hidden rounded-[28px] shadow-[var(--elevation-4)] transition-all duration-500 hover:shadow-[var(--elevation-6)] group">
-            {/* Animated Gradient Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#e0c097] via-[#d4af37] to-[#b38b5d] opacity-100"></div>
-            <div className="absolute inset-0 bg-gradient-to-tr from-emerald-500/20 via-transparent to-transparent opacity-60 animate-pulse"></div>
-
-            {/* Islamic Decorative Elements */}
-            <div className="absolute top-4 right-4">
-              <Moon className="w-6 h-6 text-white/80" />
-            </div>
-            <div className="absolute top-4 right-12">
-              <Star className="w-4 h-4 text-white/60" />
-            </div>
-            <div className="absolute bottom-4 left-4">
-              <Star className="w-3 h-3 text-white/40" />
-            </div>
-
-            {/* Glassmorphism Overlay */}
-            <div className="absolute inset-0 bg-gradient-to-b from-white/10 to-transparent"></div>
+          <motion.div 
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            className="relative overflow-hidden rounded-[40px] shadow-2xl p-8 group"
+          >
+            {/* Animated Background */}
+            <div className="absolute inset-0 bg-gradient-to-br from-[#1a237e] via-[#0d1b40] to-black"></div>
+            <div className="absolute top-0 right-0 w-64 h-64 bg-[#e0c097]/10 rounded-full blur-[100px] animate-pulse"></div>
+            <div className="absolute bottom-0 left-0 w-64 h-64 bg-emerald-500/5 rounded-full blur-[100px] animate-pulse delay-1000"></div>
 
             {/* Content */}
-            <div className="relative z-10 p-6 text-white">
-              <div className="flex items-center gap-2 mb-2">
-                <Sparkles className="w-5 h-5 text-white/90" />
-                <span className="text-sm font-medium uppercase tracking-wider text-white/80">
-                  {eidInfo.title}
-                </span>
+            <div className="relative z-10 text-center space-y-4">
+              <div className="flex justify-center mb-2">
+                <div className="p-3 bg-white/5 backdrop-blur-md rounded-2xl border border-white/10">
+                  <Moon className="w-8 h-8 text-[#e0c097]" />
+                </div>
               </div>
-              <h1 className="text-2xl font-bold mb-2">{eidInfo.greeting}</h1>
-              <p className="text-white/70 text-sm">{eidInfo.subtitle}</p>
-            </div>
+              <h1 className="text-4xl font-bold tracking-tight text-white">
+                {eidInfo.greeting}
+              </h1>
+              <p className="text-[#e0c097]/80 text-lg italic">
+                {eidInfo.subtitle}
+              </p>
 
-            {/* Bottom Gradient Line */}
-            <div className="absolute bottom-0 inset-x-0 h-[3px] bg-gradient-to-r from-transparent via-white/70 to-transparent"></div>
-          </div>
-
-          {/* Progress Card */}
-          <Card className="p-4">
-            <div className="space-y-3">
-              <div className="flex items-center justify-between">
-                <h3 className="font-semibold text-sm">Progress</h3>
-                <span className="text-sm font-medium text-primary">{completionPercentage}%</span>
-              </div>
-              <Progress value={completionPercentage} className="h-2" />
-              <div className="flex items-center justify-between text-xs text-muted-foreground">
-                <span>{currentChecklist.filter(item => item.checked).length} of {currentChecklist.length} completed</span>
-                {completionPercentage === 100 && (
-                  <div className="flex items-center gap-1 text-green-600">
-                    <CheckCircle className="w-3 h-3" />
-                    <span>Complete!</span>
+              <div className="flex flex-col items-center pt-2 gap-6">
+                {/* Minimal Progress Ring */}
+                <div className="relative w-32 h-32">
+                  <svg className="w-full h-full transform -rotate-90">
+                    <circle
+                      cx="64"
+                      cy="64"
+                      r="58"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="transparent"
+                      className="text-white/5"
+                    />
+                    <motion.circle
+                      cx="64"
+                      cy="64"
+                      r="58"
+                      stroke="currentColor"
+                      strokeWidth="8"
+                      fill="transparent"
+                      strokeDasharray="364.4"
+                      initial={{ strokeDashoffset: 364.4 }}
+                      animate={{ strokeDashoffset: 364.4 - (364.4 * completionPercentage) / 100 }}
+                      className="text-[#e0c097]"
+                      strokeLinecap="round"
+                    />
+                  </svg>
+                  <div className="absolute inset-0 flex flex-col items-center justify-center">
+                    <span className="text-2xl font-black text-white">{completionPercentage}%</span>
+                    <span className="text-[10px] uppercase tracking-tighter text-white/40">Complete</span>
                   </div>
-                )}
+                </div>
+
+                {/* Add Task Trigger */}
+                <Dialog open={isAddDialogOpen} onOpenChange={setIsAddDialogOpen}>
+                  <DialogTrigger asChild>
+                    <Button 
+                      className="bg-white/10 hover:bg-white/20 border border-white/10 rounded-2xl px-6 backdrop-blur-md"
+                    >
+                      <Plus className="w-4 h-4 mr-2" />
+                      Add Personal Task
+                    </Button>
+                  </DialogTrigger>
+                  <DialogContent className="bg-[#121217] border-white/10 text-white rounded-[32px] sm:max-w-md">
+                    <DialogHeader>
+                      <DialogTitle>Add Custom Preparation</DialogTitle>
+                    </DialogHeader>
+                    <div className="space-y-6 py-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="task-text">What needs to be done?</Label>
+                        <Input 
+                          id="task-text"
+                          placeholder="e.g. Call relatives, Buy sweets..."
+                          value={newTaskText}
+                          onChange={(e) => setNewTaskText(e.target.value)}
+                          className="bg-white/5 border-white/10 rounded-xl"
+                        />
+                      </div>
+                      <div className="space-y-2">
+                        <Label>Category</Label>
+                        <Select 
+                          value={newTaskCategory} 
+                          onValueChange={(v: any) => setNewTaskCategory(v)}
+                        >
+                          <SelectTrigger className="bg-white/5 border-white/10 rounded-xl">
+                            <SelectValue placeholder="Select category" />
+                          </SelectTrigger>
+                          <SelectContent className="bg-[#121217] border-white/10 text-white">
+                            <SelectItem value="mandatory">Mandatory</SelectItem>
+                            <SelectItem value="sunnah">Sunnah</SelectItem>
+                            <SelectItem value="prep">General Preparation</SelectItem>
+                          </SelectContent>
+                        </Select>
+                      </div>
+                    </div>
+                    <DialogFooter>
+                      <Button 
+                        onClick={addTask}
+                        className="bg-[#e0c097] text-black hover:bg-[#d4af37] w-full rounded-xl"
+                      >
+                        Add to Checklist
+                      </Button>
+                    </DialogFooter>
+                  </DialogContent>
+                </Dialog>
               </div>
             </div>
-          </Card>
+          </motion.div>
 
-          {/* Checklist Items */}
-          <Card className="p-4">
-            <CardHeader className="pb-3">
-              <CardTitle className="text-lg">Eid Preparation Checklist</CardTitle>
-              <CardDescription>
-                Complete these important Eid preparations
-              </CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              {currentChecklist.map((item, index) => (
-                <motion.div
-                  key={item.id}
-                  initial={{ opacity: 0, x: -20 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  transition={{ delay: index * 0.1 }}
-                  className="flex items-start space-x-3 p-3 rounded-lg border border-border/50 hover:bg-muted/30 transition-colors"
-                >
-                  <Checkbox
-                    id={item.id}
-                    checked={item.checked}
-                    onCheckedChange={(checked) => handleCheckboxChange(item.id, checked as boolean)}
-                    className="mt-0.5"
-                  />
-                  <label
-                    htmlFor={item.id}
-                    className={`flex-1 text-sm leading-relaxed cursor-pointer ${
-                      item.checked ? 'line-through text-muted-foreground' : ''
-                    }`}
-                  >
-                    {item.text}
-                  </label>
-                </motion.div>
-              ))}
-            </CardContent>
-          </Card>
+          {/* Checklist Sections */}
+          <div className="space-y-10">
+            {categories.map((cat, catIdx) => {
+              const items = currentChecklist.filter(item => item.category === cat.id);
+              if (items.length === 0) return null;
 
-          {/* Reset Button */}
-          <div className="flex justify-center">
-            <Button
-              variant="outline"
-              onClick={resetChecklist}
-              className="gap-2"
-            >
-              <RotateCcw className="w-4 h-4" />
-              Reset Checklist
-            </Button>
+              return (
+                <div key={cat.id} className="space-y-4">
+                  <div className="flex items-center gap-3 px-2">
+                    <div className={cn("p-2 rounded-xl", cat.color)}>
+                      <cat.icon className="w-4 h-4" />
+                    </div>
+                    <h2 className="text-sm font-bold uppercase tracking-widest text-[#e0c097]">{cat.label}</h2>
+                    <div className="flex-1 h-[1px] bg-[#e0c097]/10"></div>
+                  </div>
+
+                  <div className="grid gap-3">
+                    <AnimatePresence mode="popLayout">
+                      {items.map((item, idx) => (
+                        <motion.div
+                          key={item.id}
+                          initial={{ opacity: 0, x: -20 }}
+                          animate={{ opacity: 1, x: 0 }}
+                          exit={{ opacity: 0, scale: 0.95 }}
+                          transition={{ delay: (catIdx * 0.2) + (idx * 0.1) }}
+                          className={cn(
+                            "group relative overflow-hidden rounded-[24px] p-[1px] transition-all duration-300",
+                            item.checked ? "opacity-60" : "scale-100"
+                          )}
+                        >
+                          {/* Animated Border */}
+                          <div className={cn(
+                            "absolute inset-0 bg-gradient-to-r transition-opacity duration-300",
+                            item.checked 
+                              ? "from-emerald-500/20 to-emerald-500/10" 
+                              : "from-white/10 to-transparent hover:from-[#e0c097]/30"
+                          )}></div>
+
+                          <div 
+                            className="relative bg-[#16161a] rounded-[23px] p-5 flex items-center gap-4 cursor-pointer"
+                            onClick={() => handleCheckboxChange(item.id, !item.checked)}
+                          >
+                            <div className={cn(
+                              "w-12 h-12 rounded-2xl flex items-center justify-center transition-all duration-500",
+                              item.checked ? "bg-emerald-500/20 text-emerald-400" : "bg-white/5 text-white/40 group-hover:text-white"
+                            )}>
+                              {item.checked ? (
+                                <CheckCircle2 className="w-6 h-6 animate-in zoom-in duration-300" />
+                              ) : (
+                                <item.icon className="w-6 h-6" />
+                              )}
+                            </div>
+
+                            <div className="flex-1 min-w-0">
+                              <p className={cn(
+                                "text-base font-medium transition-all duration-300",
+                                item.checked ? "text-white/20 line-through" : "text-white"
+                              )}>
+                                {item.text}
+                              </p>
+                            </div>
+
+                            {/* Action Area (Hover or Right Side) */}
+                            <div className="flex items-center gap-2">
+                              {!item.checked && (
+                                <div className="w-6 h-6 rounded-full border border-white/10 flex items-center justify-center group-hover:border-[#e0c097]/50 transition-colors">
+                                  <div className="w-1.5 h-1.5 rounded-full bg-white/20 group-hover:bg-[#e0c097]"></div>
+                                </div>
+                              )}
+                              
+                              <Button
+                                size="icon"
+                                variant="ghost"
+                                className="w-8 h-8 text-white/20 hover:text-red-500 hover:bg-red-500/10 rounded-full opacity-0 group-hover:opacity-100 transition-opacity"
+                                onClick={(e) => deleteTask(e, item.id)}
+                              >
+                                <Trash2 className="w-4 h-4" />
+                              </Button>
+                            </div>
+                          </div>
+                        </motion.div>
+                      ))}
+                    </AnimatePresence>
+                  </div>
+                </div>
+              );
+            })}
           </div>
 
-          {/* Islamic Decorative Elements */}
-          <div className="flex justify-center space-x-8 pt-4">
-            <div className="flex items-center gap-2 text-muted-foreground">
-              <Moon className="w-4 h-4" />
-              <span className="text-xs">Eid Mubarak</span>
-              <Star className="w-4 h-4" />
-            </div>
+          {/* Reset Action */}
+          <div className="flex flex-col items-center gap-6 pt-10">
+            {completionPercentage === 100 && (
+              <motion.div
+                initial={{ scale: 0 }}
+                animate={{ scale: 1 }}
+                className="flex flex-col items-center gap-2"
+              >
+                <PartyPopper className="w-12 h-12 text-[#e0c097]" />
+                <p className="text-white font-bold text-center">Truly a Blessed Eid!</p>
+              </motion.div>
+            )}
+
+            <Button
+              variant="ghost"
+              onClick={resetChecklist}
+              className="text-[#e0c097]/40 hover:text-[#e0c097] hover:bg-white/5 rounded-2xl px-8"
+            >
+              <RotateCcw className="w-3 h-3 mr-2" />
+              Reset All Tasks
+            </Button>
           </div>
         </div>
       </div>

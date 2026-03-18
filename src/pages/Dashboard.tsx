@@ -14,6 +14,9 @@ import { useLanguage } from "@/contexts/LanguageContext-new";
 import { useI18n } from "@/hooks/useI18n";
 import { shouldShowMenstrualFeatures } from "@/lib/gender-settings";
 import { isMenstrualModeActive, getMenstrualModeData, activateMenstrualMode, deactivateMenstrualMode } from "@/lib/menstrual-mode";
+import { cn } from "@/lib/utils";
+import { TakbiratPlayer } from "@/components/TakbiratPlayer";
+import { EidCelebrationOverlay } from "@/components/EidCelebrationOverlay";
 
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
@@ -77,7 +80,8 @@ export default function Dashboard() {
   const [prayers, setPrayers] = useState<PrayerTime[]>([]);
   const [loading, setLoading] = useState(true);
   // Use Islamic calendar hook for accurate Hijri dates
-  const { hijriDate } = useIslamicCalendar();
+  const { hijriDate, isEidAlFitr, isEidAlAdha } = useIslamicCalendar();
+  const isEid = isEidAlFitr || isEidAlAdha;
   const [timeFormat, setTimeFormat] = useState<'12' | '24'>('24');
   const [nextPrayerName, setNextPrayerName] = useState<string>("");
   const [nextEventCountdown, setNextEventCountdown] = useState<{ name: string; time: string; countdown: string } | null>(null);
@@ -245,10 +249,12 @@ export default function Dashboard() {
     };
   }, [loadPrayerTimes]);
 
-  // Update greeting (simplified to As-salamu alaykum)
+  // Update greeting (special for Eid)
   useEffect(() => {
-    setGreeting("As-salamu alaykum");
-  }, []);
+    if (isEidAlFitr) setGreeting("Eid al-Fitr Mubarak");
+    else if (isEidAlAdha) setGreeting("Eid al-Adha Mubarak");
+    else setGreeting("As-salamu alaykum");
+  }, [isEidAlFitr, isEidAlAdha]);
 
   // Handle location detection
   const handleDetectLocation = async () => {
@@ -432,9 +438,22 @@ export default function Dashboard() {
           {/* Header */}
           {/* Premium Hero Card */}
           <div className="relative overflow-hidden rounded-[28px] shadow-[var(--elevation-4)] transition-all duration-500 hover:shadow-[var(--elevation-6)] group">
-            {/* Animated Mesh Gradient Background */}
-            <div className="absolute inset-0 bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-[#b38b5d] opacity-100"></div>
+            {/* Animated Mesh Gradient Background - Changes to festive gold on Eid */}
+            <div className={cn(
+               "absolute inset-0 transition-all duration-1000",
+               isEid 
+                ? "bg-gradient-to-br from-[#1a237e] via-[#0d1b40] to-[#e0c097]/40" 
+                : "bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-[#b38b5d]"
+            )}></div>
             <div className="absolute inset-0 bg-gradient-to-tr from-primary/20 via-transparent to-transparent opacity-60 animate-pulse"></div>
+
+            {/* Special Celebration Glow for Eid */}
+            {isEid && (
+              <>
+                <div className="absolute top-0 right-0 w-64 h-64 bg-[#e0c097]/20 rounded-full blur-[100px] animate-pulse"></div>
+                <div className="absolute -bottom-10 left-10 w-48 h-48 bg-emerald-500/10 rounded-full blur-[80px]"></div>
+              </>
+            )}
 
             {/* Subtle Islamic Pattern (CSS-based) */}
             <div className="absolute inset-0 opacity-[0.03] bg-gradient-to-br from-emerald-50/20 via-transparent to-blue-50/10"></div>
@@ -524,6 +543,19 @@ export default function Dashboard() {
             <div className="absolute bottom-4 left-4 w-8 h-8 border-l-2 border-b-2 border-white/20 rounded-bl-lg"></div>
             <div className="absolute bottom-4 right-4 w-8 h-8 border-r-2 border-b-2 border-white/20 rounded-br-lg"></div>
           </div>
+
+          {/* Special Eid Features */}
+          {isEid && (
+            <motion.div
+              initial={{ opacity: 0, scale: 0.95 }}
+              animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: 0.2 }}
+            >
+              <TakbiratPlayer />
+            </motion.div>
+          )}
+
+          <EidCelebrationOverlay />
 
 
 

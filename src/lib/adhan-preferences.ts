@@ -86,7 +86,21 @@ export async function getAdhanUrlForPrayer(prayer: PrayerName): Promise<string> 
     }
 
     const adhan = ALL_ADHAN_OPTIONS.find(a => a.id === adhanId);
-    return adhan?.url || ALL_ADHAN_OPTIONS[1].url; // Default to Makkah if not found
+    let url = adhan?.url || ALL_ADHAN_OPTIONS[1].url;
+
+    // Critical Fix for Native Platforms (Android/APK)
+    // Local assets like "/audio/xxx.mp3" need to be mapped to internal asset paths
+    // so the native media player can find them.
+    const { Capacitor } = await import('@capacitor/core');
+    if (Capacitor.isNativePlatform() && url.startsWith('/')) {
+        // On Android, assets in 'public' are served through the webview but 
+        // native intent/players might need a full URL or 'public/' prefix
+        // Capacitor.convertFileSrc helps, but for background we usually need 
+        // the path relative to the assets folder or the full app URL.
+        url = `public${url}`; // Map /audio/... to public/audio/... for the native plugin
+    }
+
+    return url;
 }
 
 /**
