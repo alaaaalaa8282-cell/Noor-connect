@@ -101,8 +101,8 @@ const PrayerTimeCard: React.FC<PrayerTimeCardProps> = ({ prayer, isCurrent, isNe
           </div>
         </div>
 
-        <div className="text-right">
-          <div className={`font-mono font-black text-base sm:text-lg tracking-tighter tabular-nums ${isCurrent ? 'text-primary' : 'text-foreground/90'}`}>
+        <div className="text-right overflow-hidden max-w-[50%]">
+          <div className={`font-mono font-black text-base sm:text-lg tracking-tighter tabular-nums truncate ${isCurrent ? 'text-primary' : 'text-foreground/90'}`}>
             {formatPrayerTime(prayer.datetime, timeFormat, timeZone)}
           </div>
 

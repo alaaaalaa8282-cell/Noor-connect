@@ -30,24 +30,24 @@ export const BottomNav = memo(function BottomNav() {
       style={{
         willChange: 'transform, opacity',
         transform: 'translateZ(0)',
-        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 20px)',
-        paddingLeft: '16px',
-        paddingRight: '16px'
+        paddingBottom: 'calc(env(safe-area-inset-bottom, 0px) + 16px)',
+        paddingLeft: '12px',
+        paddingRight: '12px'
       }}
     >
       {/* Premium Floating Island with enhanced glassmorphism */}
-      <div className="w-full max-w-md bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-3xl border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.1)] pointer-events-auto rounded-[32px] relative">
+      <div className="w-full max-w-md bg-gradient-to-b from-background/95 to-background/80 backdrop-blur-3xl border border-white/20 shadow-[0_25px_60px_rgba(0,0,0,0.4),0_0_0_1px_rgba(255,255,255,0.1)] pointer-events-auto rounded-[32px] relative mx-4">
         {/* Subtle animated gradient overlay */}
         <div className="absolute inset-0 bg-gradient-to-r from-primary/5 via-transparent to-primary/5 opacity-60 rounded-[32px] overflow-hidden" />
         
-        <div className="relative z-10 flex flex-row items-center justify-between h-[76px] px-2 sm:px-4">
+        <div className="relative z-10 flex flex-row items-center justify-between h-[72px] px-1">
           {navItems.map((item, index) => (
             <NavLink
               key={item.path}
               to={item.path}
               end={item.path === "/"}
               onClick={triggerHapticFeedback}
-              className="group flex-1 flex flex-col items-center justify-center h-full relative"
+              className="group flex-1 flex flex-col items-center justify-center h-full relative min-w-0"
             >
               {({ isActive }) => (
                 <motion.div 
