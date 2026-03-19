@@ -30,7 +30,8 @@ export async function getCurrentLiveVideoId(channelId: string): Promise<string |
     const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
     
     if (!apiKey) {
-        console.warn('[YouTube] No API key found');
+        if (channelId === CHANNELS.MAKKAH) return EMERGENCY_IDS.MAKKAH;
+        if (channelId === CHANNELS.MADINAH) return EMERGENCY_IDS.MADINAH;
         return null;
     }
 
@@ -42,9 +43,6 @@ export async function getCurrentLiveVideoId(channelId: string): Promise<string |
         const response = await fetch(searchUrl);
         
         if (!response.ok) {
-            console.error(`[YouTube] API Error: ${response.status} ${response.statusText}`);
-            const errorText = await response.text();
-            console.error(`[YouTube] Error details: ${errorText}`);
             return null;
         }
 
@@ -54,13 +52,12 @@ export async function getCurrentLiveVideoId(channelId: string): Promise<string |
         if (data.items && data.items.length > 0) {
             const liveVideo = data.items[0];
             const videoId = liveVideo.id.videoId;
-                return videoId;
+            return videoId;
         }
 
         return null;
         
-    } catch (error) {
-        console.error(`[YouTube] Error fetching live video ID for ${channelId}:`, error);
+    } catch {
         return null;
     }
 }
@@ -69,40 +66,31 @@ export async function getCurrentLiveVideoId(channelId: string): Promise<string |
  * Get live video ID with multiple fallback strategies
  */
 export async function getLiveVideoIdWithFallback(channelId: string, fallbackId: string): Promise<string> {
-    
     // Try to get current live video first
     const liveVideoId = await getCurrentLiveVideoId(channelId);
     
     if (liveVideoId) {
         return liveVideoId;
     }
-    
-    
     // If no live video found, try to get the most recent video
     try {
         const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
         if (apiKey) {
             const recentVideosUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=1&key=${apiKey}`;
-            
-            
             const response = await fetch(recentVideosUrl);
             if (response.ok) {
                 const data = await response.json();
                 
                 if (data.items && data.items.length > 0) {
                     const recentVideoId = data.items[0].id.videoId;
-                        return recentVideoId;
+                    return recentVideoId;
                 }
-            } else {
-                console.error(`[YouTube] Recent videos API error: ${response.status} ${response.statusText}`);
             }
         }
-    } catch (error) {
-        console.error(`[YouTube] Error fetching recent videos:`, error);
+    } catch {
     }
     
     // Final fallback - use the hardcoded emergency ID
-    console.warn(`[YouTube] Using emergency fallback ID for channel ${channelId}: ${fallbackId}`);
     return fallbackId;
 }
 
@@ -125,14 +113,13 @@ export const YoutubeService = {
             const isExpired = Date.now() - data.timestamp > CACHE_DURATION;
 
             if (!isExpired && data.makkah && data.madinah) {
-                        return {
+                return {
                     makkah: data.makkah,
                     madinah: data.madinah
                 };
             }
         }
 
-        
         // Fetch fresh data with enhanced fallbacks
         const [makkahId, madinahId] = await Promise.all([
             this.getLiveVideoId(CHANNELS.MAKKAH, EMERGENCY_IDS.MAKKAH),
@@ -146,7 +133,6 @@ export const YoutubeService = {
             timestamp: Date.now()
         };
         localStorage.setItem(CACHE_KEY, JSON.stringify(newData));
-
 
         return {
             makkah: makkahId,

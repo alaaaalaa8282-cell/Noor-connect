@@ -39,6 +39,11 @@ interface CachedNisab {
 }
 
 export class ZakatNisabService {
+  private static hasConfiguredApiKey(): boolean {
+    const apiKey = METAL_PRICE_CONSTANTS.ISLAMIC_API_KEY;
+    return Boolean(apiKey && apiKey !== 'YOUR_API_KEY');
+  }
+
   /**
    * Get current Zakat Nisab values with caching
    */
@@ -52,6 +57,10 @@ export class ZakatNisabService {
       const cached = this.getCachedNisab(currency, standard, unit);
       if (cached) {
         return cached;
+      }
+
+      if (!this.hasConfiguredApiKey()) {
+        return this.getFallbackNisab(currency, standard, unit);
       }
 
       // Try to fetch from Islamic API
@@ -75,7 +84,7 @@ export class ZakatNisabService {
     const apiKey: string = METAL_PRICE_CONSTANTS.ISLAMIC_API_KEY;
     
     // Skip API call if no API key is configured
-    if (apiKey === 'YOUR_API_KEY') {
+    if (!this.hasConfiguredApiKey()) {
       throw new Error('Islamic API key not configured');
     }
 

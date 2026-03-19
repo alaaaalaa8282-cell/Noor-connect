@@ -207,12 +207,6 @@ export default function QuranReader() {
 
   return (
     <PageTransition>
-      {/* Amiri Quran font */}
-      <style>{`
-        @import url('https://fonts.googleapis.com/css2?family=Amiri+Quran&display=swap');
-        .font-quran { font-family: 'Amiri Quran', serif; }
-      `}</style>
-
       <div className="min-h-screen bg-gradient-to-br from-amber-50 via-orange-50 to-yellow-50 dark:from-amber-950/20 dark:via-orange-950/20 dark:to-yellow-950/20">
         <AppBar
           title={surahInfo ? `${surahInfo.englishName}` : 'Quran Reader'}
@@ -285,7 +279,7 @@ export default function QuranReader() {
           {surahInfo && (
             <div className="relative overflow-hidden rounded-2xl bg-gradient-to-r from-teal-700 via-teal-600 to-teal-700 p-6 mb-4 shadow-xl text-center">
               <div className="absolute inset-0 opacity-10 bg-[radial-gradient(circle_at_50%_50%,white,transparent_70%)]" />
-              <p className="font-quran text-3xl text-white mb-1 leading-loose">{surahInfo.name}</p>
+              <p className="quran-text text-3xl text-white mb-1 leading-loose">{surahInfo.name}</p>
               <p className="text-teal-100 font-bold text-lg">{surahInfo.englishName}</p>
               <p className="text-teal-200 text-sm">{surahInfo.englishNameTranslation}</p>
               <div className="flex items-center justify-center gap-3 mt-3">
@@ -302,7 +296,7 @@ export default function QuranReader() {
           {/* ── Basmala (for all except Al-Fatiha and At-Tawbah) ── */}
           {surahNum !== 1 && surahNum !== 9 && !loading && (
             <div className="text-center py-4 mb-2">
-              <p className="font-quran text-2xl text-amber-800 dark:text-amber-200 leading-loose">
+              <p className="quran-text text-2xl text-amber-800 dark:text-amber-200 leading-loose">
                 بِسْمِ اللَّهِ الرَّحْمَٰنِ الرَّحِيمِ
               </p>
             </div>
@@ -352,7 +346,7 @@ export default function QuranReader() {
                       {/* Arabic text */}
                       <div className="px-4 pb-3 pt-1">
                         <p
-                          className="font-quran text-right leading-loose text-gray-900 dark:text-amber-50"
+                          className="quran-text text-right leading-loose text-gray-900 dark:text-amber-50"
                           style={{ fontSize: '1.65rem', lineHeight: '3rem' }}
                           dir="rtl"
                         >
@@ -381,7 +375,7 @@ export default function QuranReader() {
                           <p
                             className="text-sm text-right text-gray-700 dark:text-gray-300 leading-loose"
                             dir="rtl"
-                            style={{ fontFamily: 'Noto Nastaliq Urdu, serif' }}
+                            style={{ fontFamily: "'Urdu Typesetting', 'Noto Nastaliq Urdu', 'Noto Sans Arabic', serif" }}
                           >
                             {urVerse.translation}
                           </p>

@@ -48,9 +48,9 @@ function applyLanguageSideEffects(lang: LanguageCode) {
   root.setProperty('--lang-line-height', String(config.typography.lineHeight));
   root.setProperty('--lang-font-size-adjust', config.typography.fontSizeAdjust);
 
-  // 4. Apply Noto Nastaliq Urdu font for Urdu
+  // 4. Apply a local Urdu-friendly font stack without remote font requests
   if (lang === 'ur') {
-    root.fontFamily = "'Noto Nastaliq Urdu', 'Noto Sans', sans-serif";
+    root.fontFamily = "'Urdu Typesetting', 'Noto Nastaliq Urdu', 'Noto Sans Arabic', Tahoma, sans-serif";
   } else {
     root.fontFamily = ''; // Reset to default
   }

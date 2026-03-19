@@ -2,6 +2,8 @@ import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
 import { Compass, Loader2, LocateFixed, RefreshCw, Navigation, MapPin } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { GeolocationService, type LocationCoordinates } from '@/lib/geolocation-service';
+import { Capacitor } from '@capacitor/core';
+import { nativeQiblaService } from '@/lib/native-qibla-service';
 import {
   calculateDistanceToKaabaKm,
   calculateQiblaBearing,
@@ -33,6 +35,28 @@ type DeviceOrientationConstructorWithPermission = typeof DeviceOrientationEvent 
   requestPermission?: () => Promise<string>;
 };
 
+// ─── FOSS Offline Fallback Locations ───────────────────────
+const FALLBACK_LOCATIONS = {
+  'Asia/Karachi': { name: 'Karachi', lat: 24.8607, lon: 67.0011 },
+  'Asia/Dhaka': { name: 'Dhaka', lat: 23.8103, lon: 90.4125 },
+  'Asia/Jakarta': { name: 'Jakarta', lat: -6.2088, lon: 106.8456 },
+  'Asia/Istanbul': { name: 'Istanbul', lat: 41.0082, lon: 28.9784 },
+  'Asia/Riyadh': { name: 'Riyadh', lat: 24.7136, lon: 46.6753 },
+  'Asia/Cairo': { name: 'Cairo', lat: 30.0444, lon: 31.2357 },
+  'Asia/Dubai': { name: 'Dubai', lat: 25.2048, lon: 55.2708 },
+  'Asia/Tehran': { name: 'Tehran', lat: 35.6892, lon: 51.3890 },
+  'Europe/London': { name: 'London', lat: 51.5074, lon: -0.1278 },
+  'America/New_York': { name: 'New York', lat: 40.7128, lon: -74.0060 },
+  'America/Los_Angeles': { name: 'Los Angeles', lat: 34.0522, lon: -118.2437 },
+  'Australia/Sydney': { name: 'Sydney', lat: -33.8688, lon: 151.2093 }
+};
+
+function getFallbackLocationByTimezone(timezone: string) {
+  // Return matching city or default to Mecca
+  return FALLBACK_LOCATIONS[timezone as keyof typeof FALLBACK_LOCATIONS] || 
+         { name: 'Mecca', lat: 21.3891, lon: 39.8579 };
+}
+
 // ─── Constants ────────────────────────────────────────────────
 const ALIGNMENT_THRESHOLD_DEG = 8;
 const HEADING_SMOOTHING = 0.12;
@@ -54,11 +78,11 @@ const THEME = {
   textLight: '#5c4a32',    // Medium brown
   textMuted: '#8b7355',    // Light brown
   success: '#d4af37',      // Gold for success
+  dark: '#2c2416',         // Dark brown (same as text)
+  darker: '#1a1810',        // Very dark brown
   // Aliases for backward compatibility
   surface: '#fdf5e6',      // = cream
   surfaceLight: '#f5e6d3', // = creamDark
-  dark: '#f5e6d3',         // = creamDark
-  darker: '#f9f6f0',       // = warmWhite
 };
 
 // Tick marks every 5 degrees
@@ -117,12 +141,15 @@ const QiblaCompassModern = () => {
   const [sensorError, setSensorError] = useState<string | null>(null);
 
   // ── Refs ─────────────────────────────────────────────────────
+  const locationRef = useRef<LocationCoordinates | null>(null);
+  const cityNameRef = useRef('');
   const orientationListenerRef = useRef<((e: DeviceOrientationEvent) => void) | null>(null);
   const sensorTimeoutRef = useRef<number | null>(null);
   const hasSensorEventRef = useRef(false);
   const smoothedHeadingRef = useRef<number | null>(null);
   const calibrationShownRef = useRef(false);
   const hapticFiredRef = useRef(false);
+  const nativeCompassUnsubscribeRef = useRef<(() => void) | null>(null);
   const motionListenerRef = useRef<{ remove: () => void } | null>(null);
   const distanceUpdateIntervalRef = useRef<number | null>(null);
 
@@ -135,6 +162,65 @@ const QiblaCompassModern = () => {
   }, []);
 
   // ── Stop Tracking ───────────────────────────────────────────
+  const maybeShowCalibrationHint = useCallback(() => {
+    if (calibrationShownRef.current) return;
+
+    const alreadyShown = localStorage.getItem(LS_CALIBRATION_SHOWN) === 'true';
+    if (alreadyShown) return;
+
+    calibrationShownRef.current = true;
+    setShowCalibrationHint(true);
+    localStorage.setItem(LS_CALIBRATION_SHOWN, 'true');
+    window.setTimeout(() => setShowCalibrationHint(false), 5000);
+  }, []);
+
+  const applyLocationData = useCallback((nextLocation: LocationCoordinates, nextCityName?: string) => {
+    const resolvedCityName = nextCityName ?? cityNameRef.current;
+    const bearing = calculateQiblaBearing(nextLocation.latitude, nextLocation.longitude);
+    const distanceKm = calculateDistanceToKaabaKm(nextLocation.latitude, nextLocation.longitude);
+
+    locationRef.current = nextLocation;
+    cityNameRef.current = resolvedCityName;
+
+    setLocation(nextLocation);
+    setCityName(resolvedCityName);
+    setQiblaResult({
+      bearing,
+      distanceKm,
+      cardinalDirection: getCardinalDirection(bearing),
+      formattedBearing: formatBearing(bearing),
+      formattedDistance: formatDistance(distanceKm),
+    });
+  }, []);
+
+  const applyFallbackLocation = useCallback((reason?: string) => {
+    const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+    const fallbackLocation = getFallbackLocationByTimezone(userTimezone);
+
+    if (distanceUpdateIntervalRef.current !== null) {
+      window.clearInterval(distanceUpdateIntervalRef.current);
+      distanceUpdateIntervalRef.current = null;
+    }
+
+    applyLocationData(
+      {
+        latitude: fallbackLocation.lat,
+        longitude: fallbackLocation.lon,
+        accuracy: 1000,
+      },
+      `${fallbackLocation.name} (Offline)`
+    );
+
+    setLocationError(reason ?? 'Using an approximate Qibla direction for your timezone.');
+  }, [applyLocationData]);
+
+  const stopDistanceTracking = useCallback(() => {
+    if (distanceUpdateIntervalRef.current !== null) {
+      window.clearInterval(distanceUpdateIntervalRef.current);
+      distanceUpdateIntervalRef.current = null;
+    }
+  }, []);
+
   const stopCompassTracking = useCallback(() => {
     if (orientationListenerRef.current) {
       window.removeEventListener('deviceorientationabsolute', orientationListenerRef.current, true);
@@ -149,9 +235,12 @@ const QiblaCompassModern = () => {
       motionListenerRef.current.remove();
       motionListenerRef.current = null;
     }
-    if (distanceUpdateIntervalRef.current !== null) {
-      window.clearInterval(distanceUpdateIntervalRef.current);
-      distanceUpdateIntervalRef.current = null;
+    if (nativeCompassUnsubscribeRef.current) {
+      nativeCompassUnsubscribeRef.current();
+      nativeCompassUnsubscribeRef.current = null;
+    }
+    if (Capacitor.isNativePlatform()) {
+      void nativeQiblaService.stopCompass();
     }
     hasSensorEventRef.current = false;
     smoothedHeadingRef.current = null;
@@ -160,14 +249,15 @@ const QiblaCompassModern = () => {
 
   // ── Continuous Distance Updates ─────────────────────────────
   const startDistanceTracking = useCallback(() => {
-    // Clear any existing interval
-    if (distanceUpdateIntervalRef.current !== null) {
-      window.clearInterval(distanceUpdateIntervalRef.current);
-    }
+    stopDistanceTracking();
 
     // Update distance every second (GPS only, no API calls)
     distanceUpdateIntervalRef.current = window.setInterval(async () => {
-      if (!location) return;
+      const currentLocation = locationRef.current;
+      if (!currentLocation) return;
+      
+      // Don't update GPS if we're using offline fallback
+      if (cityNameRef.current.includes('(Offline)')) return;
 
       try {
         // Get fresh location with high accuracy but allow cached results (5 seconds old to reduce geolocation calls)
@@ -181,29 +271,17 @@ const QiblaCompassModern = () => {
         const distanceMoved = calculateDistanceToKaabaKm(
           freshPosition.latitude, 
           freshPosition.longitude
-        ) - calculateDistanceToKaabaKm(location.latitude, location.longitude);
+        ) - calculateDistanceToKaabaKm(currentLocation.latitude, currentLocation.longitude);
 
         if (Math.abs(distanceMoved) > 0.01) { // 10 meters = 0.01 km
-          setLocation(freshPosition);
-          
-          const bearing = calculateQiblaBearing(freshPosition.latitude, freshPosition.longitude);
-          const distanceKm = calculateDistanceToKaabaKm(freshPosition.latitude, freshPosition.longitude);
-          
-          setQiblaResult(prev => prev ? {
-            ...prev,
-            bearing,
-            distanceKm,
-            cardinalDirection: getCardinalDirection(bearing),
-            formattedBearing: formatBearing(bearing),
-            formattedDistance: formatDistance(distanceKm),
-          } : null);
+          applyLocationData(freshPosition, cityNameRef.current);
         }
       } catch (error) {
         // Silent fail for continuous updates - don't show errors to user
         console.warn('Continuous location update failed:', error);
       }
     }, 3000); // Update every 3 seconds instead of 1 to reduce geolocation calls
-  }, [location]);
+  }, [applyLocationData, stopDistanceTracking]);
 
   // ── Read Heading from Event ───────────────────────────────────
   const readHeadingFromEvent = useCallback((event: DeviceOrientationEvent): number | null => {
@@ -218,7 +296,7 @@ const QiblaCompassModern = () => {
   }, []);
 
   // ── Attach Compass Tracking ───────────────────────────────────
-  const attachCompassTracking = useCallback(() => {
+  const attachWebCompassTracking = useCallback(() => {
     try {
       stopCompassTracking();
       setCompassState('activating');
@@ -239,16 +317,7 @@ const QiblaCompassModern = () => {
           smoothedHeadingRef.current = next;
           setDeviceHeading(next);
           setCompassState('active');
-          
-          if (!calibrationShownRef.current) {
-            const alreadyShown = localStorage.getItem(LS_CALIBRATION_SHOWN) === 'true';
-            if (!alreadyShown) {
-              calibrationShownRef.current = true;
-              setShowCalibrationHint(true);
-              localStorage.setItem(LS_CALIBRATION_SHOWN, 'true');
-              setTimeout(() => setShowCalibrationHint(false), 5000);
-            }
-          }
+          maybeShowCalibrationHint();
         } catch (err) {
           handleSensorError(err);
         }
@@ -295,11 +364,66 @@ const QiblaCompassModern = () => {
     } catch (err) {
       handleSensorError(err);
     }
-  }, [readHeadingFromEvent, stopCompassTracking, handleSensorError]);
+  }, [handleSensorError, maybeShowCalibrationHint, readHeadingFromEvent, stopCompassTracking]);
+
+  const attachNativeCompassTracking = useCallback(async () => {
+    stopCompassTracking();
+    setCompassState('activating');
+    setSensorError(null);
+
+    try {
+      nativeCompassUnsubscribeRef.current = nativeQiblaService.onQiblaDirectionChange((data) => {
+        try {
+          if (typeof data.compassAngle !== 'number' || Number.isNaN(data.compassAngle)) {
+            return;
+          }
+
+          hasSensorEventRef.current = true;
+          setDeviceHeading(normalizeDegrees(data.compassAngle));
+          setCompassState('active');
+          maybeShowCalibrationHint();
+        } catch (err) {
+          handleSensorError(err);
+        }
+      });
+
+      const result = await nativeQiblaService.startCompass();
+      if (!result.success) {
+        throw new Error(result.message);
+      }
+
+      sensorTimeoutRef.current = window.setTimeout(() => {
+        if (!hasSensorEventRef.current) {
+          stopCompassTracking();
+          setCompassState('no-data');
+        }
+      }, SENSOR_TIMEOUT_MS);
+    } catch (err) {
+      console.warn('Native Qibla compass unavailable, falling back to web sensors:', err);
+      if (nativeCompassUnsubscribeRef.current) {
+        nativeCompassUnsubscribeRef.current();
+        nativeCompassUnsubscribeRef.current = null;
+      }
+      attachWebCompassTracking();
+    }
+  }, [attachWebCompassTracking, handleSensorError, maybeShowCalibrationHint, stopCompassTracking]);
+
+  const attachCompassTracking = useCallback(() => {
+    if (Capacitor.isNativePlatform()) {
+      void attachNativeCompassTracking();
+      return;
+    }
+
+    attachWebCompassTracking();
+  }, [attachNativeCompassTracking, attachWebCompassTracking]);
 
   // ── Detect Compass Availability ───────────────────────────────
   const detectCompassAvailability = useCallback(() => {
     try {
+      if (Capacitor.isNativePlatform()) {
+        attachCompassTracking();
+        return;
+      }
       if (typeof window === 'undefined' || typeof window.DeviceOrientationEvent === 'undefined') {
         setCompassState('unsupported');
         return;
@@ -319,6 +443,10 @@ const QiblaCompassModern = () => {
   const enableCompass = useCallback(async () => {
     try {
       setSensorError(null);
+      if (Capacitor.isNativePlatform()) {
+        attachCompassTracking();
+        return;
+      }
       if (typeof window === 'undefined' || typeof window.DeviceOrientationEvent === 'undefined') {
         setCompassState('unsupported');
         return;
@@ -347,6 +475,20 @@ const QiblaCompassModern = () => {
   const refreshLocation = useCallback(async (mode: 'initial' | 'manual' = 'manual') => {
     mode === 'initial' ? setIsLoadingLocation(true) : setIsRefreshingLocation(true);
     setLocationError(null);
+    stopDistanceTracking();
+
+    // Check location permissions first on web
+    if (!Capacitor.isNativePlatform() && navigator.permissions) {
+      try {
+        const permission = await navigator.permissions.query({ name: 'geolocation' });
+        if (permission.state === 'denied') {
+          applyFallbackLocation('Location access denied. Showing an approximate Qibla based on your timezone.');
+          return;
+        }
+      } catch (err) {
+        console.warn('Permission check failed, proceeding anyway:', err);
+      }
+    }
     
     try {
       const position = await GeolocationService.getCurrentPosition({
@@ -354,40 +496,29 @@ const QiblaCompassModern = () => {
         timeout: 15000,
         maximumAge: 0,
       });
-      
-      setLocation(position);
-      
-      const bearing = calculateQiblaBearing(position.latitude, position.longitude);
-      const distanceKm = calculateDistanceToKaabaKm(position.latitude, position.longitude);
-      
-      setQiblaResult({
-        bearing,
-        distanceKm,
-        cardinalDirection: getCardinalDirection(bearing),
-        formattedBearing: formatBearing(bearing),
-        formattedDistance: formatDistance(distanceKm),
-      });
+
+      applyLocationData(position, '');
 
       // Start continuous distance tracking
       startDistanceTracking();
-
-      // Skip city name fetching due to CORS issues - use coordinates instead
-      setCityName('');
     } catch (err) {
       const message = err instanceof Error ? err.message : 'Unable to detect location.';
-      setLocationError(message);
+      applyFallbackLocation(message);
     } finally {
       setIsLoadingLocation(false);
       setIsRefreshingLocation(false);
     }
-  }, [startDistanceTracking]);
+  }, [applyFallbackLocation, applyLocationData, startDistanceTracking, stopDistanceTracking]);
 
   // ── Initialize ───────────────────────────────────────────────
   useEffect(() => {
     void refreshLocation('initial');
     detectCompassAvailability();
-    return () => { stopCompassTracking(); };
-  }, [detectCompassAvailability, refreshLocation, stopCompassTracking]);
+    return () => {
+      stopCompassTracking();
+      stopDistanceTracking();
+    };
+  }, [detectCompassAvailability, refreshLocation, stopCompassTracking, stopDistanceTracking]);
 
   // ── Derived Values ─────────────────────────────────────────────
   const alignment = useMemo(() => {
@@ -507,8 +638,10 @@ const QiblaCompassModern = () => {
             <MapPin className="h-3.5 w-3.5" />
             {cityName ? (
               <span>{cityName}</span>
-            ) : (
+            ) : location ? (
               <span>{location.latitude.toFixed(4)}°, {location.longitude.toFixed(4)}°</span>
+            ) : (
+              <span>Location unknown</span>
             )}
           </div>
         </div>
@@ -849,6 +982,17 @@ const QiblaCompassModern = () => {
         {/* Sensor Error */}
         {sensorError && (
           <p className="text-center text-xs text-red-500/80">{sensorError}</p>
+        )}
+
+        {locationError && (
+          <p
+            className={cn(
+              "text-center text-xs",
+              cityName?.includes('(Offline)') ? "text-amber-700/80" : "text-red-500/80"
+            )}
+          >
+            {locationError}
+          </p>
         )}
       </div>
     </div>

@@ -18,22 +18,19 @@ export const QURAN_FONTS: Record<QuranFont, QuranFontOption> = {
     id: 'uthmani',
     name: 'Uthmani',
     description: 'Standard Madinah/Mushaf look',
-    fontFamily: "'Amiri', serif",
-    googleFonts: ['Amiri']
+    fontFamily: "'Noto Naskh Arabic', 'Scheherazade New', 'Traditional Arabic', serif"
   },
   indopak: {
     id: 'indopak',
     name: 'Indo-Pak',
     description: 'Common in Pakistan/India',
-    fontFamily: "'Lateef', 'Gulzar', serif",
-    googleFonts: ['Lateef', 'Gulzar']
+    fontFamily: "'Urdu Typesetting', 'Lateef', 'Noto Nastaliq Urdu', 'Noto Sans Arabic', serif"
   },
   system: {
     id: 'system',
     name: 'System Arabic',
     description: 'Standard digital font',
-    fontFamily: "'Inter', system-ui, -apple-system, 'Segoe UI', 'Noto Sans Arabic', sans-serif",
-    googleFonts: ['Inter']
+    fontFamily: "system-ui, -apple-system, 'Segoe UI', 'Noto Sans Arabic', Tahoma, sans-serif"
   }
 };
 
@@ -102,7 +99,6 @@ export class QuranFontManager {
     try {
       const fontOption = QURAN_FONTS[font];
       document.documentElement.style.setProperty('--quran-font', fontOption.fontFamily);
-      console.log(`Quran font changed to: ${fontOption.name} (${fontOption.fontFamily})`);
     } catch (error) {
       console.error('Failed to apply Quran font:', error);
     }
@@ -127,64 +123,18 @@ export class QuranFontManager {
   }
 
   /**
-   * Check if a font is already loaded in the document
-   */
-  private isFontLoaded(fontName: string): boolean {
-    const existingLinks = document.querySelectorAll('link[rel="stylesheet"]');
-    return Array.from(existingLinks).some(link => 
-      (link as HTMLLinkElement).href && (link as HTMLLinkElement).href.includes(`family=${encodeURIComponent(fontName)}`)
-    );
-  }
-
-  /**
-   * Load Google Fonts for a specific font
+   * Kept for compatibility with existing callers.
+   * Fonts now rely on local/system stacks to respect the app CSP.
    */
   async loadGoogleFonts(font: QuranFont): Promise<void> {
-    const fontOption = QURAN_FONTS[font];
-    if (!fontOption.googleFonts || fontOption.googleFonts.length === 0) {
-      return;
-    }
-
-    try {
-      // Create link elements for each font, but only if not already loaded
-      const fontPromises = fontOption.googleFonts.map(fontName => {
-        // Skip if font is already loaded
-        if (this.isFontLoaded(fontName)) {
-          console.log(`Font ${fontName} already loaded, skipping...`);
-          return Promise.resolve();
-        }
-
-        return new Promise<void>((resolve, reject) => {
-          const link = document.createElement('link');
-          link.rel = 'stylesheet';
-          link.href = `https://fonts.googleapis.com/css2?family=${encodeURIComponent(fontName)}:wght@400;700&display=swap`;
-          link.onload = () => resolve();
-          link.onerror = () => reject(new Error(`Failed to load font: ${fontName}`));
-          document.head.appendChild(link);
-        });
-      });
-
-      await Promise.all(fontPromises);
-      console.log(`Loaded Google fonts for ${fontOption.name}`);
-    } catch (error) {
-      console.warn(`Failed to load Google fonts for ${fontOption.name}:`, error);
-    }
+    this.applyFont(font);
   }
 
   /**
    * Initialize fonts on app start
    */
   async initialize(): Promise<void> {
-    // Load Google Fonts for current font
-    await this.loadGoogleFonts(this.currentFont);
-    
-    // Preload other fonts in background
-    const otherFonts = Object.keys(QURAN_FONTS).filter(f => f !== this.currentFont) as QuranFont[];
-    for (const font of otherFonts) {
-      this.loadGoogleFonts(font).catch(() => {
-        // Silently fail for background loading
-      });
-    }
+    this.applyFont(this.currentFont);
   }
 }
 

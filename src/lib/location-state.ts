@@ -6,6 +6,28 @@
 import { useState, useEffect, useCallback, useMemo } from 'react';
 import { GeolocationService } from '@/lib/geolocation-service';
 
+// FOSS offline fallback locations - major Islamic cities by timezone
+const FALLBACK_LOCATIONS = {
+  'Asia/Karachi': { name: 'Karachi', lat: 24.8607, lon: 67.0011 },
+  'Asia/Dhaka': { name: 'Dhaka', lat: 23.8103, lon: 90.4125 },
+  'Asia/Jakarta': { name: 'Jakarta', lat: -6.2088, lon: 106.8456 },
+  'Asia/Istanbul': { name: 'Istanbul', lat: 41.0082, lon: 28.9784 },
+  'Asia/Riyadh': { name: 'Riyadh', lat: 24.7136, lon: 46.6753 },
+  'Asia/Cairo': { name: 'Cairo', lat: 30.0444, lon: 31.2357 },
+  'Asia/Dubai': { name: 'Dubai', lat: 25.2048, lon: 55.2708 },
+  'Asia/Tehran': { name: 'Tehran', lat: 35.6892, lon: 51.3890 },
+  'Europe/London': { name: 'London', lat: 51.5074, lon: -0.1278 },
+  'America/New_York': { name: 'New York', lat: 40.7128, lon: -74.0060 },
+  'America/Los_Angeles': { name: 'Los Angeles', lat: 34.0522, lon: -118.2437 },
+  'Australia/Sydney': { name: 'Sydney', lat: -33.8688, lon: 151.2093 }
+};
+
+function getFallbackLocationByTimezone(timezone: string) {
+  // Return matching city or default to Mecca
+  return FALLBACK_LOCATIONS[timezone as keyof typeof FALLBACK_LOCATIONS] || 
+         { name: 'Mecca', lat: 21.3891, lon: 39.8579 };
+}
+
 export interface LocationState {
   latitude: number;
   longitude: number;
@@ -96,17 +118,17 @@ export const useLocationState = () => {
     try {
       // --- STEP 1: IP-BASED DETECTION (Private, No Google API) ---
       try {
-        const response = await fetch('https://ipapi.co/json/', {
+        const response = await fetch('http://ip-api.com/json/', {
           signal: AbortSignal.timeout(5000)
         });
 
         if (response.ok) {
           const data = await response.json();
-          if (data.latitude && data.longitude) {
+          if (data.status === 'success' && data.lat && data.lon) {
             const newLocation: LocationState = {
-              latitude: data.latitude,
-              longitude: data.longitude,
-              locationName: `${data.city}, ${data.country_name}`,
+              latitude: data.lat,
+              longitude: data.lon,
+              locationName: `${data.city}, ${data.country}`,
               timeZone: data.timezone,
               isDetecting: false,
               lastUpdated: new Date().toISOString()
@@ -171,18 +193,18 @@ export const useLocationState = () => {
       console.warn('Geolocation detection failed, trying IP-based fallback:', error);
 
       try {
-        // IP-based fallback (no key required for basic usage)
-        const response = await fetch('https://ipapi.co/json/', {
+        // IP-based fallback using free FOSS service
+        const response = await fetch('http://ip-api.com/json/', {
           signal: AbortSignal.timeout(5000)
         });
 
         if (response.ok) {
           const data = await response.json();
-          if (data.latitude && data.longitude) {
+          if (data.status === 'success' && data.lat && data.lon) {
             const newLocation: LocationState = {
-              latitude: data.latitude,
-              longitude: data.longitude,
-              locationName: `${data.city}, ${data.country_name} (IP)`,
+              latitude: data.lat,
+              longitude: data.lon,
+              locationName: `${data.city}, ${data.country} (IP)`,
               timeZone: data.timezone,
               isDetecting: false,
               isIpBased: true, // Flag to indicate IP-based detection
@@ -196,6 +218,26 @@ export const useLocationState = () => {
         }
       } catch (ipError) {
         console.error('IP-based location detection also failed:', ipError);
+        
+        // FOSS offline fallback - use major Islamic city based on timezone
+        const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+        const fallbackLocation = getFallbackLocationByTimezone(userTimezone);
+        
+        if (fallbackLocation) {
+          const newLocation: LocationState = {
+            latitude: fallbackLocation.lat,
+            longitude: fallbackLocation.lon,
+            locationName: `${fallbackLocation.name} (Offline)`,
+            timeZone: userTimezone,
+            isDetecting: false,
+            isIpBased: false,
+            lastUpdated: new Date().toISOString()
+          };
+          
+          setLocationState(newLocation);
+          saveLocation(newLocation);
+          return true;
+        }
       }
 
       setLocationState(prev => ({ ...prev, isDetecting: false }));

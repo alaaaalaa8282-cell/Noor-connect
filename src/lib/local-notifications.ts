@@ -95,7 +95,6 @@ export class LocalNotificationManager {
       }
 
       this.isInitialized = true;
-      console.log('Local notifications initialized successfully');
       return true;
     } catch (error) {
       console.error('Failed to request notification permissions:', error);
@@ -113,10 +112,7 @@ export class LocalNotificationManager {
     }
 
     LocalNotificationManager.hasStarted = true;
-    const initialized = await this.initialize();
-    if (initialized) {
-      console.log('Notification service started');
-    }
+    await this.initialize();
   }
 
   /**
@@ -132,7 +128,6 @@ export class LocalNotificationManager {
       }
 
       this.isInitialized = true;
-      console.log('Local notifications initialized successfully');
       return true;
     } catch (error) {
       console.error('Failed to initialize local notifications:', error);
@@ -146,7 +141,6 @@ export class LocalNotificationManager {
    */
   async schedulePrayerNotificationsFromAPI(): Promise<void> {
     if (!this.arePrayerNotificationsEnabled()) {
-      console.log('Prayer notifications are disabled by user preference');
       return;
     }
 
@@ -158,7 +152,6 @@ export class LocalNotificationManager {
     try {
       const storedLocation = localStorage.getItem(LOCATION_STORAGE_KEY);
       if (!storedLocation) {
-        console.log('No location data available, skipping notification scheduling');
         return;
       }
 
@@ -169,7 +162,6 @@ export class LocalNotificationManager {
       };
 
       if (typeof locationData.latitude !== 'number' || typeof locationData.longitude !== 'number') {
-        console.log('Location coordinates missing, skipping notification scheduling');
         return;
       }
 
@@ -191,7 +183,6 @@ export class LocalNotificationManager {
 
       const previousSignature = localStorage.getItem(LAST_SCHEDULE_SIGNATURE_KEY);
       if (previousSignature === signature) {
-        console.log('Prayer notifications already scheduled for current signature');
         return;
       }
 
@@ -244,7 +235,6 @@ export class LocalNotificationManager {
           // Check if this prayer is enabled
           const toggleKey = prayerToggleMap[prayerName];
           if (toggleKey && !adhanConfig[toggleKey]) {
-            console.log(`Skipping notification for ${prayerName} as it is disabled in settings`);
             continue;
           }
 
@@ -321,10 +311,6 @@ export class LocalNotificationManager {
         if (Object.keys(syncTimings).length > 0) {
           this.syncWithServiceWorker(syncTimings);
         }
-
-        console.log(
-          `Scheduled ${notifications.length} prayer notifications for ${SCHEDULE_WINDOW_DAYS} days`
-        );
       } else {
         localStorage.removeItem(LAST_SCHEDULE_SIGNATURE_KEY);
         if (Capacitor.isNativePlatform()) {
@@ -339,7 +325,6 @@ export class LocalNotificationManager {
   }
   async schedulePrayerNotifications(prayerTimes: PrayerTime[]): Promise<void> {
     if (!this.arePrayerNotificationsEnabled()) {
-      console.log('Prayer notifications are disabled by user preference');
       return;
     }
 
@@ -438,8 +423,6 @@ export class LocalNotificationManager {
              await nativeAdhan.schedule(nativeAlarms, true);
           }
         }
-
-        console.log(`Scheduled ${notifications.length} prayer notifications`);
       }
     } catch (error) {
       console.error('Failed to schedule prayer notifications:', error);
@@ -455,7 +438,6 @@ export class LocalNotificationManager {
     prayerDate: Date
   ): Promise<void> {
     if (!this.arePrayerNotificationsEnabled()) {
-      console.log('Prayer notifications are disabled by user preference');
       return;
     }
 
@@ -495,8 +477,6 @@ export class LocalNotificationManager {
         scheduleTime: prayerDate,
         prayerName
       });
-
-      console.log(`Scheduled notification for ${prayerName} at ${prayerTime}`);
     } catch (error) {
       console.error(`Failed to schedule ${prayerName} notification:`, error);
     }
@@ -543,8 +523,6 @@ export class LocalNotificationManager {
 
         // Clear from our tracking
         prayerNotificationIds.forEach(id => this.scheduledNotifications.delete(id));
-
-        console.log(`Cancelled ${prayerNotificationIds.length} prayer notifications`);
       }
     } catch (error) {
       console.error('Failed to clear prayer notifications:', error);
@@ -666,7 +644,6 @@ export class LocalNotificationManager {
         }]
       });
 
-      console.log(`Scheduled custom notification: ${title} at ${scheduleTime.toISOString()}`);
     } catch (error) {
       console.error(`Failed to schedule custom notification ${id}:`, error);
     }
@@ -683,7 +660,6 @@ export class LocalNotificationManager {
         notifications: [{ id: notificationId }]
       });
 
-      console.log(`Cancelled notification: ${id}`);
     } catch (error) {
       console.error(`Failed to cancel notification ${id}:`, error);
     }
@@ -763,7 +739,6 @@ export class LocalNotificationManager {
       };
 
       await reg.showNotification(title, options);
-      console.log('Native SW notification shown:', title);
     } catch (error) {
       console.error('Failed to show native notification:', error);
     }
@@ -800,8 +775,6 @@ export class LocalNotificationManager {
           }
         }]
       });
-
-      console.log('Scheduled daily prayer time reset at 2 AM');
     } catch (error) {
       console.error('Failed to schedule daily reset:', error);
     }
@@ -816,13 +789,11 @@ export class LocalNotificationManager {
         type: 'UPDATE_PRAYER_TIMES',
         data: { timings }
       });
-      console.log('Prayer times synced to Service Worker');
     } else if (swRegistration?.active) {
       swRegistration.active.postMessage({
         type: 'UPDATE_PRAYER_TIMES',
         data: { timings }
       });
-      console.log('Prayer times synced to active Service Worker registration');
     }
   }
 }

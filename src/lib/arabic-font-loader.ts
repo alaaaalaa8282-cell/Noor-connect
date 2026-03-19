@@ -1,89 +1,45 @@
-import { useEffect } from "react";
+const LOCAL_ARABIC_FONTS = [
+  "Noto Naskh Arabic",
+  "Scheherazade New",
+  "Traditional Arabic",
+  "Noto Nastaliq Urdu",
+  "Noto Sans Arabic",
+  "Arial Unicode MS",
+  "Tahoma"
+];
 
-// Google Fonts URL for Amiri Quran font
-const AMIRI_QURAN_FONT_URL = "https://fonts.googleapis.com/css2?family=Amiri+Quran:wght@400;700&display=swap";
+const LOCAL_ARABIC_FONT_STACK = [
+  "'Noto Naskh Arabic'",
+  "'Scheherazade New'",
+  "'Traditional Arabic'",
+  "'Noto Nastaliq Urdu'",
+  "'Noto Sans Arabic'",
+  "Tahoma",
+  "serif"
+].join(", ");
 
 export class ArabicFontLoader {
-  private static readonly AMIRI_FONT_NAME = "Amiri Quran";
-  private static readonly FALLBACK_FONTS = [
-    "Noto Sans Arabic",
-    "Arial Unicode MS",
-    "Tahoma"
-  ];
+  private static readonly FALLBACK_FONTS = LOCAL_ARABIC_FONTS;
 
   /**
-   * Load Amiri Quran font from Google Fonts
+   * Apply a local Arabic font stack.
    */
   static async loadAmiriFont(): Promise<void> {
-    try {
-      // Create link element
-      const link = document.createElement('link');
-      link.href = AMIRI_QURAN_FONT_URL;
-      link.rel = 'stylesheet';
-      link.crossOrigin = 'anonymous';
-      
-      // Add to document head
-      const existingLink = document.querySelector('link[data-amiri-font]');
-      if (existingLink) {
-        existingLink.remove();
-      }
-      
-      document.head.appendChild(link);
-      
-      // Wait for font to load
-      return new Promise((resolve) => {
-        link.onload = () => {
-          console.log('Amiri Quran font loaded successfully');
-          resolve();
-        };
-        
-        link.onerror = () => {
-          console.warn('Failed to load Amiri Quran font, using fallback');
-          this.loadFallbackFont();
-          resolve();
-        };
-        
-        // Set timeout
-        setTimeout(() => {
-          if (link.onload || link.onerror) return;
-          console.warn('Amiri Quran font loading timeout, using fallback');
-          this.loadFallbackFont();
-          resolve();
-        }, 5000); // 5 seconds
-      });
-    } catch (error) {
-      console.error('Error loading Amiri Quran font:', error);
-      this.loadFallbackFont();
-    }
+    this.loadFallbackFont();
   }
 
   /**
    * Load fallback Arabic font
    */
   private static loadFallbackFont(): void {
-    try {
-      // Try fallback fonts in order
-      for (const fontName of this.FALLBACK_FONTS) {
-        if (document.fonts.check(fontName)) {
-          document.body.style.fontFamily = `'${fontName}', ${this.AMIRI_FONT_NAME}`;
-          console.log(`Using fallback font: ${fontName}`);
-          return;
-        }
-      }
-      
-      // If no fallback fonts available, use system default
-      document.body.style.fontFamily = this.AMIRI_FONT_NAME;
-      console.log('Using Amiri Quran font (system default)');
-    } catch (error) {
-      console.error('Error setting fallback font:', error);
-    }
+    document.documentElement.style.setProperty('--quran-font', LOCAL_ARABIC_FONT_STACK);
   }
 
   /**
    * Check if font is loaded
    */
   static isFontLoaded(): boolean {
-    return document.fonts.check(this.AMIRI_FONT_NAME);
+    return this.FALLBACK_FONTS.some((fontName) => document.fonts.check(`16px "${fontName}"`));
   }
 }
 

@@ -137,10 +137,8 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
         setHijriYear(h.year);
         setHijriWeekday(h.weekday);
         setHijriHolidays(h.holidays || []);
-        console.log(`[useIslamicCalendar] Using API Hijri date: ${h.day} ${h.month.en} ${h.year} (Offset: ${offset})`);
       } else {
         // Fallback: use the gToH API directly
-        console.log('[useIslamicCalendar] No cached data, falling back to gToH API');
         const { islamicCalendarService } = await import('@/lib/islamic-calendar-service');
         const info = await islamicCalendarService.getIslamicCalendarInfo(now);
         const h = info.currentDate.hijri;
@@ -172,16 +170,17 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
     return () => window.removeEventListener('hijri-date-offset-changed', handleOffsetChange);
   }, [computeIslamicDate]);
 
-  // Check every minute to detect Maghrib crossing
+  // Refresh if the Gregorian date rolls over while the app stays open.
   useEffect(() => {
+    lastUpdateKey.current = `${new Date().getFullYear()}-${new Date().getMonth()}-${new Date().getDate()}`;
     const interval = setInterval(() => {
       const now = new Date();
-      const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}-${now.getHours()}-${now.getMinutes()}`;
+      const key = `${now.getFullYear()}-${now.getMonth()}-${now.getDate()}`;
       if (key !== lastUpdateKey.current) {
         lastUpdateKey.current = key;
         computeIslamicDate();
       }
-    }, 60000); // Every minute
+    }, 60000);
 
     return () => clearInterval(interval);
   }, [computeIslamicDate]);

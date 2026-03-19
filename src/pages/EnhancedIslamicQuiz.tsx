@@ -5,6 +5,8 @@ import { Button } from '@/components/ui/button';
 import { Progress } from '@/components/ui/progress';
 import { Badge } from '@/components/ui/badge';
 import { LayoutManager } from '@/components/LayoutManager';
+import { motion, AnimatePresence } from 'framer-motion';
+import { useToast } from '@/hooks/use-toast';
 import { 
   Trophy, 
   RotateCcw, 
@@ -22,10 +24,34 @@ import {
   Crown,
   TrendingUp,
   Timer,
-  HelpCircle
+  HelpCircle,
+  ShoppingBag,
+  Calendar,
+  Sparkles,
+  Store,
+  ChevronRight,
+  Lock,
+  Heart,
+  Package,
+  Gift as GiftIcon
 } from 'lucide-react';
 import { quizManager } from '@/lib/quiz-manager';
+import { quizStore } from '@/lib/quiz-store';
+import { livesSystem } from '@/lib/lives-system';
+import { mysteryBoxSystem } from '@/lib/mystery-box';
+import { variableRewardsSystem, VariableReward } from '@/lib/variable-rewards';
+import { feedbackSystem } from '@/lib/feedback-system';
+import { pushNotificationSystem } from '@/lib/push-notifications';
+import { timeEventsSystem } from '@/lib/time-events';
 import { AchievementDisplay } from '@/components/AchievementDisplay';
+import { QuizStore } from '@/components/quiz/QuizStore';
+import { GameModeSelector, GameMode } from '@/components/quiz/GameModeSelector';
+import { ComboDisplay, useCombo } from '@/components/quiz/ComboDisplay';
+import { DailyRewards } from '@/components/quiz/DailyRewards';
+import { LivesDisplay, LivesCompact } from '@/components/quiz/LivesDisplay';
+import { MysteryBoxPanel } from '@/components/quiz/MysteryBoxPanel';
+import { LossAversionBanner, FloatingNotification, MotivationToast } from '@/components/quiz/LossAversionBanner';
+import { getStoreItemById } from '@/data/store-catalog';
 import { 
   QUIZ_CATEGORIES, 
   ACHIEVEMENTS, 
@@ -35,6 +61,7 @@ import {
   type Achievement,
   type PowerUp 
 } from '@/data/enhanced-quiz-data';
+import { ComboState, QuizSession } from '@/data/quiz-store-data';
 
 interface GameState {
   questions: QuizQuestion[];
@@ -47,7 +74,8 @@ interface GameState {
   isTimerActive: boolean;
   usedPowerUps: string[];
   categoryAnswers: Record<string, { correct: number; total: number }>;
-  quizMode: 'endless' | 'fixed'; // Add quiz mode
+  quizMode: 'classic' | 'timeAttack' | 'survival' | 'daily' | 'category';
+  gameModeConfig?: any;
 }
 
 export default function EnhancedIslamicQuiz() {
@@ -62,7 +90,7 @@ export default function EnhancedIslamicQuiz() {
     isTimerActive: false,
     usedPowerUps: [],
     categoryAnswers: {},
-    quizMode: 'endless' // Default to endless mode
+    quizMode: 'classic'
   });
   
   const [quizComplete, setQuizComplete] = useState(false);
@@ -70,14 +98,28 @@ export default function EnhancedIslamicQuiz() {
   const [selectedDifficulty, setSelectedDifficulty] = useState<string>('all');
   const [stats, setStats] = useState<QuizStats | null>(null);
   const [powerUps, setPowerUps] = useState<PowerUp[]>([]);
+  const [storeInventory, setStoreInventory] = useState<Record<string, number>>({});
   const [newAchievements, setNewAchievements] = useState<Achievement[]>([]);
   const [showAchievements, setShowAchievements] = useState(false);
-  const [gameMode, setGameMode] = useState<'menu' | 'playing' | 'results' | 'achievements'>('menu');
+  const [gameMode, setGameMode] = useState<'menu' | 'playing' | 'results' | 'achievements' | 'store' | 'modeSelect' | 'dailyRewards' | 'mysteryBox'>('menu');
+  const [selectedGameMode, setSelectedGameMode] = useState<GameMode>('classic');
+  const [combo, setCombo] = useState(0);
+  const [comboMultiplier, setComboMultiplier] = useState(1);
+  const [quizStartTime, setQuizStartTime] = useState<number>(0);
+  const [variableReward, setVariableReward] = useState<VariableReward | null>(null);
+  const [canClaimMysteryBox, setCanClaimMysteryBox] = useState(false);
+  const [activeEvent, setActiveEvent] = useState<ReturnType<typeof timeEventsSystem.getActiveEvent>>(null);
 
   useEffect(() => {
     setStats(quizManager.getStats());
     setPowerUps(quizManager.getPowerUps());
+    loadStoreInventory();
   }, []);
+
+  const loadStoreInventory = () => {
+    const inventory = quizStore.getInventory();
+    setStoreInventory(inventory.items);
+  };
 
   useEffect(() => {
     let timer: NodeJS.Timeout;
@@ -94,11 +136,17 @@ export default function EnhancedIslamicQuiz() {
     return () => clearTimeout(timer);
   }, [gameState.timeLeft, gameState.isTimerActive]);
 
-  const startNewQuiz = useCallback(() => {
-    // Get more questions for endless mode
-    const questions = quizManager.getQuestions(selectedCategory || undefined, 
-                                           selectedDifficulty !== 'all' ? selectedDifficulty : undefined, 
-                                           50); // Get 50 questions for endless mode
+  const startNewQuiz = useCallback((mode: GameMode = selectedGameMode, config?: any) => {
+    // Get questions based on game mode
+    let questionCount = 10;
+    if (mode === 'timeAttack') questionCount = 50; // Unlimited for 2 minutes
+    if (mode === 'survival') questionCount = 100; // Endless until wrong
+    
+    const questions = quizManager.getQuestions(
+      selectedCategory || config?.category || undefined, 
+      selectedDifficulty !== 'all' ? selectedDifficulty : config?.difficulty || undefined, 
+      questionCount
+    );
     
     setGameState({
       questions,
@@ -111,18 +159,144 @@ export default function EnhancedIslamicQuiz() {
       isTimerActive: true,
       usedPowerUps: [],
       categoryAnswers: {},
-      quizMode: 'endless'
+      quizMode: mode,
+      gameModeConfig: config
     });
     setQuizComplete(false);
     setNewAchievements([]);
     setGameMode('playing');
-  }, [selectedCategory, selectedDifficulty]);
+    setQuizStartTime(Date.now());
+    
+    // Reset combo for new quiz
+    setCombo(0);
+    setComboMultiplier(1);
+  }, [selectedCategory, selectedDifficulty, selectedGameMode]);
 
+  const finishQuiz = useCallback(() => {
+    setQuizComplete(true);
+    setGameMode('results');
+    
+    // Calculate time spent
+    const timeSpent = Math.floor((Date.now() - quizStartTime) / 1000);
+    
+    // Save quiz session to history
+    const session: QuizSession = {
+      id: `quiz_${Date.now()}`,
+      date: new Date().toISOString(),
+      mode: gameState.quizMode,
+      score: gameState.score,
+      totalQuestions: gameState.questions.length,
+      accuracy: Math.round((gameState.score / gameState.questions.length) * 100),
+      xpEarned: 0,
+      maxCombo: combo,
+      powerUpsUsed: gameState.usedPowerUps,
+      categories: Object.keys(gameState.categoryAnswers),
+      timeSpent,
+      streakAtEnd: gameState.streak
+    };
+    
+    // Calculate XP with combo multiplier and event multiplier
+    const baseXP = gameState.score * 10;
+    const perfectBonus = gameState.score === gameState.questions.length ? 50 : 0;
+    const comboBonus = combo >= 10 ? combo * 5 : 0;
+    const eventMultiplier = timeEventsSystem.getCurrentMultiplier();
+    const totalXP = Math.round((baseXP + perfectBonus + comboBonus) * comboMultiplier * eventMultiplier);
+    
+    session.xpEarned = totalXP;
+    
+    // Add XP through store system
+    const actualXP = quizStore.addXP(totalXP, `${gameState.quizMode} Quiz Complete`);
+    
+    // Check for variable rewards
+    const completionReward = variableRewardsSystem.rollQuizCompletionReward(
+      gameState.score,
+      session.accuracy,
+      combo,
+      gameState.streak
+    );
+    
+    if (completionReward) {
+      setVariableReward(completionReward);
+      toast({
+        title: '🎁 Bonus Reward!',
+        description: completionReward.message,
+      });
+    }
+    
+    // Save session
+    quizStore.saveQuizSession(session);
+    
+    // Complete daily challenge if this was it
+    if (gameState.quizMode === 'daily') {
+      quizStore.completeDailyChallenge();
+    }
+    
+    const updatedStats = quizManager.getStats();
+    setStats(updatedStats);
+    
+    // Check for new achievements
+    const achievements = quizManager.getAchievements();
+    const newOnes = achievements.filter(a => a.unlocked && !stats?.achievements.includes(a.id));
+    setNewAchievements(newOnes);
+    
+    if (newOnes.length > 0) {
+      setShowAchievements(true);
+    }
+    
+    // Show completion toast
+    toast({
+      title: 'Quiz Complete! 🎉',
+      description: `You earned ${actualXP} XP!`,
+    });
+    
+    // Level up feedback
+    if (updatedStats.level > (stats?.level || 0)) {
+      feedbackSystem.feedbackLevelUp();
+    }
+  }, [gameState, combo, comboMultiplier, quizStartTime, stats, toast]);
+
+  // Update combo when answering
   const handleAnswer = useCallback((answerIndex: number) => {
     if (gameState.showResult) return;
     
     const question = gameState.questions[gameState.currentQuestion];
     const isCorrect = answerIndex === question.correctAnswer;
+    
+    // Haptic & Audio feedback
+    if (isCorrect) {
+      feedbackSystem.feedbackCorrect();
+    } else {
+      feedbackSystem.feedbackWrong();
+    }
+    
+    // Update combo
+    const newComboState = quizStore.updateCombo(isCorrect);
+    setCombo(newComboState.currentCombo);
+    setComboMultiplier(newComboState.comboMultiplier);
+    
+    // Combo milestone feedback
+    if (newComboState.currentCombo > 0 && newComboState.currentCombo % 5 === 0) {
+      feedbackSystem.feedbackCombo(newComboState.currentCombo);
+    }
+    
+    // Check for streak bonus
+    const streakReward = variableRewardsSystem.checkStreakMilestone(newComboState.currentCombo);
+    if (streakReward) {
+      toast({
+        title: streakReward.message,
+        description: streakReward.itemId ? 'Bonus item added to inventory!' : `+${streakReward.amount} XP bonus!`,
+      });
+    }
+    
+    // Lucky find (rare random drop)
+    const luckyFind = variableRewardsSystem.rollLuckyFind();
+    if (luckyFind) {
+      setVariableReward(luckyFind);
+      toast({
+        title: luckyFind.message,
+        icon: luckyFind.icon,
+      });
+    }
     
     // Update category answers
     const categoryAnswers = { ...gameState.categoryAnswers };
@@ -144,13 +318,14 @@ export default function EnhancedIslamicQuiz() {
       categoryAnswers
     }));
     
-    // In endless mode, end quiz if answer is wrong
-    if (!isCorrect && gameState.quizMode === 'endless') {
+    // In survival mode, end quiz if answer is wrong
+    if (!isCorrect && gameState.quizMode === 'survival') {
+      feedbackSystem.feedbackStreakBreak();
       setTimeout(() => {
         finishQuiz();
-      }, 2000); // Show result for 2 seconds then end
+      }, 2000);
     }
-  }, [gameState.showResult, gameState.questions, gameState.currentQuestion, gameState.quizMode]);
+  }, [gameState.showResult, gameState.questions, gameState.currentQuestion, gameState.quizMode, finishQuiz, toast]);
 
   const handleTimeUp = useCallback(() => {
     setGameState(prev => ({
@@ -160,8 +335,8 @@ export default function EnhancedIslamicQuiz() {
       streak: 0
     }));
     
-    // In endless mode, time up also ends the quiz
-    if (gameState.quizMode === 'endless') {
+    // In survival mode, time up also ends the quiz
+    if (gameState.quizMode === 'survival') {
       setTimeout(() => {
         finishQuiz();
       }, 2000);
@@ -169,14 +344,14 @@ export default function EnhancedIslamicQuiz() {
   }, [gameState.quizMode]);
 
   const nextQuestion = useCallback(() => {
-    // In endless mode, only continue if answer was correct
-    if (gameState.quizMode === 'endless') {
+    // In survival mode, only continue if answer was correct
+    if (gameState.quizMode === 'survival') {
       const lastAnswer = gameState.selectedAnswer;
       const lastQuestion = gameState.questions[gameState.currentQuestion];
       const wasCorrect = lastAnswer === lastQuestion.correctAnswer;
       
       if (!wasCorrect) {
-        return; // Don't continue if wrong answer in endless mode
+        return; // Don't continue if wrong answer in survival mode
       }
     }
     
@@ -197,39 +372,23 @@ export default function EnhancedIslamicQuiz() {
     }
   }, [gameState]);
 
-  const finishQuiz = useCallback(() => {
-    setQuizComplete(true);
-    setGameMode('results');
-    
-    const updatedStats = quizManager.updateStats(
-      gameState.score,
-      gameState.questions.length,
-      gameState.categoryAnswers,
-      gameState.streak
-    );
-    
-    setStats(updatedStats);
-    
-    // Check for new achievements
-    const achievements = quizManager.getAchievements();
-    const newOnes = achievements.filter(a => a.unlocked && !stats?.achievements.includes(a.id));
-    setNewAchievements(newOnes);
-    
-    if (newOnes.length > 0) {
-      setShowAchievements(true);
-    }
-  }, [gameState, stats]);
-
   const handleUsePowerUp = useCallback((powerUpId: string) => {
     if (gameState.usedPowerUps.includes(powerUpId)) return;
     
-    const success = quizManager.usePowerUp(powerUpId);
+    const success = quizStore.useItem(powerUpId);
     if (success) {
-      setPowerUps(quizManager.getPowerUps());
+      // Update inventory display
+      loadStoreInventory();
+      
+      const item = getStoreItemById(powerUpId);
       
       switch (powerUpId) {
         case 'fifty_fifty':
-          // Implementation would remove two incorrect answers
+          // Remove two incorrect answers
+          toast({
+            title: '50:50 Used!',
+            description: 'Two wrong answers eliminated.',
+          });
           break;
         case 'extra_time':
           setGameState(prev => ({
@@ -237,25 +396,100 @@ export default function EnhancedIslamicQuiz() {
             timeLeft: prev.timeLeft + 30,
             usedPowerUps: [...prev.usedPowerUps, powerUpId]
           }));
+          toast({
+            title: 'Extra Time!',
+            description: '+30 seconds added to timer.',
+          });
           break;
         case 'skip':
           nextQuestion();
+          toast({
+            title: 'Question Skipped!',
+            description: 'Moving to next question...',
+          });
           break;
+        case 'freeze_time':
+          setGameState(prev => ({
+            ...prev,
+            isTimerActive: false,
+            usedPowerUps: [...prev.usedPowerUps, powerUpId]
+          }));
+          toast({
+            title: 'Time Frozen!',
+            description: 'Timer paused for 15 seconds.',
+          });
+          // Resume after 15 seconds
+          setTimeout(() => {
+            setGameState(prev => ({
+              ...prev,
+              isTimerActive: true
+            }));
+          }, 15000);
+          break;
+        case 'second_chance':
+          toast({
+            title: 'Second Chance Active!',
+            description: 'Your streak is protected for one wrong answer.',
+          });
+          break;
+        default:
+          toast({
+            title: `${item?.name || 'Power-up'} Used!`,
+            description: item?.description || 'Power-up activated.',
+          });
       }
+    } else {
+      toast({
+        title: 'Failed to Use',
+        description: 'You don\'t have this item in your inventory.',
+        variant: 'destructive'
+      });
     }
-  }, [gameState.usedPowerUps, nextQuestion]);
+  }, [gameState.usedPowerUps, nextQuestion, toast]);
 
   if (gameMode === 'menu') {
     return <QuizMenu 
       onStartQuiz={startNewQuiz}
+      onSelectMode={() => setGameMode('modeSelect')}
       selectedCategory={selectedCategory}
       setSelectedCategory={setSelectedCategory}
       selectedDifficulty={selectedDifficulty}
       setSelectedDifficulty={setSelectedDifficulty}
       stats={stats}
       powerUps={powerUps}
+      storeInventory={storeInventory}
       onShowAchievements={() => setGameMode('achievements')}
+      onOpenStore={() => setGameMode('store')}
+      onOpenDailyRewards={() => setGameMode('dailyRewards')}
+      onOpenMysteryBox={() => setGameMode('mysteryBox')}
+      canClaimMysteryBox={canClaimMysteryBox}
+      activeEvent={activeEvent}
     />;
+  }
+
+  if (gameMode === 'store') {
+    return <QuizStore onClose={() => {
+      setGameMode('menu');
+      loadStoreInventory();
+    }} />;
+  }
+
+  if (gameMode === 'modeSelect') {
+    return <GameModeSelector 
+      onSelectMode={(mode: GameMode, config?: any) => {
+        setSelectedGameMode(mode);
+        startNewQuiz(mode, config);
+      }}
+      onBack={() => setGameMode('menu')}
+    />;
+  }
+
+  if (gameMode === 'mysteryBox') {
+    return <MysteryBoxPanel onClose={() => {
+      setGameMode('menu');
+      loadStoreInventory();
+      setCanClaimMysteryBox(mysteryBoxSystem.canClaimDailyBox());
+    }} />;
   }
 
   if (gameMode === 'achievements') {
@@ -285,8 +519,8 @@ export default function EnhancedIslamicQuiz() {
   }
 
   const question = gameState.questions[gameState.currentQuestion];
-  const progress = gameState.quizMode === 'endless' 
-    ? 0 // No progress in endless mode
+  const progress = gameState.quizMode === 'timeAttack' || gameState.quizMode === 'survival'
+    ? 0 // No progress bar for infinite modes
     : ((gameState.currentQuestion + 1) / gameState.questions.length) * 100;
   
   // Timer progress
@@ -309,11 +543,11 @@ export default function EnhancedIslamicQuiz() {
                       <span className="font-bold">{gameState.score}</span>
                       <span className="text-sm text-muted-foreground">points</span>
                     </div>
-                    <div className="flex items-center gap-2">
-                      <Flame className="w-4 h-4 text-orange-500" />
-                      <span className="font-bold">{gameState.streak}</span>
-                      <span className="text-sm text-muted-foreground">streak</span>
-                    </div>
+                    <ComboDisplay 
+                      combo={combo}
+                      multiplier={comboMultiplier}
+                      isActive={combo > 0}
+                    />
                   </div>
                   
                   {/* Timer Bar */}
@@ -334,8 +568,8 @@ export default function EnhancedIslamicQuiz() {
                     </div>
                   </div>
                   
-                  {/* Progress Bar (only for fixed mode) */}
-                  {gameState.quizMode !== 'endless' && (
+                  {/* Progress Bar (hidden for time attack and survival) */}
+                  {gameState.quizMode !== 'timeAttack' && gameState.quizMode !== 'survival' && (
                     <div>
                       <div className="flex items-center justify-between mb-1">
                         <span className="text-xs text-muted-foreground">
@@ -348,26 +582,45 @@ export default function EnhancedIslamicQuiz() {
                 </CardContent>
               </Card>
 
-              {/* Power-ups */}
+              {/* Power-ups from Store Inventory */}
               <Card>
                 <CardContent className="p-3">
                   <div className="flex items-center gap-2 mb-2">
                     <Zap className="w-4 h-4 text-yellow-500" />
-                    <span className="text-sm font-medium">Power-ups</span>
+                    <span className="text-sm font-medium">Your Power-ups</span>
+                    <Badge variant="outline" className="ml-auto text-xs">
+                      {Object.values(storeInventory).reduce((a, b) => a + b, 0)} items
+                    </Badge>
                   </div>
-                  <div className="flex gap-2">
-                    {powerUps.filter(p => p.uses > 0 && !gameState.usedPowerUps.includes(p.id)).map(powerUp => (
-                      <Button
-                        key={powerUp.id}
-                        size="sm"
-                        variant="outline"
-                        onClick={() => handleUsePowerUp(powerUp.id)}
-                        className="flex items-center gap-1 text-xs"
-                      >
-                        <span>{powerUp.icon}</span>
-                        <span>{powerUp.name} ({powerUp.uses})</span>
-                      </Button>
-                    ))}
+                  <div className="flex flex-wrap gap-2">
+                    {Object.entries(storeInventory)
+                      .filter(([_, count]) => count > 0)
+                      .slice(0, 4) // Show max 4 power-ups
+                      .map(([itemId, count]) => {
+                        const item = getStoreItemById(itemId);
+                        if (!item) return null;
+                        return (
+                          <Button
+                            key={itemId}
+                            size="sm"
+                            variant="outline"
+                            onClick={() => handleUsePowerUp(itemId)}
+                            disabled={gameState.usedPowerUps.includes(itemId)}
+                            className="flex items-center gap-1 text-xs"
+                          >
+                            <span>{item.icon}</span>
+                            <span>{item.name}</span>
+                            <Badge variant="secondary" className="ml-1 h-4 text-[10px]">
+                              {count}
+                            </Badge>
+                          </Button>
+                        );
+                      })}
+                    {Object.keys(storeInventory).length === 0 && (
+                      <p className="text-xs text-muted-foreground">
+                        No power-ups. Visit the store to buy some!
+                      </p>
+                    )}
                   </div>
                 </CardContent>
               </Card>
@@ -469,21 +722,52 @@ export default function EnhancedIslamicQuiz() {
 // Quiz Menu Component
 function QuizMenu({ 
   onStartQuiz, 
+  onSelectMode,
   selectedCategory, 
   setSelectedCategory, 
   selectedDifficulty, 
   setSelectedDifficulty,
   stats,
   powerUps,
-  onShowAchievements 
+  storeInventory,
+  onShowAchievements,
+  onOpenStore,
+  onOpenDailyRewards,
+  onOpenMysteryBox,
+  canClaimMysteryBox,
+  activeEvent
 }: any) {
+  const dailyStatus = quizStore.getDailyRewardStatus();
+  const canClaimDaily = dailyStatus.canClaimToday;
+
   return (
     <LayoutManager>
       <div className="min-h-screen bg-background">
         <AppBar title="Islamic Quiz" showBack />
         
+        {/* Loss Aversion Banner */}
+        <LossAversionBanner 
+          onAction={(type: string) => {
+            if (type === 'lives') {
+              // Handle lives action
+            } else if (type === 'streak' || type === 'daily_reward') {
+              onOpenDailyRewards();
+            } else if (type === 'event') {
+              onSelectMode();
+            } else if (type === 'mystery_box') {
+              onOpenMysteryBox();
+            }
+          }}
+        />
+        
+        {/* Floating Notification */}
+        <FloatingNotification onClick={() => onSelectMode()} />
+        
+        {/* Motivation Toast */}
+        <MotivationToast />
+        
         <div className="max-w-lg mx-auto p-4 space-y-4">
-          {/* Player Stats */}
+          {/* Player Stats with Lives */}
           {stats && (
             <Card className="bg-gradient-to-br from-primary/10 to-primary/5">
               <CardContent className="p-4">
@@ -493,8 +777,11 @@ function QuizMenu({
                     <span className="font-bold">Level {stats.level}</span>
                   </div>
                   <div className="flex items-center gap-2">
-                    <Star className="w-4 h-4 text-yellow-500" />
-                    <span className="font-bold">{stats.xp} XP</span>
+                    <LivesCompact />
+                    <div className="flex items-center gap-1 px-2 py-1 bg-yellow-100 rounded-full">
+                      <Star className="w-3 h-3 text-yellow-600" />
+                      <span className="text-xs font-bold text-yellow-700">{stats.xp}</span>
+                    </div>
                   </div>
                 </div>
                 <Progress value={quizManager.getLevelProgress().progress} className="h-2 mb-2" />
@@ -514,6 +801,31 @@ function QuizMenu({
                 </div>
               </CardContent>
             </Card>
+          )}
+
+          {/* Active Event Banner */}
+          {activeEvent && (
+            <motion.div
+              initial={{ scale: 0.9, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+            >
+              <Card className={`bg-gradient-to-r ${activeEvent.color} text-white overflow-hidden`}>
+                <CardContent className="p-3">
+                  <div className="flex items-center justify-between">
+                    <div className="flex items-center gap-2">
+                      <span className="text-2xl">{activeEvent.icon}</span>
+                      <div>
+                        <p className="font-bold text-sm">{activeEvent.title}</p>
+                        <p className="text-xs opacity-90">{activeEvent.multiplier}x XP Active!</p>
+                      </div>
+                    </div>
+                    <Badge className="bg-white/20 text-white">
+                      {timeEventsSystem.getTimeRemaining()}
+                    </Badge>
+                  </div>
+                </CardContent>
+              </Card>
+            </motion.div>
           )}
 
           {/* Category Selection */}
@@ -561,6 +873,19 @@ function QuizMenu({
             </CardContent>
           </Card>
 
+          {/* Lives Display */}
+          <Card>
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Heart className="w-5 h-5 text-red-500" />
+                Lives
+              </CardTitle>
+            </CardHeader>
+            <CardContent>
+              <LivesDisplay onRefill={() => setStats(quizManager.getStats())} />
+            </CardContent>
+          </Card>
+
           {/* Power-ups */}
           <Card>
             <CardHeader>
@@ -584,16 +909,70 @@ function QuizMenu({
             </CardContent>
           </Card>
 
+          {/* Store, Rewards & Mystery Box */}
+          <div className="grid grid-cols-3 gap-2">
+            <Button 
+              onClick={onOpenStore} 
+              variant="outline" 
+              className="w-full bg-gradient-to-r from-amber-50 to-yellow-50 hover:from-amber-100 hover:to-yellow-100"
+            >
+              <Store className="w-4 h-4 mr-1 text-amber-500" />
+              <span className="text-amber-700 text-xs">Store</span>
+            </Button>
+            <Button 
+              onClick={onOpenDailyRewards} 
+              variant="outline" 
+              className={`w-full ${canClaimDaily ? 'animate-pulse bg-gradient-to-r from-green-50 to-emerald-50' : ''}`}
+            >
+              <Calendar className={`w-4 h-4 mr-1 ${canClaimDaily ? 'text-green-500' : ''}`} />
+              <span className={canClaimDaily ? 'text-green-700 font-semibold text-xs' : 'text-xs'}>
+                {canClaimDaily ? 'Daily!' : 'Daily'}
+              </span>
+            </Button>
+            <Button 
+              onClick={onOpenMysteryBox} 
+              variant="outline" 
+              className={`w-full ${canClaimMysteryBox ? 'animate-pulse bg-gradient-to-r from-purple-50 to-pink-50' : ''}`}
+            >
+              <GiftIcon className={`w-4 h-4 mr-1 ${canClaimMysteryBox ? 'text-purple-500' : ''}`} />
+              <span className={canClaimMysteryBox ? 'text-purple-700 font-semibold text-xs' : 'text-xs'}>
+                {canClaimMysteryBox ? 'Box!' : 'Box'}
+              </span>
+            </Button>
+          </div>
+
+          {/* Game Mode Selection */}
+          <Card className="border-2 border-primary/20">
+            <CardHeader className="pb-2">
+              <CardTitle className="text-lg flex items-center gap-2">
+                <Sparkles className="w-5 h-5 text-primary" />
+                Select Game Mode
+              </CardTitle>
+              <CardDescription>Choose how you want to play</CardDescription>
+            </CardHeader>
+            <CardContent>
+              <Button 
+                onClick={onSelectMode}
+                className="w-full"
+                variant="default"
+              >
+                <Target className="w-4 h-4 mr-2" />
+                Choose Game Mode
+                <ChevronRight className="w-4 h-4 ml-auto" />
+              </Button>
+            </CardContent>
+          </Card>
+
           {/* Achievements Button */}
           <Button onClick={onShowAchievements} variant="outline" className="w-full">
             <Trophy className="w-4 h-4 mr-2" />
             View Achievements
           </Button>
 
-          {/* Start Button */}
-          <Button onClick={onStartQuiz} className="w-full" size="lg">
+          {/* Quick Start Button */}
+          <Button onClick={() => onStartQuiz('classic')} className="w-full" size="lg">
             <Target className="w-4 h-4 mr-2" />
-            Start Quiz
+            Quick Start (Classic)
           </Button>
         </div>
       </div>

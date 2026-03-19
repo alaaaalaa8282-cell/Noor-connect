@@ -152,16 +152,6 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
             city: data.city,
             country: data.country
           })
-        },
-        {
-          name: 'ipapi.co',
-          url: 'https://ipapi.co/json/',
-          parser: (data: { latitude: number; longitude: number; city: string; country_name: string }) => ({
-            latitude: data.latitude,
-            longitude: data.longitude,
-            city: data.city,
-            country: data.country_name
-          })
         }
       ];
 

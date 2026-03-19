@@ -13,6 +13,28 @@ import {
   type PrayerAlarmToggleDetail,
 } from '@/lib/prayer-alarm-events';
 
+// FOSS offline fallback locations - major Islamic cities by timezone
+const FALLBACK_LOCATIONS = {
+  'Asia/Karachi': { name: 'Karachi', lat: 24.8607, lon: 67.0011 },
+  'Asia/Dhaka': { name: 'Dhaka', lat: 23.8103, lon: 90.4125 },
+  'Asia/Jakarta': { name: 'Jakarta', lat: -6.2088, lon: 106.8456 },
+  'Asia/Istanbul': { name: 'Istanbul', lat: 41.0082, lon: 28.9784 },
+  'Asia/Riyadh': { name: 'Riyadh', lat: 24.7136, lon: 46.6753 },
+  'Asia/Cairo': { name: 'Cairo', lat: 30.0444, lon: 31.2357 },
+  'Asia/Dubai': { name: 'Dubai', lat: 25.2048, lon: 55.2708 },
+  'Asia/Tehran': { name: 'Tehran', lat: 35.6892, lon: 51.3890 },
+  'Europe/London': { name: 'London', lat: 51.5074, lon: -0.1278 },
+  'America/New_York': { name: 'New York', lat: 40.7128, lon: -74.0060 },
+  'America/Los_Angeles': { name: 'Los Angeles', lat: 34.0522, lon: -118.2437 },
+  'Australia/Sydney': { name: 'Sydney', lat: -33.8688, lon: 151.2093 }
+};
+
+function getFallbackLocationByTimezone(timezone: string) {
+  // Return matching city or default to Mecca
+  return FALLBACK_LOCATIONS[timezone as keyof typeof FALLBACK_LOCATIONS] || 
+         { name: 'Mecca', lat: 21.3891, lon: 39.8579 };
+}
+
 const STORAGE_KEY = 'prayer-alarm-enabled';
 const LAST_PLAYED_KEY = 'prayer-alarm-last-played';
 const PRAYER_TIMES_KEY = 'cached-prayer-times';
@@ -134,17 +156,16 @@ export const GlobalPrayerAlarm = () => {
       let longitude: number;
 
       try {
-        // Try IP-based geolocation with a CORS-friendly service
-        const ipResponse = await fetch('https://ipinfo.io/json?token=YOUR_TOKEN_HERE', {
+        // Try IP-based geolocation with free FOSS service
+        const ipResponse = await fetch('http://ip-api.com/json/', {
           signal: AbortSignal.timeout(5000)
         });
 
         if (ipResponse.ok) {
           const ipData = await ipResponse.json();
-          if (ipData.loc) {
-            const [lat, lon] = ipData.loc.split(',').map(parseFloat);
-            latitude = lat;
-            longitude = lon;
+          if (ipData.status === 'success' && ipData.lat && ipData.lon) {
+            latitude = ipData.lat;
+            longitude = ipData.lon;
           } else {
             throw new Error('IP location data not available');
           }
@@ -164,10 +185,13 @@ export const GlobalPrayerAlarm = () => {
           }
         }
 
-        // If no saved location, use default coordinates (Kaaba, Mecca) as fallback
+        // If no saved location, use timezone-based fallback
         if (!latitude || !longitude) {
-          latitude = 21.4225;
-          longitude = 39.8262;
+          const userTimezone = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const fallbackLocation = getFallbackLocationByTimezone(userTimezone);
+          latitude = fallbackLocation.lat;
+          longitude = fallbackLocation.lon;
+          console.log(`Using fallback location: ${fallbackLocation.name}`);
         }
       }
 

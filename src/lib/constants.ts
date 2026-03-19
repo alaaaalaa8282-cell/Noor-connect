@@ -30,7 +30,7 @@ export const METAL_PRICE_CONSTANTS = {
   ZAKAT_NISAB_API: 'https://islamicapi.com/api/v1/zakat-nisab/',
   FASTING_API: 'https://islamicapi.com/api/v1/fasting/',
   RAMADAN_API: 'https://islamicapi.com/api/v1/ramadan/',
-  ISLAMIC_API_KEY: 'yD8daxb0bKDmv11REv3HHUEKo6EAsvJqHmHav0kljK6HCt1o',
+  ISLAMIC_API_KEY: import.meta.env.VITE_ISLAMIC_API_KEY || 'YOUR_API_KEY',
   
   // Storage keys
   CACHE_KEY: 'metal-prices-cache',

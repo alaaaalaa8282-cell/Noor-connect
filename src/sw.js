@@ -26,6 +26,7 @@ try {
 
 const CACHE_NAME = 'noor-connect-v2'; // Bump version
 const API_CACHE_NAME = 'noor-connect-api-v1';
+const HADITH_CACHE_NAME = 'noor-connect-hadith-v1';
 
 // Islamic prayer times and events data - populated dynamically from the app
 let PRAYER_TIMES = {};

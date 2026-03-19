@@ -4,12 +4,8 @@ import "./index.css";
 import { localNotifications } from "@/lib/local-notifications";
 import './lib/i18n-new'; // Initialize new offline-first i18n
 
-// Initialize local notifications
-localNotifications.initialize().then(success => {
-  if (success) {
-    console.log('Local notifications initialized');
-  }
-});
+// Initialize local notifications quietly so feature pages can reuse the state.
+void localNotifications.initialize();
 
 import { LanguageProvider } from "@/contexts/LanguageContext-new";
 
@@ -33,9 +29,6 @@ if (import.meta.env.DEV && 'serviceWorker' in navigator) {
       if (registrations.length === 0) return;
 
       await Promise.all(registrations.map((r) => r.unregister()));
-      console.log(
-        `Service Worker unregistered in development mode (${registrations.length})`
-      );
 
       // Remove any PWA caches that can interfere with Vite dev (stale chunks/assets).
       if ("caches" in window) {

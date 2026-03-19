@@ -87,20 +87,6 @@ if (typeof window !== 'undefined') {
   }
 }
 
-
-interface NavigatorWithStandalone extends Navigator {
-  standalone?: boolean;
-}
-
-const isStandaloneMode = (): boolean => {
-  const navigatorWithStandalone = window.navigator as NavigatorWithStandalone;
-  return (
-    window.matchMedia('(display-mode: standalone)').matches ||
-    Boolean(navigatorWithStandalone.standalone) ||
-    document.referrer.includes('android-app://')
-  );
-};
-
 function AppRoutes() {
   const location = useLocation();
   const { t } = useTranslation();
@@ -182,25 +168,7 @@ const App = () => {
   useEffect(() => {
     const monitor = getPerformanceMonitor();
 
-    // Log performance score after page load
-    const logPerformance = () => {
-      setTimeout(() => {
-        const score = monitor.getPerformanceScore();
-        // Only log if we have a valid score or sufficient time has passed
-        if (process.env.NODE_ENV === 'development') {
-          console.log(`🚀 Performance Score: ${score}/100`);
-        }
-      }, 5000);
-    };
-
-    if (document.readyState === 'complete') {
-      logPerformance();
-    } else {
-      window.addEventListener('load', logPerformance);
-    }
-
     return () => {
-      window.removeEventListener('load', logPerformance);
       monitor.destroy();
     };
   }, []);
@@ -210,9 +178,6 @@ const App = () => {
 
   // Initialize notification system and Service Worker
   useEffect(() => {
-    // Check if we're in APK/PWA mode and handle permissions
-    const isStandalone = isStandaloneMode();
-
     // Start the notification manager (only runs once per app load)
     notificationManager.start();
 
@@ -221,32 +186,9 @@ const App = () => {
       console.error('Failed to schedule Islamic events:', error);
     });
 
-    // Request permissions automatically
-    const requestInitialPermissions = async () => {
-      try {
-        await import('@/lib/unified-notifications').then(mod => mod.unifiedNotifications.requestPermission());
-        if (typeof window !== 'undefined' && 'Geolocation' in navigator) {
-          import('@/lib/geolocation-service').then(mod => {
-            if (mod.GeolocationService.isSupported()) {
-              mod.GeolocationService.requestPermissions();
-            }
-          });
-        }
-      } catch (e) {
-        console.error('Failed to request initial permissions:', e);
-      }
-    };
-
-    // Request notification permission natively
-    requestInitialPermissions();
-
     // Register Service Worker (only in production and if not already registered)
     if (import.meta.env.PROD && !navigator.serviceWorker.controller) {
-      serviceWorkerManager.register().then(success => {
-        if (success) {
-          console.log('Service Worker registered successfully');
-        }
-      });
+      serviceWorkerManager.register();
     }
 
     // Start widget auto-updates

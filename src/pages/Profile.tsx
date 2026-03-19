@@ -304,13 +304,11 @@ const Profile = () => {
   };
 
   const handleFontSizeChange = (value: number[]) => {
-    console.log('handleFontSizeChange called with:', value);
     if (!value || value.length === 0) return;
 
     const size = value[0];
     if (typeof size !== 'number' || size < 16 || size > 42) return;
 
-    console.log('Setting font size to:', size);
     setQuranFontSizeState(size);
     setQuranFontSize(size);
 
@@ -323,9 +321,6 @@ const Profile = () => {
   const handleQuranFontChange = async (font: QuranFont) => {
     setQuranFontState(font);
     quranFontManager.setFont(font);
-
-    // Load Google Fonts for the selected font
-    await quranFontManager.loadGoogleFonts(font);
 
     const fontOption = quranFontManager.getFontOption(font);
     toast({
@@ -552,10 +547,7 @@ const Profile = () => {
                 </div>
                 <Slider
                   value={[quranFontSize]}
-                  onValueChange={(value) => {
-                    console.log('Slider value changed:', value);
-                    handleFontSizeChange(value);
-                  }}
+                  onValueChange={handleFontSizeChange}
                   min={16}
                   max={42}
                   step={2}

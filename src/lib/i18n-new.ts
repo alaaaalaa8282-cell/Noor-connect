@@ -30,6 +30,7 @@ i18n
     fallbackLng: DEFAULT_LANGUAGE,
     supportedLngs: SUPPORTED_CODES,
     debug: false,
+    showSupportNotice: false,
 
     interpolation: {
       escapeValue: false, // React already escapes values

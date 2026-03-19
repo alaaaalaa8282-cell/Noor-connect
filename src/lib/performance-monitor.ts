@@ -124,18 +124,7 @@ class MinimalPerformanceMonitor {
       TTFB: { good: 800, poor: 1800 }
     };
 
-    const threshold = thresholds[name];
-    if (!threshold) return;
-
-    let rating = 'good';
-    if (value > threshold.poor) rating = 'poor';
-    else if (value > threshold.good) rating = 'needs-improvement';
-
-    // Only log in development
-    if (import.meta.env.DEV) {
-      const unit = name === 'CLS' ? '' : 'ms';
-      console.log(`🚀 ${name}: ${value.toFixed(2)}${unit} (${rating})`);
-    }
+    if (!thresholds[name]) return;
   }
 
   public getMetrics(): PerformanceMetrics {

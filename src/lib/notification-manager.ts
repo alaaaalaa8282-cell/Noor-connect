@@ -51,6 +51,8 @@ const SENT_NOTIFICATIONS_KEY = 'sent-notifications-today';
 const LAST_NOTIFICATION_DATE_KEY = 'last-notification-date';
 const DAILY_NOTIFICATION_COUNT_KEY = 'daily-notification-count';
 const NOTIFICATION_HISTORY_KEY = 'notification-history';
+const DEFAULT_NOTIFICATION_ICON = '/icon-192x192.png';
+const DEFAULT_NOTIFICATION_BADGE = '/icon-96x96.png';
 
 export class NotificationManager {
   private preferences: NotificationPreferences;
@@ -312,6 +314,30 @@ export class NotificationManager {
     this.savePreferences();
   }
 
+  private getNotificationIconUrl(event: NotificationEvent): string {
+    const defaultIcon = event.type === 'eid-greeting'
+      ? '/icon-512x512.png'
+      : DEFAULT_NOTIFICATION_ICON;
+
+    if (!event.icon) {
+      return defaultIcon;
+    }
+
+    const icon = event.icon.trim();
+    const isUrl =
+      icon.startsWith('/') ||
+      icon.startsWith('http://') ||
+      icon.startsWith('https://') ||
+      icon.startsWith('data:') ||
+      icon.startsWith('blob:');
+
+    if (!isUrl || icon === '/eid-icon.png') {
+      return defaultIcon;
+    }
+
+    return icon;
+  }
+
   // Send a notification with enhanced features
   private async sendNotification(event: NotificationEvent): Promise<void> {
     if (!this.areNotificationsEnabled()) {
@@ -332,10 +358,10 @@ export class NotificationManager {
     try {
       const notification = new Notification(event.title, {
         body: event.body,
-        icon: event.icon || '/icon-192x192.png',
+        icon: this.getNotificationIconUrl(event),
         tag: event.id,
         requireInteraction: event.type === 'eid-greeting' || event.priority === 'high',
-        badge: '/icon-192x192.png',
+        badge: DEFAULT_NOTIFICATION_BADGE,
       });
 
       // Auto-close timing based on priority

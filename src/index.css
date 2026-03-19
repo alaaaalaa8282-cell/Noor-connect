@@ -67,8 +67,8 @@ All colors MUST be HSL.
     --shadow-gold: 0 8px 32px rgba(218,165,32,0.25);
     --shadow-elegant: 0 10px 40px -10px rgba(0,0,0,0.2), 0 0 20px rgba(218,165,32,0.15);
 
-    --font-arabic: 'Amiri', serif;
-    --quran-font: 'Amiri', serif; /* Default Quran font */
+    --font-arabic: 'Noto Naskh Arabic', 'Scheherazade New', 'Traditional Arabic', serif;
+    --quran-font: 'Noto Naskh Arabic', 'Scheherazade New', 'Traditional Arabic', serif;
     --font-body: 'Roboto', 'Inter', sans-serif;
     --chart-1: 45 96% 64%;
     --chart-2: 47 95% 53%;
@@ -205,6 +205,10 @@ All colors MUST be HSL.
   }
 
   .quran-text {
+    font-family: var(--quran-font) !important;
+  }
+
+  .font-quran {
     font-family: var(--quran-font) !important;
   }
 

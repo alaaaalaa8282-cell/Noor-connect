@@ -156,8 +156,6 @@ export const QURAN_AUDIO_API = {
         audioUrl = `${reciterInfo.url}/${chapterId}.mp3`;
       }
       
-      console.log(`Generated reciter-specific audio URL: ${audioUrl}`);
-      
       // Create recitation object with reciter-specific audio URL
       const recitation: ChapterRecitation = {
         id: recitationId,
@@ -176,8 +174,6 @@ export const QURAN_AUDIO_API = {
         ...metadata.data,
         recitation: recitation
       };
-      
-      console.log(`Surah audio for chapter ${chapterId}, recitation ${recitationId}:`, surahAudio);
       
       return {
         success: true,
@@ -205,8 +201,6 @@ export const QURAN_AUDIO_API = {
         url: info.url,
         requiresZeroPadding: info.requiresZeroPadding
       }));
-      
-      console.log('Reciters loaded:', reciters);
       
       return {
         success: true,
@@ -238,7 +232,6 @@ export const QURAN_AUDIO_API = {
         throw new Error(apiResponse.message || 'API request failed');
       }
       
-      console.log('Surah list loaded:', apiResponse.data);
       return apiResponse;
     } catch (error) {
       console.error('Error fetching Surah list:', error);
