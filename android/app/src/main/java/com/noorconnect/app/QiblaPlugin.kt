@@ -5,17 +5,19 @@ import com.getcapacitor.Plugin
 import com.getcapacitor.PluginCall
 import com.getcapacitor.PluginMethod
 import com.getcapacitor.annotation.CapacitorPlugin
-import com.derysudrajat.compassqibla.CompassQibla
-import com.derysudrajat.compassqibla.QiblaDirection
+import io.github.derysudrajat.compassqibla.CompassQibla
+import io.github.derysudrajat.compassqibla.QiblaDirection
 import android.Manifest
 import android.content.pm.PackageManager
+import android.location.Address
+import android.location.Location
 import androidx.core.app.ActivityCompat
 import androidx.core.content.ContextCompat
 
 @CapacitorPlugin(name = "Qibla")
 class QiblaPlugin : Plugin() {
 
-    private var compassQibla: CompassQibla? = null
+
     private var isListening = false
 
     override fun load() {
@@ -50,43 +52,30 @@ class QiblaPlugin : Plugin() {
                 return
             }
 
-            compassQibla = CompassQibla.Builder(context)
-                .onDirectionChangeListener { qiblaDirection ->
-                    val result = JSObject().apply {
-                        put("isFacingQibla", qiblaDirection.isFacingQibla)
-                        put("compassAngle", qiblaDirection.compassAngle)
-                        put("needleAngle", qiblaDirection.needleAngle)
-                        put("qiblaBearing", calculateQiblaBearing(qiblaDirection.location?.latitude, qiblaDirection.location?.longitude))
-                        put("latitude", qiblaDirection.location?.latitude)
-                        put("longitude", qiblaDirection.location?.longitude)
-                        put("accuracy", qiblaDirection.location?.accuracy)
-                    }
-                    
-                    // Notify the web view about direction changes
-                    notifyListeners("qiblaDirectionChange", result)
+            CompassQibla.Builder(activity as androidx.appcompat.app.AppCompatActivity)
+                .onPermissionGranted {
+                    // Logic for permission finished
                 }
-                .onPermissionGranted { permission ->
-                    val result = JSObject().apply {
-                        put("success", true)
-                        put("permission", permission)
-                        put("message", "Permission granted")
-                    }
-                    notifyListeners("permissionGranted", result)
+                .onGetLocationAddress { address: Address ->
+                    val res = JSObject()
+                    res.put("address", address.getAddressLine(0))
+                    res.put("city", address.locality)
+                    res.put("country", address.countryName)
+                    notifyListeners("locationAddress", res)
+                }
+                .onDirectionChangeListener { qibla: QiblaDirection ->
+                    val res = JSObject()
+                    res.put("isFacingQibla", qibla.isFacingQibla)
+                    res.put("compassAngle", qibla.compassAngle)
+                    res.put("needleAngle", qibla.needleAngle)
+                    
+                    notifyListeners("qiblaUpdate", res)
                 }
                 .onPermissionDenied {
-                    val result = JSObject().apply {
-                        put("success", false)
-                        put("message", "Permission denied")
-                    }
-                    notifyListeners("permissionDenied", result)
-                }
-                .onGetLocationAddress { address ->
-                    val result = JSObject().apply {
-                        put("address", address?.getAddressLine(0))
-                        put("city", address?.locality)
-                        put("country", address?.countryName)
-                    }
-                    notifyListeners("locationAddress", result)
+                    val res = JSObject()
+                    res.put("success", false)
+                    res.put("message", "Permission denied")
+                    notifyListeners("permissionDenied", res)
                 }
                 .build()
 
@@ -113,7 +102,7 @@ class QiblaPlugin : Plugin() {
                 return
             }
 
-            compassQibla = null
+
             isListening = false
 
             call.resolve(JSObject().apply {
@@ -129,7 +118,7 @@ class QiblaPlugin : Plugin() {
     @PluginMethod
     fun getQiblaDirection(call: PluginCall) {
         try {
-            if (!isListening || compassQibla == null) {
+            if (!isListening) {
                 call.reject("Compass not started. Call startCompass() first.")
                 return
             }
@@ -147,7 +136,7 @@ class QiblaPlugin : Plugin() {
     }
 
     @PluginMethod
-    fun checkPermissions(call: PluginCall) {
+    override fun checkPermissions(call: PluginCall) {
         val permissions = arrayOf(
             Manifest.permission.ACCESS_FINE_LOCATION,
             Manifest.permission.ACCESS_COARSE_LOCATION
@@ -167,28 +156,9 @@ class QiblaPlugin : Plugin() {
         })
     }
 
-    private fun calculateQiblaBearing(latitude: Double?, longitude: Double?): Double {
-        if (latitude == null || longitude == null) return 0.0
-        
-        val kaabaLat = 21.4225
-        val kaabaLng = 39.8262
-        
-        val lat1 = Math.toRadians(latitude)
-        val lat2 = Math.toRadians(kaabaLat)
-        val diffLng = Math.toRadians(kaabaLng - longitude)
-        
-        val y = Math.sin(diffLng)
-        val x = Math.cos(lat1) * Math.tan(lat2) - Math.sin(lat1) * Math.cos(diffLng)
-        
-        var bearing = Math.toDegrees(Math.atan2(y, x))
-        bearing = (bearing + 360) % 360
-        
-        return bearing
-    }
-
     override fun handleOnDestroy() {
         super.handleOnDestroy()
-        compassQibla = null
+
         isListening = false
     }
 }
