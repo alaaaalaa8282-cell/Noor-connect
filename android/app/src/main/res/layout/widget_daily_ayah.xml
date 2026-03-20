@@ -1,0 +1,67 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Daily Ayah Widget (4×4)
+  Shows daily Quran verse in Arabic with translation and reference.
+  Uses Amiri (Uthmanic Hafs) font for Arabic text.
+-->
+<LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:layout_width="match_parent"
+    android:layout_height="match_parent"
+    android:background="?android:attr/colorBackground"
+    android:orientation="vertical"
+    android:padding="12dp">
+
+    <TextView
+        android:id="@+id/ayah_arabic"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:layout_marginBottom="8dp"
+        android:fontFamily="@font/uthmanic_hafs"
+        android:layoutDirection="rtl"
+        android:lineSpacingMultiplier="1.4"
+        android:text=""
+        android:textAlignment="textEnd"
+        android:textColor="?android:attr/textColorPrimary"
+        android:textSize="20sp" />
+
+    <!-- Divider -->
+    <View
+        android:layout_width="match_parent"
+        android:layout_height="1dp"
+        android:layout_marginBottom="8dp"
+        android:alpha="0.3"
+        android:background="@color/m3_secondary_container" />
+
+    <TextView
+        android:id="@+id/ayah_translation"
+        android:layout_width="match_parent"
+        android:layout_height="0dp"
+        android:layout_weight="1"
+        android:ellipsize="end"
+        android:maxLines="5"
+        android:text=""
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="14sp" />
+
+    <TextView
+        android:id="@+id/ayah_reference"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:alpha="0.7"
+        android:gravity="bottom|end"
+        android:text=""
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="11sp"
+        android:textStyle="italic" />
+
+    <TextView
+        android:id="@+id/empty_ayah"
+        android:layout_width="match_parent"
+        android:layout_height="wrap_content"
+        android:gravity="center"
+        android:text="Open app to sync Ayah"
+        android:textColor="?android:attr/textColorSecondary"
+        android:textSize="14sp"
+        android:visibility="gone" />
+
+</LinearLayout>

@@ -14,8 +14,20 @@
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.
-#-keepattributes SourceFile,LineNumberTable
+-keepattributes SourceFile,LineNumberTable
 
 # If you keep the line number information, uncomment this to
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
+
+# --- Noor Connect Custom Rules ---
+
+# Keep new Kotlin widget classes
+-keep class com.noorconnect.app.widgets.** { *; }
+
+# Keep WorkManager (prevents minification issues with workers)
+-keep class androidx.work.** { *; }
+-keep interface androidx.work.** { *; }
+
+# Keep CompassQibla library (fixed from Github)
+-keep class io.github.derysudrajat.compassqibla.** { *; }

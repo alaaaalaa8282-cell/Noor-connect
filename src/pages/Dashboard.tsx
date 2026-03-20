@@ -18,6 +18,7 @@ import { cn } from "@/lib/utils";
 import { EidCelebrationOverlay } from "@/components/EidCelebrationOverlay";
 
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
+import { useWidgetSync } from "@/hooks/useWidgetSync";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import { getTimeFormat, formatTime } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
@@ -98,6 +99,7 @@ export default function Dashboard() {
 
 
   const prayerTimesHook = usePrayerTimes();
+  useWidgetSync(); // Synchronize data with native Android widgets automatically
 
   const prayerLocation = prayerTimesHook.location;
 

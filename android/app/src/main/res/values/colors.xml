@@ -1,0 +1,7 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <color name="m3_secondary_container">#FFD8F4</color>
+    <color name="m3_on_secondary_container">#1E192B</color>
+    <color name="m3_surface">#FFFBFE</color>
+    <color name="m3_on_surface">#1C1B1F</color>
+</resources>

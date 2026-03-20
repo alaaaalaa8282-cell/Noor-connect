@@ -53,6 +53,12 @@ export interface WidgetPluginInterface {
   setWidgetStrings(options: {
     strings: string; // JSON string of WidgetStrings
   }): Promise<{ status: string }>;
+
+  /** Sync new Kotlin widgets with raw JSON payload */
+  notifyWidgetDataChanged(options: {
+    prayerData: string;
+    ayahData: string;
+  }): Promise<{ status: string }>;
 }
 
 const WidgetPlugin = Capacitor.registerPlugin<WidgetPluginInterface>('WidgetPlugin');

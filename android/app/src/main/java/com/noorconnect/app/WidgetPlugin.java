@@ -162,9 +162,62 @@ public class WidgetPlugin extends Plugin {
     }
 
     // ─────────────────────────────────────────────────
+    // New Kotlin Widget Suite bridge
+    // Stores prayer/ayah JSON data and triggers WorkManager sync
+    // ─────────────────────────────────────────────────
+    @PluginMethod
+    public void notifyWidgetDataChanged(PluginCall call) {
+        try {
+            String prayerData = call.getString("prayerData");
+            String ayahData = call.getString("ayahData");
+
+            if (prayerData == null || ayahData == null) {
+                call.reject("missing_data", "prayerData and ayahData are required");
+                return;
+            }
+
+            final Context context = getContext();
+
+            // Store data in the new SharedPreferences for Kotlin widgets
+            SharedPreferences newPrefs = context.getSharedPreferences(
+                "NoorConnectWidgetPrefs", Context.MODE_PRIVATE);
+            newPrefs.edit()
+                .putString("widget_prayer_data", prayerData)
+                .putString("widget_ayah_data", ayahData)
+                .apply();
+
+            // Schedule next prayer alarm
+            com.noorconnect.app.widgets.AlarmScheduler.INSTANCE
+                .scheduleNextPrayerAlarm(context, prayerData);
+
+            // Enqueue immediate widget sync via WorkManager
+            androidx.work.WorkManager.getInstance(context).enqueueUniqueWork(
+                "widget_sync_immediate",
+                androidx.work.ExistingWorkPolicy.REPLACE,
+                new androidx.work.OneTimeWorkRequest.Builder(
+                    com.noorconnect.app.widgets.WidgetDataWorker.class)
+                    .setExpedited(
+                        androidx.work.OutOfQuotaPolicy.RUN_AS_NON_EXPEDITED_WORK_REQUEST)
+                    .build()
+            );
+
+            Log.d(TAG, "notifyWidgetDataChanged: prayer+ayah data stored, sync enqueued");
+
+            JSObject ret = new JSObject();
+            ret.put("status", "ok");
+            call.resolve(ret);
+
+        } catch (Exception e) {
+            Log.e(TAG, "notifyWidgetDataChanged error", e);
+            call.reject("Failed: " + e.getMessage());
+        }
+    }
+
+    // ─────────────────────────────────────────────────
     // Helpers
     // ─────────────────────────────────────────────────
     private SharedPreferences prefs(Context context) {
         return context.getSharedPreferences(PrayerWidget.PREFS_NAME, Context.MODE_PRIVATE);
     }
 }
+
