@@ -18,7 +18,7 @@ const STORAGE_KEYS = [
   'user-gender',
   'user-onboarded',
   'permissions-granted',
-  'user-location',
+  'location-storage',
   'selected-reciter',
   'quran-font-size',
   'quran-font',

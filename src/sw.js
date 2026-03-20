@@ -1,6 +1,6 @@
 import { precacheAndRoute, createHandlerBoundToURL } from 'workbox-precaching';
 import { NavigationRoute, registerRoute } from 'workbox-routing';
-import { CacheFirst, StaleWhileRevalidate } from 'workbox-strategies';
+import { NetworkFirst, StaleWhileRevalidate } from 'workbox-strategies';
 import { CacheableResponsePlugin } from 'workbox-cacheable-response';
 import { ExpirationPlugin } from 'workbox-expiration';
 
@@ -19,14 +19,32 @@ try {
   console.log('SW: Error setting up navigation route', e);
 }
 
-/**
- * Noor Connect Service Worker
- * Handles background prayer time checking, intelligent notifications, and PWA functionality
- */
-
-const CACHE_NAME = 'noor-connect-v2'; // Bump version
+const ASSET_CACHE_NAME = 'noor-connect-assets-v1';
 const API_CACHE_NAME = 'noor-connect-api-v1';
 const HADITH_CACHE_NAME = 'noor-connect-hadith-v1';
+
+registerRoute(
+  ({ request }) => ['script', 'style', 'worker'].includes(request.destination),
+  new StaleWhileRevalidate({
+    cacheName: ASSET_CACHE_NAME,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxEntries: 100, maxAgeSeconds: 7 * 24 * 60 * 60 }),
+    ],
+  })
+);
+
+registerRoute(
+  ({ request, url }) => request.method === 'GET' && (url.pathname.startsWith('/api/') || url.hostname.includes('aladhan.com')),
+  new NetworkFirst({
+    cacheName: API_CACHE_NAME,
+    networkTimeoutSeconds: 5,
+    plugins: [
+      new CacheableResponsePlugin({ statuses: [0, 200] }),
+      new ExpirationPlugin({ maxEntries: 50, maxAgeSeconds: 24 * 60 * 60 }),
+    ],
+  })
+);
 
 // Islamic prayer times and events data - populated dynamically from the app
 let PRAYER_TIMES = {};
@@ -53,7 +71,7 @@ self.addEventListener('install', (event) => {
 
 // Activate event - clean up caches and claim clients
 self.addEventListener('activate', (event) => {
-  const currentCaches = [CACHE_NAME, API_CACHE_NAME, HADITH_CACHE_NAME];
+  const currentCaches = [ASSET_CACHE_NAME, API_CACHE_NAME, HADITH_CACHE_NAME];
   event.waitUntil(
     caches.keys().then((cacheNames) => {
       return Promise.all(
@@ -68,62 +86,6 @@ self.addEventListener('activate', (event) => {
     }).then(() => {
       console.log('Service Worker: Activation complete, claiming clients');
       return self.clients.claim();
-    })
-  );
-});
-
-// Fetch event - handle network requests with better caching strategies
-self.addEventListener('fetch', (event) => {
-  const url = new URL(event.request.url);
-
-  // Ignore chrome-extension:// URLs
-  if (url.protocol === 'chrome-extension:') return;
-
-  // Radio domains - NetworkOnly
-  if (url.hostname.includes('qurango.net') || url.hostname.includes('mp3quran.net') || url.pathname.includes('/radio/')) {
-    return;
-  }
-
-  // API calls - NetworkFirst
-  if (url.pathname.startsWith('/api/') || url.hostname.includes('aladhan.com')) {
-    event.respondWith(
-      fetch(event.request)
-        .then((response) => {
-          // Only cache successful same-origin responses to prevent CORS errors
-          if (response.status === 200 && response.type === 'basic') {
-            const copy = response.clone();
-            caches.open(API_CACHE_NAME).then(cache => cache.put(event.request, copy));
-          }
-          return response;
-        })
-        .catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  // Only handle remaining GET requests
-  if (event.request.method !== 'GET') return;
-
-  // App Shell / Assets - Network-First for HTML, StaleWhileRevalidate for others
-  if (event.request.mode === 'navigate' || event.request.headers.get('accept').includes('text/html')) {
-    event.respondWith(
-      fetch(event.request).catch(() => caches.match(event.request))
-    );
-    return;
-  }
-
-  event.respondWith(
-    caches.match(event.request).then((cachedResponse) => {
-      const networkFetch = fetch(event.request).then((networkResponse) => {
-        // Only cache successful same-origin responses to prevent CORS errors
-        if (networkResponse && networkResponse.status === 200 && networkResponse.type === 'basic') {
-          const copy = networkResponse.clone();
-          caches.open(CACHE_NAME).then(cache => cache.put(event.request, copy));
-        }
-        return networkResponse;
-      }).catch(err => console.log('Fetch error:', err));
-
-      return cachedResponse || networkFetch;
     })
   );
 });

@@ -41,7 +41,7 @@ interface CachedNisab {
 export class ZakatNisabService {
   private static hasConfiguredApiKey(): boolean {
     const apiKey = METAL_PRICE_CONSTANTS.ISLAMIC_API_KEY;
-    return Boolean(apiKey && apiKey !== 'YOUR_API_KEY');
+    return Boolean(apiKey && apiKey.length > 0);
   }
 
   /**

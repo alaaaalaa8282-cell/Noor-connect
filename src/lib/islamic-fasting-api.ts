@@ -164,7 +164,7 @@ export class IslamicRamadanAPI {
     const apiKey: string = METAL_PRICE_CONSTANTS.ISLAMIC_API_KEY;
     
     // Skip API call if no API key is configured
-    if (apiKey === 'YOUR_API_KEY') {
+    if (!apiKey) {
       throw new Error('Islamic API key not configured');
     }
 
@@ -220,7 +220,7 @@ export class IslamicRamadanAPI {
         method
       );
 
-      const fastingTimes = monthlyData.data.map((day, index) => ({
+      const fastingTimes = monthlyData.data.map((day) => ({
         date: day.date.gregorian.date,
         day: day.date.gregorian.weekday.en,
         hijri: day.date.hijri.date,

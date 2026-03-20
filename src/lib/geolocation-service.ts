@@ -134,7 +134,7 @@ export class GeolocationService {
 
     if (Capacitor.isNativePlatform()) {
       return await Geolocation.watchPosition(defaultOptions, (position, err) => {
-        if (err) {
+        if (err || !position) {
           return;
         }
         callback({

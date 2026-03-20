@@ -71,6 +71,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 import { prefetchCriticalChunks } from "@/lib/build-optimization";
 import { AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import { LOCATION_STORAGE_KEY } from "@/lib/location-config";
 
 // Prefetch critical route chunks after initial load
 const prefetchRoutes = () => {
@@ -192,7 +193,7 @@ const App = () => {
     }
 
     // Start widget auto-updates
-    const savedLocation = localStorage.getItem('user-location');
+    const savedLocation = localStorage.getItem(LOCATION_STORAGE_KEY);
     if (savedLocation) {
       try {
         const { latitude, longitude, locationName } = JSON.parse(savedLocation);

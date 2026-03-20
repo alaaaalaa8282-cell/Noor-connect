@@ -28,7 +28,7 @@
   <meta name="theme-color" content="#000000" />
   <!-- Content Security Policy: Self-contained for F-Droid -->
   <meta http-equiv="Content-Security-Policy"
-    content="default-src 'self' https: data: blob:; script-src 'self' 'unsafe-inline' 'unsafe-eval'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https: blob: *; connect-src * blob:; media-src * blob:; object-src 'none'; base-uri 'self';" />
+    content="default-src 'self'; script-src 'self'; script-src-attr 'none'; worker-src 'self' blob:; style-src 'self' 'unsafe-inline'; font-src 'self' data:; img-src 'self' data: https: blob:; connect-src 'self' https: wss:; media-src 'self' https: blob:; frame-src 'self' https: blob:; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'self';" />
   <title>Noor Connect - Your Islamic Companion</title>
   <meta name="description"
     content="Noor Connect - Prayer times, Qur'an, Qibla, Tasbeeh, and Daily Hadith. Your complete Islamic companion app.">
@@ -39,11 +39,9 @@
 
   <!-- Premium System Font Stack (No Google Fonts tracking) -->
   <style>
-    @font-face {
-      font-family: 'Noor-Main';
-      src: local('Inter'), local('Segoe UI'), local('Roboto'), local('Helvetica Neue'), sans-serif;
-      font-weight: 300 900;
-      font-display: swap;
+    /* Using CSS custom property for system font stack - no web font downloads */
+    :root {
+      --font-noor-main: 'Inter', 'Segoe UI', 'Roboto', 'Helvetica Neue', system-ui, sans-serif;
     }
   </style>
 

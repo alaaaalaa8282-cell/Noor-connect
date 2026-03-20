@@ -7,7 +7,6 @@ import {
   DEFAULT_LANGUAGE,
   WIDGET_STRING_KEYS,
   isRTL as checkRTL,
-  toLanguageCode,
 } from '@/lib/language-config';
 import { Capacitor } from '@capacitor/core';
 import { Preferences } from '@capacitor/preferences';
@@ -48,11 +47,12 @@ function applyLanguageSideEffects(lang: LanguageCode) {
   root.setProperty('--lang-line-height', String(config.typography.lineHeight));
   root.setProperty('--lang-font-size-adjust', config.typography.fontSizeAdjust);
 
-  // 4. Apply a local Urdu-friendly font stack without remote font requests
+  // 4. Apply a local Urdu-friendly font stack via CSS variable
+  // Using setProperty to set a CSS custom property is preferred over direct style.fontFamily
   if (lang === 'ur') {
-    root.fontFamily = "'Urdu Typesetting', 'Noto Nastaliq Urdu', 'Noto Sans Arabic', Tahoma, sans-serif";
+    root.setProperty('--lang-font-family', "'Urdu Typesetting', 'Noto Nastaliq Urdu', 'Noto Sans Arabic', Tahoma, sans-serif");
   } else {
-    root.fontFamily = ''; // Reset to default
+    root.setProperty('--lang-font-family', 'var(--font-sans)'); // Reset to default
   }
 }
 
@@ -155,7 +155,7 @@ export function LanguageProvider({ children }: LanguageProviderProps) {
     };
 
     bootstrap();
-  }, []);
+  }, [i18n]);
 
   // ── Apply side effects whenever language changes ──
   useEffect(() => {

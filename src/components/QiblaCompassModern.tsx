@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { FALLBACK_LOCATIONS } from '@/lib/location-state';
 import { Compass, Loader2, LocateFixed, RefreshCw, Navigation, MapPin } from 'lucide-react';
 import { Card, CardContent } from "@/components/ui/card";
 import { GeolocationService, type LocationCoordinates } from '@/lib/geolocation-service';
@@ -35,26 +36,10 @@ type DeviceOrientationConstructorWithPermission = typeof DeviceOrientationEvent 
   requestPermission?: () => Promise<string>;
 };
 
-// ─── FOSS Offline Fallback Locations ───────────────────────
-const FALLBACK_LOCATIONS = {
-  'Asia/Karachi': { name: 'Karachi', lat: 24.8607, lon: 67.0011 },
-  'Asia/Dhaka': { name: 'Dhaka', lat: 23.8103, lon: 90.4125 },
-  'Asia/Jakarta': { name: 'Jakarta', lat: -6.2088, lon: 106.8456 },
-  'Asia/Istanbul': { name: 'Istanbul', lat: 41.0082, lon: 28.9784 },
-  'Asia/Riyadh': { name: 'Riyadh', lat: 24.7136, lon: 46.6753 },
-  'Asia/Cairo': { name: 'Cairo', lat: 30.0444, lon: 31.2357 },
-  'Asia/Dubai': { name: 'Dubai', lat: 25.2048, lon: 55.2708 },
-  'Asia/Tehran': { name: 'Tehran', lat: 35.6892, lon: 51.3890 },
-  'Europe/London': { name: 'London', lat: 51.5074, lon: -0.1278 },
-  'America/New_York': { name: 'New York', lat: 40.7128, lon: -74.0060 },
-  'America/Los_Angeles': { name: 'Los Angeles', lat: 34.0522, lon: -118.2437 },
-  'Australia/Sydney': { name: 'Sydney', lat: -33.8688, lon: 151.2093 }
-};
-
 function getFallbackLocationByTimezone(timezone: string) {
   // Return matching city or default to Mecca
-  return FALLBACK_LOCATIONS[timezone as keyof typeof FALLBACK_LOCATIONS] || 
-         { name: 'Mecca', lat: 21.3891, lon: 39.8579 };
+  return FALLBACK_LOCATIONS[timezone as keyof typeof FALLBACK_LOCATIONS] ||
+    { name: 'Mecca', lat: 21.3891, lon: 39.8579 };
 }
 
 // ─── Constants ────────────────────────────────────────────────
@@ -255,7 +240,7 @@ const QiblaCompassModern = () => {
     distanceUpdateIntervalRef.current = window.setInterval(async () => {
       const currentLocation = locationRef.current;
       if (!currentLocation) return;
-      
+
       // Don't update GPS if we're using offline fallback
       if (cityNameRef.current.includes('(Offline)')) return;
 
@@ -269,7 +254,7 @@ const QiblaCompassModern = () => {
 
         // Only update if position changed significantly (more than 10 meters)
         const distanceMoved = calculateDistanceToKaabaKm(
-          freshPosition.latitude, 
+          freshPosition.latitude,
           freshPosition.longitude
         ) - calculateDistanceToKaabaKm(currentLocation.latitude, currentLocation.longitude);
 
@@ -347,13 +332,13 @@ const QiblaCompassModern = () => {
                   setDeviceHeading(next);
                   setCompassState('active');
                 }
-              } catch {}
+              } catch { }
             }).then((listener) => {
               motionListenerRef.current = listener;
-            }).catch(() => {});
+            }).catch(() => { });
           })
-          .catch(() => {});
-      } catch {}
+          .catch(() => { });
+      } catch { }
 
       sensorTimeoutRef.current = window.setTimeout(() => {
         if (!hasSensorEventRef.current) {
@@ -489,7 +474,7 @@ const QiblaCompassModern = () => {
         console.warn('Permission check failed, proceeding anyway:', err);
       }
     }
-    
+
     try {
       const position = await GeolocationService.getCurrentPosition({
         enableHighAccuracy: true,
@@ -535,14 +520,14 @@ const QiblaCompassModern = () => {
   // ── Haptic Feedback on Alignment ─────────────────────────────
   useEffect(() => {
     if (deviceHeading === null || qiblaResult === null) return;
-    
+
     const deviation = Math.abs(shortestSignedAngle(deviceHeading, qiblaResult.bearing));
-    
+
     // Strong haptic when perfectly aligned
     if (alignment?.isAligned && !hapticFiredRef.current) {
       hapticFiredRef.current = true;
       if ('vibrate' in navigator) navigator.vibrate([100, 50, 100]);
-    } 
+    }
     // Gentle haptic when getting close (within 15 degrees)
     else if (deviation <= 15 && deviation > 8 && !hapticFiredRef.current) {
       if ('vibrate' in navigator) navigator.vibrate(30);
@@ -556,11 +541,11 @@ const QiblaCompassModern = () => {
   // ── Dial & Needle Rotation ────────────────────────────────────
   // In 'Locked Needle' mode, the arrow always points straight UP (0deg).
   // The background dial rotates relative to the device heading AND the Qibla bearing.
-  const dialRotation = deviceHeading === null 
-    ? 0 
+  const dialRotation = deviceHeading === null
+    ? 0
     : -deviceHeading + (qiblaResult?.bearing || 0);
-  
-  const needleRotation = 0; 
+
+  const needleRotation = 0;
 
   // ── Loading State ─────────────────────────────────────────────
   if (isLoadingLocation && !location) {
@@ -608,7 +593,7 @@ const QiblaCompassModern = () => {
           backgroundSize: '40px 40px'
         }} />
       </div>
-      
+
       {/* Gradient Orbs - warm gold tones */}
       <div className="absolute top-0 left-1/4 w-96 h-96 rounded-full opacity-30 pointer-events-none"
         style={{ background: `radial-gradient(circle, ${THEME.creamDark} 0%, transparent 70%)`, filter: 'blur(60px)' }} />
@@ -622,7 +607,7 @@ const QiblaCompassModern = () => {
             <IslamicOrnament />
           </div>
           <p className="text-amber-600 text-xs tracking-[0.3em] uppercase font-semibold">Qibla Direction</p>
-          
+
           {/* Large Bearing Display */}
           <div className="flex items-baseline justify-center gap-2">
             <span className="text-6xl font-bold text-amber-900 tracking-tight">
@@ -632,7 +617,7 @@ const QiblaCompassModern = () => {
               {qiblaResult.cardinalDirection}
             </span>
           </div>
-          
+
           {/* Location Info */}
           <div className="flex items-center justify-center gap-2 text-amber-700/60 text-sm">
             <MapPin className="h-3.5 w-3.5" />
@@ -657,12 +642,12 @@ const QiblaCompassModern = () => {
       {/* ── Compass Section ─────────────────────────────────────── */}
       <div className="flex-1 flex items-center justify-center relative z-10 py-4">
         <div className="relative" style={{ width: 'min(85vw, 380px)', height: 'min(85vw, 380px)' }}>
-          
+
           {/* Outer Glow Ring */}
-          <div 
+          <div
             className="absolute inset-0 rounded-full transition-all duration-500"
             style={{
-              background: alignment?.isAligned 
+              background: alignment?.isAligned
                 ? `radial-gradient(circle, ${THEME.primary}20 0%, transparent 70%)`
                 : `radial-gradient(circle, ${THEME.accent}10 0%, transparent 70%)`,
             }}
@@ -679,7 +664,7 @@ const QiblaCompassModern = () => {
             }}
           >
             {/* Inner Ring Decoration */}
-            <div 
+            <div
               className="absolute inset-4 rounded-full border border-slate-600/30"
               style={{ background: `radial-gradient(circle at 30% 30%, ${THEME.surfaceLight}20 0%, transparent 50%)` }}
             />
@@ -699,7 +684,7 @@ const QiblaCompassModern = () => {
                   className="absolute inset-0 flex items-start justify-center"
                   style={{ transform: `rotate(${deg}deg)` }}
                 >
-                  <span 
+                  <span
                     className="text-xs font-bold mt-3"
                     style={{ color: deg === 0 ? THEME.accent : THEME.textMuted }}
                   >
@@ -751,7 +736,7 @@ const QiblaCompassModern = () => {
                     {/* Tail indicator */}
                     <rect x="10" y="108" width="4" height="24" rx="2" fill={THEME.textMuted} opacity="0.3" />
                   </svg>
-                  
+
                   {/* Glow effect when aligned */}
                   {alignment?.isAligned && (
                     <div className="absolute top-4 left-1/2 -translate-x-1/2 w-4 h-24 rounded-full animate-pulse"
@@ -763,7 +748,7 @@ const QiblaCompassModern = () => {
 
             {/* Center Kaaba Icon */}
             <div className="absolute inset-0 flex items-center justify-center z-20">
-              <div 
+              <div
                 className="w-20 h-20 rounded-full flex items-center justify-center transition-all duration-300"
                 style={{
                   background: `linear-gradient(145deg, ${THEME.surface}, ${THEME.dark})`,
@@ -786,7 +771,7 @@ const QiblaCompassModern = () => {
 
       {/* ── Status & Controls Section ───────────────────────────── */}
       <div className="relative z-10 px-6 pb-8 space-y-4">
-        
+
         {/* Status Badge */}
         <div className="flex justify-center">
           {alignment?.isAligned ? (
@@ -803,10 +788,10 @@ const QiblaCompassModern = () => {
             </div>
           ) : (
             <div className="flex items-center gap-2 px-4 py-2 rounded-full bg-white/40 border border-amber-200/50 text-amber-700/60 text-sm">
-              {compassState === 'permission-required' ? 'Tap Enable Compass' : 
-               compassState === 'denied' ? 'Compass permission denied' :
-               compassState === 'activating' ? 'Starting compass...' :
-               compassUnavailable ? 'No compass sensor available' : 'Enable compass for live guidance'}
+              {compassState === 'permission-required' ? 'Tap Enable Compass' :
+                compassState === 'denied' ? 'Compass permission denied' :
+                  compassState === 'activating' ? 'Starting compass...' :
+                    compassUnavailable ? 'No compass sensor available' : 'Enable compass for live guidance'}
             </div>
           )}
         </div>
@@ -832,7 +817,7 @@ const QiblaCompassModern = () => {
                     </span>
                   </div>
                 </div>
-                
+
                 <div className="text-right space-y-1">
                   <p className="text-[10px] font-bold text-amber-600 uppercase tracking-widest">
                     Travel Mode
@@ -849,17 +834,17 @@ const QiblaCompassModern = () => {
                   {/* Origin (Dynamic Emoji based on Distance) */}
                   <div className="flex flex-col items-center z-10">
                     <div className="w-9 h-9 rounded-full bg-amber-100 flex items-center justify-center border-2 border-amber-300 shadow-sm text-lg relative overflow-hidden group">
-                      {qiblaResult.distanceKm < 50 
+                      {qiblaResult.distanceKm < 50
                         ? '🥰' // Overjoyed (within Mecca)
                         : qiblaResult.distanceKm < 500
-                        ? '🥹' // Emotional (very close)
-                        : qiblaResult.distanceKm < 1500
-                        ? '😃' // Very Happy (regional)
-                        : qiblaResult.distanceKm < 4000
-                        ? '😊' // Happy (like Karachi range)
-                        : '🙂' // Content (far)
+                          ? '🥹' // Emotional (very close)
+                          : qiblaResult.distanceKm < 1500
+                            ? '😃' // Very Happy (regional)
+                            : qiblaResult.distanceKm < 4000
+                              ? '😊' // Happy (like Karachi range)
+                              : '🙂' // Content (far)
                       }
-                      
+
                       {/* Subtle pulse effect for the emoji */}
                       <div className="absolute inset-0 bg-amber-200/40 rounded-full scale-0 group-hover:scale-100 transition-transform duration-500" />
                     </div>
@@ -869,7 +854,7 @@ const QiblaCompassModern = () => {
                   {/* Connective Line */}
                   <div className="flex-1 relative flex items-center justify-center mx-2">
                     <div className="w-full border-t-2 border-dashed border-amber-200"></div>
-                    
+
                     {/* Floating Distance Badge */}
                     <div className="absolute bg-white/90 backdrop-blur-sm px-3 py-1 rounded-full border border-amber-100 shadow-sm text-xs font-bold text-amber-600 flex items-center gap-1.5 transform -translate-y-1/2">
                       <span>{qiblaResult.distanceKm < 5000 ? '🚗' : '✈️'}</span>
@@ -888,23 +873,23 @@ const QiblaCompassModern = () => {
 
                 {/* Bottom Journey Insight */}
                 <div className="mt-5 p-3 rounded-2xl bg-amber-50/50 border border-amber-100/50 space-y-1.5 relative group overflow-hidden">
-                   <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 transition-transform group-hover:rotate-45">
-                     <MapPin className="w-12 h-12 text-amber-900" />
-                   </div>
-                   
-                   <p className="text-xs font-bold text-amber-900 flex items-center gap-2">
-                     <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
-                     The Journey Estimate
-                   </p>
-                   
-                   <p className="text-[11px] text-amber-800/80 leading-relaxed font-medium">
-                    {qiblaResult.distanceKm < 100 
+                  <div className="absolute top-0 right-0 p-2 opacity-5 scale-150 rotate-12 transition-transform group-hover:rotate-45">
+                    <MapPin className="w-12 h-12 text-amber-900" />
+                  </div>
+
+                  <p className="text-xs font-bold text-amber-900 flex items-center gap-2">
+                    <span className="w-1.5 h-1.5 rounded-full bg-amber-500 animate-pulse" />
+                    The Journey Estimate
+                  </p>
+
+                  <p className="text-[11px] text-amber-800/80 leading-relaxed font-medium">
+                    {qiblaResult.distanceKm < 100
                       ? `Subhanallah, you are extremely close! Just ${Math.round(qiblaResult.distanceKm * 1000)}m to the Holy Kaaba.`
                       : qiblaResult.distanceKm < 5000
-                      ? `A spiritual road trip would take roughly ${Math.round(qiblaResult.distanceKm / 50)} hours of driving.`
-                      : `You are a flight of approximately ${Math.round(qiblaResult.distanceKm / 800)} hours away from the House of Allah.`
+                        ? `A spiritual road trip would take roughly ${Math.round(qiblaResult.distanceKm / 50)} hours of driving.`
+                        : `You are a flight of approximately ${Math.round(qiblaResult.distanceKm / 800)} hours away from the House of Allah.`
                     }
-                   </p>
+                  </p>
                 </div>
               </div>
             </CardContent>

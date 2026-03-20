@@ -18,7 +18,7 @@ const isStandaloneMode = (): boolean => {
 // Star component purely for visual flair
 function FloatingStars() {
     const stars = useMemo(() =>
-        Array.from({ length: 30 }, (_, i) => ({
+        Array.from({ length: 10 }, (_, i) => ({
             id: i,
             x: Math.random() * 100,
             y: Math.random() * 100,

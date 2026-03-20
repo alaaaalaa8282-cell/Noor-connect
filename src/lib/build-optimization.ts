@@ -3,7 +3,7 @@
 // Critical components that should be prefetched
 export const CRITICAL_CHUNKS = [
   () => import('../pages/Dashboard'),
-  () => import('../pages/Quran'),
+  () => import('../pages/SurahList'),
   () => import('../pages/Tasbeeh'),
   () => import('../pages/Profile'),
 ];

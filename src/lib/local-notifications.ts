@@ -19,7 +19,7 @@ if ('serviceWorker' in navigator) {
   });
 }
 
-const LOCATION_STORAGE_KEY = 'user-location-data';
+const LOCATION_STORAGE_KEY = 'location-storage';
 const PRAYER_NOTIFICATIONS_ENABLED_KEY = 'prayer-notifications-enabled';
 const PRAYER_ALARM_ENABLED_KEY = 'prayer-alarm-enabled';
 const LAST_SCHEDULE_SIGNATURE_KEY = 'last-prayer-notification-signature';
@@ -406,21 +406,21 @@ export class LocalNotificationManager {
         if (Capacitor.isNativePlatform()) {
           const nativeAlarms: NativeAdhanAlarm[] = [];
           for (const prayer of prayerTimes) {
-             const key = prayerToggleMap[prayer.name as any];
-             if (key && !adhanConfig[key]) continue;
-             
-             if (prayer.date > now) {
-                nativeAlarms.push({
-                   id: this.getNotificationId(prayer.name, prayer.date),
-                   triggerAt: prayer.date.getTime(),
-                   prayerName: prayer.name,
-                   adhanUrl: await getAdhanUrlForPrayer(prayer.name as PrayerName),
-                });
-             }
+            const key = prayerToggleMap[prayer.name as any];
+            if (key && !adhanConfig[key]) continue;
+
+            if (prayer.date > now) {
+              nativeAlarms.push({
+                id: this.getNotificationId(prayer.name, prayer.date),
+                triggerAt: prayer.date.getTime(),
+                prayerName: prayer.name,
+                adhanUrl: await getAdhanUrlForPrayer(prayer.name as PrayerName),
+              });
+            }
           }
-          
+
           if (this.isPrayerAlarmEnabled()) {
-             await nativeAdhan.schedule(nativeAlarms, true);
+            await nativeAdhan.schedule(nativeAlarms, true);
           }
         }
       }
@@ -500,7 +500,9 @@ export class LocalNotificationManager {
       const day = String(prayerDate.getDate()).padStart(2, '0');
       const dateNumber = parseInt(`${year}${month}${day}`, 10);
       const index = prayerIndex[prayerName] || 9;
-      return dateNumber * 10 + index;
+      // Use modulo to keep IDs within 32-bit integer range (max 2,147,483,647)
+      // This prevents overflow on Android PendingIntent IDs
+      return (dateNumber % 100000) * 10 + index;
     }
 
     return 1000 + (prayerIndex[prayerName] || 9);

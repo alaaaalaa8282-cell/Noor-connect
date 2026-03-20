@@ -46,7 +46,8 @@ export class AdhanService {
 
   constructor() {
     this.initializeAudio();
-    this.requestNotificationPermission();
+    // Don't request notification permission eagerly - wait for user interaction
+    // Permission will be requested when user enables adhan or toggles notifications
   }
 
   /**
@@ -194,31 +195,31 @@ export class AdhanService {
       // Get muezzin and construct URL
       const muezzins = this.getAvailableMuezzins();
       const selectedMuezzin = muezzins.find(m => m.id === config.selectedMuezzin);
-      
+
       if (!selectedMuezzin) {
         console.error('Selected muezzin not found');
         return false;
       }
 
       const adhanUrl = customUrl || `${selectedMuezzin.url}${prayerName}.mp3`;
-      
+
       // Set audio properties
       this.audio.src = adhanUrl;
       this.audio.volume = config.volume / 100;
-      
+
       // Play the Adhan
       await this.audio.play();
-      
+
       // Show notification
       if (config.playNotificationSound && this.notificationPermission === 'granted') {
         this.showAdhanNotification(prayerName, selectedMuezzin.name);
       }
-      
+
       // Vibrate if enabled
       if (config.vibrationEnabled && 'vibrate' in navigator) {
         navigator.vibrate([200, 100, 200]);
       }
-      
+
       console.log(`Playing Adhan for ${prayerName} by ${selectedMuezzin.name}`);
       return true;
     } catch (error) {
@@ -293,7 +294,7 @@ export class AdhanService {
     // In a real app, you would integrate with a prayer times API
     const now = new Date();
     const hour = now.getHours();
-    
+
     const prayerTimes = [
       { name: 'fajr', time: '05:30', hasPlayed: false },
       { name: 'dhuhr', time: '12:30', hasPlayed: false },

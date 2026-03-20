@@ -24,73 +24,25 @@ const EMERGENCY_IDS = {
 
 /**
  * Standalone function to fetch current live video ID for any channel
- * Uses YouTube Data API search endpoint with eventType=live and type=video
+ * Client-side YouTube API keys would be exposed in the bundle, so we avoid
+ * remote lookup here and rely on cached or emergency IDs instead.
  */
 export async function getCurrentLiveVideoId(channelId: string): Promise<string | null> {
-    const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-    
-    if (!apiKey) {
-        if (channelId === CHANNELS.MAKKAH) return EMERGENCY_IDS.MAKKAH;
-        if (channelId === CHANNELS.MADINAH) return EMERGENCY_IDS.MADINAH;
-        return null;
-    }
-
-    try {
-        // Search for live videos on the channel
-        const searchUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&eventType=live&type=video&order=date&key=${apiKey}`;
-        
-        
-        const response = await fetch(searchUrl);
-        
-        if (!response.ok) {
-            return null;
-        }
-
-        const data = await response.json();
-        
-        // Check if we found any live videos
-        if (data.items && data.items.length > 0) {
-            const liveVideo = data.items[0];
-            const videoId = liveVideo.id.videoId;
-            return videoId;
-        }
-
-        return null;
-        
-    } catch {
-        return null;
-    }
+    if (channelId === CHANNELS.MAKKAH) return EMERGENCY_IDS.MAKKAH;
+    if (channelId === CHANNELS.MADINAH) return EMERGENCY_IDS.MADINAH;
+    return null;
 }
 
 /**
  * Get live video ID with multiple fallback strategies
  */
 export async function getLiveVideoIdWithFallback(channelId: string, fallbackId: string): Promise<string> {
-    // Try to get current live video first
     const liveVideoId = await getCurrentLiveVideoId(channelId);
-    
     if (liveVideoId) {
         return liveVideoId;
     }
-    // If no live video found, try to get the most recent video
-    try {
-        const apiKey = import.meta.env.VITE_YOUTUBE_API_KEY;
-        if (apiKey) {
-            const recentVideosUrl = `https://www.googleapis.com/youtube/v3/search?part=snippet&channelId=${channelId}&type=video&order=date&maxResults=1&key=${apiKey}`;
-            const response = await fetch(recentVideosUrl);
-            if (response.ok) {
-                const data = await response.json();
-                
-                if (data.items && data.items.length > 0) {
-                    const recentVideoId = data.items[0].id.videoId;
-                    return recentVideoId;
-                }
-            }
-        }
-    } catch {
-    }
-    
-    // Final fallback - use the hardcoded emergency ID
+
+    // Final fallback - use the hardcoded emergency ID.
     return fallbackId;
 }
 

@@ -3,38 +3,43 @@ export class QuranDownloadManager {
     private storeName = "surahs";
     private version = 1;
     private db: IDBDatabase | null = null;
+    private initPromise: Promise<void> | null = null;
 
     constructor() {
-        this.initDB();
+        // Start initialization but don't block constructor
+        void this.initDB();
     }
 
     private initDB(): Promise<void> {
-        return new Promise((resolve, reject) => {
-            if (this.db) {
-                resolve();
-                return;
-            }
+        if (this.db) {
+            return Promise.resolve();
+        }
+        if (!this.initPromise) {
+            this.initPromise = new Promise((resolve, reject) => {
+                const request = indexedDB.open(this.dbName, this.version);
 
-            const request = indexedDB.open(this.dbName, this.version);
+                request.onerror = (event) => {
+                    console.error("IndexedDB error:", event);
+                    this.initPromise = null;
+                    reject("Failed to open database");
+                };
 
-            request.onerror = (event) => {
-                console.error("IndexedDB error:", event);
-                reject("Failed to open database");
-            };
+                request.onsuccess = (event) => {
+                    this.db = (event.target as IDBOpenDBRequest).result;
+                    resolve();
+                };
 
-            request.onsuccess = (event) => {
-                this.db = (event.target as IDBOpenDBRequest).result;
-                resolve();
-            };
+                request.onupgradeneeded = (event) => {
+                    const db = (event.target as IDBOpenDBRequest).result;
+                    if (!db.objectStoreNames.contains(this.storeName)) {
+                        // Key: "reciterId-surahId" (e.g., "1-2")
+                        db.createObjectStore(this.storeName);
+                    }
+                };
+            });
+        }
 
-            request.onupgradeneeded = (event) => {
-                const db = (event.target as IDBOpenDBRequest).result;
-                if (!db.objectStoreNames.contains(this.storeName)) {
-                    // Key: "reciterId-surahId" (e.g., "1-2")
-                    db.createObjectStore(this.storeName);
-                }
-            };
-        });
+        return this.initPromise;
     }
 
     private getStore(mode: IDBTransactionMode): IDBObjectStore {

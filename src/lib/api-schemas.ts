@@ -3,7 +3,7 @@ import { z } from "zod";
 // AlAdhan Prayer Times API Schema
 export const prayerTimingsSchema = z.object({
   Fajr: z.string(),
-  Sunrise: z.string().optional(),
+  Sunrise: z.string(),  // Required - AlAdhan API always returns this
   Dhuhr: z.string(),
   Asr: z.string(),
   Sunset: z.string().optional(),
@@ -133,17 +133,17 @@ export function safeParseApiResponse<T>(
   fallback?: T
 ): { success: true; data: T } | { success: false; error: string; data?: T } {
   const result = schema.safeParse(data);
-  
+
   if (result.success) {
     return { success: true, data: result.data };
   }
-  
+
   console.error("API response validation failed:", result.error.message);
-  
+
   if (fallback !== undefined) {
     return { success: false, error: result.error.message, data: fallback };
   }
-  
+
   return { success: false, error: result.error.message };
 }
 

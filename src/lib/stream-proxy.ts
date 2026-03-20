@@ -92,22 +92,31 @@ export const STREAM_PROXIES: Record<'makkah' | 'madinah', StreamProxy[]> = {
 /**
  * Network detection utilities
  */
+let lastYouTubeBlocked = false;
+
 export const NetworkUtils = {
     /**
      * Check if YouTube is likely blocked by testing connectivity
      */
     async checkYouTubeConnectivity(): Promise<boolean> {
-        try {
-            const response = await fetch('https://www.youtube-nocookie.com/favicon.ico', {
-                method: 'HEAD',
-                mode: 'no-cors',
-                cache: 'no-cache',
-                signal: AbortSignal.timeout(3000) // 3 second timeout
-            });
-            return true;
-        } catch {
-            return false;
-        }
+        return await new Promise((resolve) => {
+            const image = new Image();
+            const cleanup = (isAvailable: boolean) => {
+                lastYouTubeBlocked = !isAvailable;
+                image.onload = null;
+                image.onerror = null;
+                clearTimeout(timeoutId);
+                resolve(isAvailable);
+            };
+
+            const timeoutId = window.setTimeout(() => {
+                cleanup(false);
+            }, 3000);
+
+            image.onload = () => cleanup(true);
+            image.onerror = () => cleanup(false);
+            image.src = `https://www.youtube-nocookie.com/favicon.ico?ts=${Date.now()}`;
+        });
     },
 
     /**
@@ -115,37 +124,28 @@ export const NetworkUtils = {
      */
     async getBestProxy(stream: 'makkah' | 'madinah'): Promise<StreamProxy> {
         const proxies = STREAM_PROXIES[stream];
-        
+
         // Prioritize non-YouTube sources first (since YouTube is often blocked)
         const nonYouTubeProxies = proxies.filter(p => p.type !== 'youtube');
         if (nonYouTubeProxies.length > 0) {
             return nonYouTubeProxies[0]; // Use first non-YouTube source
         }
-        
+
         // Try YouTube connectivity last
         const youTubeAvailable = await this.checkYouTubeConnectivity();
         if (youTubeAvailable) {
             return proxies[0]; // Use primary YouTube
         }
-        
+
         // Fallback to direct stream
         return proxies.find(p => p.type === 'direct') || proxies[0];
     },
 
     /**
      * Detect if YouTube is blocked based on console errors
+     * Returns the last observed connectivity result from checkYouTubeConnectivity().
      */
     detectYouTubeBlock(): boolean {
-        // Check for common YouTube block indicators
-        const errors = [
-            'ERR_BLOCKED_BY_CLIENT',
-            'youtube-nocookie.com',
-            'generate_204'
-        ];
-        
-        return errors.some(error => 
-            console.error.toString().includes(error) ||
-            document.title.includes('blocked')
-        );
+        return lastYouTubeBlocked;
     }
 };
