@@ -5,6 +5,7 @@
 import { registerPlugin } from '@capacitor/core';
 import { calculatePrayerTimes, formatPrayerTime, getNextPrayer } from './prayer-calculator';
 import type { WidgetPluginInterface, PrayerEntry, WidgetStrings } from './widgetPlugin';
+import { runIfNative } from './capacitor-utils'; // Added user's utility
 
 /* Re-export the plugin type for convenience */
 export type { WidgetPluginInterface, PrayerEntry, WidgetStrings };
@@ -132,18 +133,21 @@ export class WidgetService {
             const allPrayers = buildAllPrayers(latitude, longitude);
             const quran = getStoredQuranVerse();
 
-            await WidgetPlugin.updateWidgetFull({
-                name: prayerName,
-                time: nextTimeStr,
-                remaining: next.timeUntil,
-                location: locationName ?? '',
-                hijriDate: getHijriDateString(),
-                currentTime: getCurrentTimeString(),
-                allPrayers,
-                quranArabic: quran?.arabic ?? '',
-                quranTranslit: quran?.translit ?? '',
-                quranRef: quran?.ref ?? '',
-            });
+            // Using the user's runIfNative utility!
+            await runIfNative(() => 
+                WidgetPlugin.updateWidgetFull({
+                    name: prayerName,
+                    time: nextTimeStr,
+                    remaining: next.timeUntil,
+                    location: locationName ?? '',
+                    hijriDate: getHijriDateString(),
+                    currentTime: getCurrentTimeString(),
+                    allPrayers,
+                    quranArabic: quran?.arabic ?? '',
+                    quranTranslit: quran?.translit ?? '',
+                    quranRef: quran?.ref ?? '',
+                })
+            );
 
         } catch (error) {
             console.error('[WidgetService] updateWidget failed:', error);
@@ -159,9 +163,9 @@ export class WidgetService {
         longitude: number,
         locationName?: string,
     ): ReturnType<typeof setInterval> {
-        this.updateWidget(latitude, longitude, locationName);
+        WidgetService.updateWidget(latitude, longitude, locationName).catch(console.error);
         return setInterval(
-            () => this.updateWidget(latitude, longitude, locationName),
+            () => WidgetService.updateWidget(latitude, longitude, locationName).catch(console.error),
             30 * 60 * 1000,
         );
     }

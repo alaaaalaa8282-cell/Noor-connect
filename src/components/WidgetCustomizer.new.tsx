@@ -49,15 +49,10 @@ const WidgetMockPreview = ({ widget, isMobile }: { widget: DashboardWidgetConfig
   const colorClasses = getWidgetMockColor(widget.id);
   
   return (
-    <div className={`mt-4 p-4 rounded-xl bg-gradient-to-br ${colorClasses} border flex items-center justify-center min-h-[100px] opacity-90 group-hover:opacity-100 transition-opacity`}>
-      <div className="flex flex-col items-center gap-3 text-center">
-         <div className="p-2 rounded-full bg-background/50 backdrop-blur-sm shadow-sm">
-           {getWidgetIcon(widget.id, "w-6 h-6")}
-         </div>
-         <div>
-           <span className="text-sm font-semibold block">{widget.name}</span>
-           <span className="text-[10px] uppercase font-bold tracking-wider opacity-70">Live Preview</span>
-         </div>
+    <div className={`mt-3 p-3 rounded-xl bg-gradient-to-br ${colorClasses} border flex items-center justify-center min-h-[80px] opacity-80 group-hover:opacity-100 transition-opacity`}>
+      <div className="flex flex-col items-center gap-2 text-center">
+         {getWidgetIcon(widget.id, "w-6 h-6")}
+         <span className="text-xs font-medium">{widget.name} Preview</span>
       </div>
     </div>
   );
@@ -112,7 +107,7 @@ export function WidgetCustomizer() {
   const hiddenWidgets = widgets.filter(w => !w.visible);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 pb-20">
+    <div className="w-full max-w-4xl mx-auto space-y-6 pb-20">
       <Card className="border-none shadow-none bg-transparent">
         <CardHeader className="px-0 pt-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -128,7 +123,7 @@ export function WidgetCustomizer() {
             <Button
               variant="outline"
               onClick={resetToDefault}
-              className="gap-2 w-full sm:w-auto rounded-xl border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="gap-2 w-full sm:w-auto rounded-xl"
             >
               <RotateCcw className="w-4 h-4" />
               Reset to Default
@@ -137,54 +132,47 @@ export function WidgetCustomizer() {
         </CardHeader>
       </Card>
 
-      <div className="space-y-10">
+      <div className="space-y-8">
         {/* Visible Widgets Grid */}
         <section>
-          <div className="flex items-center justify-between mb-4 px-1">
-            <div className="flex items-center gap-3">
-              <h3 className="font-bold text-xl text-foreground tracking-tight">Active Widgets</h3>
-              <Badge variant="secondary" className="rounded-full px-2 py-0.5">{visibleWidgets.length}</Badge>
-            </div>
+          <div className="flex items-center gap-2 mb-4 px-2">
+            <h3 className="font-bold text-lg text-foreground">Visible on Dashboard</h3>
+            <Badge variant="secondary" className="rounded-full">{visibleWidgets.length}</Badge>
           </div>
           
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
+          <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
             {visibleWidgets.map((widget) => (
-              <Card key={widget.id} className="group overflow-hidden border border-border/60 bg-card/80 backdrop-blur shadow-sm hover:shadow-md hover:border-border transition-all duration-300 flex flex-col h-full">
-                <CardContent className="p-5 flex flex-col flex-1">
-                  
-                  {/* Top Header Row within Card */}
-                  <div className="flex items-start justify-between gap-4 mb-2">
+              <Card key={widget.id} className="group overflow-hidden border-border/50 bg-card/50 hover:bg-card hover:border-border transition-all duration-300">
+                <CardContent className="p-4 sm:p-5">
+                  <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                       <h4 className="font-bold text-lg text-foreground truncate leading-tight mb-1">{widget.name}</h4>
-                       <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${getCategoryColor(widget.category)} uppercase tracking-wider`}>
+                      <div className="flex items-center gap-2 mb-1">
+                        <h4 className="font-semibold text-base truncate">{widget.name}</h4>
+                        <Badge className={`text-[10px] px-1.5 py-0 h-4 ${getCategoryColor(widget.category)}`}>
                           {widget.category}
-                        </span>
+                        </Badge>
+                      </div>
+                      <p className="text-xs text-muted-foreground line-clamp-2">{widget.description}</p>
                     </div>
                     
-                    <div className="shrink-0 flex flex-col items-end gap-2">
-                      {widget.category !== 'essential' ? (
+                    {widget.category !== 'essential' && (
+                      <div className="shrink-0 flex flex-col items-end gap-2">
                         <Switch
                           checked={widget.visible}
                           onCheckedChange={() => toggleWidgetVisibility(widget.id)}
                           className="data-[state=checked]:bg-primary"
-                          title="Toggle visibility"
                         />
-                      ) : (
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 border-none shadow-none text-xs">Pinned</Badge>
-                      )}
-                    </div>
+                      </div>
+                    )}
+                    {widget.category === 'essential' && (
+                      <div className="shrink-0">
+                        <Badge variant="outline" className="text-[10px] opacity-50 bg-transparent">Pinned</Badge>
+                      </div>
+                    )}
                   </div>
                   
-                  {/* Description row */}
-                  <div className="mb-4">
-                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{widget.description}</p>
-                  </div>
-                  
-                  {/* Widget Live Visual Preview fills remaining space */}
-                  <div className="mt-auto">
-                    <WidgetMockPreview widget={widget} isMobile={isMobile} />
-                  </div>
-                  
+                  {/* Widget Live Visual Preview */}
+                  <WidgetMockPreview widget={widget} isMobile={isMobile} />
                 </CardContent>
               </Card>
             ))}
@@ -194,33 +182,40 @@ export function WidgetCustomizer() {
         {/* Hidden Widgets Section */}
         {hiddenWidgets.length > 0 && (
           <section>
-            <div className="flex items-center gap-3 mb-4 px-1">
-              <h3 className="font-bold text-xl text-muted-foreground tracking-tight">Hidden Config</h3>
-              <Badge variant="secondary" className="rounded-full bg-muted/60 text-muted-foreground px-2 py-0.5">{hiddenWidgets.length}</Badge>
+            <div className="flex items-center gap-2 mb-4 px-2">
+              <h3 className="font-bold text-lg text-muted-foreground">Hidden Widgets</h3>
+              <Badge variant="secondary" className="rounded-full bg-muted text-muted-foreground">{hiddenWidgets.length}</Badge>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-2 gap-4">
               {hiddenWidgets.map((widget) => (
-                <Card key={widget.id} className="overflow-hidden border-dashed border-border/60 bg-muted/10 hover:bg-muted/30 transition-colors">
-                  <CardContent className="p-4 flex flex-col items-center text-center opacity-60 hover:opacity-100 transition-opacity space-y-3">
-                    <div className="p-3 rounded-full bg-background border border-border mt-2 shadow-sm text-muted-foreground">
-                        {getWidgetIcon(widget.id, "w-5 h-5")}
+                <Card key={widget.id} className="overflow-hidden border-dashed border-border/60 bg-muted/20 hover:bg-muted/40 transition-colors">
+                  <CardContent className="p-4 sm:p-5 opacity-70 hover:opacity-100 transition-opacity">
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <div className="flex items-center gap-2 mb-1">
+                          <h4 className="font-semibold text-base text-muted-foreground truncate">{widget.name}</h4>
+                          <Badge className={`text-[10px] px-1.5 py-0 h-4 bg-muted text-muted-foreground border-none`}>
+                            {widget.category}
+                          </Badge>
+                        </div>
+                        <p className="text-xs text-muted-foreground line-clamp-1">{widget.description}</p>
+                      </div>
+                      
+                      <div className="shrink-0">
+                         <Switch
+                          checked={widget.visible}
+                          onCheckedChange={() => toggleWidgetVisibility(widget.id)}
+                        />
+                      </div>
                     </div>
                     
-                    <div>
-                      <h4 className="font-semibold text-base text-foreground truncate">{widget.name}</h4>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2 px-2">{widget.description}</p>
-                    </div>
-                    
-                    <div className="pt-2 w-full flex justify-center border-t border-border/40 mt-2">
-                       <Button 
-                         variant="ghost" 
-                         size="sm" 
-                         className="w-full text-xs font-semibold"
-                         onClick={() => toggleWidgetVisibility(widget.id)}
-                       >
-                         Enable Widget
-                       </Button>
+                    {/* Faded miniature preview for hidden ones */}
+                    <div className="mt-3 p-2 rounded-lg bg-muted/50 border border-border/30 flex items-center justify-center opacity-50 grayscale">
+                      <div className="flex items-center gap-2 text-muted-foreground">
+                         {getWidgetIcon(widget.id, "w-4 h-4")}
+                         <span className="text-[10px] font-medium">Add to Dashboard to preview</span>
+                      </div>
                     </div>
                   </CardContent>
                 </Card>

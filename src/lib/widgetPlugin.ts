@@ -1,4 +1,5 @@
 import { Capacitor } from '@capacitor/core';
+import { isNativePlatform, runIfNative } from './capacitor-utils';
 
 /** One prayer entry passed to updateWidgetFull */
 export interface PrayerEntry {
@@ -61,6 +62,15 @@ export interface WidgetPluginInterface {
   }): Promise<{ status: string }>;
 }
 
-const WidgetPlugin = Capacitor.registerPlugin<WidgetPluginInterface>('WidgetPlugin');
+// Use runIfNative to handle plugin registration cleanly
+const WidgetPlugin = await runIfNative<WidgetPluginInterface>(() => 
+  Capacitor.registerPlugin<WidgetPluginInterface>('WidgetPlugin')
+) ?? {
+  // Provide a mock implementation that resolves promises to avoid errors on web
+  updateWidget: () => Promise.resolve({ status: 'ok' }),
+  updateWidgetFull: () => Promise.resolve({ status: 'ok' }),
+  setWidgetStrings: () => Promise.resolve({ status: 'ok' }),
+  notifyWidgetDataChanged: () => Promise.resolve({ status: 'ok' }),
+} as WidgetPluginInterface;
 
 export { WidgetPlugin };

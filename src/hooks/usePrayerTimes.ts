@@ -10,8 +10,7 @@ import { GeocodingService } from '@/lib/geocoding';
 import { AladhanAPI, ALADHAN_METHODS } from '@/lib/aladhan-api';
 import { formatPrayerTime } from '@/lib/time-formatter';
 import { GeolocationService } from '@/lib/geolocation-service';
-import { WidgetPlugin } from '@/lib/widgetPlugin';
-import { Capacitor } from '@capacitor/core';
+import { isNativePlatform } from '@/lib/capacitor-utils';
 import { getMenstrualModeData } from '@/lib/menstrual-mode';
 import { getFallbackLocationByTimezone, LOCATION_STORAGE_KEY } from '@/lib/location-config';
 
@@ -345,36 +344,35 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
 
       lastFetchSignatureRef.current = fetchSignature;
 
-      // Update widget with next prayer
-      if (Capacitor.isNativePlatform()) {
-        // Find next prayer from current time
-        const now = new Date();
-        const prayers = [
-          { name: 'Fajr', time: times.fajr },
-          { name: 'Dhuhr', time: times.dhuhr },
-          { name: 'Asr', time: times.asr },
-          { name: 'Maghrib', time: times.maghrib },
-          { name: 'Isha', time: times.isha }
-        ];
+        // Update widget with next prayer
+        if (isNativePlatform()) {
+          // Find next prayer from current time
+          const now = new Date();
+          const prayers = [
+            { name: 'Fajr', time: times.fajr },
+            { name: 'Dhuhr', time: times.dhuhr },
+            { name: 'Asr', time: times.asr },
+            { name: 'Maghrib', time: times.maghrib },
+            { name: 'Isha', time: times.isha }
+          ];
 
-        let nextPrayer = prayers[0]; // Default to first prayer
-        for (const prayer of prayers) {
-          if (prayer.time > now) {
-            nextPrayer = prayer;
-            break;
+          let nextPrayer = prayers[0]; // Default to first prayer
+          for (const prayer of prayers) {
+            if (prayer.time > now) {
+              nextPrayer = prayer;
+              break;
+            }
           }
+
+          const location = locationData.city || locationData.country || 'Unknown';
+
+          WidgetUpdateService.updateWidgetBasic(
+            locationData.latitude,
+            locationData.longitude,
+            location
+          ).catch(() => {
+          });
         }
-
-        const location = locationData.city || locationData.country || 'Unknown';
-
-        WidgetPlugin.updateWidget({
-          name: nextPrayer.name,
-          time: formatPrayerTime(nextPrayer.time, '24'),
-          remaining: 'Next prayer',
-          location: location
-        }).catch(() => {
-        });
-      }
 
     } catch (error) {
       console.error('Failed to calculate prayer times:', error);

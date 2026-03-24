@@ -109,6 +109,7 @@ export default function EnhancedIslamicQuiz() {
   const [variableReward, setVariableReward] = useState<VariableReward | null>(null);
   const [canClaimMysteryBox, setCanClaimMysteryBox] = useState(false);
   const [activeEvent, setActiveEvent] = useState<ReturnType<typeof timeEventsSystem.getActiveEvent>>(null);
+  const { toast } = useToast();
 
   useEffect(() => {
     setStats(quizManager.getStats());
@@ -293,8 +294,7 @@ export default function EnhancedIslamicQuiz() {
     if (luckyFind) {
       setVariableReward(luckyFind);
       toast({
-        title: luckyFind.message,
-        icon: luckyFind.icon,
+        title: `${luckyFind.icon} ${luckyFind.message}`,
       });
     }
     
@@ -456,6 +456,7 @@ export default function EnhancedIslamicQuiz() {
       selectedDifficulty={selectedDifficulty}
       setSelectedDifficulty={setSelectedDifficulty}
       stats={stats}
+      setStats={setStats}
       powerUps={powerUps}
       storeInventory={storeInventory}
       onShowAchievements={() => setGameMode('achievements')}
@@ -489,6 +490,13 @@ export default function EnhancedIslamicQuiz() {
       setGameMode('menu');
       loadStoreInventory();
       setCanClaimMysteryBox(mysteryBoxSystem.canClaimDailyBox());
+    }} />;
+  }
+
+  if (gameMode === 'dailyRewards') {
+    return <DailyRewards onClose={() => {
+      setGameMode('menu');
+      setStats(quizManager.getStats());
     }} />;
   }
 
@@ -728,6 +736,7 @@ function QuizMenu({
   selectedDifficulty, 
   setSelectedDifficulty,
   stats,
+  setStats,
   powerUps,
   storeInventory,
   onShowAchievements,

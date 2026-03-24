@@ -1,5 +1,6 @@
 import { useEffect } from 'react';
 import { WidgetPlugin } from '@/lib/widgetPlugin';
+import { isNativePlatform } from '@/lib/capacitor-utils';
 import { usePrayerTimes } from '@/hooks/usePrayerTimes';
 
 /**
@@ -52,13 +53,15 @@ export function useWidgetSync() {
 
       const ayahData = JSON.stringify(ayahDataObj);
 
-      // 3. Sync with Native Plugin
-      WidgetPlugin.notifyWidgetDataChanged({
-        prayerData,
-        ayahData
-      }).catch(err => {
-        console.error('[useWidgetSync] failed to sync to native widgets:', err);
-      });
+       // 3. Sync with Native Plugin (only if native)
+       if (isNativePlatform()) {
+         WidgetPlugin.notifyWidgetDataChanged({
+           prayerData,
+           ayahData
+         }).catch(err => {
+           console.error('[useWidgetSync] failed to sync to native widgets:', err);
+         });
+       }
 
     } catch (err) {
       console.error('[useWidgetSync] error serializing data:', err);

@@ -8,7 +8,7 @@ import {
   WIDGET_STRING_KEYS,
   isRTL as checkRTL,
 } from '@/lib/language-config';
-import { Capacitor } from '@capacitor/core';
+import { isNativePlatform } from '@/lib/capacitor-utils';
 import { Preferences } from '@capacitor/preferences';
 
 const PREF_KEY = 'app-language';
@@ -78,10 +78,10 @@ async function loadSavedLanguageCode(): Promise<LanguageCode | null> {
   return null;
 }
 
-// ─── System-first detection via @capacitor/device ───
+   // ─── System-first detection via @capacitor/device ───
 
-async function detectSystemLanguage(): Promise<LanguageCode> {
-  if (Capacitor.isNativePlatform()) {
+  async function detectSystemLanguage(): Promise<LanguageCode> {
+    if (isNativePlatform()) {
     try {
       const { Device } = await import('@capacitor/device');
       const info = await Device.getLanguageCode();
@@ -103,12 +103,12 @@ async function detectSystemLanguage(): Promise<LanguageCode> {
   return DEFAULT_LANGUAGE;
 }
 
-// ─── "Dumb Widget" bridge: send only the strings the widget needs ───
+   // ─── "Dumb Widget" bridge: send only the strings the widget needs ───
 
-async function sendWidgetStrings(tFn: (key: string) => string) {
-  if (!Capacitor.isNativePlatform()) return;
-  try {
-    // Build a tiny JSON payload of only the widget-relevant strings
+    async function sendWidgetStrings(tFn: (key: string) => string) {
+      if (!isNativePlatform()) return;
+      try {
+        // Build a tiny JSON payload of only the widget-relevant strings
     const payload: Record<string, string> = {};
     for (const key of WIDGET_STRING_KEYS) {
       payload[key] = tFn(key);
