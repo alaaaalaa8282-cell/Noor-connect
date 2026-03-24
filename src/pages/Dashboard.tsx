@@ -22,6 +22,7 @@ import { useWidgetSync } from "@/hooks/useWidgetSync";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import { getTimeFormat, formatTime } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
+import { checkForUpdates, getDownloadUrl, formatReleaseNotes, getLastCheckedTimestamp, type UpdateCheckResult, CURRENT_APP_VERSION } from "@/lib/github-update";
 import { AladhanAPI } from "@/lib/aladhan-api";
 import { type PrayerTime } from "@/lib/local-notifications";
 import { useToast } from "@/hooks/use-toast";
@@ -946,7 +947,7 @@ export default function Dashboard() {
 
               <div className="mt-3 inline-flex items-center gap-2 px-3 py-1.5 rounded-full bg-slate-200/50 dark:bg-slate-800 text-[10px] font-bold uppercase tracking-widest text-slate-500">
                 <Star className="w-3.5 h-3.5 text-amber-500 fill-amber-500/20" />
-                App Version 1.1.2
+                App Version {CURRENT_APP_VERSION}
               </div>
             </div>
           </div>
