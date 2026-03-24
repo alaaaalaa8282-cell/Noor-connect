@@ -35,7 +35,7 @@
 - **Zakat & Fitrana Calculators**: Advanced offline calculators to accurately determine your annual Zakat and Ramadan Fitrana obligations.
 - **Hisnul Muslim & Duas**: Comprehensive library of authentic supplications for all occasions.
 - **Names of Allah (Asma-ul-Husna)**: Beautifully rendered 99 Names of Allah with meanings and fluid animations.
-- **Enhanced Islamic Quiz**: Test your knowledge of Deen with interactive, gamified Islamic quizzes.
+- **Enhanced Islamic Quiz**: Test your knowledge of Deen with interactive, gamified Islamic quizzes. Includes daily rewards, combo multipliers, mystery boxes, and reliable cross-platform gamification logic.
 - **Islamic Remedies (Tibb-e-Nabawi)**: Prophetic medicine index with a favorites list for quick reference.
 - **Eid & Festive Checklist**: Special event mode with checklists and celebratory popups to prepare for Eid and other significant Islamic events.
 
@@ -44,13 +44,11 @@
 - **24/7 Quran Radio & Streams**: Direct live video and audio streams right from Makkah, Madinah, and specialized global recitation networks.
 - **Weather & Custom Widgets**: Customizable dashboard layers including localized weather, Islamic dates, and quick-action shortcuts.
 
-### 📱 Enhanced Widget System
-- **Centralized Widget Management**: All widget update logic consolidated into a dedicated WidgetUpdateService for consistent platform handling
-- **Improved Platform Abstraction**: Capacitor platform checks encapsulated in capacitor-utils.ts for cleaner, more maintainable code
-- **Dual Update Modes**: Support for both basic (next-prayer only) and full (prayer schedule, Quran data, Hijri date) widget updates
-- **Automatic Updates**: Configurable auto-update timer (every 30 minutes) with intelligent error handling
-- **Enhanced Error Handling**: Consistent error logging and propagation across all widget operations
-- **Lazy Loading Pattern**: Widget plugin registration optimized to only load on native platforms
+### 📱 Enhanced Widget System & Dashboard
+- **Live Interactive Previews**: Complete visual grid customizer in the web dashboard allows you to instantly preview the color schemes and layouts of widgets (e.g. Qibla, Ramadan mode) before enabling them.
+- **Robust Platform Abstraction**: All Android native widget background updates are wrapped with robust Capacitor checks (`capacitor-utils.ts`) to completely eliminate cross-platform console errors when running in the browser. 
+- **Dual Update Modes**: Support for both basic (next-prayer only) and full (prayer schedule, Quran data, Hijri date) widget updates straight to the Android home-screen.
+- **Automatic Background Sync**: Configurable auto-update timer (every 30 minutes) perfectly syncs the app to your home screen using native Android widgets and services.
 
 ---
 
