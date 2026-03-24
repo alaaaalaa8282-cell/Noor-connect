@@ -26,6 +26,7 @@ import { unifiedNotifications } from "@/lib/unified-notifications";
 import { getGenderSettings, setGender, type Gender } from "@/lib/gender-settings";
 import { usePrayerAlarm } from "@/hooks/usePrayerAlarm";
 import PermissionManager from "@/components/PermissionManager";
+import { checkForUpdates, getDownloadUrl, formatReleaseNotes, getLastCheckedTimestamp, CURRENT_APP_VERSION, type UpdateCheckResult } from "@/lib/github-update";
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -60,6 +61,11 @@ const Profile = () => {
   const [isCapacitorApp] = useState(() => !!(window as unknown as { Capacitor?: { isNativePlatform?: () => boolean } }).Capacitor?.isNativePlatform?.());
   const [requestingPerm, setRequestingPerm] = useState(false);
   const [genderSettings, setGenderSettingsState] = useState(getGenderSettings());
+  
+  // Update check state
+  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
+  const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
+  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
 
   // Prayer alarm state
   const {
@@ -471,6 +477,50 @@ const Profile = () => {
     const days = parseInt(value, 10);
     const sign = days > 0 ? '+' : '';
     toast({ title: `Hijri Date Offset Updated`, description: `Offset Is Now ${sign}${days} Day${Math.abs(days) !== 1 ? 's' : ''}` });
+  };
+
+  // Handle check for updates
+  const handleCheckForUpdates = async () => {
+    setIsCheckingUpdates(true);
+    setUpdateResult(null);
+    
+    try {
+      const result = await checkForUpdates();
+      setUpdateResult(result);
+      
+      if (result.hasUpdate) {
+        setShowUpdateDialog(true);
+      } else if (result.error) {
+        toast({ 
+          title: result.isRateLimited ? t('rateLimited') : t('updateCheckFailed'), 
+          description: result.message,
+          variant: result.isRateLimited ? 'default' : 'destructive'
+        });
+      } else {
+        toast({ 
+          title: t('noUpdatesAvailable'), 
+          description: t('noUpdatesMessage').replace('{version}', result.latestVersion) 
+        });
+      }
+    } catch (error) {
+      toast({ 
+        title: t('updateCheckFailed'), 
+        description: 'An unexpected error occurred.',
+        variant: 'destructive' 
+      });
+    } finally {
+      setIsCheckingUpdates(false);
+    }
+  };
+
+  const handleDownloadUpdate = () => {
+    if (updateResult && 'release' in updateResult) {
+      const downloadUrl = getDownloadUrl(updateResult.release);
+      if (downloadUrl) {
+        window.open(downloadUrl, '_blank');
+      }
+    }
+    setShowUpdateDialog(false);
   };
 
 
@@ -1139,13 +1189,63 @@ const Profile = () => {
                 <p className="text-xs text-emerald-600">Open-source Islamic companion</p>
               </div>
             </div>
+            <div className="flex gap-2">
+              <Button
+                variant="outline"
+                size="sm"
+                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
+                onClick={handleCheckForUpdates}
+                disabled={isCheckingUpdates}
+              >
+                {isCheckingUpdates ? (
+                  <RefreshCw className="w-4 h-4 animate-spin" />
+                ) : (
+                  <Download className="w-4 h-4" />
+                )}
+              </Button>
+              <Button
+                variant="outline"
+                className="bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700"
+                onClick={() => window.open('https://github.com/darkmaster0345/Noor-connect', '_blank')}
+              >
+                <MessageCircle className="w-4 h-4 mr-2" />
+                View on GitHub
+              </Button>
+            </div>
+          </div>
+        </Card>
+
+        {/* Check for Updates */}
+        <Card className="p-4">
+          <div className="flex items-center justify-between">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
+                <RefreshCw className={`w-5 h-5 text-blue-600 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
+              </div>
+              <div>
+                <h3 className="font-bold text-sm">{t('checkForUpdates')}</h3>
+                <p className="text-xs text-muted-foreground">
+                  {getLastCheckedTimestamp() 
+                    ? t('lastChecked').replace('{time}', new Date(getLastCheckedTimestamp()!).toLocaleString())
+                    : t('version') + ' ' + CURRENT_APP_VERSION}
+                </p>
+              </div>
+            </div>
             <Button
               variant="outline"
-              className="bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700"
-              onClick={() => window.open('https://github.com/darkmaster0345/Noor-connect', '_blank')}
+              size="sm"
+              onClick={handleCheckForUpdates}
+              disabled={isCheckingUpdates}
+              className="min-w-[100px]"
             >
-              <MessageCircle className="w-4 h-4 mr-2" />
-              View on GitHub
+              {isCheckingUpdates ? (
+                <>
+                  <RefreshCw className="w-4 h-4 animate-spin me-2" />
+                  {t('checkingForUpdates')}
+                </>
+              ) : (
+                t('checkForUpdates')
+              )}
             </Button>
           </div>
         </Card>
@@ -1153,10 +1253,57 @@ const Profile = () => {
         {/* Version Info */}
         <div className="flex justify-center pt-4 pb-8">
           <p className="text-[10px] font-bold tracking-widest uppercase text-muted-foreground/40">
-            App Version 1.1
+            {t('version')} {CURRENT_APP_VERSION}
           </p>
         </div>
       </div>
+
+      {/* Update Dialog */}
+      {showUpdateDialog && updateResult && 'release' in updateResult && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Card className="max-w-md w-full p-6 space-y-4">
+            <div className="flex items-center gap-3">
+              <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
+                <RefreshCw className="w-6 h-6 text-emerald-600" />
+              </div>
+              <div>
+                <h3 className="font-bold text-lg">{t('updateAvailable')}</h3>
+                <p className="text-sm text-muted-foreground">
+                  {t('version')} {updateResult.latestVersion}
+                </p>
+              </div>
+            </div>
+            
+            {updateResult.release.body && (
+              <div className="space-y-2">
+                <Label className="text-xs font-bold uppercase text-muted-foreground">
+                  {t('releaseNotes')}
+                </Label>
+                <div className="bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto text-sm">
+                  {formatReleaseNotes(updateResult.release.body)}
+                </div>
+              </div>
+            )}
+            
+            <div className="flex gap-3 pt-2">
+              <Button 
+                variant="outline" 
+                className="flex-1"
+                onClick={() => setShowUpdateDialog(false)}
+              >
+                {t('close') || 'Close'}
+              </Button>
+              <Button 
+                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
+                onClick={handleDownloadUpdate}
+              >
+                <Download className="w-4 h-4 me-2" />
+                {t('downloadUpdate')}
+              </Button>
+            </div>
+          </Card>
+        </div>
+      )}
 
     </div>
   );
