@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useMemo, Suspense, lazy, type MouseEv
 import { useNavigate } from "react-router-dom";
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight, Sparkles, MessageCircle, Clock, TrendingUp, Award, Grid3X3, Building } from "lucide-react";
+import { MapPin, Moon, Sun, Sunset, Cloud, CloudMoon, Calendar, BookOpen, Navigation, Calculator, Trophy, Star, Search, Loader2, Compass, Heart, ToggleLeft, ToggleRight, Sparkles, MessageCircle, Clock, TrendingUp, Award, Grid3X3, Building, Activity } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 import { AppBar } from "@/components/AppBar";
 const DailyAyah = lazy(() => import("@/components/EnhancedDailyAyah").then(module => ({ default: module.EnhancedDailyAyah })));
@@ -770,23 +770,33 @@ export default function Dashboard() {
                     </p>
                   </div>
                 </div>
-                <Button
-                  onClick={handleMenstrualModeToggle}
-                  variant={menstrualModeData.isActive ? "destructive" : "default"}
-                  className={`rounded-xl font-bold shadow-lg transition-all active:scale-95 ${menstrualModeData.isActive ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20' : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'} w-full sm:w-auto h-12 sm:h-auto`}
-                >
-                  {menstrualModeData.isActive ? (
-                    <>
-                      <ToggleLeft className="w-5 h-5 me-2" />
-                      End
-                    </>
-                  ) : (
-                    <>
-                      <ToggleRight className="w-5 h-5 me-2" />
-                      Start
-                    </>
-                  )}
-                </Button>
+                <div className="flex gap-2 w-full sm:w-auto">
+                  <Button
+                    onClick={() => window.location.href = '/enhanced-menstrual-mode'}
+                    variant="outline"
+                    className="rounded-xl font-bold border-rose-200 text-rose-600 hover:bg-rose-50 w-full sm:w-auto h-12 sm:h-auto"
+                  >
+                    <Activity className="w-4 h-4 mr-2" />
+                    Enhanced
+                  </Button>
+                  <Button
+                    onClick={handleMenstrualModeToggle}
+                    variant={menstrualModeData.isActive ? "destructive" : "default"}
+                    className={`rounded-xl font-bold shadow-lg transition-all active:scale-95 ${menstrualModeData.isActive ? 'bg-rose-600 hover:bg-rose-700 shadow-rose-600/20' : 'bg-slate-900 hover:bg-slate-800 text-white shadow-slate-900/20'} w-full sm:w-auto h-12 sm:h-auto`}
+                  >
+                    {menstrualModeData.isActive ? (
+                      <>
+                        <ToggleLeft className="w-5 h-5 me-2" />
+                        End
+                      </>
+                    ) : (
+                      <>
+                        <ToggleRight className="w-5 h-5 me-2" />
+                        Start
+                      </>
+                    )}
+                  </Button>
+                </div>
               </div>
 
               {menstrualModeData.isActive && menstrualModeData.startedAt && (
