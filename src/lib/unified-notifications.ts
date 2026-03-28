@@ -116,7 +116,8 @@ class UnifiedNotificationService {
             schedule: { at: new Date() },
             sound: 'default',
             smallIcon: 'ic_notification',
-            iconColor: '#22c55e',
+            largeIcon: 'icon-192x192',
+            iconColor: '#1a4a4a',
             extra: options.data || {}
           }]
         });

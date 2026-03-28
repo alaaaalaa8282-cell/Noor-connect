@@ -414,9 +414,21 @@ export class QuizStore {
     }
 
     // Check if can claim today
-    const todayReward = status.rewards.find(r => r.day === status.currentStreak + 1);
-    status.canClaimToday = !todayReward?.claimed || todayReward?.claimDate !== today;
-    status.nextReward = todayReward || null;
+    const todayReward = status.rewards.find(r => r.day === status.currentStreak + 1 && status.currentStreak < 7);
+    
+    // Only allow claiming if it's the next day in sequence and not already claimed today
+    if (todayReward) {
+      status.canClaimToday = !todayReward.claimed || todayReward.claimDate !== today;
+    } else {
+      // If completed 7 days, start new cycle
+      if (status.currentStreak >= 7) {
+        status.rewards = this.createDefaultDailyRewards().rewards;
+        status.currentStreak = 0;
+      }
+      status.canClaimToday = false;
+    }
+    
+    status.nextReward = status.canClaimToday ? todayReward : null;
 
     // Save updated status
     localStorage.setItem(STORAGE_KEYS.DAILY_REWARDS, JSON.stringify(status));
@@ -476,14 +488,19 @@ export class QuizStore {
       });
     }
 
-    // Check for 7-day completion bonus
+  // Check for 7-day completion bonus
     if (status.currentStreak === 7) {
-      // Reset for next week
-      status.rewards = this.createDefaultDailyRewards().rewards;
-      status.currentStreak = 0;
-
       // Bonus XP for completing week
       this.addXP(500, 'Weekly Streak Complete!');
+      
+      // Start new cycle after a delay
+      setTimeout(() => {
+        const newStatus = this.getDailyRewardStatus();
+        newStatus.rewards = this.createDefaultDailyRewards().rewards;
+        newStatus.currentStreak = 0;
+        newStatus.lastClaimDate = null; // Reset to allow immediate claim of day 1
+        localStorage.setItem(STORAGE_KEYS.DAILY_REWARDS, JSON.stringify(newStatus));
+      }, 1000);
     }
 
     // Update next reward

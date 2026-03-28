@@ -5,8 +5,10 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.app.PendingIntent;
 import android.app.Service;
+import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
+import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
 import android.net.Uri;
@@ -29,15 +31,23 @@ public class AdhanPlaybackService extends Service {
     public static final String ACTION_PLAY = "com.noorconnect.app.ACTION_ADHAN_PLAY";
     public static final String ACTION_STOP = "com.noorconnect.app.ACTION_ADHAN_STOP";
 
+    public static final String EXTRA_OVERRIDE_SILENT = "com.noorconnect.app.EXTRA_OVERRIDE_SILENT";
+    public static final String EXTRA_MAX_VOLUME = "com.noorconnect.app.EXTRA_MAX_VOLUME";
+
     private static final String CHANNEL_ID = "adhan_playback_channel";
     private static final int NOTIFICATION_ID = 2102;
     private static final String DEFAULT_ADHAN_URL = "/audio/adhan-makkah.mp3";
 
     private MediaPlayer mediaPlayer;
+    private AudioManager audioManager;
+    private int originalVolume;
+    private int originalRingerMode;
+    private boolean volumeRestored = true;
 
     @Override
     public void onCreate() {
         super.onCreate();
+        audioManager = (AudioManager) getSystemService(Context.AUDIO_SERVICE);
         createNotificationChannel();
     }
 
@@ -66,13 +76,16 @@ public class AdhanPlaybackService extends Service {
             adhanUrl = DEFAULT_ADHAN_URL;
         }
 
+        boolean overrideSilent = intent != null && intent.getBooleanExtra(EXTRA_OVERRIDE_SILENT, false);
+        boolean maxVolume = intent != null && intent.getBooleanExtra(EXTRA_MAX_VOLUME, false);
+
         startForeground(NOTIFICATION_ID, createNotification(prayerName));
 
         // Release the WakeLock now that startForeground() has been called.
         // This closes the Doze race-condition window opened by AdhanAlarmReceiver.
         AdhanAlarmReceiver.releaseWakeLock();
 
-        playAdhan(adhanUrl, prayerName);
+        playAdhan(adhanUrl, prayerName, overrideSilent, maxVolume);
 
         return START_NOT_STICKY;
     }
@@ -88,8 +101,63 @@ public class AdhanPlaybackService extends Service {
         super.onDestroy();
     }
 
-    private void playAdhan(String adhanUrl, String prayerName) {
+    private void playAdhan(String adhanUrl, String prayerName, boolean overrideSilent, boolean maxVolume) {
         stopPlayback();
+
+        // Store original volume and ringer mode before making any changes
+        originalVolume = audioManager.getStreamVolume(AudioManager.STREAM_MUSIC);
+        originalRingerMode = audioManager.getRingerMode();
+        volumeRestored = false;
+
+        // Override silent mode and set max volume if requested
+        if (overrideSilent || maxVolume) {
+            try {
+                // Request audio focus for alarm usage
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                    AudioAttributes audioAttributes = new AudioAttributes.Builder()
+                            .setUsage(AudioAttributes.USAGE_ALARM)
+                            .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
+                            .build();
+                    int result = audioManager.requestAudioFocus(null, audioAttributes,
+                            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE);
+                    if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
+                        Log.w(TAG, "Failed to get exclusive audio focus");
+                    }
+                } else {
+                    audioManager.requestAudioFocus(null, AudioManager.STREAM_MUSIC,
+                            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT);
+                }
+
+                // For Android P+ (API 28+), we need to check if we can modify ringer mode
+                // On newer Android versions, apps cannot easily change ringer mode due to Do Not Disturb restrictions
+                if (overrideSilent && Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                    // Only change ringer mode on older Android versions
+                    if (originalRingerMode == AudioManager.RINGER_MODE_SILENT ||
+                            originalRingerMode == AudioManager.RINGER_MODE_VIBRATE) {
+                        audioManager.setRingerMode(AudioManager.RINGER_MODE_NORMAL);
+                        Log.d(TAG, "Overriding silent mode - changed ringer to normal");
+                    }
+                }
+
+                // Set to max volume for the music stream (adhan will play through this stream)
+                if (maxVolume) {
+                    int maxMusicVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, maxMusicVolume,
+                            AudioManager.FLAG_SHOW_UI);
+                    Log.d(TAG, "Setting volume to maximum: " + maxMusicVolume);
+                } else {
+                    // If not max volume but overriding silent, set to a reasonable volume (80%)
+                    int maxMusicVolume = audioManager.getStreamMaxVolume(AudioManager.STREAM_MUSIC);
+                    int targetVolume = Math.max(originalVolume, (int) (maxMusicVolume * 0.8));
+                    audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, targetVolume,
+                            AudioManager.FLAG_SHOW_UI);
+                    Log.d(TAG, "Setting volume to reasonable level: " + targetVolume);
+                }
+            } catch (SecurityException e) {
+                Log.e(TAG, "Security exception when trying to override volume/ringer: " + e.getMessage());
+                // Continue anyway - the alarm stream might still work even if we can't control system volume
+            }
+        }
 
         String dataSource = resolveAdhanDataSource(adhanUrl);
         mediaPlayer = new MediaPlayer();
@@ -103,12 +171,14 @@ public class AdhanPlaybackService extends Service {
 
             mediaPlayer.setOnPreparedListener(MediaPlayer::start);
             mediaPlayer.setOnCompletionListener(mp -> {
+                restoreVolumeSettings();
                 stopPlayback();
                 stopForeground(true);
                 stopSelf();
             });
             mediaPlayer.setOnErrorListener((mp, what, extra) -> {
                 Log.e(TAG, "Adhan media playback error what=" + what + " extra=" + extra);
+                restoreVolumeSettings();
                 stopPlayback();
                 stopForeground(true);
                 stopSelf();
@@ -176,6 +246,34 @@ public class AdhanPlaybackService extends Service {
         }
     }
 
+    private void restoreVolumeSettings() {
+        if (volumeRestored || audioManager == null) {
+            return;
+        }
+
+        try {
+            // Abandon audio focus
+            audioManager.abandonAudioFocus(null);
+
+            // Restore original volume
+            audioManager.setStreamVolume(AudioManager.STREAM_MUSIC, originalVolume,
+                    AudioManager.FLAG_REMOVE_SOUND_AND_VIBRATE);
+
+            // Restore original ringer mode (only on older Android versions)
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.P) {
+                int currentRingerMode = audioManager.getRingerMode();
+                if (currentRingerMode != originalRingerMode) {
+                    audioManager.setRingerMode(originalRingerMode);
+                }
+            }
+
+            volumeRestored = true;
+            Log.d(TAG, "Volume and ringer settings restored");
+        } catch (SecurityException e) {
+            Log.e(TAG, "Failed to restore volume settings: " + e.getMessage());
+        }
+    }
+
     private void stopPlayback() {
         if (mediaPlayer == null) {
             return;
@@ -192,6 +290,9 @@ public class AdhanPlaybackService extends Service {
         mediaPlayer.reset();
         mediaPlayer.release();
         mediaPlayer = null;
+
+        // Restore volume settings when playback stops
+        restoreVolumeSettings();
     }
 
     private String resolveAdhanDataSource(String adhanUrl) {

@@ -261,7 +261,8 @@ export class LocalNotificationManager {
             },
             sound: 'default',
             smallIcon: 'ic_notification',
-            iconColor: '#22c55e',
+            largeIcon: 'icon-192x192',
+            iconColor: '#1a4a4a',
             extra: {
               prayerName,
               prayerTime: cleaned,
@@ -285,6 +286,8 @@ export class LocalNotificationManager {
             triggerAt: prayerDate.getTime(),
             prayerName,
             adhanUrl: await getAdhanUrlForPrayer(prayerName as PrayerName),
+            overrideSilent: adhanService.getAdhanConfig().overrideSilentMode,
+            maxVolume: adhanService.getAdhanConfig().playAtMaxVolume,
           });
 
           if (dayOffset === 0) {
@@ -368,7 +371,8 @@ export class LocalNotificationManager {
             },
             sound: 'default',
             smallIcon: 'ic_notification',
-            iconColor: '#22c55e',
+            largeIcon: 'icon-192x192',
+            iconColor: '#1a4a4a',
             extra: {
               prayerName: prayer.name,
               prayerTime: prayer.time,
@@ -415,6 +419,8 @@ export class LocalNotificationManager {
                 triggerAt: prayer.date.getTime(),
                 prayerName: prayer.name,
                 adhanUrl: await getAdhanUrlForPrayer(prayer.name as PrayerName),
+                overrideSilent: adhanService.getAdhanConfig().overrideSilentMode,
+                maxVolume: adhanService.getAdhanConfig().playAtMaxVolume,
               });
             }
           }
@@ -461,7 +467,8 @@ export class LocalNotificationManager {
           },
           sound: 'default',
           smallIcon: 'ic_notification',
-          iconColor: '#22c55e',
+          largeIcon: 'icon-192x192',
+          iconColor: '#1a4a4a',
           extra: {
             prayerName,
             prayerTime,
@@ -638,7 +645,8 @@ export class LocalNotificationManager {
           },
           sound: 'default',
           smallIcon: 'ic_notification',
-          iconColor: '#22c55e',
+          largeIcon: 'icon-192x192',
+          iconColor: '#1a4a4a',
           extra: {
             type: 'islamic_event',
             eventId: id
@@ -720,7 +728,8 @@ export class LocalNotificationManager {
         if ('Notification' in window && Notification.permission === 'granted') {
           new Notification(title, {
             body,
-            icon: '/favicon.png',
+            icon: '/icon-192x192.png',
+            badge: '/icon-192x192.png',
             requireInteraction: true,
             data: { ...data, url: data.url || '/dashboard' }
           });

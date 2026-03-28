@@ -14,21 +14,15 @@ export default function Services() {
     const navigate = useNavigate();
     const { isEidAlFitr, isEidAlAdha, islamicInfo, isLoading } = useIslamicCalendar();
 
-    // Determine if Fitrana Calculator should be shown (1 week before, during, 1 week after Eid)
+    // Determine if Fitrana Calculator should be shown (only 1 week before Eid al-Fitr)
     const shouldShowFitranaCalculator = (() => {
         if (isLoading || !islamicInfo) return false;
         
         const hijriMonth = islamicInfo.hijriMonth;
         const hijriDay = islamicInfo.hijriDay;
         
-        // 1 week before Eid al-Fitr (23-30 Ramadan)
+        // Only show 1 week before Eid al-Fitr (23-30 Ramadan)
         if (hijriMonth === 9 && hijriDay >= 23) return true;
-        
-        // Eid al-Fitr period (1-3 Shawwal)
-        if (isEidAlFitr && hijriMonth === 10 && hijriDay <= 3) return true;
-        
-        // 1 week after Eid al-Fitr (4-10 Shawwal)
-        if (hijriMonth === 10 && hijriDay >= 4 && hijriDay <= 10) return true;
         
         return false;
     })();

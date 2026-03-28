@@ -15,6 +15,8 @@ export interface AdhanConfig {
   selectedMuezzin: string;
   playNotificationSound: boolean;
   vibrationEnabled: boolean;
+  overrideSilentMode: boolean;
+  playAtMaxVolume: boolean;
 }
 
 export interface Muezzin {
@@ -138,7 +140,9 @@ export class AdhanService {
       jummahEnabled: true,
       selectedMuezzin: 'mishari-rashid',
       playNotificationSound: true,
-      vibrationEnabled: true
+      vibrationEnabled: true,
+      overrideSilentMode: false,
+      playAtMaxVolume: false
     };
   }
 

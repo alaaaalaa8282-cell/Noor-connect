@@ -62,15 +62,43 @@ export interface WidgetPluginInterface {
   }): Promise<{ status: string }>;
 }
 
-// Use runIfNative to handle plugin registration cleanly
-const WidgetPlugin = await runIfNative<WidgetPluginInterface>(() => 
-  Capacitor.registerPlugin<WidgetPluginInterface>('WidgetPlugin')
-) ?? {
-  // Provide a mock implementation that resolves promises to avoid errors on web
+// Lazy initialization of WidgetPlugin to avoid top-level await
+let widgetPluginInstance: WidgetPluginInterface | null = null;
+
+const mockPlugin: WidgetPluginInterface = {
   updateWidget: () => Promise.resolve({ status: 'ok' }),
   updateWidgetFull: () => Promise.resolve({ status: 'ok' }),
   setWidgetStrings: () => Promise.resolve({ status: 'ok' }),
   notifyWidgetDataChanged: () => Promise.resolve({ status: 'ok' }),
-} as WidgetPluginInterface;
+};
 
-export { WidgetPlugin };
+async function getWidgetPlugin(): Promise<WidgetPluginInterface> {
+  if (widgetPluginInstance) return widgetPluginInstance;
+  
+  const result = await runIfNative<WidgetPluginInterface>(() => 
+    Promise.resolve(Capacitor.registerPlugin<WidgetPluginInterface>('WidgetPlugin'))
+  );
+  
+  widgetPluginInstance = result || mockPlugin;
+  return widgetPluginInstance;
+}
+
+// Export a proxy object that lazily initializes the plugin
+export const WidgetPlugin: WidgetPluginInterface = {
+  updateWidget: async (options) => {
+    const plugin = await getWidgetPlugin();
+    return plugin.updateWidget(options);
+  },
+  updateWidgetFull: async (options) => {
+    const plugin = await getWidgetPlugin();
+    return plugin.updateWidgetFull(options);
+  },
+  setWidgetStrings: async (options) => {
+    const plugin = await getWidgetPlugin();
+    return plugin.setWidgetStrings(options);
+  },
+  notifyWidgetDataChanged: async (options) => {
+    const plugin = await getWidgetPlugin();
+    return plugin.notifyWidgetDataChanged(options);
+  },
+};

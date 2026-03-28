@@ -54,6 +54,8 @@ public class NativeAdhanPlugin extends Plugin {
                 long triggerAt = alarm.optLong("triggerAt", -1L);
                 String prayerName = alarm.optString("prayerName", "Prayer");
                 String adhanUrl = alarm.optString("adhanUrl", "/audio/adhan-makkah.mp3");
+                boolean overrideSilent = alarm.optBoolean("overrideSilent", false);
+                boolean maxVolume = alarm.optBoolean("maxVolume", false);
 
                 if (id < 0 || triggerAt <= now) {
                     continue;
@@ -61,7 +63,7 @@ public class NativeAdhanPlugin extends Plugin {
 
                 NativeAdhanScheduler.scheduleAlarm(
                         context,
-                        new NativeAdhanScheduler.ScheduledAdhan(id, triggerAt, prayerName, adhanUrl),
+                        new NativeAdhanScheduler.ScheduledAdhan(id, triggerAt, prayerName, adhanUrl, overrideSilent, maxVolume),
                         true
                 );
                 scheduled++;

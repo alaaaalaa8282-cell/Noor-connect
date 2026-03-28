@@ -35,6 +35,8 @@ public final class NativeAdhanScheduler {
     private static final String KEY_PREFIX_TIME = "time_";
     private static final String KEY_PREFIX_PRAYER = "prayer_";
     private static final String KEY_PREFIX_AUDIO = "audio_";
+    private static final String KEY_PREFIX_OVERRIDE = "override_";
+    private static final String KEY_PREFIX_MAXVOL = "maxvol_";
 
     private NativeAdhanScheduler() {
     }
@@ -44,12 +46,22 @@ public final class NativeAdhanScheduler {
         public final long triggerAtMillis;
         public final String prayerName;
         public final String adhanUrl;
+        public final boolean overrideSilent;
+        public final boolean maxVolume;
 
-        public ScheduledAdhan(int id, long triggerAtMillis, String prayerName, String adhanUrl) {
+        public ScheduledAdhan(int id, long triggerAtMillis, String prayerName, String adhanUrl, 
+                              boolean overrideSilent, boolean maxVolume) {
             this.id = id;
             this.triggerAtMillis = triggerAtMillis;
             this.prayerName = prayerName;
             this.adhanUrl = adhanUrl;
+            this.overrideSilent = overrideSilent;
+            this.maxVolume = maxVolume;
+        }
+
+        // Legacy constructor for backward compatibility
+        public ScheduledAdhan(int id, long triggerAtMillis, String prayerName, String adhanUrl) {
+            this(id, triggerAtMillis, prayerName, adhanUrl, false, false);
         }
     }
 
@@ -91,7 +103,9 @@ public final class NativeAdhanScheduler {
                 context,
                 alarm.id,
                 alarm.prayerName,
-                alarm.adhanUrl);
+                alarm.adhanUrl,
+                alarm.overrideSilent,
+                alarm.maxVolume);
 
         // Create a PendingIntent that opens the app when user taps the alarm icon
         Intent showIntent = new Intent(context, MainActivity.class);
@@ -186,10 +200,12 @@ public final class NativeAdhanScheduler {
 
             String prayerName = prefs.getString(KEY_PREFIX_PRAYER + id, "Prayer");
             String adhanUrl = prefs.getString(KEY_PREFIX_AUDIO + id, "/audio/adhan-makkah.mp3");
+            boolean overrideSilent = prefs.getBoolean(KEY_PREFIX_OVERRIDE + id, false);
+            boolean maxVolume = prefs.getBoolean(KEY_PREFIX_MAXVOL + id, false);
 
             scheduleAlarm(
                     context,
-                    new ScheduledAdhan(id, triggerAt, prayerName, adhanUrl),
+                    new ScheduledAdhan(id, triggerAt, prayerName, adhanUrl, overrideSilent, maxVolume),
                     false);
         }
 
@@ -204,7 +220,9 @@ public final class NativeAdhanScheduler {
             Context context,
             int alarmId,
             String prayerName,
-            String adhanUrl) {
+            String adhanUrl,
+            boolean overrideSilent,
+            boolean maxVolume) {
         Intent intent = new Intent(context, AdhanAlarmReceiver.class);
         intent.setAction(AdhanAlarmReceiver.ACTION_TRIGGER);
         intent.putExtra(AdhanAlarmReceiver.EXTRA_ALARM_ID, alarmId);
@@ -214,6 +232,8 @@ public final class NativeAdhanScheduler {
         if (adhanUrl != null) {
             intent.putExtra(AdhanAlarmReceiver.EXTRA_ADHAN_URL, adhanUrl);
         }
+        intent.putExtra(AdhanAlarmReceiver.EXTRA_OVERRIDE_SILENT, overrideSilent);
+        intent.putExtra(AdhanAlarmReceiver.EXTRA_MAX_VOLUME, maxVolume);
 
         int flags = PendingIntent.FLAG_UPDATE_CURRENT | PendingIntent.FLAG_IMMUTABLE;
 
@@ -237,6 +257,8 @@ public final class NativeAdhanScheduler {
                 .putLong(KEY_PREFIX_TIME + alarm.id, alarm.triggerAtMillis)
                 .putString(KEY_PREFIX_PRAYER + alarm.id, alarm.prayerName)
                 .putString(KEY_PREFIX_AUDIO + alarm.id, alarm.adhanUrl)
+                .putBoolean(KEY_PREFIX_OVERRIDE + alarm.id, alarm.overrideSilent)
+                .putBoolean(KEY_PREFIX_MAXVOL + alarm.id, alarm.maxVolume)
                 .apply();
     }
 
@@ -256,6 +278,8 @@ public final class NativeAdhanScheduler {
                 .remove(KEY_PREFIX_TIME + alarmId)
                 .remove(KEY_PREFIX_PRAYER + alarmId)
                 .remove(KEY_PREFIX_AUDIO + alarmId)
+                .remove(KEY_PREFIX_OVERRIDE + alarmId)
+                .remove(KEY_PREFIX_MAXVOL + alarmId)
                 .apply();
     }
 
@@ -268,6 +292,8 @@ public final class NativeAdhanScheduler {
             editor.remove(KEY_PREFIX_TIME + idString);
             editor.remove(KEY_PREFIX_PRAYER + idString);
             editor.remove(KEY_PREFIX_AUDIO + idString);
+            editor.remove(KEY_PREFIX_OVERRIDE + idString);
+            editor.remove(KEY_PREFIX_MAXVOL + idString);
         }
 
         editor.remove(KEY_IDS).apply();

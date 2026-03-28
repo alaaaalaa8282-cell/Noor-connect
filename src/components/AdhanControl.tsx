@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { Bell, BellOff, Volume2, User, Play, TestTube, Settings } from 'lucide-react';
+import { Bell, BellOff, Volume2, User, Play, TestTube, Settings, Smartphone } from 'lucide-react';
 import { Button } from './ui/button';
 import { Card } from './ui/card';
 import { Switch } from './ui/switch';
@@ -8,6 +8,7 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from '.
 import { Badge } from './ui/badge';
 import { adhanService, AdhanConfig, Muezzin } from '@/lib/adhan-service';
 import { PRAYER_ALARM_CONTROL_EVENT, PRAYER_ALARM_TOGGLE_EVENT } from '@/lib/prayer-alarm-events';
+import { Capacitor } from '@capacitor/core';
 
 interface AdhanControlProps {
   className?: string;
@@ -18,6 +19,9 @@ export function AdhanControl({ className }: AdhanControlProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [showTestControls, setShowTestControls] = useState(false);
   const [showSettings, setShowSettings] = useState(false);
+
+  // Check if running on native platform (Android/iOS)
+  const isNativePlatform = Capacitor.isNativePlatform();
 
   // Keep prayer-alarm toggle (used by GlobalPrayerAlarm) in sync with the UI toggle here
   const syncAlarmToggle = (enabled: boolean) => {
@@ -277,6 +281,35 @@ export function AdhanControl({ className }: AdhanControlProps) {
                   onCheckedChange={(checked) => updateConfig({ vibrationEnabled: checked })}
                 />
               </div>
+              
+              {/* Native-only settings */}
+              {isNativePlatform && (
+                <>
+                  <div className="flex items-center justify-between pt-2 border-t border-border/50">
+                    <div className="flex items-center gap-2">
+                      <Smartphone className="w-4 h-4 text-muted-foreground" />
+                      <div className="flex flex-col">
+                        <span className="text-sm font-medium">Override Silent Mode</span>
+                        <span className="text-xs text-muted-foreground">Play adhan even when phone is silent</span>
+                      </div>
+                    </div>
+                    <Switch
+                      checked={config.overrideSilentMode}
+                      onCheckedChange={(checked) => updateConfig({ overrideSilentMode: checked })}
+                    />
+                  </div>
+                  <div className="flex items-center justify-between">
+                    <div className="flex flex-col">
+                      <span className="text-sm font-medium">Maximum Volume</span>
+                      <span className="text-xs text-muted-foreground">Always play at max volume</span>
+                    </div>
+                    <Switch
+                      checked={config.playAtMaxVolume}
+                      onCheckedChange={(checked) => updateConfig({ playAtMaxVolume: checked })}
+                    />
+                  </div>
+                </>
+              )}
             </div>
           </div>
         )}

@@ -11,6 +11,7 @@ import {
   persistDashboardWidgetConfig,
   type DashboardWidgetConfig,
 } from "@/lib/dashboard-widget-config";
+import { SafeWidgetPreview } from "@/components/SafeWidgetPreview";
 
 // --- Mock Widget Renderers ---
 const getWidgetIcon = (id: string, className = "w-5 h-5") => {
@@ -195,32 +196,43 @@ export function WidgetCustomizer() {
         {hiddenWidgets.length > 0 && (
           <section>
             <div className="flex items-center gap-3 mb-4 px-1">
-              <h3 className="font-bold text-xl text-muted-foreground tracking-tight">Hidden Config</h3>
+              <h3 className="font-bold text-xl text-muted-foreground tracking-tight">Available Widgets</h3>
               <Badge variant="secondary" className="rounded-full bg-muted/60 text-muted-foreground px-2 py-0.5">{hiddenWidgets.length}</Badge>
             </div>
             
-            <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4">
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
               {hiddenWidgets.map((widget) => (
-                <Card key={widget.id} className="overflow-hidden border-dashed border-border/60 bg-muted/10 hover:bg-muted/30 transition-colors">
-                  <CardContent className="p-4 flex flex-col items-center text-center opacity-60 hover:opacity-100 transition-opacity space-y-3">
-                    <div className="p-3 rounded-full bg-background border border-border mt-2 shadow-sm text-muted-foreground">
-                        {getWidgetIcon(widget.id, "w-5 h-5")}
+                <Card key={widget.id} className="overflow-hidden border-dashed border-border/60 bg-muted/10 hover:bg-muted/30 transition-all duration-300">
+                  <CardContent className="p-5 space-y-4">
+                    {/* Widget Header */}
+                    <div className="flex items-start justify-between gap-4">
+                      <div className="flex-1 min-w-0">
+                        <h4 className="font-bold text-lg text-foreground truncate leading-tight mb-1">{widget.name}</h4>
+                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${getCategoryColor(widget.category)} uppercase tracking-wider`}>
+                          {widget.category}
+                        </span>
+                      </div>
+                      <Button 
+                        variant="outline" 
+                        size="sm" 
+                        className="shrink-0 gap-1 rounded-lg text-xs"
+                        onClick={() => toggleWidgetVisibility(widget.id)}
+                      >
+                        Add to Dashboard
+                      </Button>
                     </div>
                     
-                    <div>
-                      <h4 className="font-semibold text-base text-foreground truncate">{widget.name}</h4>
-                      <p className="text-xs text-muted-foreground mt-1 line-clamp-2 px-2">{widget.description}</p>
-                    </div>
+                    {/* Widget Description */}
+                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{widget.description}</p>
                     
-                    <div className="pt-2 w-full flex justify-center border-t border-border/40 mt-2">
-                       <Button 
-                         variant="ghost" 
-                         size="sm" 
-                         className="w-full text-xs font-semibold"
-                         onClick={() => toggleWidgetVisibility(widget.id)}
-                       >
-                         Enable Widget
-                       </Button>
+                    {/* Live Preview - Show actual widget preview! */}
+                    <div className="relative">
+                      <div className="absolute inset-0 bg-gradient-to-t from-muted/10 to-transparent pointer-events-none z-10" />
+                      <SafeWidgetPreview 
+                        widgetId={widget.id} 
+                        isVisible={false}
+                        onEnable={() => toggleWidgetVisibility(widget.id)}
+                      />
                     </div>
                   </CardContent>
                 </Card>

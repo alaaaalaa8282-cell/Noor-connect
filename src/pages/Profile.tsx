@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 import { useI18n } from "@/hooks/useI18n";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones, Settings, Clock } from "lucide-react";
+import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones, Settings, Clock, Package, Vibrate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -26,7 +26,26 @@ import { unifiedNotifications } from "@/lib/unified-notifications";
 import { getGenderSettings, setGender, type Gender } from "@/lib/gender-settings";
 import { usePrayerAlarm } from "@/hooks/usePrayerAlarm";
 import PermissionManager from "@/components/PermissionManager";
+import { Changelog } from "@/components/Changelog";
+import { HapticSettings } from "@/components/HapticSettings";
 import { checkForUpdates, getDownloadUrl, formatReleaseNotes, getLastCheckedTimestamp, CURRENT_APP_VERSION, type UpdateCheckResult } from "@/lib/github-update";
+import { hasUnseenChangelog, markVersionAsSeen } from "@/lib/changelog";
+import { Badge } from "@/components/ui/badge";
+
+// Changelog badge component
+const ChangelogBadge = () => {
+  const [hasUnread, setHasUnread] = useState(false);
+  
+  useEffect(() => {
+    setHasUnread(hasUnseenChangelog());
+  }, []);
+  
+  if (!hasUnread) return null;
+  
+  return (
+    <div className="absolute -top-1 -right-1 w-4 h-4 bg-emerald-500 rounded-full animate-pulse border-2 border-background" />
+  );
+};
 
 const Profile = () => {
   const navigate = useNavigate();
@@ -66,6 +85,8 @@ const Profile = () => {
   const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
   const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
   const [showUpdateDialog, setShowUpdateDialog] = useState(false);
+  const [showChangelog, setShowChangelog] = useState(false);
+  const [hasUnreadChangelog, setHasUnreadChangelog] = useState(false);
 
   // Prayer alarm state
   const {
@@ -677,6 +698,16 @@ const Profile = () => {
             </Card>
           </div>
 
+          {/* Haptic Settings Section */}
+          <div className="space-y-3">
+            <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
+              Haptic Feedback
+            </h3>
+            <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px] p-5">
+              <HapticSettings />
+            </Card>
+          </div>
+
           {/* Prayer Calculation Section */}
           <div className="space-y-3">
             <h3 className="text-[10px] font-black uppercase tracking-[0.2em] text-muted-foreground/60 ps-1">
@@ -1216,37 +1247,87 @@ const Profile = () => {
         </Card>
 
         {/* Check for Updates */}
-        <Card className="p-4">
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-3">
-              <div className="w-10 h-10 rounded-xl bg-blue-100 flex items-center justify-center">
-                <RefreshCw className={`w-5 h-5 text-blue-600 ${isCheckingUpdates ? 'animate-spin' : ''}`} />
+        <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px]">
+          <div className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center border border-blue-500/20">
+                    <RefreshCw className={`w-6 h-6 text-blue-600 transition-transform ${isCheckingUpdates ? 'animate-spin' : 'hover:rotate-180'}`} />
+                  </div>
+                  {updateResult?.hasUpdate && (
+                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse border-2 border-background" />
+                  )}
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-sm text-foreground">{t('checkForUpdates')}</h3>
+                  <p className="text-xs text-muted-foreground">
+                    {getLastCheckedTimestamp() 
+                      ? t('lastChecked').replace('{time}', new Date(getLastCheckedTimestamp()!).toLocaleDateString())
+                      : t('version') + ' ' + CURRENT_APP_VERSION}
+                  </p>
+                  {updateResult?.hasUpdate && (
+                    <p className="text-xs font-medium text-green-600 flex items-center gap-1">
+                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
+                      Update available!
+                    </p>
+                  )}
+                </div>
               </div>
-              <div>
-                <h3 className="font-bold text-sm">{t('checkForUpdates')}</h3>
-                <p className="text-xs text-muted-foreground">
-                  {getLastCheckedTimestamp() 
-                    ? t('lastChecked').replace('{time}', new Date(getLastCheckedTimestamp()!).toLocaleString())
-                    : t('version') + ' ' + CURRENT_APP_VERSION}
-                </p>
-              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={handleCheckForUpdates}
+                disabled={isCheckingUpdates}
+                className="h-10 w-10 rounded-xl hover:bg-blue-500/10 transition-all duration-200 group"
+              >
+                {isCheckingUpdates ? (
+                  <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
+                ) : (
+                  <RefreshCw className="w-5 h-5 text-muted-foreground group-hover:text-blue-600 group-hover:rotate-180 transition-all duration-200" />
+                )}
+              </Button>
             </div>
-            <Button
-              variant="outline"
-              size="sm"
-              onClick={handleCheckForUpdates}
-              disabled={isCheckingUpdates}
-              className="min-w-[100px]"
-            >
-              {isCheckingUpdates ? (
-                <>
-                  <RefreshCw className="w-4 h-4 animate-spin me-2" />
-                  {t('checkingForUpdates')}
-                </>
-              ) : (
-                t('checkForUpdates')
-              )}
-            </Button>
+            
+            {/* Update Status Indicator */}
+            {updateResult && !updateResult.hasUpdate && !updateResult.error && (
+              <div className="mt-3 pt-3 border-t border-border/40">
+                <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
+                  <div className="w-2 h-2 bg-green-500 rounded-full" />
+                  <span className="font-medium">You're using the latest version</span>
+                </div>
+              </div>
+            )}
+          </div>
+        </Card>
+
+        {/* Changelog Section */}
+        <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px]">
+          <div className="p-5">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4">
+                <div className="relative">
+                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-amber-500/10 to-orange-500/10 flex items-center justify-center border border-amber-500/20">
+                    <Package className="w-6 h-6 text-amber-600" />
+                  </div>
+                  <ChangelogBadge />
+                </div>
+                <div className="space-y-1">
+                  <h3 className="font-bold text-sm text-foreground">What's New</h3>
+                  <p className="text-xs text-muted-foreground">
+                    See what's changed in this version
+                  </p>
+                </div>
+              </div>
+              <Button
+                variant="ghost"
+                size="sm"
+                onClick={() => setShowChangelog(true)}
+                className="h-10 rounded-xl hover:bg-amber-500/10 transition-all duration-200"
+              >
+                <span className="text-xs font-medium">View Changelog</span>
+              </Button>
+            </div>
           </div>
         </Card>
 
@@ -1302,6 +1383,13 @@ const Profile = () => {
               </Button>
             </div>
           </Card>
+        </div>
+      )}
+
+      {/* Changelog Dialog */}
+      {showChangelog && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <Changelog onClose={() => setShowChangelog(false)} />
         </div>
       )}
 

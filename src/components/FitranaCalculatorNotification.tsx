@@ -11,31 +11,22 @@ export function FitranaCalculatorNotification() {
   const { islamicInfo, isLoading } = useIslamicCalendar();
   const [dismissed, setDismissed] = useState(false);
 
-  // Check if Fitrana Calculator should be shown (on app opening, limited to 3 times)
+  // Check if Fitrana Calculator should be shown (only 1 week before Eid al-Fitr)
   const shouldShow = (() => {
     if (isLoading || !islamicInfo || dismissed) return false;
     
-    // Check how many times it has been shown
-    const timesShown = parseInt(localStorage.getItem('fitrana-calculator-times-shown') || '0');
-    if (timesShown >= 3) return false;
+    const hijriMonth = islamicInfo.hijriMonth;
+    const hijriDay = islamicInfo.hijriDay;
     
-    // Check if already shown in this session
-    const sessionShown = sessionStorage.getItem('fitrana-calculator-session-shown');
-    if (sessionShown === 'true') return false;
+    // Only show 1 week before Eid al-Fitr (23-30 Ramadan)
+    if (hijriMonth === 9 && hijriDay >= 23) return true;
     
-    return true;
+    return false;
   })();
 
-  // Show notification on app opening
+  // Show notification when Eid al-Fitr is 1 week away
   useEffect(() => {
     if (shouldShow) {
-      // Mark as shown in this session
-      sessionStorage.setItem('fitrana-calculator-session-shown', 'true');
-      
-      // Increment times shown counter
-      const timesShown = parseInt(localStorage.getItem('fitrana-calculator-times-shown') || '0');
-      localStorage.setItem('fitrana-calculator-times-shown', (timesShown + 1).toString());
-      
       // Show toast notification
       toast({
         title: "🧮 Fitrana Calculator Available!",

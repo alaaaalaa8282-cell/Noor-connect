@@ -64,12 +64,13 @@ function AppIcon() {
         >
             {/* Icon Container with Premium Styling */}
             <div className="w-24 h-24 rounded-2xl bg-gradient-to-br from-[#1a4a4a] via-[#2c6e6e] to-[#b38b5d] p-1 shadow-[0_8px_32px_rgba(0,0,0,0.3)]">
-                <div className="w-full h-full rounded-2xl bg-black/80 backdrop-blur-sm flex items-center justify-center">
-                    {/* App Icon Image */}
+                <div className="w-full h-full rounded-2xl bg-white/10 backdrop-blur-sm flex items-center justify-center">
+                    {/* App Icon Image - Fixed sizing and proper display */}
                     <img
                         src="/icon-192x192.png"
                         alt="Noor Connect App Icon"
-                        className="w-20 h-20 rounded-xl animate-pulse"
+                        className="w-[72px] h-[72px] rounded-xl object-contain"
+                        style={{ imageRendering: 'auto' }}
                         onError={(e) => {
                             // Fallback to SVG if image fails to load
                             const target = e.target as HTMLImageElement;
@@ -80,12 +81,11 @@ function AppIcon() {
                     />
                     {/* Fallback Crescent Moon Icon */}
                     <svg
-                        width="60"
-                        height="60"
+                        width="56"
+                        height="56"
                         viewBox="0 0 120 120"
                         fill="none"
                         xmlns="http://www.w3.org/2000/svg"
-                        className="animate-pulse"
                         style={{ display: 'none' }}
                     >
                         <defs>

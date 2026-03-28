@@ -124,20 +124,25 @@ export class MysteryBoxSystem {
 
     const lastDate = new Date(lastClaim);
     const now = new Date();
-    const hoursDiff = (now.getTime() - lastDate.getTime()) / (1000 * 60 * 60);
-
-    return hoursDiff >= 24;
+    
+    // Check if it's a different day (not just 24 hours)
+    const lastDay = lastDate.toDateString();
+    const currentDay = now.toDateString();
+    
+    return lastDay !== currentDay;
   }
 
   // Get time until next free box
   getTimeUntilNextBox(): string {
     const lastClaim = localStorage.getItem('mystery-box-last-claim');
-    if (!lastClaim) return '00:00:00';
+    if (!lastClaim || this.canClaimDailyBox()) return '00:00:00';
 
-    const lastDate = new Date(lastClaim);
-    const nextClaim = new Date(lastDate.getTime() + 24 * 60 * 60 * 1000);
     const now = new Date();
-    const diff = nextClaim.getTime() - now.getTime();
+    const tomorrow = new Date(now);
+    tomorrow.setDate(tomorrow.getDate() + 1);
+    tomorrow.setHours(0, 0, 0, 0); // Start of next day
+    
+    const diff = tomorrow.getTime() - now.getTime();
 
     if (diff <= 0) return '00:00:00';
 

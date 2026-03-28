@@ -19,6 +19,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
     public static final String EXTRA_ALARM_ID = "alarmId";
     public static final String EXTRA_PRAYER_NAME = "prayerName";
     public static final String EXTRA_ADHAN_URL = "adhanUrl";
+    public static final String EXTRA_OVERRIDE_SILENT = "overrideSilent";
+    public static final String EXTRA_MAX_VOLUME = "maxVolume";
 
     // Static WakeLock so AdhanPlaybackService can release it
     private static PowerManager.WakeLock sWakeLock;
@@ -78,6 +80,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         int alarmId = intent.getIntExtra(EXTRA_ALARM_ID, -1);
         String prayerName = intent.getStringExtra(EXTRA_PRAYER_NAME);
         String adhanUrl = intent.getStringExtra(EXTRA_ADHAN_URL);
+        boolean overrideSilent = intent.getBooleanExtra(EXTRA_OVERRIDE_SILENT, false);
+        boolean maxVolume = intent.getBooleanExtra(EXTRA_MAX_VOLUME, false);
 
         if (alarmId > -1) {
             NativeAdhanScheduler.removeAlarm(context, alarmId);
@@ -88,6 +92,8 @@ public class AdhanAlarmReceiver extends BroadcastReceiver {
         playbackIntent.putExtra(EXTRA_ALARM_ID, alarmId);
         playbackIntent.putExtra(EXTRA_PRAYER_NAME, prayerName);
         playbackIntent.putExtra(EXTRA_ADHAN_URL, adhanUrl);
+        playbackIntent.putExtra(AdhanPlaybackService.EXTRA_OVERRIDE_SILENT, overrideSilent);
+        playbackIntent.putExtra(AdhanPlaybackService.EXTRA_MAX_VOLUME, maxVolume);
 
         try {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {

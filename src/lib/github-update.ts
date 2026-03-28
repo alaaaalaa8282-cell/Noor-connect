@@ -12,7 +12,7 @@ const STORAGE_KEYS = {
   CURRENT_VERSION: 'app-version',
 };
 
-export const CURRENT_APP_VERSION = '1.1.2';
+export const CURRENT_APP_VERSION = '1.2.0';
 
 const RATE_LIMIT_MS = 60 * 60 * 1000;
 

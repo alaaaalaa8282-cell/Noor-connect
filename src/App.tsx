@@ -50,7 +50,8 @@ const IslamicCalendar = lazy(() => import("./pages/IslamicCalendar"));
 const Ebooks = lazy(() => import("./pages/EbooksModern"));
 const QazaPage = lazy(() => import("./pages/QazaPage"));
 const RamadanMode = lazy(() => import("./pages/RamadanMode"));
-const MenstrualMode = lazy(() => import("./pages/MenstrualMode"));
+const MenstrualMode = lazy(() => import("@/pages/MenstrualMode"));
+import { EnhancedMenstrualMode as EnhancedMenstrualModePage } from "@/pages/EnhancedMenstrualMode";
 const NotificationHistory = lazy(() => import("./pages/NotificationHistory"));
 const ZakatCalculator = lazy(() => import("./pages/ZakatCalculator"));
 const NamesOfAllah = lazy(() => import("./pages/NamesOfAllah"));
@@ -143,6 +144,7 @@ function AppRoutes() {
         <Route path="/qaza" element={<QazaPage />} />
         <Route path="/ramadan" element={<RamadanMode />} />
         <Route path="/menstrual-mode" element={<MenstrualMode />} />
+        <Route path="/enhanced-menstrual-mode" element={<EnhancedMenstrualModePage />} />
         <Route path="/notification-history" element={<NotificationHistory />} />
         <Route path="/zakat" element={<ZakatCalculator />} />
         <Route path="/names-of-allah" element={<NamesOfAllah />} />

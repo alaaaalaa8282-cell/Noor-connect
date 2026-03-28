@@ -1,206 +1,292 @@
-import { useState, useEffect } from 'react';
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card';
-import { Switch } from '@/components/ui/switch';
-import { Slider } from '@/components/ui/slider';
+/**
+ * Notification Settings Component
+ * UI for configuring menstrual mode notification preferences
+ */
+
+import { useState, useEffect, useCallback } from 'react';
+import { Bell, BellOff, Clock, Moon, Droplets, Pill, AlertTriangle, Settings } from 'lucide-react';
+import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
+import { Switch } from '@/components/ui/switch';
+import { Label } from '@/components/ui/label';
 import { Badge } from '@/components/ui/badge';
-import { toast } from 'sonner';
-import { notificationManager, NotificationPreferences } from '@/lib/notification-manager';
-import { Bell, Clock, Settings, Trash2, TestTube } from 'lucide-react';
+import { Slider } from '@/components/ui/slider';
+import { useToast } from '@/hooks/use-toast';
+import { notificationService } from '@/lib/notification-service';
+import { storage } from '@/lib/storage';
 
-export default function NotificationSettings() {
-  const [preferences, setPreferences] = useState<NotificationPreferences>(
-    notificationManager.getPreferences()
-  );
-  const [todayCount, setTodayCount] = useState(0);
-  const [isLoading, setIsLoading] = useState(false);
+interface NotificationSettingsData {
+  enabled: boolean;
+  phaseChanges: boolean;
+  symptomCheckins: boolean;
+  medicationReminders: boolean;
+  pmsWarnings: boolean;
+  periodPredictions: boolean;
+  refillAlerts: boolean;
+  quietHoursStart: string;
+  quietHoursEnd: string;
+  maxPerDay: number;
+  checkinHour: number;
+}
 
+const STORAGE_KEY = 'menstrual-notification-settings';
+
+const DEFAULT_SETTINGS: NotificationSettingsData = {
+  enabled: true,
+  phaseChanges: true,
+  symptomCheckins: true,
+  medicationReminders: true,
+  pmsWarnings: true,
+  periodPredictions: true,
+  refillAlerts: true,
+  quietHoursStart: '22:00',
+  quietHoursEnd: '07:00',
+  maxPerDay: 3,
+  checkinHour: 9,
+};
+
+interface NotificationSettingsProps {
+  profileId?: string;
+}
+
+export function NotificationSettings({ profileId }: NotificationSettingsProps) {
+  const { toast } = useToast();
+  const [settings, setSettings] = useState<NotificationSettingsData>(DEFAULT_SETTINGS);
+  const [hasPermission, setHasPermission] = useState(false);
+  const [isRequesting, setIsRequesting] = useState(false);
+
+  // Load settings
   useEffect(() => {
-    setPreferences(notificationManager.getPreferences());
-    setTodayCount(notificationManager.getTodayNotificationCount());
+    const saved = storage.get(STORAGE_KEY, DEFAULT_SETTINGS);
+    setSettings(saved);
+
+    // Check permission
+    notificationService.hasPermission().then(setHasPermission);
   }, []);
 
-  const handlePreferenceChange = (key: keyof NotificationPreferences, value: any) => {
-    const newPreferences = { ...preferences, [key]: value };
-    setPreferences(newPreferences);
-    notificationManager.updatePreferences({ [key]: value });
-    toast.success('Notification preferences updated');
-  };
+  // Save settings on change
+  const updateSetting = useCallback(<K extends keyof NotificationSettingsData>(
+    key: K,
+    value: NotificationSettingsData[K]
+  ) => {
+    setSettings(prev => {
+      const updated = { ...prev, [key]: value };
+      storage.set(STORAGE_KEY, updated);
 
-  const handleTestNotification = async () => {
-    setIsLoading(true);
+      // Reinitialize notification service with new settings
+      notificationService.init({
+        quietHoursStart: updated.quietHoursStart,
+        quietHoursEnd: updated.quietHoursEnd,
+        maxPerDay: updated.maxPerDay,
+      });
+
+      return updated;
+    });
+  }, []);
+
+  const requestPermission = async () => {
+    setIsRequesting(true);
     try {
-      await notificationManager.sendTestNotification();
-      toast.success('Test notification sent!');
+      const granted = await notificationService.requestPermission();
+      setHasPermission(granted);
+      if (granted) {
+        toast({
+          title: 'Notifications Enabled',
+          description: 'You will now receive smart cycle notifications.',
+        });
+      } else {
+        toast({
+          title: 'Permission Denied',
+          description: 'Please enable notifications in your browser/device settings.',
+          variant: 'destructive',
+        });
+      }
     } catch (error) {
-      toast.error('Failed to send test notification');
+      toast({
+        title: 'Error',
+        description: 'Failed to request notification permission.',
+        variant: 'destructive',
+      });
     } finally {
-      setIsLoading(false);
+      setIsRequesting(false);
     }
   };
 
-  const handleClearHistory = () => {
-    notificationManager.clearNotificationHistory();
-    toast.success('Notification history cleared');
-  };
-
-  const notificationCategories = [
+  const notificationTypes = [
     {
-      title: 'Islamic Events',
-      description: 'Special occasions and religious observances',
-      items: [
-        { key: 'ramadanCountdowns', label: 'Ramadan Countdown', description: 'Daily countdown during Ramadan preparation' },
-        { key: 'eidGreetings', label: 'Eid Greetings', description: 'Eid-ul-Fitr and Eid-ul-Adha notifications' },
-        { key: 'fridayKahfReminders', label: 'Friday Reminders', description: 'Surah Al-Kahf reading reminders' },
-      ]
+      key: 'phaseChanges' as const,
+      icon: Droplets,
+      label: 'Phase Changes',
+      description: 'Get notified when your cycle phase changes',
     },
     {
-      title: 'Daily Content',
-      description: 'Regular Islamic inspiration and knowledge',
-      items: [
-        { key: 'dailyHadithNotifications', label: 'Daily Hadith', description: 'Random hadith throughout the day' },
-        { key: 'quranicVerses', label: 'Quranic Verses', description: 'Morning Quran verses for reflection' },
-        { key: 'dhikrReminders', label: 'Dhikr Reminders', description: 'Morning and evening remembrance' },
-        { key: 'islamicKnowledge', label: 'Islamic Knowledge', description: 'Interesting facts and teachings' },
-        { key: 'motivationalMessages', label: 'Motivational Messages', description: 'Daily Islamic motivation' },
-      ]
+      key: 'symptomCheckins' as const,
+      icon: Bell,
+      label: 'Symptom Check-ins',
+      description: 'Daily reminders to log symptoms and mood',
     },
     {
-      title: 'Time-Based',
-      description: 'Specific time notifications',
-      items: [
-        { key: 'morningReminders', label: 'Morning Reminders', description: 'Early morning Islamic content' },
-        { key: 'eveningReminders', label: 'Evening Reminders', description: 'Evening Islamic content' },
-      ]
-    }
+      key: 'medicationReminders' as const,
+      icon: Pill,
+      label: 'Medication Reminders',
+      description: 'Reminders for supplements and medications',
+    },
+    {
+      key: 'pmsWarnings' as const,
+      icon: AlertTriangle,
+      label: 'PMS Warnings',
+      description: 'Heads up before PMS symptoms may start',
+    },
+    {
+      key: 'periodPredictions' as const,
+      icon: Clock,
+      label: 'Period Predictions',
+      description: 'Reminders before your predicted period date',
+    },
+    {
+      key: 'refillAlerts' as const,
+      icon: Settings,
+      label: 'Refill Alerts',
+      description: 'Alerts when medications are running low',
+    },
   ];
 
   return (
-    <div className="space-y-6">
-      {/* Header */}
-      <Card>
-        <CardHeader>
-          <div className="flex items-center justify-between">
-            <div className="flex items-center gap-2">
-              <Bell className="h-5 w-5 text-primary" />
-              <CardTitle>Enhanced Notification Settings</CardTitle>
-            </div>
-            <div className="flex items-center gap-2">
-              <Badge variant="outline" className="flex items-center gap-1">
-                <Clock className="h-3 w-3" />
-                {todayCount} today
-              </Badge>
-              <Button
-                variant="outline"
-                size="sm"
-                onClick={handleTestNotification}
-                disabled={isLoading}
-              >
-                <TestTube className="h-4 w-4 mr-1" />
-                Test
-              </Button>
-            </div>
-          </div>
-          <CardDescription>
-            Customize your Islamic notification preferences and frequency with diverse content
-          </CardDescription>
-        </CardHeader>
-      </Card>
+    <Card className="p-4 space-y-4">
+      <div className="flex items-center justify-between">
+        <h3 className="font-bold flex items-center gap-2">
+          <Bell className="w-5 h-5" />
+          Notification Settings
+        </h3>
+        {!hasPermission && (
+          <Button size="sm" onClick={requestPermission} disabled={isRequesting}>
+            {isRequesting ? 'Requesting...' : 'Enable Notifications'}
+          </Button>
+        )}
+        {hasPermission && (
+          <Badge variant="secondary" className="bg-emerald-100 text-emerald-700 dark:bg-emerald-900/30 dark:text-emerald-300">
+            Enabled
+          </Badge>
+        )}
+      </div>
 
-      {/* Notification Categories */}
-      {notificationCategories.map((category, categoryIndex) => (
-        <Card key={categoryIndex}>
-          <CardHeader>
-            <CardTitle className="text-lg">{category.title}</CardTitle>
-            <CardDescription>{category.description}</CardDescription>
-          </CardHeader>
-          <CardContent className="space-y-4">
-            {category.items.map((item, itemIndex) => (
-              <div key={itemIndex} className="flex items-center justify-between space-x-2">
-                <div className="space-y-0.5">
-                  <label className="text-sm font-medium leading-none peer-disabled:cursor-not-allowed peer-disabled:opacity-70">
-                    {item.label}
-                  </label>
-                  <p className="text-xs text-muted-foreground">
-                    {item.description}
-                  </p>
+      {/* Master toggle */}
+      <div className="flex items-center justify-between p-3 bg-muted/30 rounded-lg">
+        <div className="flex items-center gap-3">
+          {settings.enabled ? (
+            <Bell className="w-5 h-5 text-primary" />
+          ) : (
+            <BellOff className="w-5 h-5 text-muted-foreground" />
+          )}
+          <div>
+            <Label className="text-sm font-bold">Notifications</Label>
+            <p className="text-xs text-muted-foreground">
+              {settings.enabled ? 'Notifications are on' : 'All notifications paused'}
+            </p>
+          </div>
+        </div>
+        <Switch
+          checked={settings.enabled}
+          onCheckedChange={(checked) => updateSetting('enabled', checked)}
+        />
+      </div>
+
+      {/* Notification types */}
+      {settings.enabled && (
+        <div className="space-y-3">
+          <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+            Notification Types
+          </p>
+          {notificationTypes.map(({ key, icon: Icon, label, description }) => (
+            <div key={key} className="flex items-center justify-between p-3 bg-muted/20 rounded-lg">
+              <div className="flex items-center gap-3">
+                <Icon className="w-4 h-4 text-muted-foreground" />
+                <div>
+                  <Label className="text-sm">{label}</Label>
+                  <p className="text-xs text-muted-foreground">{description}</p>
                 </div>
-                <Switch
-                  checked={preferences[item.key as keyof NotificationPreferences] as boolean}
-                  onCheckedChange={(checked) => 
-                    handlePreferenceChange(item.key as keyof NotificationPreferences, checked)
-                  }
-                />
               </div>
-            ))}
-          </CardContent>
-        </Card>
-      ))}
-
-      {/* Frequency Control */}
-      <Card>
-        <CardHeader>
-          <CardTitle className="flex items-center gap-2">
-            <Settings className="h-5 w-5" />
-            Notification Frequency
-          </CardTitle>
-          <CardDescription>
-            Control maximum number of notifications per day to avoid notification fatigue
-          </CardDescription>
-        </CardHeader>
-        <CardContent className="space-y-4">
-          <div className="space-y-2">
-            <div className="flex items-center justify-between">
-              <label className="text-sm font-medium">Max Daily Notifications</label>
-              <Badge variant="secondary">{preferences.maxDailyNotifications}</Badge>
+              <Switch
+                checked={settings[key]}
+                onCheckedChange={(checked) => updateSetting(key, checked)}
+              />
             </div>
-            <Slider
-              value={[preferences.maxDailyNotifications]}
-              onValueChange={([value]) => 
-                handlePreferenceChange('maxDailyNotifications', value)
-              }
-              min={1}
-              max={15}
-              step={1}
-              className="w-full"
-            />
-            <div className="flex justify-between text-xs text-muted-foreground">
-              <span>Minimal (1)</span>
-              <span>Moderate (5)</span>
-              <span>Frequent (10)</span>
-              <span>Maximum (15)</span>
+          ))}
+        </div>
+      )}
+
+      {/* Quiet Hours */}
+      {settings.enabled && (
+        <div className="space-y-3 pt-3 border-t">
+          <div className="flex items-center gap-2">
+            <Moon className="w-4 h-4 text-muted-foreground" />
+            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider">
+              Quiet Hours
+            </p>
+          </div>
+          <div className="grid grid-cols-2 gap-3">
+            <div>
+              <Label className="text-xs text-muted-foreground">Start</Label>
+              <input
+                type="time"
+                value={settings.quietHoursStart}
+                onChange={(e) => updateSetting('quietHoursStart', e.target.value)}
+                className="w-full mt-1 px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              />
+            </div>
+            <div>
+              <Label className="text-xs text-muted-foreground">End</Label>
+              <input
+                type="time"
+                value={settings.quietHoursEnd}
+                onChange={(e) => updateSetting('quietHoursEnd', e.target.value)}
+                className="w-full mt-1 px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+              />
             </div>
           </div>
-        </CardContent>
-      </Card>
+        </div>
+      )}
 
-      {/* Info Card */}
-      <Card className="border-primary/20 bg-primary/5">
-        <CardContent className="pt-6">
-          <div className="flex items-start gap-3">
-            <Bell className="h-5 w-5 text-primary mt-0.5 flex-shrink-0" />
-            <div className="space-y-1">
-              <h4 className="text-sm font-medium">About Enhanced Notifications</h4>
-              <p className="text-xs text-muted-foreground leading-relaxed">
-                Our enhanced notification system provides diverse Islamic content including hadith, 
-                Quranic verses, dhikr reminders, and motivational messages. 
-                Notifications are time-sensitive and respect your frequency preferences 
-                to provide spiritual enrichment without overwhelming you.
-              </p>
-              <div className="mt-2 space-y-1">
-                <p className="text-xs font-medium">Features:</p>
-                <ul className="text-xs text-muted-foreground space-y-1 ml-4">
-                  <li>• Diverse Islamic content (hadith, Quran, dhikr, knowledge)</li>
-                  <li>• Time-based notifications (morning/evening themes)</li>
-                  <li>• Smart frequency control to prevent notification fatigue</li>
-                  <li>• Contextual Ramadan countdown messages</li>
-                  <li>• Enhanced Friday reminders with varied content</li>
-                </ul>
-              </div>
-            </div>
+      {/* Max notifications per day */}
+      {settings.enabled && (
+        <div className="space-y-2 pt-3 border-t">
+          <div className="flex items-center justify-between">
+            <Label className="text-sm">Max notifications per day</Label>
+            <span className="text-sm font-bold">{settings.maxPerDay}</span>
           </div>
-        </CardContent>
-      </Card>
-    </div>
+          <Slider
+            value={[settings.maxPerDay]}
+            onValueChange={([v]) => updateSetting('maxPerDay', v)}
+            min={1}
+            max={10}
+            step={1}
+          />
+          <div className="flex justify-between text-xs text-muted-foreground">
+            <span>1</span>
+            <span>10</span>
+          </div>
+        </div>
+      )}
+
+      {/* Check-in time */}
+      {settings.enabled && settings.symptomCheckins && (
+        <div className="space-y-2 pt-3 border-t">
+          <Label className="text-sm">Daily check-in time</Label>
+          <input
+            type="time"
+            value={`${settings.checkinHour.toString().padStart(2, '0')}:00`}
+            onChange={(e) => updateSetting('checkinHour', parseInt(e.target.value.split(':')[0], 10))}
+            className="w-full px-3 py-2 text-sm border rounded-lg bg-background focus:outline-none focus:ring-2 focus:ring-primary"
+          />
+        </div>
+      )}
+
+      <p className="text-xs text-muted-foreground pt-2 border-t">
+        Notifications are scheduled intelligently based on your cycle data and predictions.
+        Quiet hours prevent notifications during sleep time.
+      </p>
+    </Card>
   );
 }
+
+export default NotificationSettings;
