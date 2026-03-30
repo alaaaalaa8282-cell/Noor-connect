@@ -110,7 +110,6 @@ export default function EnhancedIslamicQuiz() {
   const [variableReward, setVariableReward] = useState<VariableReward | null>(null);
   const [canClaimMysteryBox, setCanClaimMysteryBox] = useState(false);
   const [activeEvent, setActiveEvent] = useState<ReturnType<typeof timeEventsSystem.getActiveEvent>>(null);
-  const { toast } = useToast();
 
   useEffect(() => {
     setStats(quizManager.getStats());
