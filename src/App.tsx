@@ -1,9 +1,9 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+﻿import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { BrowserRouter, Routes, Route, useLocation, Navigate } from "react-router-dom";
-import { BottomNav } from "@/components/BottomNav";
+import BottomNav from "@/components/BottomNav";
 import { ErrorBoundary } from "@/components/ErrorBoundary";
 import { notificationManager } from "@/lib/notification-manager";
 import { serviceWorkerManager } from "@/lib/service-worker-registration";
@@ -72,6 +72,7 @@ const NotFound = lazy(() => import("./pages/NotFound"));
 import { prefetchCriticalChunks } from "@/lib/build-optimization";
 import { AnimatePresence } from "framer-motion";
 import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n-new";
 import { LOCATION_STORAGE_KEY } from "@/lib/location-config";
 
 // Prefetch critical route chunks after initial load
@@ -91,7 +92,7 @@ if (typeof window !== 'undefined') {
 
 function AppRoutes() {
   const location = useLocation();
-  const { t } = useTranslation();
+  const { t } = useTranslation(undefined, { i18n });
 
   return (
     <Suspense fallback={

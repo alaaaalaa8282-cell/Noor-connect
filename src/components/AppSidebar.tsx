@@ -1,5 +1,6 @@
-import { Home, BookOpen, MessageSquare, Compass, Clock, Heart, Lightbulb, Info, Mail, User } from "lucide-react";
+import { useState, useCallback, useEffect } from "react";
 import { NavLink } from "react-router-dom";
+import { Home, BookOpen, MessageSquare, Compass, Clock, Heart, Lightbulb, Info, Mail, User } from "lucide-react";
 import {
   Sidebar,
   SidebarContent,

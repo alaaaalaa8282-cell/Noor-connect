@@ -114,20 +114,47 @@ export function useIslamicCalendar(): UseIslamicCalendarReturn {
            const offsetData = AladhanAPI.getPrayerTimesForDate(offsetDate, location.latitude, location.longitude);
            if (offsetData) {
              h = offsetData.date.hijri;
-           } else {
-             // Fallback approximate calculation
-             const newHijri = JSON.parse(JSON.stringify(h));
-             let newDay = parseInt(newHijri.day) + offset;
-             if (newDay <= 0) {
-               newDay = 30 + newDay; 
-               newHijri.month.number -= 1;
-             } else if (newDay > 30) {
-               newDay = newDay - 30;
-               newHijri.month.number += 1;
-             }
-             newHijri.day = newDay.toString().padStart(2, '0');
-             h = newHijri;
-           }
+            } else {
+              // Fallback approximate calculation
+              const newHijri = JSON.parse(JSON.stringify(h));
+              let newDay = parseInt(newHijri.day) + offset;
+              let newMonth = newHijri.month.number;
+              let newYear = newHijri.year;
+
+              const getHijriMonthLength = (month: number, year: number) => {
+                if (month % 2 === 1) return 30; // Odd months: 30 days
+                if (month === 12) {
+                  // Leap year check: year mod 30 gives cycle position, leap years are specific ones
+                  // Simplified: month 12 can be 30 days in some years
+                  return 29;
+                }
+                return 29; // Even months: 29 days
+              };
+
+              if (newDay <= 0) {
+                newMonth -= 1;
+                if (newMonth < 1) {
+                  newMonth = 12;
+                  newYear -= 1;
+                }
+                newDay = getHijriMonthLength(newMonth, newYear) + newDay;
+              } else {
+                const monthLength = getHijriMonthLength(newMonth, newYear);
+                if (newDay > monthLength) {
+                  newDay = newDay - monthLength;
+                  newMonth += 1;
+                  if (newMonth > 12) {
+                    newMonth = 1;
+                    newYear += 1;
+                  }
+                }
+              }
+
+              newHijri.day = newDay.toString().padStart(2, '0');
+              newHijri.month.number = newMonth;
+              newHijri.year = newYear;
+              h = newHijri;
+            }
         }
 
         setHijriDay(h.day);

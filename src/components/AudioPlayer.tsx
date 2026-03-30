@@ -24,8 +24,19 @@ export const AudioPlayer = ({ surahNumber, surahName, onClose }: AudioPlayerProp
     const fetchAndPlayAudio = async () => {
       try {
         setIsLoading(true);
+
+        // Pause and reset previous audio before loading new surah
+        const prevAudio = audioRef.current;
+        if (prevAudio) {
+          prevAudio.pause();
+          prevAudio.src = '';
+        }
+
         const response = await fetch(`https://api.quran.com/api/v4/chapter_recitations/7/${surahNumber}`);
         const data = await response.json();
+        if (!data?.audio_file?.audio_url) {
+          throw new Error('No audio file found');
+        }
         const audioUrl = data.audio_file.audio_url;
         
         const audio = audioRef.current;

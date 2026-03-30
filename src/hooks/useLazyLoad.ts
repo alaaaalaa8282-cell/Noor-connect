@@ -27,24 +27,33 @@ export const useLazyLoad = <T,>(
   const [hasMore, setHasMore] = useState(true);
   const observerRef = useRef<IntersectionObserver | null>(null);
   const loadMoreRef = useRef<HTMLDivElement | null>(null);
+  const hasMoreRef = useRef(true);
+  const loadMoreRef2 = useRef<() => void>(() => {});
 
   // Initialize with first batch
   useEffect(() => {
     const initialBatch = items.slice(0, initialLoadCount);
     setVisibleItems(initialBatch);
-    setHasMore(items.length > initialLoadCount);
+    const more = items.length > initialLoadCount;
+    setHasMore(more);
+    hasMoreRef.current = more;
   }, [items, initialLoadCount]);
 
   // Load more items
   const loadMore = useCallback(() => {
-    if (!hasMore) return;
+    if (!hasMoreRef.current) return;
 
-    const currentLength = visibleItems.length;
-    const nextBatch = items.slice(currentLength, currentLength + batchSize);
-    
-    setVisibleItems(prev => [...prev, ...nextBatch]);
-    setHasMore(currentLength + batchSize < items.length);
-  }, [items, visibleItems.length, batchSize, hasMore]);
+    setVisibleItems(prev => {
+      const nextBatch = items.slice(prev.length, prev.length + batchSize);
+      const more = prev.length + batchSize < items.length;
+      hasMoreRef.current = more;
+      setHasMore(more);
+      return [...prev, ...nextBatch];
+    });
+  }, [items, batchSize]);
+
+  // Keep loadMore ref in sync
+  loadMoreRef2.current = loadMore;
 
   // Setup Intersection Observer
   useEffect(() => {
@@ -53,8 +62,8 @@ export const useLazyLoad = <T,>(
     observerRef.current = new IntersectionObserver(
       (entries) => {
         const [entry] = entries;
-        if (entry.isIntersecting && hasMore) {
-          loadMore();
+        if (entry.isIntersecting && hasMoreRef.current) {
+          loadMoreRef2.current();
         }
       },
       {
@@ -70,7 +79,7 @@ export const useLazyLoad = <T,>(
         observerRef.current.disconnect();
       }
     };
-  }, [threshold, rootMargin, hasMore, loadMore]);
+  }, [threshold, rootMargin]);
 
   return {
     visibleItems,

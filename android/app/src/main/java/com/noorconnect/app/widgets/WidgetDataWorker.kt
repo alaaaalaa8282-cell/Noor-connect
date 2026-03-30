@@ -42,9 +42,10 @@ class WidgetDataWorker(
         }
 
         try {
-            val prayerData = JSONObject(prayerJson)
-            val ayahData = JSONObject(ayahJson)
-            updateAllWidgets(applicationContext, prayerData, ayahData)
+            JSONObject(prayerJson)
+            JSONObject(ayahJson)
+            // Just validate parsing passes, then trigger widget updates
+            updateAllWidgets(applicationContext)
         } catch (e: Exception) {
             Log.e(TAG, "Failed to parse widget data", e)
             updateAllWidgetsEmptyState(applicationContext)
@@ -74,8 +75,8 @@ class WidgetDataWorker(
         }
 
         val notification = NotificationCompat.Builder(applicationContext, CHANNEL_ID)
-            .setSmallIcon(android.R.drawable.ic_popup_sync)
-            .setContentTitle("Syncing widgets")
+            .setSmallIcon(com.noorconnect.app.R.mipmap.ic_launcher)
+            .setContentTitle("Updating widgets…")
             .setSilent(true)
             .setPriority(NotificationCompat.PRIORITY_MIN)
             .build()
@@ -83,7 +84,7 @@ class WidgetDataWorker(
         return ForegroundInfo(NOTIFICATION_ID, notification)
     }
 
-    private fun updateAllWidgets(context: Context, prayerData: JSONObject, ayahData: JSONObject) {
+    private fun updateAllWidgets(context: Context) {
         val mgr = AppWidgetManager.getInstance(context)
 
         // Update NextAdhanWidgets

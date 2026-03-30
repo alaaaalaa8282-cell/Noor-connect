@@ -113,8 +113,8 @@ export class MetalPricesService {
     const silverPricePerOunce = goldPricePerOunce / goldToSilverRatio;
 
     // Convert to per gram
-    const goldPricePerGramUSD = goldPricePerOunce / METAL_PRICE_CONSTANTS.OUNCES_PER_GRAM;
-    const silverPricePerGramUSD = silverPricePerOunce / METAL_PRICE_CONSTANTS.OUNCES_PER_GRAM;
+    const goldPricePerGramUSD = goldPricePerOunce / METAL_PRICE_CONSTANTS.GRAMS_PER_TROY_OUNCE;
+    const silverPricePerGramUSD = silverPricePerOunce / METAL_PRICE_CONSTANTS.GRAMS_PER_TROY_OUNCE;
 
     // Get exchange rate and convert to target currency
     const exchangeRate = await this.getExchangeRate(currency);

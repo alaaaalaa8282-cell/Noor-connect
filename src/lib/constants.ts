@@ -13,7 +13,7 @@ export const METAL_PRICE_CONSTANTS = {
   DEFAULT_GOLD_TO_SILVER_RATIO: 57,
 
   // Conversion constants
-  OUNCES_PER_GRAM: 31.1035,
+  GRAMS_PER_TROY_OUNCE: 31.1035,
 
   // Nisab thresholds in grams
   NISAB_GOLD_GRAMS: 87.48,

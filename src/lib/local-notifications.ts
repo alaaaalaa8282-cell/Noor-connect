@@ -38,10 +38,24 @@ type ServiceWorkerPrayerTimings = Record<string, { time: string }>;
 
 const PRAYER_NAMES = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'] as const;
 
+const PRAYER_QUOTES = [
+  '"Prayer is the pillar of religion." - Prophet Muhammad (ﷺ)',
+  '"The key to Paradise is prayer." - Tirmidhi',
+  '"Prayer is light." - Sahih Muslim',
+  '"Come to prayer, come to success." - The Adhan',
+  '"The coolness of my eyes was made in prayer." - Sunan an-Nasa\'i',
+  '"The first matter that the slave will be brought to account for on the Day of Judgment is the prayer." - Abu Dawud',
+  '"When you stand to pray, pray like a person who is saying farewell." - Ibn Majah',
+  '"Establish prayer at the two ends of the day and at the approach of the night." - Quran 11:114',
+  '"Successful indeed are the believers, those who humble themselves in their prayers." - Quran 23:1-2',
+  '"Maintain with care the obligatory prayers and the middle prayer, and stand before Allah, devoutly obedient." - Quran 2:238',
+];
+
 const getPrayerNotificationMessage = (prayerName: string, prayerTime: string): { title: string; body: string } => {
+  const randomQuote = PRAYER_QUOTES[Math.floor(Math.random() * PRAYER_QUOTES.length)];
   return {
     title: `${prayerName} Prayer Time`,
-    body: `It's time for ${prayerName} prayer (${prayerTime}).`,
+    body: `It's time for ${prayerName} prayer (${prayerTime}).\n${randomQuote}`,
   };
 };
 

@@ -69,18 +69,14 @@ class DailyAyahWidget : AppWidgetProvider() {
                 }
             }
 
-            // Tap → open app
+            // Tap → open app (set on root, always visible)
             val intent = Intent(context, MainActivity::class.java)
                 .setFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
             val pi = PendingIntent.getActivity(
                 context, 102, intent,
                 PendingIntent.FLAG_IMMUTABLE or PendingIntent.FLAG_UPDATE_CURRENT
             )
-            // Set click on the root layout (first child is ayah_arabic)
-            rv.setOnClickPendingIntent(R.id.ayah_arabic, pi)
-            rv.setOnClickPendingIntent(R.id.ayah_translation, pi)
-            rv.setOnClickPendingIntent(R.id.ayah_reference, pi)
-            rv.setOnClickPendingIntent(R.id.empty_ayah, pi)
+            rv.setOnClickPendingIntent(R.id.ayah_root, pi)
 
             mgr.updateAppWidget(id, rv)
         }

@@ -1,4 +1,4 @@
-import { useEffect, useState, useCallback } from 'react';
+import { useEffect, useState, useCallback, useRef } from 'react';
 import { toast } from 'sonner';
 import { getAdhanUrlForPrayer, type PrayerName } from '@/lib/adhan-preferences';
 import { nativeAdhan } from '@/lib/native-adhan';
@@ -75,6 +75,8 @@ export const usePrayerAlarm = () => {
       tempAudio.pause();
     } catch {
       // Browser may still block autoplay until another interaction.
+    } finally {
+      tempAudio.src = '';
     }
 
     localStorage.setItem(STORAGE_KEY, 'true');
@@ -150,6 +152,18 @@ export const usePrayerAlarm = () => {
     });
   }, [stopAdhan]);
 
+  const stopTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  // Cleanup stop timeout on unmount
+  useEffect(() => {
+    return () => {
+      if (stopTimeoutRef.current) {
+        clearTimeout(stopTimeoutRef.current);
+        stopTimeoutRef.current = null;
+      }
+    };
+  }, []);
+
   const testAdhan = useCallback(() => {
     // Cycle through different prayers for testing
     const prayers: PrayerName[] = ['Fajr', 'Dhuhr', 'Asr', 'Maghrib', 'Isha'];
@@ -165,8 +179,13 @@ export const usePrayerAlarm = () => {
     
     dispatchControlEvent({ action: 'test', prayerName: selectedPrayer });
 
-    window.setTimeout(() => {
+    // Clear any previous timeout
+    if (stopTimeoutRef.current) {
+      clearTimeout(stopTimeoutRef.current);
+    }
+    stopTimeoutRef.current = window.setTimeout(() => {
       dispatchControlEvent({ action: 'stop' });
+      stopTimeoutRef.current = null;
     }, 8000); // Slightly longer for different adhan lengths
   }, []);
 

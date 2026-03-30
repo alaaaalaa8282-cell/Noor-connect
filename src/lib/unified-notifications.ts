@@ -142,10 +142,20 @@ class UnifiedNotificationService {
           notification.close();
           window.focus();
 
-          // Navigate if URL provided
+          // Navigate if URL provided (only allow relative URLs or same-origin)
           const url = options.data?.url;
           if (typeof url === 'string') {
-            window.location.href = url;
+            try {
+              const parsed = new URL(url, window.location.origin);
+              if (parsed.origin === window.location.origin) {
+                window.location.href = url;
+              } else {
+                console.warn('Blocked navigation to external URL:', url);
+              }
+            } catch {
+              // Treat as relative URL
+              window.location.href = url;
+            }
           }
         };
       }
@@ -258,9 +268,24 @@ class UnifiedNotificationService {
       return false;
     }
 
+    const PRAYER_QUOTES = [
+      '"Prayer is the pillar of religion." - Prophet Muhammad (ﷺ)',
+      '"The key to Paradise is prayer." - Tirmidhi',
+      '"Prayer is light." - Sahih Muslim',
+      '"Come to prayer, come to success." - The Adhan',
+      '"The coolness of my eyes was made in prayer." - Sunan an-Nasa\'i',
+      '"The first matter that the slave will be brought to account for on the Day of Judgment is the prayer." - Abu Dawud',
+      '"When you stand to pray, pray like a person who is saying farewell." - Ibn Majah',
+      '"Establish prayer at the two ends of the day and at the approach of the night." - Quran 11:114',
+      '"Successful indeed are the believers, those who humble themselves in their prayers." - Quran 23:1-2',
+      '"Maintain with care the obligatory prayers and the middle prayer, and stand before Allah, devoutly obedient." - Quran 2:238',
+    ];
+    
+    const randomQuote = PRAYER_QUOTES[Math.floor(Math.random() * PRAYER_QUOTES.length)];
+
     const notificationOptions: NotificationOptions = {
       title: `🕌 ${prayerName} Prayer Time`,
-      body: `It's time for ${prayerName} prayer`,
+      body: `It's time for ${prayerName} prayer.\n${randomQuote}`,
       tag: `prayer-${prayerName.toLowerCase()}`,
       requireInteraction: true,
       data: { prayerName, url: '/' },
@@ -293,7 +318,11 @@ class UnifiedNotificationService {
     } else {
       // Web - use setTimeout for scheduling
       setTimeout(async () => {
-        await this.showNotification(notificationOptions);
+        try {
+          await this.showNotification(notificationOptions);
+        } catch (error) {
+          console.error('Scheduled notification failed:', error);
+        }
       }, delay);
 
       console.log(`Scheduled ${prayerName} notification for ${prayerTime}`);

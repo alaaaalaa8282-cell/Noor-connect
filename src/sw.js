@@ -293,13 +293,10 @@ async function showNotification(options) {
   try {
     // Check if we have permission before showing notification
     // In service worker, we can only check existing permission, not request it
-    const notifications = await self.registration.getNotifications();
-    const hasPermission = notifications !== null;
-
-    if (!hasPermission) {
-      console.log('Service Worker: No notification permission, skipping notification');
-      return;
-    }
+    // Note: Cannot reliably check notification permission in service worker
+    // getNotifications() returns [] (empty array) when no notifications, not null
+    // Permission should be checked in main thread and communicated via postMessage
+    // For now, we proceed with showing notification (will fail silently if no permission)
 
     await self.registration.showNotification(options.title, {
       body: options.body,

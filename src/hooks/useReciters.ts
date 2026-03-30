@@ -35,9 +35,13 @@ export function useReciters() {
                 // Check localStorage first
                 const cached = localStorage.getItem('mp3quran-reciters-v1');
                 if (cached) {
-                    setReciters(JSON.parse(cached));
-                    setIsLoading(false);
-                    return;
+                    try {
+                        setReciters(JSON.parse(cached));
+                        setIsLoading(false);
+                        return;
+                    } catch {
+                        localStorage.removeItem('mp3quran-reciters-v1');
+                    }
                 }
 
                 const res = await fetch("https://mp3quran.net/api/v3/reciters?language=en");

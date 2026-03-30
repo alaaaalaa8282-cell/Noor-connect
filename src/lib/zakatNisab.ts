@@ -126,16 +126,16 @@ export class ZakatNisabService {
     const silverWeight = standard === 'classical' ? 612.36 : 595;
 
     // Convert to ounces if needed
-    const goldWeightOunces = unit === 'oz' ? goldWeight / METAL_PRICE_CONSTANTS.OUNCES_PER_GRAM : goldWeight;
-    const silverWeightOunces = unit === 'oz' ? silverWeight / METAL_PRICE_CONSTANTS.OUNCES_PER_GRAM : silverWeight;
+    const goldWeightOunces = unit === 'oz' ? goldWeight / METAL_PRICE_CONSTANTS.GRAMS_PER_TROY_OUNCE : goldWeight;
+    const silverWeightOunces = unit === 'oz' ? silverWeight / METAL_PRICE_CONSTANTS.GRAMS_PER_TROY_OUNCE : silverWeight;
 
     // Use fallback prices (per gram)
     const goldPricePerGram = METAL_PRICE_CONSTANTS.FALLBACK_GOLD_PRICE_PER_GRAM;
     const silverPricePerGram = METAL_PRICE_CONSTANTS.FALLBACK_SILVER_PRICE_PER_GRAM;
 
     // Convert to per ounce if needed
-    const goldPricePerUnit = unit === 'oz' ? goldPricePerGram * METAL_PRICE_CONSTANTS.OUNCES_PER_GRAM : goldPricePerGram;
-    const silverPricePerUnit = unit === 'oz' ? silverPricePerGram * METAL_PRICE_CONSTANTS.OUNCES_PER_GRAM : silverPricePerGram;
+    const goldPricePerUnit = unit === 'oz' ? goldPricePerGram * METAL_PRICE_CONSTANTS.GRAMS_PER_TROY_OUNCE : goldPricePerGram;
+    const silverPricePerUnit = unit === 'oz' ? silverPricePerGram * METAL_PRICE_CONSTANTS.GRAMS_PER_TROY_OUNCE : silverPricePerGram;
 
     // Get exchange rate for currency conversion
     const exchangeRate = await this.getExchangeRate(currency);

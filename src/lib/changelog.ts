@@ -32,13 +32,14 @@ const STORAGE_KEYS = {
 export const CHANGELOG_DATA: VersionChangelog[] = [
   {
     version: '1.2.0',
-    date: '2026-03-27',
-    title: 'Widget Improvements & Changelog',
+    date: '2026-03-30',
+    title: 'Live Radio Widget & Native Android Improvements',
     changes: [
-      { type: 'feature', description: 'Added changelog feature to track app updates' },
-      { type: 'feature', description: 'Widget previews now show before adding to dashboard' },
-      { type: 'fix', description: 'Fixed widget errors crashing the app' },
-      { type: 'improvement', description: 'Better error boundaries around widget components' },
+      { type: 'feature', description: 'Brand new Live Quran Radio Widget with direct background audio playback and home screen controls.' },
+      { type: 'feature', description: 'Complete rebuild of Next Adhan, Daily Ayah, and Daily Schedule Widgets in native Kotlin for perfect Doze mode performance.' },
+      { type: 'fix', description: 'Fixed Quiz streak logic and Daily check-in errors during Menstrual Mode overrides.' },
+      { type: 'improvement', description: 'Added premium Android 14 notification center integration with large icon display support.' },
+      { type: 'fix', description: 'Corrected premature Eid Mubarak popups from triggering before Shawwal.' }
     ],
   },
   {

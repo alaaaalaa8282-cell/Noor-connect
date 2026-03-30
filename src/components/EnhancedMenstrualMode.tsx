@@ -137,7 +137,7 @@ const phaseRecommendations = {
       'Eat sprouted grains and seeds for vitality',
       'Add fresh herbs: parsley, cilantro, mint for detoxification',
       'Consume foods rich in B vitamins for energy',
-      'Try new healthy recipes and experiment in the kitchen'
+      'Try new healthy recipes and experiment in kitchen'
     ],
     exercise: [
       'Moderate cardio: jogging, cycling, swimming',
@@ -461,12 +461,12 @@ export function EnhancedMenstrualMode() {
 
   const getPhaseColor = (phase: string) => {
     switch (phase) {
-      case 'menstrual': return 'bg-rose-500/10 text-rose-600 border-rose-500/20';
-      case 'follicular': return 'bg-emerald-500/10 text-emerald-600 border-emerald-500/20';
-      case 'ovulatory': return 'bg-blue-500/10 text-blue-600 border-blue-500/20';
-      case 'luteal': return 'bg-purple-500/10 text-purple-600 border-purple-500/20';
-      case 'premenstrual': return 'bg-orange-500/10 text-orange-600 border-orange-500/20';
-      default: return 'bg-gray-500/10 text-gray-600 border-gray-500/20';
+      case 'menstrual': return 'bg-gradient-to-br from-rose-500/10 to-rose-600/5 text-rose-600 border-rose-500/20';
+      case 'follicular': return 'bg-gradient-to-br from-emerald-500/10 to-emerald-600/5 text-emerald-600 border-emerald-500/20';
+      case 'ovulatory': return 'bg-gradient-to-br from-blue-500/10 to-blue-600/5 text-blue-600 border-blue-500/20';
+      case 'luteal': return 'bg-gradient-to-br from-purple-500/10 to-purple-600/5 text-purple-600 border-purple-500/20';
+      case 'premenstrual': return 'bg-gradient-to-br from-orange-500/10 to-orange-600/5 text-orange-600 border-orange-500/20';
+      default: return 'bg-gradient-to-br from-gray-500/10 to-gray-600/5 text-gray-600 border-gray-500/20';
     }
   };
 
@@ -618,16 +618,15 @@ export function EnhancedMenstrualMode() {
     return { level: 'severe', message: 'Severe symptoms - consider medical consultation', color: 'text-red-700' };
   };
 
+  const PhaseIcon = currentPhase ? getPhaseIcon(currentPhase.phase) : Calendar;
+
   return (
     <div className="space-y-6">
       {/* Current Phase Display */}
       {currentPhase && (
         <Card className={`p-4 border-2 ${getPhaseColor(currentPhase.phase)}`}>
           <div className="flex items-center gap-3 mb-3">
-            {(() => {
-              const Icon = getPhaseIcon(currentPhase.phase);
-              return <Icon className="w-6 h-6" />;
-            })()}
+            <PhaseIcon className="w-6 h-6" />
             <div className="flex-1">
               <h3 className="font-bold capitalize">{currentPhase.phase} Phase</h3>
               <p className="text-sm text-muted-foreground">Day {currentPhase.day} of cycle</p>

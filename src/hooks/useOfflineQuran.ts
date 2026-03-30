@@ -143,7 +143,7 @@ export function useOfflineQuran(): UseOfflineQuranReturn {
         break;
         
       case 'offline':
-        setSyncStatus(prev => ({ ...prev, isOnline: true }));
+        setSyncStatus(prev => ({ ...prev, isOnline: false }));
         break;
     }
   }, [loadCachedData, updateCacheStatus]);

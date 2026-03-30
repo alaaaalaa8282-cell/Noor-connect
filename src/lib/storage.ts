@@ -108,7 +108,7 @@ export const getTasbeehHistory = (): TasbeehEntry[] => {
 
 export const addTasbeehEntry = (label: string): void => {
   const history = getTasbeehHistory();
-  const today = new Date().toLocaleDateString();
+  const today = new Date().toISOString().split('T')[0]; // YYYY-MM-DD format
   const existingIndex = history.findIndex(h => h.date === today && h.label === label);
 
   if (existingIndex >= 0) {

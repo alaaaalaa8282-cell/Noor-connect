@@ -6,7 +6,7 @@ import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import {
     MessageCircle, Radio, Target, Heart, Calculator,
     Star, Trophy, Coins, Calendar, Library, Tv, Sparkles, HeartHandshake, BookOpen, BookText, Moon, Headphones,
-    CheckCircle, AlertTriangle
+    CheckCircle, AlertTriangle, RotateCcw
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -63,6 +63,8 @@ export default function Services() {
         { title: "Live", path: "/live", icon: Tv, gradient: 'from-[#f43f5e] to-[#be123c]' },
         { title: "Hadith Collections", path: "/hadith/collections", icon: BookText, gradient: 'from-[#6366f1] to-[#4338ca]' },
         { title: "Radio", path: "/quran-radio", icon: Radio, gradient: 'from-[#3b82f6] to-[#1d4ed8]' },
+        { title: "Namaz Check-In", path: "/prayer-stats", icon: CheckCircle, gradient: 'from-[#22c55e] to-[#15803d]' },
+        { title: "Qaza Tracker", path: "/qaza", icon: RotateCcw, gradient: 'from-[#ef4444] to-[#b91c1c]' },
         { title: "Habits", path: "/habit-tracker", icon: Target, gradient: 'from-[#14b8a6] to-[#0f766e]' },
         { title: "Duas", path: "/duas", icon: Heart, gradient: 'from-[#ec4899] to-[#be185d]' },
         { title: "Remedies", path: "/islamic-remedies", icon: HeartHandshake, gradient: 'from-[#a855f7] to-[#7e22ce]' },

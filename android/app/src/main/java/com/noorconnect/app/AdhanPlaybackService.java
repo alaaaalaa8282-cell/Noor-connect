@@ -8,6 +8,7 @@ import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.media.AudioAttributes;
+import android.media.AudioFocusRequest;
 import android.media.AudioManager;
 import android.media.MediaPlayer;
 import android.media.RingtoneManager;
@@ -118,8 +119,10 @@ public class AdhanPlaybackService extends Service {
                             .setUsage(AudioAttributes.USAGE_ALARM)
                             .setContentType(AudioAttributes.CONTENT_TYPE_MUSIC)
                             .build();
-                    int result = audioManager.requestAudioFocus(null, audioAttributes,
-                            AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE);
+                    AudioFocusRequest focusRequest = new AudioFocusRequest.Builder(AudioManager.AUDIOFOCUS_GAIN_TRANSIENT_EXCLUSIVE)
+                            .setAudioAttributes(audioAttributes)
+                            .build();
+                    int result = audioManager.requestAudioFocus(focusRequest);
                     if (result != AudioManager.AUDIOFOCUS_REQUEST_GRANTED) {
                         Log.w(TAG, "Failed to get exclusive audio focus");
                     }

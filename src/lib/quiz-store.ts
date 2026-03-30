@@ -396,7 +396,7 @@ export class QuizStore {
     // Check if streak is broken
     const lastClaim = status.lastClaimDate ? new Date(status.lastClaimDate) : null;
     if (lastClaim) {
-      const daysDiff = Math.floor(
+      const daysDiff = Math.round(
         (new Date(today).getTime() - lastClaim.getTime()) / (1000 * 60 * 60 * 24)
       );
 
@@ -408,23 +408,26 @@ export class QuizStore {
           // Use streak freeze
           this.removeFromInventory('streak_freeze', 1);
         } else {
+          status.rewards = this.createDefaultDailyRewards().rewards;
           status.currentStreak = 0;
         }
       }
     }
 
+    // If completed 7 days previously and it's a new day, start new cycle
+    if (status.currentStreak >= 7 && status.lastClaimDate !== today) {
+      status.rewards = this.createDefaultDailyRewards().rewards;
+      status.currentStreak = 0;
+    }
+
     // Check if can claim today
-    const todayReward = status.rewards.find(r => r.day === status.currentStreak + 1 && status.currentStreak < 7);
+    const todayReward = status.rewards.find(r => r.day === status.currentStreak + 1);
     
-    // Only allow claiming if it's the next day in sequence and not already claimed today
-    if (todayReward) {
-      status.canClaimToday = !todayReward.claimed || todayReward.claimDate !== today;
+    if (status.lastClaimDate === today) {
+      status.canClaimToday = false;
+    } else if (todayReward) {
+      status.canClaimToday = true;
     } else {
-      // If completed 7 days, start new cycle
-      if (status.currentStreak >= 7) {
-        status.rewards = this.createDefaultDailyRewards().rewards;
-        status.currentStreak = 0;
-      }
       status.canClaimToday = false;
     }
     
@@ -488,24 +491,15 @@ export class QuizStore {
       });
     }
 
-  // Check for 7-day completion bonus
+    // Check for 7-day completion bonus
     if (status.currentStreak === 7) {
       // Bonus XP for completing week
       this.addXP(500, 'Weekly Streak Complete!');
-      
-      // Start new cycle after a delay
-      setTimeout(() => {
-        const newStatus = this.getDailyRewardStatus();
-        newStatus.rewards = this.createDefaultDailyRewards().rewards;
-        newStatus.currentStreak = 0;
-        newStatus.lastClaimDate = null; // Reset to allow immediate claim of day 1
-        localStorage.setItem(STORAGE_KEYS.DAILY_REWARDS, JSON.stringify(newStatus));
-      }, 1000);
+      // It will reset to day 1 naturally tomorrow via getDailyRewardStatus
     }
 
     // Update next reward
-    const nextReward = status.rewards.find(r => r.day === status.currentStreak + 1);
-    status.nextReward = nextReward || null;
+    status.nextReward = null;
     status.canClaimToday = false;
 
     localStorage.setItem(STORAGE_KEYS.DAILY_REWARDS, JSON.stringify(status));

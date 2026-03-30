@@ -309,8 +309,10 @@ export class AdhanService {
 
     // Find next prayer time
     for (const prayer of prayerTimes) {
-      const [prayerHour] = prayer.time.split(':').map(Number);
-      if (prayerHour > hour || (prayerHour === hour && !prayer.hasPlayed)) {
+      const [prayerHour, prayerMinute] = prayer.time.split(':').map(Number);
+      const prayerMinutes = prayerHour * 60 + prayerMinute;
+      const nowMinutes = hour * 60 + now.getMinutes();
+      if (prayerMinutes > nowMinutes || (prayerMinutes === nowMinutes && !prayer.hasPlayed)) {
         return prayer;
       }
     }

@@ -31,7 +31,8 @@ export const CitySearch = ({ onCitySelect, showManualCoordinates = true }: CityS
 
   const handleCitySelect = (city: CityResult) => {
     // Update global location state
-    location.setLocation(city.lat, city.lon, city.display_name);
+    const tz = typeof Intl !== 'undefined' ? Intl.DateTimeFormat().resolvedOptions().timeZone : undefined;
+    location.setLocation(city.lat, city.lon, city.display_name, tz);
     
     // Call optional callback
     if (onCitySelect) {

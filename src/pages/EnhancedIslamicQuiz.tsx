@@ -1000,7 +1000,7 @@ function QuizResults({
   showAchievements,
   setShowAchievements 
 }: any) {
-  const accuracy = Math.round((score / totalQuestions) * 100);
+  const accuracy = totalQuestions > 0 ? Math.round((score / totalQuestions) * 100) : 0;
   const xpEarned = score * 10 + (score === totalQuestions ? 50 : 0);
   
   return (

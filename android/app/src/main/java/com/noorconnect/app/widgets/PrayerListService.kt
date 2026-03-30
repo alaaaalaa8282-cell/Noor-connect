@@ -82,9 +82,8 @@ class PrayerListFactory(private val context: Context) : RemoteViewsService.Remot
             )
         } else {
             rv.setInt(R.id.row_root, "setBackgroundColor", Color.TRANSPARENT)
-            // Reset text colors to default
-            rv.setTextColor(R.id.row_name, Color.parseColor("#1C1B1F"))
-            rv.setTextColor(R.id.row_time, Color.parseColor("#49454F"))
+            rv.setTextColor(R.id.row_name, android.graphics.Color.parseColor("#E8EAF6"))
+            rv.setTextColor(R.id.row_time, android.graphics.Color.parseColor("#C5CAE9"))
         }
 
         return rv

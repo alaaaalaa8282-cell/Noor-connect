@@ -162,7 +162,7 @@ export default function IslamicStreamPlayer() {
       setStreamStats({
         fps: Math.round(30 + Math.random() * 5),
         droppedFrames: Math.floor(Math.random() * 3),
-        bandwidth: Math.round(hls.currentLevel ? hls.levels[hls.currentLevel].bitrate / 1000 : 2500),
+        bandwidth: Math.round(hls.currentLevel >= 0 && hls.levels[hls.currentLevel] ? hls.levels[hls.currentLevel].bitrate / 1000 : 2500),
         bufferHealth: Math.round(Math.random() * 20 + 80),
       });
     }

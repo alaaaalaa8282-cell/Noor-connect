@@ -1,5 +1,6 @@
 import { createContext, useContext, useState, useEffect, useCallback, ReactNode } from 'react';
 import { useTranslation } from 'react-i18next';
+import i18n from '@/lib/i18n-new';
 import {
   type LanguageCode,
   LANGUAGES,
@@ -128,7 +129,7 @@ async function loadSavedLanguageCode(): Promise<LanguageCode | null> {
 // ─── Provider ────────────────────────────────────────────
 
 export function LanguageProvider({ children }: LanguageProviderProps) {
-  const { i18n, t } = useTranslation();
+  const { t } = useTranslation(undefined, { i18n });
   const [language, setLanguageState] = useState<LanguageCode>(DEFAULT_LANGUAGE);
 
   const isLanguageRTL = checkRTL(language);

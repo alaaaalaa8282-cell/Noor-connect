@@ -45,7 +45,9 @@
 - **Weather & Custom Widgets**: Customizable dashboard layers including localized weather, Islamic dates, and quick-action shortcuts.
 
 ### 📱 Enhanced Widget System & Dashboard
-- **Live Interactive Previews**: Complete visual grid customizer in the web dashboard allows you to instantly preview the color schemes and layouts of widgets (e.g. Qibla, Ramadan mode) before enabling them.
+- **Native Android Widgets Suite**: Beautiful, lightning-fast native Kotlin widgets including Next Adhan, Daily Ayah, and Daily Schedule arrays.
+- **Live Background Radio Widget**: Experience 24/7 Quran Radio streams with direct play/pause/skip controls right from your home screen notification center.
+- **Live Interactive Previews**: Complete visual grid customizer in the web dashboard allows you to instantly preview the color schemes and layouts of widgets before enabling them.
 - **Robust Platform Abstraction**: All Android native widget background updates are wrapped with robust Capacitor checks (`capacitor-utils.ts`) to completely eliminate cross-platform console errors when running in the browser. 
 - **Dual Update Modes**: Support for both basic (next-prayer only) and full (prayer schedule, Quran data, Hijri date) widget updates straight to the Android home-screen.
 - **Automatic Background Sync**: Configurable auto-update timer (every 30 minutes) perfectly syncs the app to your home screen using native Android widgets and services.

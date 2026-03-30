@@ -1,4 +1,4 @@
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { parseEbookUrl } from '@/components/EnhancedNativePdfViewer';
 
 interface EbookUrlState {
@@ -49,10 +49,10 @@ export function useEbookSharing(url: string, title: string) {
   const [isSharing, setIsSharing] = useState(false);
   const [shareError, setShareError] = useState<string | null>(null);
 
-  const generateShareableUrl = () => {
+  const generateShareableUrl = useCallback(() => {
     const bookId = btoa(url).replace(/[^a-zA-Z0-9]/g, '').substring(0, 10);
     return `${window.location.origin}${window.location.pathname}?book=${bookId}&title=${encodeURIComponent(title)}`;
-  };
+  }, [url, title]);
 
   const shareEbook = async () => {
     setIsSharing(true);

@@ -5,7 +5,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 // Audio optimization settings
 const AUDIO_CONFIG = {
@@ -39,8 +39,7 @@ function optimizeAudio(inputPath, outputPath, config) {
     }
 
     // Use ffmpeg for audio compression
-    const command = `npx ffmpeg -i "${inputPath}" -b:a ${config.bitrate} -q:a ${config.quality} "${outputPath}" -y`;
-    execSync(command, { stdio: 'inherit' });
+    execFileSync('npx', ['ffmpeg', '-i', inputPath, '-b:a', config.bitrate, '-q:a', config.quality, outputPath, '-y'], { stdio: 'inherit' });
     
     const newSize = getAudioSize(outputPath);
     const savings = ((originalSize - newSize) / originalSize * 100).toFixed(1);

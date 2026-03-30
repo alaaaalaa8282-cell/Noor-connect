@@ -1,19 +1,12 @@
+import { useState, useCallback, useEffect } from "react";
 import { NavLink } from "react-router-dom";
 import { Home, BookOpen, Settings, Compass, LayoutGrid } from "lucide-react";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 import { memo } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 
-// Haptic feedback function - moved to async to avoid blocking UI
-const triggerHapticFeedback = () => {
-  setTimeout(() => {
-    if ('vibrate' in navigator) {
-      navigator.vibrate(8); // 8ms subtle vibration for tactile feedback
-    }
-  }, 0);
-};
-
-export const BottomNav = memo(function BottomNav() {
+// Premium Bottom Navigation with enhanced glassmorphism and micro-interactions
+const BottomNav = memo(function BottomNav() {
   const { t } = useLanguage();
 
   const navItems = [
@@ -46,7 +39,6 @@ export const BottomNav = memo(function BottomNav() {
               key={item.path}
               to={item.path}
               end={item.path === "/"}
-              onClick={triggerHapticFeedback}
               className="group flex-1 flex flex-col items-center justify-center h-full relative min-w-0"
             >
               {({ isActive }) => (
@@ -68,7 +60,7 @@ export const BottomNav = memo(function BottomNav() {
                         />
                       )}
                     </AnimatePresence>
- 
+
                     <motion.div
                       className={`p-1.5 rounded-xl transition-all duration-500 ${isActive
                         ? `bg-gradient-to-br ${item.gradient} shadow-md`
@@ -84,7 +76,7 @@ export const BottomNav = memo(function BottomNav() {
                       />
                     </motion.div>
                   </div>
- 
+
                   <motion.span 
                     className={`text-[9px] font-bold uppercase tracking-tight transition-all duration-300 truncate w-full px-1 text-center ${isActive
                       ? "text-foreground"
@@ -98,7 +90,7 @@ export const BottomNav = memo(function BottomNav() {
             </NavLink>
           ))}
         </div>
- 
+
         {/* Premium home indicator with glow */}
         <div className="relative z-10 flex justify-center pb-2">
           <div className="h-[4px] w-12 bg-muted/20 rounded-full overflow-hidden">

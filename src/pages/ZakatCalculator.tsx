@@ -233,9 +233,9 @@ export default function ZakatCalculator() {
     (METAL_PRICE_CONSTANTS.FALLBACK_SILVER_PRICE_PER_GRAM * (metalPrices?.exchangeRate || 1));
 
   // Use nisab data from Islamic API when available, otherwise calculate from metal prices
-  const nisabGold = metalPrices?.nisabData?.data.nisab_thresholds.gold.nisab_amount ||
+  const nisabGold = metalPrices?.nisabData?.data?.nisab_thresholds?.gold?.nisab_amount ||
     (METAL_PRICE_CONSTANTS.NISAB_GOLD_GRAMS * goldPrice);
-  const nisabSilver = metalPrices?.nisabData?.data.nisab_thresholds.silver.nisab_amount ||
+  const nisabSilver = metalPrices?.nisabData?.data?.nisab_thresholds?.silver?.nisab_amount ||
     (METAL_PRICE_CONSTANTS.NISAB_SILVER_GRAMS * silverPrice);
   const nisab = Math.min(nisabGold, nisabSilver);
   const isZakatDue = netWorth >= nisab;

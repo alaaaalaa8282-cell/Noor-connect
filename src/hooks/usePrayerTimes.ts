@@ -364,14 +364,18 @@ export function usePrayerTimes(): UsePrayerTimesReturn {
             }
           }
 
-          const location = locationData.city || locationData.country || 'Unknown';
+          const locationLabel = locationData.city || locationData.country || 'Unknown';
 
-          WidgetUpdateService.updateWidgetBasic(
-            locationData.latitude,
-            locationData.longitude,
-            location
-          ).catch(() => {
-          });
+          try {
+            const { WidgetUpdateService } = await import('@/lib/widget-service');
+            WidgetUpdateService.updateWidgetBasic(
+              locationData.latitude,
+              locationData.longitude,
+              locationLabel
+            ).catch(() => {});
+          } catch {
+            // WidgetUpdateService not available on this platform
+          }
         }
 
     } catch (error) {

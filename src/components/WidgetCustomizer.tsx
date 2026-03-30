@@ -1,9 +1,16 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useCallback } from "react";
 import { Card, CardContent, CardHeader, CardTitle, CardDescription } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Badge } from "@/components/ui/badge";
-import { Settings, RotateCcw, Building, BookOpen, MessageCircle, Navigation, Compass, Star, TrendingUp, Calendar, Heart, CloudSun, Target } from "lucide-react";
+import {
+  Dialog, DialogContent, DialogHeader, DialogTitle, DialogFooter,
+} from "@/components/ui/dialog";
+import {
+  Settings, RotateCcw, Eye, Plus, EyeOff, Check, X,
+  Building, BookOpen, MessageCircle, Navigation, Compass, Star,
+  TrendingUp, Calendar, Heart, CloudSun, Target, Flame, Mic,
+} from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import {
   DEFAULT_DASHBOARD_WIDGETS,
@@ -13,107 +20,275 @@ import {
 } from "@/lib/dashboard-widget-config";
 import { SafeWidgetPreview } from "@/components/SafeWidgetPreview";
 
-// --- Mock Widget Renderers ---
+// ─────────────────────────────────────────────────────────────
+// Widget icon map
+// ─────────────────────────────────────────────────────────────
 const getWidgetIcon = (id: string, className = "w-5 h-5") => {
   switch (id) {
-    case 'prayer-times': return <Building className={className} />;
-    case 'daily-ayah': return <BookOpen className={className} />;
-    case 'daily-hadith': return <MessageCircle className={className} />;
-    case 'qibla-quick': return <Navigation className={className} />;
-    case 'tasbeeh-quick': return <Target className={className} />;
-    case 'ramadan': return <Compass className={className} />;
-    case 'salah-tracker': return <TrendingUp className={className} />;
-    case 'weekly-chart': return <Star className={className} />;
-    case 'quran-progress': return <BookOpen className={className} />;
-    case 'islamic-events': return <Calendar className={className} />;
-    case 'weather': return <CloudSun className={className} />;
-    case 'prayer-stats': return <TrendingUp className={className} />;
-    case 'qaza-tracker': return <Heart className={className} />;
-    case 'dhikr-reminder': return <Target className={className} />;
-    default: return <Settings className={className} />;
+    case "prayer-times":   return <Building className={className} />;
+    case "daily-ayah":     return <BookOpen className={className} />;
+    case "daily-hadith":   return <MessageCircle className={className} />;
+    case "qibla-quick":    return <Navigation className={className} />;
+    case "tasbeeh-quick":  return <Target className={className} />;
+    case "ramadan":        return <Compass className={className} />;
+    case "salah-tracker":  return <TrendingUp className={className} />;
+    case "weekly-chart":   return <Star className={className} />;
+    case "quran-progress": return <BookOpen className={className} />;
+    case "islamic-events": return <Calendar className={className} />;
+    case "weather":        return <CloudSun className={className} />;
+    case "prayer-stats":   return <TrendingUp className={className} />;
+    case "qaza-tracker":   return <Heart className={className} />;
+    case "dhikr-reminder": return <Flame className={className} />;
+    case "quran-radio":    return <Mic className={className} />;
+    default:               return <Settings className={className} />;
   }
 };
 
-const getWidgetMockColor = (id: string) => {
-  switch (id) {
-    case 'prayer-times': return 'from-blue-500/10 to-blue-500/5 border-blue-200/50 dark:border-blue-900/50 text-blue-700 dark:text-blue-300';
-    case 'daily-ayah': return 'from-emerald-500/10 to-emerald-500/5 border-emerald-200/50 dark:border-emerald-900/50 text-emerald-700 dark:text-emerald-300';
-    case 'daily-hadith': return 'from-indigo-500/10 to-indigo-500/5 border-indigo-200/50 dark:border-indigo-900/50 text-indigo-700 dark:text-indigo-300';
-    case 'qibla-quick': return 'from-amber-500/10 to-amber-500/5 border-amber-200/50 dark:border-amber-900/50 text-amber-700 dark:text-amber-300';
-    case 'tasbeeh-quick': return 'from-teal-500/10 to-teal-500/5 border-teal-200/50 dark:border-teal-900/50 text-teal-700 dark:text-teal-300';
-    case 'ramadan': return 'from-emerald-600/10 to-emerald-600/5 border-emerald-300/50 dark:border-emerald-800/50 text-emerald-800 dark:text-emerald-400';
-    default: return 'from-slate-500/10 to-slate-500/5 border-slate-200/50 dark:border-slate-800/50 text-slate-700 dark:text-slate-300';
+// ─────────────────────────────────────────────────────────────
+// Category badge colours
+// ─────────────────────────────────────────────────────────────
+const getCategoryColor = (category: string) => {
+  switch (category) {
+    case "essential":
+      return "bg-blue-100/80 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800";
+    case "premium":
+      return "bg-purple-100/80 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800";
+    default:
+      return "bg-slate-100 text-slate-700 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700";
   }
 };
 
-const WidgetMockPreview = ({ widget, isMobile }: { widget: DashboardWidgetConfig, isMobile: boolean }) => {
-  const colorClasses = getWidgetMockColor(widget.id);
-  
+// ─────────────────────────────────────────────────────────────
+// Preview Modal
+// ─────────────────────────────────────────────────────────────
+interface PreviewModalProps {
+  widget: DashboardWidgetConfig | null;
+  onClose: () => void;
+  onToggle: (id: string) => void;
+}
+
+function PreviewModal({ widget, onClose, onToggle }: PreviewModalProps) {
+  if (!widget) return null;
+  const isEssential = widget.category === "essential";
+
   return (
-    <div className={`mt-4 p-4 rounded-xl bg-gradient-to-br ${colorClasses} border flex items-center justify-center min-h-[100px] opacity-90 group-hover:opacity-100 transition-opacity`}>
-      <div className="flex flex-col items-center gap-3 text-center">
-         <div className="p-2 rounded-full bg-background/50 backdrop-blur-sm shadow-sm">
-           {getWidgetIcon(widget.id, "w-6 h-6")}
-         </div>
-         <div>
-           <span className="text-sm font-semibold block">{widget.name}</span>
-           <span className="text-[10px] uppercase font-bold tracking-wider opacity-70">Live Preview</span>
-         </div>
-      </div>
-    </div>
+    <Dialog open={!!widget} onOpenChange={onClose}>
+      <DialogContent className="sm:max-w-md max-h-[90vh] overflow-y-auto">
+        <DialogHeader>
+          <DialogTitle className="flex items-center gap-2">
+            <div className="p-2 rounded-xl bg-primary/10">
+              {getWidgetIcon(widget.id, "w-5 h-5 text-primary")}
+            </div>
+            {widget.name}
+            <Badge variant="outline" className={`text-[10px] ml-1 ${getCategoryColor(widget.category)}`}>
+              {widget.category}
+            </Badge>
+          </DialogTitle>
+        </DialogHeader>
+
+        {/* Description */}
+        <p className="text-sm text-muted-foreground -mt-1">{widget.description}</p>
+
+        {/* Live preview */}
+        <div className="mt-2">
+          <p className="text-xs font-semibold text-muted-foreground uppercase tracking-wider mb-2">
+            Live Preview
+          </p>
+          <SafeWidgetPreview widgetId={widget.id} isVisible={widget.visible} />
+        </div>
+
+        <DialogFooter className="flex gap-2 pt-2">
+          <Button variant="outline" onClick={onClose} className="flex-1 gap-2">
+            <X className="w-4 h-4" /> Close
+          </Button>
+          {!isEssential && (
+            <Button
+              onClick={() => { onToggle(widget.id); onClose(); }}
+              variant={widget.visible ? "destructive" : "default"}
+              className="flex-1 gap-2"
+            >
+              {widget.visible ? (
+                <><EyeOff className="w-4 h-4" /> Remove</>
+              ) : (
+                <><Plus className="w-4 h-4" /> Add to Dashboard</>
+              )}
+            </Button>
+          )}
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   );
-};
+}
 
+// ─────────────────────────────────────────────────────────────
+// Active Widget Card
+// ─────────────────────────────────────────────────────────────
+interface ActiveCardProps {
+  widget: DashboardWidgetConfig;
+  onToggle: (id: string) => void;
+  onPreview: (w: DashboardWidgetConfig) => void;
+}
 
+function ActiveWidgetCard({ widget, onToggle, onPreview }: ActiveCardProps) {
+  const isEssential = widget.category === "essential";
+
+  return (
+    <Card className="group overflow-hidden border border-border/60 bg-card/80 backdrop-blur shadow-sm hover:shadow-md hover:border-border transition-all duration-300 flex flex-col">
+      <CardContent className="p-4 flex flex-col flex-1 gap-3">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-2 rounded-xl bg-primary/8 shrink-0">
+              {getWidgetIcon(widget.id, "w-4 h-4 text-primary")}
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-bold text-sm text-foreground truncate leading-tight">{widget.name}</h4>
+              <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full border mt-0.5 ${getCategoryColor(widget.category)}`}>
+                {widget.category}
+              </span>
+            </div>
+          </div>
+          <div className="shrink-0 flex items-center gap-2">
+            {isEssential ? (
+              <Badge variant="secondary" className="text-xs bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 border-none">
+                Pinned
+              </Badge>
+            ) : (
+              <Switch
+                checked={widget.visible}
+                onCheckedChange={() => onToggle(widget.id)}
+                className="data-[state=checked]:bg-primary"
+              />
+            )}
+          </div>
+        </div>
+
+        {/* Description */}
+        <p className="text-xs text-muted-foreground line-clamp-1 leading-relaxed -mt-1">
+          {widget.description}
+        </p>
+
+        {/* Live mini-preview */}
+        <div className="mt-auto">
+          <SafeWidgetPreview widgetId={widget.id} isVisible={true} />
+        </div>
+
+        {/* Preview button */}
+        <Button
+          variant="ghost"
+          size="sm"
+          className="w-full h-7 text-xs gap-1.5 text-muted-foreground hover:text-foreground rounded-lg mt-1"
+          onClick={() => onPreview(widget)}
+        >
+          <Eye className="w-3.5 h-3.5" /> Full Preview
+        </Button>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Hidden Widget Card (with preview-before-add)
+// ─────────────────────────────────────────────────────────────
+interface HiddenCardProps {
+  widget: DashboardWidgetConfig;
+  onToggle: (id: string) => void;
+  onPreview: (w: DashboardWidgetConfig) => void;
+}
+
+function HiddenWidgetCard({ widget, onToggle, onPreview }: HiddenCardProps) {
+  return (
+    <Card className="overflow-hidden border-dashed border-border/50 bg-muted/10 hover:bg-muted/20 transition-all duration-300 flex flex-col">
+      <CardContent className="p-4 flex flex-col flex-1 gap-3">
+        {/* Header row */}
+        <div className="flex items-start justify-between gap-3">
+          <div className="flex items-center gap-2 min-w-0">
+            <div className="p-2 rounded-xl bg-muted shrink-0">
+              {getWidgetIcon(widget.id, "w-4 h-4 text-muted-foreground")}
+            </div>
+            <div className="min-w-0">
+              <h4 className="font-bold text-sm text-foreground truncate leading-tight">{widget.name}</h4>
+              <span className={`inline-block text-[9px] font-bold px-1.5 py-0.5 rounded-full border mt-0.5 ${getCategoryColor(widget.category)}`}>
+                {widget.category}
+              </span>
+            </div>
+          </div>
+        </div>
+
+        <p className="text-xs text-muted-foreground line-clamp-1 -mt-1">{widget.description}</p>
+
+        {/* Dimmed preview */}
+        <div className="opacity-70 grayscale-[0.2] mt-auto">
+          <SafeWidgetPreview widgetId={widget.id} isVisible={false} onEnable={() => onToggle(widget.id)} />
+        </div>
+
+        {/* CTA row */}
+        <div className="flex gap-2 mt-1">
+          <Button
+            variant="outline"
+            size="sm"
+            className="flex-1 h-8 text-xs gap-1.5 rounded-lg"
+            onClick={() => onPreview(widget)}
+          >
+            <Eye className="w-3.5 h-3.5" /> Preview
+          </Button>
+          <Button
+            size="sm"
+            className="flex-1 h-8 text-xs gap-1.5 rounded-lg"
+            onClick={() => onToggle(widget.id)}
+          >
+            <Plus className="w-3.5 h-3.5" /> Add
+          </Button>
+        </div>
+      </CardContent>
+    </Card>
+  );
+}
+
+// ─────────────────────────────────────────────────────────────
+// Main Customizer
+// ─────────────────────────────────────────────────────────────
 export function WidgetCustomizer() {
   const [widgets, setWidgets] = useState<DashboardWidgetConfig[]>(DEFAULT_DASHBOARD_WIDGETS);
+  const [previewWidget, setPreviewWidget] = useState<DashboardWidgetConfig | null>(null);
   const { toast } = useToast();
-  const [isMobile, setIsMobile] = useState(false);
 
   useEffect(() => {
     setWidgets(loadDashboardWidgetConfig());
-    const checkMobile = () => setIsMobile(window.innerWidth < 640);
-    checkMobile();
-    window.addEventListener('resize', checkMobile);
-    return () => window.removeEventListener('resize', checkMobile);
   }, []);
 
-  const saveConfig = (newWidgets: DashboardWidgetConfig[]) => {
+  const saveConfig = useCallback((newWidgets: DashboardWidgetConfig[]) => {
     const persisted = persistDashboardWidgetConfig(newWidgets);
     setWidgets(persisted);
-    toast({
-      title: "Widget Layout Updated",
-      description: "Your dashboard has been customized",
+    toast({ title: "Dashboard updated", description: "Your widget layout has been saved." });
+  }, [toast]);
+
+  const toggleWidgetVisibility = useCallback((widgetId: string) => {
+    setWidgets(prev => {
+      const updated = prev.map(w =>
+        w.id === widgetId && w.category !== "essential"
+          ? { ...w, visible: !w.visible }
+          : w
+      );
+      persistDashboardWidgetConfig(updated);
+      return updated;
     });
-  };
+    toast({
+      title: "Dashboard updated",
+      description: "Your widget layout has been saved.",
+    });
+  }, [toast]);
 
-  const toggleWidgetVisibility = (widgetId: string) => {
-    const newWidgets = widgets.map(widget =>
-      widget.id === widgetId
-        ? (widget.category === 'essential' ? widget : { ...widget, visible: !widget.visible })
-        : widget
-    );
-    saveConfig(newWidgets);
-  };
-
-  const resetToDefault = () => {
+  const resetToDefault = useCallback(() => {
     saveConfig(DEFAULT_DASHBOARD_WIDGETS);
-  };
-
-  const getCategoryColor = (category: string) => {
-    switch (category) {
-      case 'essential': return 'bg-blue-100/80 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300 border-blue-200 dark:border-blue-800';
-      case 'optional': return 'bg-slate-100 text-slate-800 dark:bg-slate-800 dark:text-slate-300 border-slate-200 dark:border-slate-700';
-      case 'premium': return 'bg-purple-100/80 text-purple-800 dark:bg-purple-900/30 dark:text-purple-300 border-purple-200 dark:border-purple-800';
-      default: return 'bg-slate-100 text-slate-800 border-slate-200';
-    }
-  };
+  }, [saveConfig]);
 
   const visibleWidgets = widgets.filter(w => w.visible).sort((a, b) => a.order - b.order);
-  const hiddenWidgets = widgets.filter(w => !w.visible);
+  const hiddenWidgets  = widgets.filter(w => !w.visible);
 
   return (
-    <div className="w-full max-w-5xl mx-auto space-y-6 pb-20">
+    <div className="w-full max-w-5xl mx-auto space-y-8 pb-24">
+      {/* Page header */}
       <Card className="border-none shadow-none bg-transparent">
         <CardHeader className="px-0 pt-0">
           <div className="flex flex-col sm:flex-row sm:items-center justify-between gap-4">
@@ -123,124 +298,70 @@ export function WidgetCustomizer() {
                 Customize Dashboard
               </CardTitle>
               <CardDescription className="text-base mt-1">
-                Toggle widgets on or off and instantly preview how they look.
+                Toggle widgets on/off and tap <Eye className="w-3.5 h-3.5 inline-block mx-0.5" /> Preview to see them before adding.
               </CardDescription>
             </div>
             <Button
               variant="outline"
               onClick={resetToDefault}
-              className="gap-2 w-full sm:w-auto rounded-xl border-slate-300 dark:border-slate-700 hover:bg-slate-100 dark:hover:bg-slate-800 transition-colors"
+              className="gap-2 w-full sm:w-auto rounded-xl border-slate-300 dark:border-slate-700"
             >
-              <RotateCcw className="w-4 h-4" />
-              Reset to Default
+              <RotateCcw className="w-4 h-4" /> Reset to Default
             </Button>
           </div>
         </CardHeader>
       </Card>
 
-      <div className="space-y-10">
-        {/* Visible Widgets Grid */}
-        <section>
-          <div className="flex items-center justify-between mb-4 px-1">
-            <div className="flex items-center gap-3">
-              <h3 className="font-bold text-xl text-foreground tracking-tight">Active Widgets</h3>
-              <Badge variant="secondary" className="rounded-full px-2 py-0.5">{visibleWidgets.length}</Badge>
-            </div>
+      {/* ── Active widgets ──────────────────────────── */}
+      <section className="space-y-4">
+        <div className="flex items-center gap-3 px-1">
+          <Check className="w-4 h-4 text-emerald-500" />
+          <h3 className="font-bold text-lg text-foreground tracking-tight">Active Widgets</h3>
+          <Badge variant="secondary" className="rounded-full px-2 py-0.5">{visibleWidgets.length}</Badge>
+        </div>
+
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+          {visibleWidgets.map(w => (
+            <ActiveWidgetCard
+              key={w.id}
+              widget={w}
+              onToggle={toggleWidgetVisibility}
+              onPreview={setPreviewWidget}
+            />
+          ))}
+        </div>
+      </section>
+
+      {/* ── Hidden / available widgets ──────────────── */}
+      {hiddenWidgets.length > 0 && (
+        <section className="space-y-4">
+          <div className="flex items-center gap-3 px-1">
+            <EyeOff className="w-4 h-4 text-muted-foreground" />
+            <h3 className="font-bold text-lg text-muted-foreground tracking-tight">Available Widgets</h3>
+            <Badge variant="secondary" className="rounded-full bg-muted/60 text-muted-foreground px-2 py-0.5">
+              {hiddenWidgets.length}
+            </Badge>
           </div>
-          
-          <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-            {visibleWidgets.map((widget) => (
-              <Card key={widget.id} className="group overflow-hidden border border-border/60 bg-card/80 backdrop-blur shadow-sm hover:shadow-md hover:border-border transition-all duration-300 flex flex-col h-full">
-                <CardContent className="p-5 flex flex-col flex-1">
-                  
-                  {/* Top Header Row within Card */}
-                  <div className="flex items-start justify-between gap-4 mb-2">
-                    <div className="flex-1 min-w-0">
-                       <h4 className="font-bold text-lg text-foreground truncate leading-tight mb-1">{widget.name}</h4>
-                       <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${getCategoryColor(widget.category)} uppercase tracking-wider`}>
-                          {widget.category}
-                        </span>
-                    </div>
-                    
-                    <div className="shrink-0 flex flex-col items-end gap-2">
-                      {widget.category !== 'essential' ? (
-                        <Switch
-                          checked={widget.visible}
-                          onCheckedChange={() => toggleWidgetVisibility(widget.id)}
-                          className="data-[state=checked]:bg-primary"
-                          title="Toggle visibility"
-                        />
-                      ) : (
-                        <Badge variant="secondary" className="bg-blue-50 text-blue-600 dark:bg-blue-900/20 dark:text-blue-400 border-none shadow-none text-xs">Pinned</Badge>
-                      )}
-                    </div>
-                  </div>
-                  
-                  {/* Description row */}
-                  <div className="mb-4">
-                     <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{widget.description}</p>
-                  </div>
-                  
-                  {/* Widget Live Visual Preview fills remaining space */}
-                  <div className="mt-auto">
-                    <WidgetMockPreview widget={widget} isMobile={isMobile} />
-                  </div>
-                  
-                </CardContent>
-              </Card>
+
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            {hiddenWidgets.map(w => (
+              <HiddenWidgetCard
+                key={w.id}
+                widget={w}
+                onToggle={toggleWidgetVisibility}
+                onPreview={setPreviewWidget}
+              />
             ))}
           </div>
         </section>
+      )}
 
-        {/* Hidden Widgets Section */}
-        {hiddenWidgets.length > 0 && (
-          <section>
-            <div className="flex items-center gap-3 mb-4 px-1">
-              <h3 className="font-bold text-xl text-muted-foreground tracking-tight">Available Widgets</h3>
-              <Badge variant="secondary" className="rounded-full bg-muted/60 text-muted-foreground px-2 py-0.5">{hiddenWidgets.length}</Badge>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-2 gap-4 lg:gap-6">
-              {hiddenWidgets.map((widget) => (
-                <Card key={widget.id} className="overflow-hidden border-dashed border-border/60 bg-muted/10 hover:bg-muted/30 transition-all duration-300">
-                  <CardContent className="p-5 space-y-4">
-                    {/* Widget Header */}
-                    <div className="flex items-start justify-between gap-4">
-                      <div className="flex-1 min-w-0">
-                        <h4 className="font-bold text-lg text-foreground truncate leading-tight mb-1">{widget.name}</h4>
-                        <span className={`inline-block text-[10px] font-bold px-2 py-0.5 rounded-full border ${getCategoryColor(widget.category)} uppercase tracking-wider`}>
-                          {widget.category}
-                        </span>
-                      </div>
-                      <Button 
-                        variant="outline" 
-                        size="sm" 
-                        className="shrink-0 gap-1 rounded-lg text-xs"
-                        onClick={() => toggleWidgetVisibility(widget.id)}
-                      >
-                        Add to Dashboard
-                      </Button>
-                    </div>
-                    
-                    {/* Widget Description */}
-                    <p className="text-sm text-muted-foreground line-clamp-2 leading-relaxed">{widget.description}</p>
-                    
-                    {/* Live Preview - Show actual widget preview! */}
-                    <div className="relative">
-                      <div className="absolute inset-0 bg-gradient-to-t from-muted/10 to-transparent pointer-events-none z-10" />
-                      <SafeWidgetPreview 
-                        widgetId={widget.id} 
-                        isVisible={false}
-                        onEnable={() => toggleWidgetVisibility(widget.id)}
-                      />
-                    </div>
-                  </CardContent>
-                </Card>
-              ))}
-            </div>
-          </section>
-        )}
-      </div>
+      {/* ── Preview modal ────────────────────────────── */}
+      <PreviewModal
+        widget={previewWidget}
+        onClose={() => setPreviewWidget(null)}
+        onToggle={toggleWidgetVisibility}
+      />
     </div>
   );
 }

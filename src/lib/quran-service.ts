@@ -739,7 +739,7 @@ class QuranService {
         ayah: {
           number: verse.id,
           text: verse.text,
-          numberInSurah: verse.id,
+        numberInSurah: index + 1,
           translation: verse.translation
         }
       };

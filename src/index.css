@@ -1,19 +1,14 @@
-/* Fonts are loaded locally or via system stack for F-Droid compliance */
-
-/* RTL Support */
 @import './styles/rtl.css';
 
 @tailwind base;
 @tailwind components;
 @tailwind utilities;
 
-/* Definition of the design system. All colors, gradients, fonts, etc should be defined here. 
-All colors MUST be HSL.
-*/
+/* Enhanced Premium Design System - Gold & Black Theme */
 
 @layer base {
   :root {
-    /* Default to dark theme - Premium Black & Gold */
+    /* Enhanced Premium Gold & Black Theme */
     --background: 60 4% 95%;
     --foreground: 24 9% 10%;
 
@@ -45,14 +40,16 @@ All colors MUST be HSL.
 
     --radius: 1rem;
 
-    /* Premium Gradients - Gold & Black */
-    --gradient-primary: linear-gradient(135deg, hsl(45 100% 50%), hsl(38 100% 60%));
+    /* Enhanced Premium Gradients - Gold & Black */
+    --gradient-primary: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 100% 65%));
     --gradient-secondary: linear-gradient(135deg, hsl(0 0% 8%), hsl(0 0% 15%));
-    --gradient-gold: linear-gradient(135deg, hsl(45 100% 50%), hsl(38 92% 50%), hsl(32 90% 45%));
+    --gradient-gold: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 92% 55%), hsl(32 90% 50%));
     --gradient-premium: linear-gradient(135deg, hsl(0 0% 5%) 0%, hsl(45 100% 50%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(0 0% 100%), hsl(0 0% 98%));
+    --gradient-gold-shimmer: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 92% 55%), hsl(32 90% 50%), hsl(45 100% 55%));
+    --gradient-elegant: linear-gradient(135deg, hsl(0 0% 5%), hsl(45 100% 50%), hsl(0 0% 5%));
 
-    /* Material Design Elevation Shadows with Gold Tint */
+    /* Enhanced Material Design Elevation Shadows with Gold Tint */
     --elevation-0: none;
     --elevation-1: 0 1px 3px rgba(0,0,0,0.12), 0 1px 2px rgba(0,0,0,0.24);
     --elevation-2: 0 3px 6px rgba(0,0,0,0.15), 0 2px 4px rgba(218,165,32,0.1);
@@ -66,6 +63,8 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 40px hsl(45 100% 50% / 0.5), 0 0 20px hsl(45 100% 60% / 0.3);
     --shadow-gold: 0 8px 32px rgba(218,165,32,0.25);
     --shadow-elegant: 0 10px 40px -10px rgba(0,0,0,0.2), 0 0 20px rgba(218,165,32,0.15);
+    --shadow-gold-lux: 0 8px 32px rgba(218,165,32,0.3);
+    --shadow-gold-premium: 0 12px 48px rgba(218,165,32,0.35);
 
     --font-arabic: 'Noto Naskh Arabic', 'Scheherazade New', 'Traditional Arabic', serif;
     --quran-font: 'Noto Naskh Arabic', 'Scheherazade New', 'Traditional Arabic', serif;
@@ -93,34 +92,61 @@ All colors MUST be HSL.
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
 
-    /* Premium App-Quality Glassmorphism */
+    /* Enhanced Premium App-Quality Glassmorphism */
     --glass-bg: hsl(0 0% 100% / 0.7);
     --glass-border: hsl(0 0% 100% / 0.3);
     --glass-highlight: hsl(0 0% 100% / 0.5);
     --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.08);
     --glass-shadow-lg: 0 16px 48px hsl(0 0% 0% / 0.12);
+    --glass-gold: hsl(45 100% 50% / 0.1);
+    --glass-gold-glow: 0 0 40px hsl(45 100% 50% / 0.2);
 
-    /* Premium Card Effects */
+    /* Enhanced Premium Card Effects */
     --card-premium-shadow: 0 4px 20px hsl(0 0% 0% / 0.08), 0 1px 3px hsl(0 0% 0% / 0.05);
     --card-premium-shadow-hover: 0 12px 40px hsl(0 0% 0% / 0.15), 0 4px 12px hsl(0 0% 0% / 0.08);
     --card-gradient-border: linear-gradient(135deg, hsl(0 0% 100% / 0.5), hsl(0 0% 100% / 0.1));
+    --card-gold-border: 1px solid hsl(45 100% 50% / 0.3);
+    --card-gold-highlight: inset 0 1px 0 hsl(45 100% 50% / 0.2);
 
-    /* Native App Spring Physics */
+    /* Enhanced Native App Spring Physics */
     --spring-bounce: cubic-bezier(0.175, 0.885, 0.32, 1.275);
     --spring-smooth: cubic-bezier(0.4, 0, 0.2, 1);
     --spring-snappy: cubic-bezier(0.25, 0.46, 0.45, 0.94);
+    --spring-gold: cubic-bezier(0.25, 0.46, 0.45, 0.94);
 
-    /* Premium Depth Layers */
+    /* Enhanced Premium Depth Layers */
     --depth-near: translateZ(20px);
     --depth-mid: translateZ(10px);
     --depth-far: translateZ(0px);
+    --depth-gold: translateZ(10px) scale(1.02);
 
     --tracking-normal: 0em;
     --spacing: 0.25rem;
+
+    /* Enhanced Islamic Theme Colors */
+    --islamic-gold: 45 100% 50%;
+    --islamic-green: 120 100% 25%;
+    --islamic-emerald: 140 100% 30%;
+    --islamic-deep-green: 140 100% 15%;
+    --islamic-gold-gradient: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 100% 65%), hsl(32 90% 60%));
+    --islamic-gold-border: 1px solid hsl(45 100% 50% / 0.3);
+    --islamic-gold-glow: 0 0 30px hsl(45 100% 50% / 0.3);
+    --islamic-gold-shimmer: 0 0 20px hsl(45 100% 50% / 0.2);
+
+    /* Enhanced Animation Timings */
+    --animation-fast: 0.15s;
+    --animation-normal: 0.3s;
+    --animation-slow: 0.5s;
+    --animation-gold-shimmer: 2s infinite;
+
+    /* Enhanced Micro-interactions */
+    --micro-hover-lift: 2px;
+    --micro-press-scale: 0.96;
+    --micro-focus-glow: 0 0 0 3px hsl(45 100% 50% / 0.2);
   }
 
   .dark {
-    /* Premium Dark Theme - Deep Black & Bright Gold */
+    /* Enhanced Premium Dark Theme - Deep Black & Bright Gold */
     --background: 24 9% 10%;
     --foreground: 60 9% 97%;
 
@@ -150,14 +176,16 @@ All colors MUST be HSL.
     --input: 33 5% 32%;
     --ring: 43 96% 56%;
 
-    /* Premium Gradients - Gold & Deep Black */
+    /* Enhanced Premium Gradients - Gold & Deep Black */
     --gradient-primary: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 100% 65%));
     --gradient-secondary: linear-gradient(135deg, hsl(0 0% 6%), hsl(0 0% 12%));
     --gradient-gold: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 92% 55%), hsl(32 90% 50%));
     --gradient-premium: linear-gradient(135deg, hsl(0 0% 3%) 0%, hsl(45 100% 55%) 100%);
     --gradient-card: linear-gradient(145deg, hsl(0 0% 10%), hsl(0 0% 8%));
+    --gradient-gold-shimmer: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 92% 55%), hsl(32 90% 50%), hsl(45 100% 55%));
+    --gradient-elegant: linear-gradient(135deg, hsl(0 0% 3%), hsl(45 100% 55%), hsl(0 0% 3%));
 
-    /* Material Design Elevation Shadows for Dark Mode with Gold */
+    /* Enhanced Material Design Elevation Shadows for Dark Mode with Gold */
     --elevation-0: none;
     --elevation-1: 0 1px 3px rgba(0,0,0,0.5), 0 1px 2px rgba(0,0,0,0.6);
     --elevation-2: 0 3px 6px rgba(0,0,0,0.5), 0 2px 4px rgba(218,165,32,0.15);
@@ -171,6 +199,8 @@ All colors MUST be HSL.
     --shadow-glow: 0 0 50px hsl(45 100% 55% / 0.6), 0 0 25px hsl(45 100% 65% / 0.4);
     --shadow-gold: 0 8px 32px rgba(218,165,32,0.4);
     --shadow-elegant: 0 10px 40px -10px rgba(0,0,0,0.4), 0 0 25px rgba(218,165,32,0.2);
+    --shadow-gold-lux: 0 8px 32px rgba(218,165,32,0.5);
+    --shadow-gold-premium: 0 12px 48px rgba(218,165,32,0.6);
     --chart-1: 45 96% 64%;
     --chart-2: 48 96% 76%;
     --chart-3: 43 96% 56%;
@@ -189,6 +219,32 @@ All colors MUST be HSL.
     --shadow: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 1px 2px -1px hsl(0 0% 0% / 0.1);
     --shadow-xl: 0 1px 3px 0px hsl(0 0% 0% / 0.1), 0 8px 10px -1px hsl(0 0% 0% / 0.1);
     --shadow-2xl: 0 1px 3px 0px hsl(0 0% 0% / 0.25);
+
+    /* Enhanced Premium App-Quality Glassmorphism */
+    --glass-bg: hsl(0 0% 0% / 0.4);
+    --glass-border: hsl(0 0% 100% / 0.1);
+    --glass-highlight: hsl(0 0% 100% / 0.5);
+    --glass-shadow: 0 8px 32px hsl(0 0% 0% / 0.3);
+    --glass-shadow-lg: 0 16px 48px hsl(0 0% 0% / 0.12);
+    --glass-gold: hsl(45 100% 55% / 0.1);
+    --glass-gold-glow: 0 0 40px hsl(45 100% 55% / 0.2);
+
+    /* Enhanced Premium Card Effects */
+    --card-premium-shadow: 0 4px 20px hsl(0 0% 0% / 0.08), 0 1px 3px hsl(0 0% 0% / 0.05);
+    --card-premium-shadow-hover: 0 12px 40px hsl(0 0% 0% / 0.15), 0 4px 12px hsl(0 0% 0% / 0.08);
+    --card-gradient-border: linear-gradient(135deg, hsl(0 0% 100% / 0.5), hsl(0 0% 100% / 0.1));
+    --card-gold-border: 1px solid hsl(45 100% 55% / 0.3);
+    --card-gold-highlight: inset 0 1px 0 hsl(45 100% 55% / 0.2);
+
+    /* Enhanced Islamic Theme Colors */
+    --islamic-gold: 45 100% 55%;
+    --islamic-green: 120 100% 25%;
+    --islamic-emerald: 140 100% 30%;
+    --islamic-deep-green: 140 100% 15%;
+    --islamic-gold-gradient: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 100% 65%), hsl(32 90% 60%));
+    --islamic-gold-border: 1px solid hsl(45 100% 55% / 0.3);
+    --islamic-gold-glow: 0 0 30px hsl(45 100% 55% / 0.3);
+    --islamic-gold-shimmer: 0 0 20px hsl(45 100% 55% / 0.2);
   }
 }
 
@@ -200,6 +256,7 @@ All colors MUST be HSL.
   body {
     @apply bg-background text-foreground;
     font-family: var(--lang-font-family);
+    transition: background-color 0.3s ease, color 0.3s ease;
   }
 
   .quran-arabic {
@@ -214,7 +271,7 @@ All colors MUST be HSL.
     font-family: var(--quran-font) !important;
   }
 
-  /* Safe area padding for mobile devices */
+  /* Enhanced Safe area padding for mobile devices */
   @supports (padding: max(0px)) {
     .pb-safe {
       padding-bottom: max(0.25rem, env(safe-area-inset-bottom));
@@ -226,243 +283,49 @@ All colors MUST be HSL.
       padding-top: env(safe-area-inset-top);
     }
   }
+
+  /* Enhanced Smooth Transitions */
+  *, *::before, *::after {
+    transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+    transition-timing-function: var(--spring-smooth);
+    transition-duration: var(--animation-normal);
+  }
+
+  /* Enhanced Focus States */
+  :focus-visible {
+    outline: none;
+    box-shadow: var(--micro-focus-glow);
+  }
+
+  /* Enhanced Reduced Motion Support */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+  }
 }
 
 @layer components {
-  /* Material Design Ripple Effect */
-  .ripple {
-    @apply relative overflow-hidden;
-  }
-
-  .ripple::after {
-    content: '';
-    @apply absolute inset-0 bg-current opacity-0 pointer-events-none;
-    transform: scale(0);
-    transition: transform 0.6s, opacity 0.3s;
-  }
-
-  .ripple:active::after {
-    @apply opacity-20;
-    transform: scale(2);
-    transition: 0s;
-  }
-
-  /* Material Design Elevation Classes */
-  .elevation-0 { box-shadow: var(--elevation-0); }
-  .elevation-1 { box-shadow: var(--elevation-1); }
-  .elevation-2 { box-shadow: var(--elevation-2); }
-  .elevation-3 { box-shadow: var(--elevation-3); }
-  .elevation-4 { box-shadow: var(--elevation-4); }
-  .elevation-6 { box-shadow: var(--elevation-6); }
-
-  /* CSS Animations for 60fps performance */
-  @keyframes fade-in {
-    from { opacity: 0; }
-    to { opacity: 1; }
-  }
-
-  @keyframes slide-in {
-    from { opacity: 0; transform: translateX(-10px); }
-    to { opacity: 1; transform: translateX(0); }
-  }
-
-  @keyframes slide-up {
-    from { opacity: 0; transform: translateY(20px); }
-    to { opacity: 1; transform: translateY(0); }
-  }
-
-  @keyframes scale-in {
-    from { opacity: 0; transform: scale(0.9); }
-    to { opacity: 1; transform: scale(1); }
-  }
-
-  @keyframes twinkle {
-    0%, 100% { opacity: 0.2; transform: scale(1); }
-    50% { opacity: 1; transform: scale(1.2); }
-  }
-
-  @keyframes spin-slow {
-    from { transform: rotate(0deg); }
-    to { transform: rotate(360deg); }
-  }
-
-  @keyframes shimmer-slide {
-    0% { transform: translateX(-100%); }
-    100% { transform: translateX(100%); }
-  }
-
-  @keyframes pulse-subtle {
-    0%, 100% { opacity: 0.6; }
-    50% { opacity: 1; }
-  }
-
-  @keyframes bounce-gentle {
-    0%, 100% { transform: translateY(0); }
-    50% { transform: translateY(-2px); }
-  }
-
-  @keyframes scale-on-hover {
-    0% { transform: scale(1); }
-    100% { transform: scale(1.02); }
-  }
-
-  @keyframes slide-up-fade {
-    0% { opacity: 0; transform: translateY(10px); }
-    100% { opacity: 1; transform: translateY(0); }
-  }
-
-  .animate-fade-in {
-    animation: fade-in 0.3s ease-out forwards;
-    opacity: 0;
-  }
-
-  .animate-slide-in {
-    animation: slide-in 0.3s ease-out forwards;
-    opacity: 0;
-  }
-
-  .animate-slide-up {
-    animation: slide-up 0.3s ease-out forwards;
-  }
-
-  .animate-scale-in {
-    animation: scale-in 0.4s ease-out forwards;
-  }
-
-  .animate-twinkle {
-    animation: twinkle 3s ease-in-out infinite;
-  }
-
-  .animate-spin-slow {
-    animation: spin-slow 8s linear infinite;
-  }
-
-  .animate-shimmer {
-    animation: pulse-subtle 2s ease-in-out infinite;
-  }
-
-  .animate-shimmer-slide {
-    animation: shimmer-slide 2s ease-in-out infinite;
-  }
-
-  .animate-bounce-gentle {
-    animation: bounce-gentle 2s ease-in-out infinite;
-  }
-
-  .animate-slide-up-fade {
-    animation: slide-up-fade 0.3s ease-out forwards;
-  }
-
-  .delay-75 {
-    animation-delay: 75ms;
-  }
-
-  .delay-150 {
-    animation-delay: 150ms;
-  }
-
-  /* Micro-interactions */
-  .hover-lift {
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  }
-
-  .hover-lift:hover {
-    transform: translateY(-2px);
-    box-shadow: 0 8px 25px rgba(0,0,0,0.15);
-  }
-
-  .hover-scale {
-    transition: transform 0.2s ease-out;
-  }
-
-  .hover-scale:hover {
-    transform: scale(1.05);
-  }
-
-  .hover-glow {
-    transition: box-shadow 0.3s ease-out;
-  }
-
-  .hover-glow:hover {
-    box-shadow: 0 0 20px hsl(var(--primary) / 0.3);
-  }
-
-  .press-scale {
-    transition: transform 0.1s ease-out;
-  }
-
-  .press-scale:active {
-    transform: scale(0.98);
-  }
-
-  /* Smooth transitions for interactive elements */
-  .interactive {
-    transition: all 0.2s cubic-bezier(0.4, 0, 0.2, 1);
-  }
-
-  /* Card hover effects */
-  .card-hover {
-    transition: transform 0.2s ease-out, box-shadow 0.2s ease-out;
-  }
-
-  .card-hover:hover {
-    transform: translateY(-4px);
-    box-shadow: var(--elevation-4);
-  }
-
-  /* Button press effects */
-  .button-press {
-    transition: all 0.1s ease-out;
-  }
-
-  .button-press:active {
-    transform: scale(0.95);
-    opacity: 0.8;
-  }
-
-  /* Hide scrollbar for nav */
-  .scrollbar-hide {
-    -ms-overflow-style: none;
-    scrollbar-width: none;
-  }
-  .scrollbar-hide::-webkit-scrollbar {
-    display: none;
-  }
-
-  /* Fix z-index hierarchy and prevent overlay blocking */
-  .interactive-layer {
-    position: relative;
-    z-index: 1;
-    pointer-events: auto;
-  }
-
-  /* Ensure all interactive elements can receive clicks */
-  button, a, input, [role="button"], [tabindex] {
-    position: relative;
-    z-index: 10;
-    pointer-events: auto;
-  }
-
-  /* Remove any potential overlay blocking */
-  .overlay-blocker {
-    pointer-events: none !important;
-  }
-
-  /* Fix for any invisible overlays */
-  .fixed-overlay {
-    pointer-events: none;
-  }
-  .fixed-overlay > * {
-    pointer-events: auto;
-  }
-
-  /* Premium Glassmorphism Utilities */
+  /* Enhanced Premium Glassmorphism Utilities */
   .glass {
     background: var(--glass-bg);
     backdrop-filter: blur(20px);
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid var(--glass-border);
     box-shadow: var(--glass-shadow);
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .glass-gold {
+    background: var(--glass-bg);
+    backdrop-filter: blur(20px);
+    -webkit-backdrop-filter: blur(20px);
+    border: 1px solid var(--glass-gold);
+    box-shadow: 
+      var(--glass-shadow),
+      var(--glass-gold-glow);
   }
 
   .glass-dark {
@@ -471,6 +334,7 @@ All colors MUST be HSL.
     -webkit-backdrop-filter: blur(20px);
     border: 1px solid hsl(0 0% 100% / 0.1);
     box-shadow: 0 8px 32px hsl(0 0% 0% / 0.3);
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
   .glass-card {
@@ -483,37 +347,113 @@ All colors MUST be HSL.
       0 4px 24px hsl(0 0% 0% / 0.1),
       0 1px 2px hsl(0 0% 0% / 0.05),
       inset 0 1px 0 hsl(0 0% 100% / 0.1);
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
-  /* Premium Card Styles */
+  .glass-card-gold {
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.05));
+    backdrop-filter: blur(16px);
+    -webkit-backdrop-filter: blur(16px);
+    border: var(--islamic-gold-border);
+    border-radius: 24px;
+    box-shadow: 
+      0 4px 24px hsl(0 0% 0% / 0.1),
+      0 1px 2px hsl(0 0% 0% / 0.05),
+      inset 0 1px 0 var(--islamic-gold-glow);
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  /* Enhanced Premium Card Styles */
   .card-premium {
     background: hsl(var(--card));
     border-radius: 20px;
     box-shadow: var(--card-premium-shadow);
-    transition: all 0.3s var(--spring-smooth);
+    transition: all var(--animation-normal) var(--spring-smooth);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--islamic-gold-glow), transparent);
+    transition: left var(--animation-normal) var(--spring-smooth);
+  }
+
+  .card-premium:hover::before {
+    left: 100%;
   }
 
   .card-premium:hover {
     box-shadow: var(--card-premium-shadow-hover);
-    transform: translateY(-2px);
+    transform: translateY(-2px) scale(1.02);
+    --depth-near: translateZ(30px);
   }
 
-  /* Native App Button Styles */
+  .card-premium:active {
+    transform: translateY(-1px) scale(0.98);
+    --depth-near: translateZ(10px);
+  }
+
+  /* Enhanced Premium Gold Card */
+  .card-premium-gold {
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.1), hsl(0 0% 100% / 0.05));
+    border: var(--islamic-gold-border);
+    border-radius: 24px;
+    box-shadow: 
+      var(--card-premium-shadow),
+      var(--islamic-gold-shimmer);
+    transition: all var(--animation-normal) var(--spring-smooth);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .card-premium-gold::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--islamic-gold-glow), transparent);
+    transition: left var(--animation-normal) var(--spring-smooth);
+  }
+
+  .card-premium-gold:hover::before {
+    left: 100%;
+  }
+
+  .card-premium-gold:hover {
+    box-shadow: 
+      var(--card-premium-shadow-hover),
+      var(--islamic-gold-glow);
+    transform: translateY(-2px) scale(1.02);
+    --depth-near: translateZ(30px);
+  }
+
+  /* Enhanced Native App Button Styles */
   .btn-premium {
     position: relative;
     overflow: hidden;
     border-radius: 14px;
     font-weight: 600;
     letter-spacing: 0.01em;
-    transition: all 0.2s var(--spring-smooth);
+    transition: all var(--animation-normal) var(--spring-smooth);
     box-shadow: 
       0 2px 8px hsl(var(--primary) / 0.3),
       0 1px 2px hsl(0 0% 0% / 0.1);
+    padding: 12px 24px;
+    cursor: pointer;
   }
 
   .btn-premium:active {
     transform: scale(0.96);
     box-shadow: 0 1px 4px hsl(var(--primary) / 0.2);
+    --depth-near: translateZ(10px);
   }
 
   .btn-premium::before {
@@ -522,31 +462,137 @@ All colors MUST be HSL.
     inset: 0;
     background: linear-gradient(135deg, hsl(0 0% 100% / 0.2), transparent);
     opacity: 0;
-    transition: opacity 0.2s ease;
+    transition: opacity var(--animation-fast) ease;
   }
 
   .btn-premium:hover::before {
     opacity: 1;
   }
 
-  /* Premium Text Gradients */
+  .btn-premium:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 16px hsl(var(--primary) / 0.4),
+      0 2px 6px hsl(0 0% 0% / 0.1);
+    --depth-near: translateZ(20px);
+  }
+
+  /* Enhanced Premium Gold Button */
+  .btn-premium-gold {
+    position: relative;
+    overflow: hidden;
+    border-radius: 14px;
+    font-weight: 600;
+    letter-spacing: 0.01em;
+    transition: all var(--animation-normal) var(--spring-gold);
+    box-shadow: 
+      0 2px 8px hsl(var(--islamic-gold) / 0.3),
+      0 1px 2px hsl(0 0% 0% / 0.1);
+    padding: 12px 24px;
+    cursor: pointer;
+    background: var(--gradient-gold);
+    color: var(--primary-foreground);
+  }
+
+  .btn-premium-gold:active {
+    transform: scale(0.96);
+    box-shadow: 0 1px 4px hsl(var(--islamic-gold) / 0.2);
+    --depth-near: translateZ(10px);
+  }
+
+  .btn-premium-gold::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(135deg, hsl(0 0% 100% / 0.3), transparent);
+    opacity: 0;
+    transition: opacity var(--animation-fast) ease;
+  }
+
+  .btn-premium-gold:hover::before {
+    opacity: 1;
+  }
+
+  .btn-premium-gold:hover {
+    transform: translateY(-1px);
+    box-shadow: 
+      0 4px 16px hsl(var(--islamic-gold) / 0.4),
+      0 2px 6px hsl(0 0% 0% / 0.1);
+    --depth-near: translateZ(20px);
+  }
+
+  /* Enhanced Premium Text Gradients */
   .text-gradient-gold {
-    background: linear-gradient(135deg, hsl(45 100% 60%), hsl(38 100% 50%));
+    background: linear-gradient(135deg, hsl(45 100% 55%), hsl(38 100% 65%));
     -webkit-background-clip: text;
     -webkit-text-fill-color: transparent;
     background-clip: text;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
-  /* Glow Effects */
+  .text-gradient-gold:hover {
+    transform: translateY(-1px);
+    text-shadow: 0 2px 4px hsl(45 100% 50% / 0.3);
+  }
+
+  .text-gradient-islamic {
+    background: var(--islamic-gold-gradient);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .text-gradient-islamic:hover {
+    transform: translateY(-1px);
+    text-shadow: 0 2px 4px hsl(var(--islamic-gold) / 0.3);
+  }
+
+  .text-gradient-elegant {
+    background: var(--gradient-elegant);
+    -webkit-background-clip: text;
+    -webkit-text-fill-color: transparent;
+    background-clip: text;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  /* Enhanced Glow Effects */
   .glow-gold {
     box-shadow: 0 0 20px hsl(45 100% 50% / 0.4), 0 0 40px hsl(45 100% 50% / 0.2);
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .glow-gold:hover {
+    box-shadow: 0 0 30px hsl(45 100% 50% / 0.5), 0 0 60px hsl(45 100% 50% / 0.3);
+    transform: scale(1.05);
   }
 
   .glow-soft {
     box-shadow: 0 4px 20px hsl(var(--primary) / 0.15);
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
-  /* Premium Divider */
+  .glow-soft:hover {
+    box-shadow: 0 4px 25px hsl(var(--primary) / 0.2);
+    transform: scale(1.02);
+  }
+
+  .glow-islamic {
+    box-shadow: 0 0 30px hsl(var(--islamic-gold) / 0.4), 0 0 60px hsl(var(--islamic-gold) / 0.2);
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .glow-islamic:hover {
+    box-shadow: 0 0 40px hsl(var(--islamic-gold) / 0.5), 0 0 80px hsl(var(--islamic-gold) / 0.3);
+    transform: scale(1.05);
+  }
+
+  .glow-elegant {
+    box-shadow: 0 0 25px hsl(0 0% 0% / 0.3), 0 0 50px hsl(45 100% 50% / 0.2);
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  /* Enhanced Premium Divider */
   .divider-premium {
     height: 1px;
     background: linear-gradient(
@@ -557,18 +603,115 @@ All colors MUST be HSL.
       hsl(var(--primary) / 0.3),
       transparent
     );
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
-  /* iOS-style Navigation Indicator */
+  .divider-premium:hover {
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--primary) / 0.5),
+      hsl(var(--primary) / 0.8),
+      hsl(var(--primary) / 0.5),
+      transparent
+    );
+  }
+
+  .divider-gold {
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(45 100% 50% / 0.3),
+      hsl(45 100% 50% / 0.6),
+      hsl(45 100% 50% / 0.3),
+      transparent
+    );
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .divider-gold:hover {
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(45 100% 50% / 0.5),
+      hsl(45 100% 50% / 0.9),
+      hsl(45 100% 50% / 0.5),
+      transparent
+    );
+  }
+
+  .divider-islamic {
+    height: 2px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--islamic-gold) / 0.3),
+      hsl(var(--islamic-gold) / 0.6),
+      hsl(var(--islamic-gold) / 0.3),
+      transparent
+    );
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .divider-islamic:hover {
+    height: 3px;
+    background: linear-gradient(
+      90deg,
+      transparent,
+      hsl(var(--islamic-gold) / 0.5),
+      hsl(var(--islamic-gold) / 0.9),
+      hsl(var(--islamic-gold) / 0.5),
+      transparent
+    );
+  }
+
+  /* Enhanced iOS-style Navigation Indicator */
   .nav-indicator {
     width: 134px;
     height: 5px;
     background: hsl(var(--foreground) / 0.2);
     border-radius: 100px;
     margin: 8px auto;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
-  /* Premium Skeleton Loading */
+  .nav-indicator:hover {
+    height: 8px;
+    background: linear-gradient(90deg, hsl(var(--primary) / 0.3), hsl(var(--primary) / 0.6), hsl(var(--primary) / 0.3));
+  }
+
+  .nav-indicator-gold {
+    width: 134px;
+    height: 5px;
+    background: linear-gradient(90deg, hsl(45 100% 50% / 0.2), hsl(45 100% 50% / 0.4), hsl(45 100% 50% / 0.2));
+    border-radius: 100px;
+    margin: 8px auto;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .nav-indicator-gold:hover {
+    height: 8px;
+    background: linear-gradient(90deg, hsl(45 100% 50% / 0.4), hsl(45 100% 50% / 0.8), hsl(45 100% 50% / 0.4));
+  }
+
+  .nav-indicator-islamic {
+    width: 134px;
+    height: 5px;
+    background: linear-gradient(90deg, hsl(var(--islamic-gold) / 0.2), hsl(var(--islamic-gold) / 0.4), hsl(var(--islamic-gold) / 0.2));
+    border-radius: 100px;
+    margin: 8px auto;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .nav-indicator-islamic:hover {
+    height: 8px;
+    background: linear-gradient(90deg, hsl(var(--islamic-gold) / 0.4), hsl(var(--islamic-gold) / 0.8), hsl(var(--islamic-gold) / 0.4));
+  }
+
+  /* Enhanced Premium Skeleton Loading */
   .skeleton-premium {
     background: linear-gradient(
       90deg,
@@ -577,11 +720,38 @@ All colors MUST be HSL.
       hsl(var(--muted)) 100%
     );
     background-size: 200% 100%;
-    animation: shimmer-slide 1.5s infinite;
+    animation: shimmer-slide var(--animation-normal) infinite;
     border-radius: 12px;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
-  /* Floating Action Button Style */
+  .skeleton-premium-gold {
+    background: linear-gradient(
+      90deg,
+      hsl(45 100% 50% / 0.1) 0%,
+      hsl(45 100% 50% / 0.3) 50%,
+      hsl(45 100% 50% / 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-slide var(--animation-normal) infinite;
+    border-radius: 12px;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .skeleton-premium-islamic {
+    background: linear-gradient(
+      90deg,
+      hsl(var(--islamic-gold) / 0.1) 0%,
+      hsl(var(--islamic-gold) / 0.3) 50%,
+      hsl(var(--islamic-gold) / 0.1) 100%
+    );
+    background-size: 200% 100%;
+    animation: shimmer-slide var(--animation-normal) infinite;
+    border-radius: 12px;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  /* Enhanced Floating Action Button Style */
   .fab-premium {
     width: 56px;
     height: 56px;
@@ -590,7 +760,22 @@ All colors MUST be HSL.
     box-shadow: 
       0 4px 12px hsl(45 100% 50% / 0.4),
       0 8px 24px hsl(0 0% 0% / 0.2);
-    transition: all 0.3s var(--spring-bounce);
+    transition: all var(--animation-normal) var(--spring-bounce);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fab-premium::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent, hsl(0 0% 100% / 0.3), transparent);
+    transform: scale(0);
+    transition: transform var(--animation-fast) ease;
+  }
+
+  .fab-premium:hover::before {
+    transform: scale(1);
   }
 
   .fab-premium:hover {
@@ -598,13 +783,95 @@ All colors MUST be HSL.
     box-shadow: 
       0 6px 20px hsl(45 100% 50% / 0.5),
       0 12px 32px hsl(0 0% 0% / 0.25);
+    --depth-near: translateZ(30px);
   }
 
   .fab-premium:active {
-    transform: scale(0.95);
+    transform: scale(0.95) rotate(0deg);
+    --depth-near: translateZ(10px);
   }
 
-  /* Premium Badge/Pill */
+  /* Enhanced Premium Gold FAB */
+  .fab-premium-gold {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--gradient-gold);
+    box-shadow: 
+      0 4px 12px hsl(45 100% 50% / 0.4),
+      0 8px 24px hsl(0 0% 0% / 0.2);
+    transition: all var(--animation-normal) var(--spring-bounce);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fab-premium-gold::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent, hsl(0 0% 100% / 0.3), transparent);
+    transform: scale(0);
+    transition: transform var(--animation-fast) ease;
+  }
+
+  .fab-premium-gold:hover::before {
+    transform: scale(1);
+  }
+
+  .fab-premium-gold:hover {
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 
+      0 6px 20px hsl(45 100% 50% / 0.5),
+      0 12px 32px hsl(0 0% 0% / 0.25);
+    --depth-near: translateZ(30px);
+  }
+
+  .fab-premium-gold:active {
+    transform: scale(0.95) rotate(0deg);
+    --depth-near: translateZ(10px);
+  }
+
+  /* Enhanced Premium Islamic FAB */
+  .fab-premium-islamic {
+    width: 56px;
+    height: 56px;
+    border-radius: 50%;
+    background: var(--islamic-gold-gradient);
+    box-shadow: 
+      0 4px 12px hsl(var(--islamic-gold) / 0.4),
+      0 8px 24px hsl(0 0% 0% / 0.2);
+    transition: all var(--animation-normal) var(--spring-bounce);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .fab-premium-islamic::before {
+    content: '';
+    position: absolute;
+    inset: 0;
+    background: linear-gradient(45deg, transparent, hsl(0 0% 100% / 0.3), transparent);
+    transform: scale(0);
+    transition: transform var(--animation-fast) ease;
+  }
+
+  .fab-premium-islamic:hover::before {
+    transform: scale(1);
+  }
+
+  .fab-premium-islamic:hover {
+    transform: scale(1.1) rotate(90deg);
+    box-shadow: 
+      0 6px 20px hsl(var(--islamic-gold) / 0.5),
+      0 12px 32px hsl(0 0% 0% / 0.25);
+    --depth-near: translateZ(30px);
+  }
+
+  .fab-premium-islamic:active {
+    transform: scale(0.95) rotate(0deg);
+    --depth-near: translateZ(10px);
+  }
+
+  /* Enhanced Premium Badge/Pill */
   .badge-premium {
     display: inline-flex;
     align-items: center;
@@ -617,12 +884,79 @@ All colors MUST be HSL.
     font-weight: 600;
     color: hsl(var(--primary));
     backdrop-filter: blur(8px);
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
-  /* Premium Scrollbar (for webkit browsers) */
+  .badge-premium:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px hsl(var(--primary) / 0.3);
+    --depth-near: translateZ(10px);
+  }
+
+  .badge-premium:active {
+    transform: scale(0.95);
+    --depth-near: translateZ(5px);
+  }
+
+  /* Enhanced Premium Gold Badge */
+  .badge-premium-gold {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: hsl(45 100% 50% / 0.15);
+    border: 1px solid hsl(45 100% 50% / 0.3);
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: hsl(45 100% 50%);
+    backdrop-filter: blur(8px);
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .badge-premium-gold:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px hsl(45 100% 50% / 0.3);
+    --depth-near: translateZ(10px);
+  }
+
+  .badge-premium-gold:active {
+    transform: scale(0.95);
+    --depth-near: translateZ(5px);
+  }
+
+  /* Enhanced Premium Islamic Badge */
+  .badge-premium-islamic {
+    display: inline-flex;
+    align-items: center;
+    gap: 6px;
+    padding: 6px 12px;
+    background: hsl(var(--islamic-gold) / 0.15);
+    border: 1px solid hsl(var(--islamic-gold) / 0.3);
+    border-radius: 100px;
+    font-size: 0.75rem;
+    font-weight: 600;
+    color: hsl(var(--islamic-gold));
+    backdrop-filter: blur(8px);
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .badge-premium-islamic:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 8px hsl(var(--islamic-gold) / 0.3);
+    --depth-near: translateZ(10px);
+  }
+
+  .badge-premium-islamic:active {
+    transform: scale(0.95);
+    --depth-near: translateZ(5px);
+  }
+
+  /* Enhanced Premium Scrollbar (for webkit browsers) */
   .scrollbar-premium::-webkit-scrollbar {
     width: 6px;
     height: 6px;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
   .scrollbar-premium::-webkit-scrollbar-track {
@@ -632,16 +966,44 @@ All colors MUST be HSL.
   .scrollbar-premium::-webkit-scrollbar-thumb {
     background: hsl(var(--muted) / 0.5);
     border-radius: 100px;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
   .scrollbar-premium::-webkit-scrollbar-thumb:hover {
     background: hsl(var(--muted) / 0.8);
+    transform: scale(1.1);
   }
 
-  /* Native App Touch Feedback */
+  .scrollbar-premium::-webkit-scrollbar-thumb:active {
+    background: hsl(var(--muted) / 0.9);
+    transform: scale(1.2);
+  }
+
+  /* Enhanced Premium Gold Scrollbar */
+  .scrollbar-premium-gold::-webkit-scrollbar-thumb {
+    background: hsl(45 100% 50% / 0.5);
+  }
+
+  .scrollbar-premium-gold::-webkit-scrollbar-thumb:hover {
+    background: hsl(45 100% 50% / 0.8);
+    transform: scale(1.1);
+  }
+
+  /* Enhanced Premium Islamic Scrollbar */
+  .scrollbar-premium-islamic::-webkit-scrollbar-thumb {
+    background: hsl(var(--islamic-gold) / 0.5);
+  }
+
+  .scrollbar-premium-islamic::-webkit-scrollbar-thumb:hover {
+    background: hsl(var(--islamic-gold) / 0.8);
+    transform: scale(1.1);
+  }
+
+  /* Enhanced Native App Touch Feedback */
   .touch-feedback {
     position: relative;
     overflow: hidden;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
   .touch-feedback::after {
@@ -651,7 +1013,7 @@ All colors MUST be HSL.
     background: radial-gradient(circle at center, hsl(0 0% 100% / 0.2) 0%, transparent 70%);
     opacity: 0;
     transform: scale(0);
-    transition: opacity 0.3s ease, transform 0.3s ease;
+    transition: opacity var(--animation-fast) ease, transform var(--animation-fast) ease;
   }
 
   .touch-feedback:active::after {
@@ -660,12 +1022,23 @@ All colors MUST be HSL.
     transition: 0s;
   }
 
-  /* Premium Section Header */
+  .touch-feedback:hover {
+    transform: translateY(-1px);
+    --depth-near: translateZ(10px);
+  }
+
+  .touch-feedback:active {
+    transform: scale(0.95);
+    --depth-near: translateZ(5px);
+  }
+
+  /* Enhanced Premium Section Header */
   .section-header {
     display: flex;
     align-items: center;
     gap: 12px;
     margin-bottom: 16px;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
   .section-header::before {
@@ -674,16 +1047,85 @@ All colors MUST be HSL.
     height: 20px;
     background: var(--gradient-gold);
     border-radius: 100px;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
-  /* Premium Input Styles */
+  .section-header:hover::before {
+    height: 25px;
+    box-shadow: 0 0 10px hsl(45 100% 50% / 0.3);
+  }
+
+  /* Enhanced Premium Gold Section Header */
+  .section-header-gold {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .section-header-gold::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--gradient-gold);
+    border-radius: 100px;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .section-header-gold:hover::before {
+    height: 25px;
+    box-shadow: 0 0 10px hsl(45 100% 50% / 0.3);
+  }
+
+  /* Enhanced Premium Islamic Section Header */
+  .section-header-islamic {
+    display: flex;
+    align-items: center;
+    gap: 12px;
+    margin-bottom: 16px;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .section-header-islamic::before {
+    content: '';
+    width: 4px;
+    height: 20px;
+    background: var(--islamic-gold-gradient);
+    border-radius: 100px;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .section-header-islamic:hover::before {
+    height: 25px;
+    box-shadow: 0 0 10px hsl(var(--islamic-gold) / 0.3);
+  }
+
+  /* Enhanced Premium Input Styles */
   .input-premium {
     background: hsl(var(--card));
     border: 1px solid hsl(var(--border));
     border-radius: 14px;
     padding: 12px 16px;
-    transition: all 0.2s var(--spring-smooth);
+    transition: all var(--animation-normal) var(--spring-smooth);
     box-shadow: inset 0 2px 4px hsl(0 0% 0% / 0.02);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .input-premium::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--islamic-gold-glow), transparent);
+    transition: left var(--animation-normal) var(--spring-smooth);
+  }
+
+  .input-premium:focus::before {
+    left: 100%;
   }
 
   .input-premium:focus {
@@ -692,16 +1134,196 @@ All colors MUST be HSL.
       0 0 0 3px hsl(var(--primary) / 0.1),
       inset 0 2px 4px hsl(0 0% 0% / 0.02);
     outline: none;
+    transform: scale(1.02);
+    --depth-near: translateZ(10px);
   }
 
-  /* Bottom Sheet Style Container */
+  .input-premium:hover {
+    border-color: hsl(var(--primary) / 0.3);
+    transform: translateY(-1px);
+    --depth-near: translateZ(5px);
+  }
+
+  /* Enhanced Premium Gold Input */
+  .input-premium-gold {
+    background: hsl(var(--card));
+    border: 1px solid hsl(45 100% 50% / 0.3);
+    border-radius: 14px;
+    padding: 12px 16px;
+    transition: all var(--animation-normal) var(--spring-smooth);
+    box-shadow: inset 0 2px 4px hsl(0 0% 0% / 0.02);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .input-premium-gold::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--islamic-gold-glow), transparent);
+    transition: left var(--animation-normal) var(--spring-smooth);
+  }
+
+  .input-premium-gold:focus::before {
+    left: 100%;
+  }
+
+  .input-premium-gold:focus {
+    border-color: hsl(45 100% 50% / 0.5);
+    box-shadow: 
+      0 0 0 3px hsl(45 100% 50% / 0.1),
+      inset 0 2px 4px hsl(0 0% 0% / 0.02);
+    outline: none;
+    transform: scale(1.02);
+    --depth-near: translateZ(10px);
+  }
+
+  .input-premium-gold:hover {
+    border-color: hsl(45 100% 50% / 0.4);
+    transform: translateY(-1px);
+    --depth-near: translateZ(5px);
+  }
+
+  /* Enhanced Premium Islamic Input */
+  .input-premium-islamic {
+    background: hsl(var(--card));
+    border: 1px solid hsl(var(--islamic-gold) / 0.3);
+    border-radius: 14px;
+    padding: 12px 16px;
+    transition: all var(--animation-normal) var(--spring-smooth);
+    box-shadow: inset 0 2px 4px hsl(0 0% 0% / 0.02);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .input-premium-islamic::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--islamic-gold-glow), transparent);
+    transition: left var(--animation-normal) var(--spring-smooth);
+  }
+
+  .input-premium-islamic:focus::before {
+    left: 100%;
+  }
+
+  .input-premium-islamic:focus {
+    border-color: hsl(var(--islamic-gold) / 0.5);
+    box-shadow: 
+      0 0 0 3px hsl(var(--islamic-gold) / 0.1),
+      inset 0 2px 4px hsl(0 0% 0% / 0.02);
+    outline: none;
+    transform: scale(1.02);
+    --depth-near: translateZ(10px);
+  }
+
+  .input-premium-islamic:hover {
+    border-color: hsl(var(--islamic-gold) / 0.4);
+    transform: translateY(-1px);
+    --depth-near: translateZ(5px);
+  }
+
+  /* Enhanced Bottom Sheet Style Container */
   .bottom-sheet {
     background: hsl(var(--card));
     border-radius: 24px 24px 0 0;
     box-shadow: 0 -4px 24px hsl(0 0% 0% / 0.1);
+    transition: all var(--animation-normal) var(--spring-smooth);
+    position: relative;
+    overflow: hidden;
   }
 
-  /* Premium Switch/Toggle */
+  .bottom-sheet::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--islamic-gold-glow), transparent);
+    transition: left var(--animation-normal) var(--spring-smooth);
+  }
+
+  .bottom-sheet:hover::before {
+    left: 100%;
+  }
+
+  .bottom-sheet:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 -6px 30px hsl(0 0% 0% / 0.15);
+    --depth-near: translateZ(20px);
+  }
+
+  /* Enhanced Premium Gold Bottom Sheet */
+  .bottom-sheet-gold {
+    background: hsl(var(--card));
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -4px 24px hsl(0 0% 0% / 0.1);
+    transition: all var(--animation-normal) var(--spring-smooth);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bottom-sheet-gold::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--islamic-gold-glow), transparent);
+    transition: left var(--animation-normal) var(--spring-smooth);
+  }
+
+  .bottom-sheet-gold:hover::before {
+    left: 100%;
+  }
+
+  .bottom-sheet-gold:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 -6px 30px hsl(0 0% 0% / 0.15);
+    --depth-near: translateZ(20px);
+  }
+
+  /* Enhanced Premium Islamic Bottom Sheet */
+  .bottom-sheet-islamic {
+    background: hsl(var(--card));
+    border-radius: 24px 24px 0 0;
+    box-shadow: 0 -4px 24px hsl(0 0% 0% / 0.1);
+    transition: all var(--animation-normal) var(--spring-smooth);
+    position: relative;
+    overflow: hidden;
+  }
+
+  .bottom-sheet-islamic::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: -100%;
+    width: 100%;
+    height: 100%;
+    background: linear-gradient(90deg, transparent, var(--islamic-gold-glow), transparent);
+    transition: left var(--animation-normal) var(--spring-smooth);
+  }
+
+  .bottom-sheet-islamic:hover::before {
+    left: 100%;
+  }
+
+  .bottom-sheet-islamic:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 -6px 30px hsl(0 0% 0% / 0.15);
+    --depth-near: translateZ(20px);
+  }
+
+  /* Enhanced Premium Switch/Toggle */
   .toggle-premium {
     width: 52px;
     height: 28px;
@@ -709,7 +1331,7 @@ All colors MUST be HSL.
     border-radius: 100px;
     position: relative;
     cursor: pointer;
-    transition: background 0.3s ease;
+    transition: all var(--animation-normal) var(--spring-smooth);
   }
 
   .toggle-premium::after {
@@ -722,32 +1344,123 @@ All colors MUST be HSL.
     background: white;
     border-radius: 50%;
     box-shadow: 0 2px 4px hsl(0 0% 0% / 0.2);
-    transition: transform 0.3s var(--spring-bounce);
+    transition: transform var(--animation-normal) var(--spring-bounce);
+  }
+
+  .toggle-premium:hover {
+    transform: scale(1.05);
+    --depth-near: translateZ(10px);
+  }
+
+  .toggle-premium:active {
+    transform: scale(0.95);
+    --depth-near: translateZ(5px);
   }
 
   .toggle-premium.active {
     background: hsl(var(--primary));
+    box-shadow: 0 0 10px hsl(var(--primary) / 0.3);
   }
 
   .toggle-premium.active::after {
     transform: translateX(24px);
+    box-shadow: 0 2px 4px hsl(0 0% 0% / 0.3);
   }
 
-  /* 
-   ==========================================================================
-   CRITICAL PERFORMANCE OPTIMIZATIONS FOR CAPACITOR / ANDROID APK
-   ==========================================================================
-   Backdrop filters and large animated CSS blurs are the #1 cause of lag 
-   in Android WebViews. Disabling them globally to fix low FPS.
-  */
-  
+  /* Enhanced Premium Gold Toggle */
+  .toggle-premium-gold {
+    width: 52px;
+    height: 28px;
+    background: hsl(45 100% 50% / 0.3);
+    border-radius: 100px;
+    position: relative;
+    cursor: pointer;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .toggle-premium-gold::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px hsl(0 0% 0% / 0.2);
+    transition: transform var(--animation-normal) var(--spring-bounce);
+  }
+
+  .toggle-premium-gold:hover {
+    transform: scale(1.05);
+    --depth-near: translateZ(10px);
+  }
+
+  .toggle-premium-gold:active {
+    transform: scale(0.95);
+    --depth-near: translateZ(5px);
+  }
+
+  .toggle-premium-gold.active {
+    background: hsl(45 100% 50%);
+    box-shadow: 0 0 10px hsl(45 100% 50% / 0.3);
+  }
+
+  .toggle-premium-gold.active::after {
+    transform: translateX(24px);
+    box-shadow: 0 2px 4px hsl(0 0% 0% / 0.3);
+  }
+
+  /* Enhanced Premium Islamic Toggle */
+  .toggle-premium-islamic {
+    width: 52px;
+    height: 28px;
+    background: hsl(var(--islamic-gold) / 0.3);
+    border-radius: 100px;
+    position: relative;
+    cursor: pointer;
+    transition: all var(--animation-normal) var(--spring-smooth);
+  }
+
+  .toggle-premium-islamic::after {
+    content: '';
+    position: absolute;
+    top: 2px;
+    left: 2px;
+    width: 24px;
+    height: 24px;
+    background: white;
+    border-radius: 50%;
+    box-shadow: 0 2px 4px hsl(0 0% 0% / 0.2);
+    transition: transform var(--animation-normal) var(--spring-bounce);
+  }
+
+  .toggle-premium-islamic:hover {
+    transform: scale(1.05);
+    --depth-near: translateZ(10px);
+  }
+
+  .toggle-premium-islamic:active {
+    transform: scale(0.95);
+    --depth-near: translateZ(5px);
+  }
+
+  .toggle-premium-islamic.active {
+    background: hsl(var(--islamic-gold));
+    box-shadow: 0 0 10px hsl(var(--islamic-gold) / 0.3);
+  }
+
+  .toggle-premium-islamic.active::after {
+    transform: translateX(24px);
+    box-shadow: 0 2px 4px hsl(0 0% 0% / 0.3);
+  }
+
+  /* Enhanced Critical Performance Optimizations */
   * {
-    /* Disable expensive glassy backgrounds to ensure smooth 60FPS scrolling */
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
   }
-  
-  /* Disable heavy animations on decorative blur orbs */
+
   .blur-\[100px\],
   .blur-\[80px\],
   .blur-\[60px\],
@@ -755,8 +1468,74 @@ All colors MUST be HSL.
   .blur-\[40px\] {
     filter: none !important;
     -webkit-filter: none !important;
-    /* Soft fallback so they look like subtle color blobs instead of solid shapes */
     opacity: 0.1 !important;
     transform: scale(1.5) !important;
+  }
+
+  /* Enhanced Performance Optimizations */
+  @media (prefers-reduced-motion: reduce) {
+    * {
+      animation-duration: 0.01ms !important;
+      animation-iteration-count: 1 !important;
+      transition-duration: 0.01ms !important;
+    }
+
+    .glass,
+    .glass-dark,
+    .glass-card,
+    .glass-gold,
+    .glass-card-gold,
+    .glass-dark,
+    .glass-card {
+      backdrop-filter: none !important;
+      -webkit-backdrop-filter: none !important;
+      background: var(--card);
+      border: 1px solid var(--border);
+    }
+
+    .card-premium,
+    .card-premium-gold,
+    .card-premium-islamic,
+    .btn-premium,
+    .btn-premium-gold,
+    .btn-premium-islamic,
+    .input-premium,
+    .input-premium-gold,
+    .input-premium-islamic,
+    .toggle-premium,
+    .toggle-premium-gold,
+    .toggle-premium-islamic,
+    .bottom-sheet,
+    .bottom-sheet-gold,
+    .bottom-sheet-islamic {
+      transition-duration: 0.01ms !important;
+      transform: none !important;
+    }
+
+    .glow-gold,
+    .glow-soft,
+    .glow-islamic,
+    .glow-elegant,
+    .text-gradient-gold,
+    .text-gradient-islamic,
+    .text-gradient-elegant,
+    .divider-premium,
+    .divider-gold,
+    .divider-islamic,
+    .nav-indicator,
+    .nav-indicator-gold,
+    .nav-indicator-islamic,
+    .skeleton-premium,
+    .skeleton-premium-gold,
+    .skeleton-premium-islamic,
+    .fab-premium,
+    .fab-premium-gold,
+    .fab-premium-islamic,
+    .badge-premium,
+    .badge-premium-gold,
+    .badge-premium-islamic {
+      transition-duration: 0.01ms !important;
+      animation: none !important;
+    }
   }
 }

@@ -56,7 +56,9 @@ export class OfflineSyncService {
       this.status.isOnline = true;
       this.emit({ type: 'online', timestamp: Date.now() });
       if (this.status.pendingSync) {
-        this.sync();
+        this.sync().catch((err) => {
+          console.warn('Auto-sync after coming online failed:', err);
+        });
       }
     });
 
@@ -180,7 +182,9 @@ export class OfflineSyncService {
 
       if (this.retryCount < this.config.maxRetries) {
         this.retryCount++;
-        setTimeout(() => this.sync(), this.config.retryDelay * this.retryCount);
+        setTimeout(() => this.sync().catch((err) => {
+          console.warn('Retry sync failed:', err);
+        }), this.config.retryDelay * this.retryCount);
       }
     }
   }
@@ -259,10 +263,12 @@ export class OfflineSyncService {
       
       for (const recitation of metadata) {
         // Store metadata (actual audio files are downloaded on demand)
-        await offlineQuranStorage.cacheAudioSegment({
-          ...recitation.segments[0],
-          downloaded: false
-        });
+        if (recitation.segments && recitation.segments.length > 0) {
+          await offlineQuranStorage.cacheAudioSegment({
+            ...recitation.segments[0],
+            downloaded: false
+          });
+        }
       }
       
       this.emit({

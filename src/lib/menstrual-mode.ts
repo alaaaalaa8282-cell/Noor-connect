@@ -34,7 +34,7 @@ const sanitizeData = (data: Partial<MenstrualModeData>): MenstrualModeData => {
 
   return {
     isActive: Boolean(data.isActive),
-    startedAt: data.startedAt || null,
+    startedAt: (data.startedAt && !isNaN(new Date(data.startedAt).getTime())) ? data.startedAt : null,
     cycleLengthDays: clampCycleLength(Number(data.cycleLengthDays) || DEFAULT_MENSTRUAL_MODE_DATA.cycleLengthDays),
     pausePrayerNotifications: data.pausePrayerNotifications ?? DEFAULT_MENSTRUAL_MODE_DATA.pausePrayerNotifications,
     pauseQazaAutoSync: data.pauseQazaAutoSync ?? DEFAULT_MENSTRUAL_MODE_DATA.pauseQazaAutoSync,
@@ -71,7 +71,11 @@ export const getMenstrualModeData = (): MenstrualModeData => {
 
 export const saveMenstrualModeData = (data: MenstrualModeData): MenstrualModeData => {
   const sanitized = sanitizeData(data);
-  localStorage.setItem(MENSTRUAL_MODE_STORAGE_KEY, JSON.stringify(sanitized));
+  try {
+    localStorage.setItem(MENSTRUAL_MODE_STORAGE_KEY, JSON.stringify(sanitized));
+  } catch (error) {
+    console.error('Failed to save menstrual mode data:', error);
+  }
   emitUpdateEvent(sanitized);
   return sanitized;
 };

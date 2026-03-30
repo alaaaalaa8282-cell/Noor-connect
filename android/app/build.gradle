@@ -66,6 +66,9 @@ dependencies {
 
     // Coroutines for async widget operations
     implementation "org.jetbrains.kotlinx:kotlinx-coroutines-android:1.7.3"
+
+    // Media for Radio Widget playback controls in notification
+    implementation "androidx.media:media:1.7.0"
 }
 
 apply from: 'capacitor.build.gradle'

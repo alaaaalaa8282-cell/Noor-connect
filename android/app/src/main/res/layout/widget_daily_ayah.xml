@@ -2,9 +2,9 @@
 <!--
   Daily Ayah Widget (4×4)
   Shows daily Quran verse in Arabic with translation and reference.
-  Uses Amiri (Uthmanic Hafs) font for Arabic text.
 -->
 <LinearLayout xmlns:android="http://schemas.android.com/apk/res/android"
+    android:id="@+id/ayah_root"
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:background="?android:attr/colorBackground"
@@ -16,7 +16,6 @@
         android:layout_width="match_parent"
         android:layout_height="wrap_content"
         android:layout_marginBottom="8dp"
-        android:fontFamily="@font/uthmanic_hafs"
         android:layoutDirection="rtl"
         android:lineSpacingMultiplier="1.4"
         android:text=""

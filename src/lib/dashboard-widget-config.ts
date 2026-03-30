@@ -125,6 +125,14 @@ export const DEFAULT_DASHBOARD_WIDGETS: DashboardWidgetConfig[] = [
     order: 14,
     category: 'premium',
   },
+  {
+    id: 'quran-radio',
+    name: 'Quran Radio',
+    description: 'Live Quranic radio and station streaming',
+    visible: false,
+    order: 15,
+    category: 'premium',
+  },
 ];
 
 const isWidgetConfigLike = (value: unknown): value is Partial<DashboardWidgetConfig> =>

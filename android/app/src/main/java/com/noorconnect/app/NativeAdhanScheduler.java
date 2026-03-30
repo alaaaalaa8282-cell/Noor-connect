@@ -162,7 +162,7 @@ public final class NativeAdhanScheduler {
             }
 
             if (alarmManager != null) {
-                PendingIntent pendingIntent = createPendingIntent(context, id, null, null);
+                PendingIntent pendingIntent = createPendingIntent(context, id, null, null, false, false);
                 alarmManager.cancel(pendingIntent);
             }
         }

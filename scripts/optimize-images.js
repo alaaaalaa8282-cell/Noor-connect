@@ -5,7 +5,7 @@
 
 import fs from 'fs';
 import path from 'path';
-import { execSync } from 'child_process';
+import { execFileSync } from 'child_process';
 
 // Image optimization settings
 const OPTIMIZATION_CONFIG = {
@@ -32,8 +32,7 @@ function optimizeImage(inputPath, outputPath, options) {
     }
 
     // Use sharp for image processing (if available) or fallback to imagemin
-    const command = `npx sharp "${inputPath}" --output "${outputPath}" --quality ${options.quality}`;
-    execSync(command, { stdio: 'inherit' });
+    execFileSync('npx', ['sharp', inputPath, '--output', outputPath, '--quality', options.quality], { stdio: 'inherit' });
     
     console.log(`✅ Optimized: ${inputPath} -> ${outputPath}`);
   } catch (error) {
@@ -83,13 +82,12 @@ function processImages() {
       // Create responsive sizes
       OPTIMIZATION_CONFIG.content.sizes.forEach(size => {
         const resizedPath = path.join(outputDir, `${size}-${file.replace('.png', '.webp')}`);
-        const command = `npx sharp "${inputPath}" --resize ${size} --output "${resizedPath}" --quality 85`;
-        try {
-          execSync(command, { stdio: 'inherit' });
-          console.log(`📐 Created ${size}px version: ${resizedPath}`);
-        } catch (error) {
-          console.error(`❌ Failed to create ${size}px version:`, error.message);
-        }
+         try {
+           execFileSync('npx', ['sharp', inputPath, '--resize', size.toString(), '--output', resizedPath, '--quality', '85'], { stdio: 'inherit' });
+           console.log(`📐 Created ${size}px version: ${resizedPath}`);
+         } catch (error) {
+           console.error(`❌ Failed to create ${size}px version:`, error.message);
+         }
       });
     }
   });
