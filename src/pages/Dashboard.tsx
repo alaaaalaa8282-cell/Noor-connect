@@ -8,6 +8,8 @@ import { AppBar } from "@/components/AppBar";
 const DailyAyah = lazy(() => import("@/components/EnhancedDailyAyah").then(module => ({ default: module.EnhancedDailyAyah })));
 const DailyHadith = lazy(() => import("@/components/EnhancedDailyHadith").then(module => ({ default: module.EnhancedDailyHadith })));
 const PrayerTimesList = lazy(() => import("@/components/PrayerTimesList").then(module => ({ default: module.PrayerTimesList })));
+const SalahTracker = lazy(() => import("@/components/SalahTracker").then(module => ({ default: module.SalahTracker })));
+const QazaTracker = lazy(() => import("@/components/QazaTracker").then(module => ({ default: module.QazaTracker })));
 import { LocationSearch } from "@/components/LocationSearch";
 import { LayoutManager } from "@/components/LayoutManager";
 import { useLanguage } from "@/contexts/LanguageContext-new";
@@ -16,6 +18,7 @@ import { shouldShowMenstrualFeatures } from "@/lib/gender-settings";
 import { isMenstrualModeActive, getMenstrualModeData, activateMenstrualMode, deactivateMenstrualMode } from "@/lib/menstrual-mode";
 import { cn } from "@/lib/utils";
 import { EidCelebrationOverlay } from "@/components/EidCelebrationOverlay";
+import { CheckCircle, AlertTriangle } from "lucide-react";
 
 import { usePrayerTimes } from "@/hooks/usePrayerTimes";
 import { useWidgetSync } from "@/hooks/useWidgetSync";
@@ -686,6 +689,55 @@ export default function Dashboard() {
                     timeZone={timezoneLabel}
                   />
                 </div>
+              </Suspense>
+            </div>
+          </motion.div>
+
+          {/* Salah Check-in & Qaza Tracker */}
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.45, duration: 0.5, ease: "easeOut" }}
+            className="relative overflow-hidden rounded-[24px] p-6 shadow-xl shadow-amber-900/5 group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50"
+          >
+            <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-500/10 rounded-full blur-2xl group-hover:bg-amber-500/20 transition-colors duration-500 pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#f59e0b] via-[#d97706] to-[#b45309] shadow-lg shadow-amber-500/30 text-white shrink-0 group-hover:scale-105 group-hover:rotate-3 transition-transform duration-500">
+                  <CheckCircle className="w-6 h-6" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Salah Check-in</h3>
+                  <p className="text-sm font-medium text-amber-600 dark:text-amber-400">Track your daily prayers</p>
+                </div>
+              </div>
+              <Suspense fallback={<div className="h-32 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl animate-pulse" />}>
+                <SalahTracker />
+              </Suspense>
+            </div>
+          </motion.div>
+
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.5, duration: 0.5, ease: "easeOut" }}
+            className="relative overflow-hidden rounded-[24px] p-6 shadow-xl shadow-rose-900/5 group bg-white/60 dark:bg-slate-900/60 backdrop-blur-xl border border-white/40 dark:border-slate-700/50"
+          >
+            <div className="absolute -top-10 -left-10 w-32 h-32 bg-rose-500/10 rounded-full blur-2xl group-hover:bg-rose-500/20 transition-colors duration-500 pointer-events-none" />
+
+            <div className="relative z-10">
+              <div className="flex items-center gap-4 mb-6">
+                <div className="p-3.5 rounded-2xl bg-gradient-to-br from-[#f43f5e] via-[#e11d48] to-[#be123c] shadow-lg shadow-rose-500/30 text-white shrink-0 group-hover:scale-105 group-hover:-rotate-3 transition-transform duration-500">
+                  <AlertTriangle className="w-6 h-6" strokeWidth={2.5} />
+                </div>
+                <div>
+                  <h3 className="font-bold text-xl text-slate-900 dark:text-white tracking-tight">Qaza Tracker</h3>
+                  <p className="text-sm font-medium text-rose-600 dark:text-rose-400">Missed prayers to make up</p>
+                </div>
+              </div>
+              <Suspense fallback={<div className="h-32 bg-slate-100/50 dark:bg-slate-800/50 rounded-2xl animate-pulse" />}>
+                <QazaTracker compact />
               </Suspense>
             </div>
           </motion.div>

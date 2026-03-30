@@ -5,7 +5,8 @@ import { useLanguage } from "@/contexts/LanguageContext-new";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import {
     MessageCircle, Radio, Target, Heart, Calculator,
-    Star, Trophy, Coins, Calendar, Library, Tv, Sparkles, HeartHandshake, BookOpen, BookText, Moon, Headphones
+    Star, Trophy, Coins, Calendar, Library, Tv, Sparkles, HeartHandshake, BookOpen, BookText, Moon, Headphones,
+    CheckCircle, AlertTriangle
 } from "lucide-react";
 import { motion, AnimatePresence } from "framer-motion";
 
@@ -56,6 +57,8 @@ export default function Services() {
     })();
 
     const baseServices = [
+        { title: "Salah Tracker", path: "/prayer-stats", icon: CheckCircle, gradient: 'from-[#f59e0b] to-[#b45309]' },
+        { title: "Qaza Tracker", path: "/qaza", icon: AlertTriangle, gradient: 'from-[#f43f5e] to-[#be123c]' },
         { title: "Quran Audio", path: "/quran-audio", icon: Headphones, gradient: 'from-[#10b981] to-[#047857]' },
         { title: "Live", path: "/live", icon: Tv, gradient: 'from-[#f43f5e] to-[#be123c]' },
         { title: "Hadith Collections", path: "/hadith/collections", icon: BookText, gradient: 'from-[#6366f1] to-[#4338ca]' },

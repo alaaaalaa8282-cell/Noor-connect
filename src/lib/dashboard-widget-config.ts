@@ -113,7 +113,7 @@ export const DEFAULT_DASHBOARD_WIDGETS: DashboardWidgetConfig[] = [
     id: 'qaza-tracker',
     name: 'Qaza Tracker',
     description: 'Track missed prayers',
-    visible: false,
+    visible: true,
     order: 13,
     category: 'optional',
   },
