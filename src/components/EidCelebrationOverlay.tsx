@@ -6,15 +6,17 @@ import confetti from "canvas-confetti";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 
 export function EidCelebrationOverlay() {
-  const { isEidAlFitr, isEidAlAdha, islamicInfo } = useIslamicCalendar();
+  const { isEidAlFitr, isEidAlAdha, islamicInfo, isRamadan } = useIslamicCalendar();
   const [isVisible, setIsVisible] = useState(false);
   
-  const eidType = isEidAlFitr ? 'fitr' : isEidAlAdha ? 'adha' : null;
+  // GUARD: Never show Eid overlay if we're still in Ramadan (month 9)
+  // This prevents false triggers on the last day of Ramadan
+  const safeEidType = isRamadan ? null : (isEidAlFitr ? 'fitr' : isEidAlAdha ? 'adha' : null);
 
   useEffect(() => {
-    if (!eidType) return;
+    if (!safeEidType) return;
 
-    const lastSeenKey = `eid-greeting-seen-${eidType}-${islamicInfo?.hijriYear}`;
+    const lastSeenKey = `eid-greeting-seen-${safeEidType}-${islamicInfo?.hijriYear}`;
     const hasSeen = localStorage.getItem(lastSeenKey);
 
     if (!hasSeen) {
@@ -28,7 +30,7 @@ export function EidCelebrationOverlay() {
       localStorage.setItem(lastSeenKey, 'true');
       return () => clearTimeout(timer);
     }
-  }, [eidType, islamicInfo]);
+  }, [safeEidType, islamicInfo]);
 
   const triggerConfetti = () => {
     const duration = 5 * 1000;
@@ -50,7 +52,7 @@ export function EidCelebrationOverlay() {
     }, 250);
   };
 
-  if (!isVisible || !eidType) return null;
+  if (!isVisible || !safeEidType) return null;
 
   return (
     <AnimatePresence>
@@ -128,7 +130,7 @@ export function EidCelebrationOverlay() {
                   Eid Mubarak!
                 </h2>
                 <p className="text-[#e0c097] text-lg font-arabic mt-1">
-                  {eidType === 'fitr' ? 'عيد الفطر مبارك' : 'عيد الأضحى مبارك'}
+                  {safeEidType === 'fitr' ? 'عيد الفطر مبارك' : 'عيد الأضحى مبارك'}
                 </p>
               </motion.div>
               

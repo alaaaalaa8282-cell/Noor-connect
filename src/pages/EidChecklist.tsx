@@ -69,17 +69,29 @@ interface EidChecklistData {
 }
 
 const defaultChecklistItems: Omit<ChecklistItem, 'checked'>[] = [
-  { id: 'ghusl', text: 'Perform Ghusl (ritual bath)', category: 'sunnah', icon: Droplets, eidSpecific: 'both' },
-  { id: 'dates', text: 'Eat an odd number of dates before prayer', category: 'sunnah', icon: Coffee, eidSpecific: 'fitr' },
-  { id: 'best-clothes', text: 'Wear your best available clothes', category: 'sunnah', icon: Shirt, eidSpecific: 'both' },
-  { id: 'ittar', text: 'Apply ittar or perfume', category: 'sunnah', icon: Sparkles, eidSpecific: 'both' },
-  { id: 'fitrana', text: 'Pay Zakat al-Fitr (before prayer)', category: 'mandatory', icon: Coins, eidSpecific: 'fitr' },
+  // ─── Mandatory Actions ─────────────────────────────────────────
+  { id: 'fitrana', text: 'Pay Zakat al-Fitr (before Eid prayer)', category: 'mandatory', icon: Coins, eidSpecific: 'fitr' },
   { id: 'eid-prayer', text: 'Attend the Eid prayer congregation', category: 'mandatory', icon: Users, eidSpecific: 'both' },
-  { id: 'takbirat', text: 'Recite Takbirat loudly on the way', category: 'sunnah', icon: Zap, eidSpecific: 'both' },
-  { id: 'different-way', text: 'Return from prayer using a different path', category: 'sunnah', icon: Sun, eidSpecific: 'both' },
-  { id: 'greet-family', text: 'Greet everyone with "Eid Mubarak"', category: 'prep', icon: Heart, eidSpecific: 'both' },
+  { id: 'qurbani', text: 'Arrange Qurbani / Udhiyah sacrifice', category: 'mandatory', icon: Heart, eidSpecific: 'adha' },
+
+  // ─── Sunnah Acts ───────────────────────────────────────────────
+  { id: 'ghusl', text: 'Perform Ghusl (ritual bath)', category: 'sunnah', icon: Droplets, eidSpecific: 'both' },
+  { id: 'dates', text: 'Eat an odd number of dates before Eid prayer', category: 'sunnah', icon: Coffee, eidSpecific: 'fitr' },
+  { id: 'no-eat-adha', text: 'Do not eat before Eid prayer (Sunnah for Adha)', category: 'sunnah', icon: Coffee, eidSpecific: 'adha' },
+  { id: 'best-clothes', text: 'Wear your best available clothes', category: 'sunnah', icon: Shirt, eidSpecific: 'both' },
+  { id: 'ittar', text: 'Apply ittar / perfume (men)', category: 'sunnah', icon: Sparkles, eidSpecific: 'both' },
+  { id: 'takbirat', text: 'Recite Takbirat loudly on the way to prayer', category: 'sunnah', icon: Zap, eidSpecific: 'both' },
+  { id: 'walk-prayer', text: 'Walk to the Eid prayer ground (if possible)', category: 'sunnah', icon: Sun, eidSpecific: 'both' },
+  { id: 'different-way', text: 'Return home using a different path', category: 'sunnah', icon: Sun, eidSpecific: 'both' },
+  { id: 'adha-meat', text: 'Eat from your Qurbani meat first', category: 'sunnah', icon: Utensils, eidSpecific: 'adha' },
+  { id: 'distribute-meat', text: 'Distribute Qurbani meat (⅓ poor, ⅓ relatives, ⅓ self)', category: 'sunnah', icon: ShoppingBag, eidSpecific: 'adha' },
+
+  // ─── Preparation & Good Deeds ─────────────────────────────────
+  { id: 'greet-family', text: 'Greet everyone with "Eid Mubarak!"', category: 'prep', icon: Heart, eidSpecific: 'both' },
   { id: 'charity', text: 'Give additional Sadaqa to those in need', category: 'prep', icon: ShoppingBag, eidSpecific: 'both' },
-  { id: 'adha-meat', text: 'Eat from your Udhiyah (Qurbani) meat', category: 'sunnah', icon: Utensils, eidSpecific: 'adha' },
+  { id: 'visit-relatives', text: 'Visit relatives and strengthen family ties', category: 'prep', icon: Users, eidSpecific: 'both' },
+  { id: 'forgive', text: 'Forgive others & seek forgiveness', category: 'prep', icon: Heart, eidSpecific: 'both' },
+  { id: 'dua', text: 'Make special Dua on this blessed day', category: 'prep', icon: Star, eidSpecific: 'both' },
 ];
 
 export default function EidChecklist() {
@@ -232,22 +244,31 @@ export default function EidChecklist() {
         item.eidSpecific === 'both' || item.eidSpecific === currentEidType
       );
       const checkedCount = updatedList.filter(item => item.checked).length;
+      const totalItems = updatedList.length;
+      const pct = Math.round((checkedCount / totalItems) * 100);
       
       // Haptic feedback if available
       if (checked && 'vibrate' in navigator) navigator.vibrate(10);
 
-      // Show completion celebration if all items are checked
-      if (checked && checkedCount === updatedList.length) {
+      // Milestone celebrations
+      if (checked && pct === 25) {
+        toast({ title: "🌟 Great start!", description: "25% complete — keep going, you're building momentum!" });
+      } else if (checked && pct === 50) {
+        confetti({ particleCount: 60, spread: 50, origin: { y: 0.7 }, colors: ['#e0c097', '#d4af37'] });
+        toast({ title: "✨ Halfway there!", description: "50% done — you're doing amazing, MashaAllah!" });
+      } else if (checked && pct === 75) {
+        confetti({ particleCount: 100, spread: 60, origin: { y: 0.65 }, colors: ['#e0c097', '#d4af37', '#b38b5d'] });
+        toast({ title: "🎊 Almost done!", description: "75% complete — the finish line is near!" });
+      } else if (checked && checkedCount === totalItems) {
         confetti({
-          particleCount: 150,
-          spread: 70,
-          origin: { y: 0.6 },
+          particleCount: 200,
+          spread: 100,
+          origin: { y: 0.5 },
           colors: ['#e0c097', '#d4af37', '#b38b5d', '#0a1128']
         });
-
         toast({
           title: "🎉 Eid Mubarak!",
-          description: "You've completed all Eid preparations! May Allah accept it from us and you.",
+          description: "You've completed all Eid preparations! Taqabbal Allahu minna wa minkum.",
         });
       }
     }

@@ -1,16 +1,64 @@
-# Add project specific ProGuard rules here.
-# You can control the set of applied configuration files using the
-# proguardFiles setting in build.gradle.
-#
-# For more details, see
-#   http://developer.android.com/guide/developing/tools/proguard.html
+# ================================================================
+# Noor Connect — ProGuard / R8 rules for release builds
+# ================================================================
+
+# ── CompassQibla Library ─────────────────────────────────────────
+# Prevents R8 from stripping the Qibla compass library classes
+# that are accessed via reflection or dynamically.
+-keep class com.derysudrajat.compassqibla.** { *; }
+-keep interface com.derysudrajat.compassqibla.** { *; }
+-keepclassmembers class com.derysudrajat.compassqibla.** { *; }
+
+# Keep the Builder pattern + listener interfaces
+-keep class com.derysudrajat.compassqibla.CompassQibla$Builder { *; }
+-keep class com.derysudrajat.compassqibla.QiblaDirection { *; }
+
+# ── Noor Connect App Classes ────────────────────────────────────
+# BroadcastReceivers, Services, and Plugins referenced in Manifest
+-keep class com.noorconnect.app.AdhanAlarmReceiver { *; }
+-keep class com.noorconnect.app.AdhanPlaybackService { *; }
+-keep class com.noorconnect.app.NativeAdhanScheduler { *; }
+-keep class com.noorconnect.app.NativeAdhanScheduler$ScheduledAdhan { *; }
+-keep class com.noorconnect.app.BootReceiver { *; }
+-keep class com.noorconnect.app.QiblaPlugin { *; }
+-keep class com.noorconnect.app.MainActivity { *; }
+
+# Widget providers
+-keep class com.noorconnect.app.PrayerWidgetSmall { *; }
+-keep class com.noorconnect.app.PrayerWidgetMedium { *; }
+-keep class com.noorconnect.app.PrayerWidgetLarge { *; }
+-keep class com.noorconnect.app.QuranVerseWidget { *; }
+
+# ── Capacitor Framework ──────────────────────────────────────────
+-keep class com.getcapacitor.** { *; }
+-keep class com.getcapacitor.annotation.** { *; }
+-keepclassmembers class * {
+    @com.getcapacitor.PluginMethod public *;
+    @com.getcapacitor.annotation.CapacitorPlugin public *;
+}
+
+# Keep all Capacitor plugin classes
+-keep @com.getcapacitor.annotation.CapacitorPlugin class * { *; }
+
+# ── AndroidX / Google Play Services ──────────────────────────────
+-keep class androidx.core.app.NotificationCompat** { *; }
+-dontwarn com.google.android.gms.**
+
+# ── General ──────────────────────────────────────────────────────
+# Keep source file names and line numbers for crash reports
+-keepattributes SourceFile,LineNumberTable
+
+# Keep annotations
+-keepattributes *Annotation*
+-keepattributes Signature
+-keepattributes InnerClasses
 
 # If your project uses WebView with JS, uncomment the following
-# and specify the fully qualified class name to the JavaScript interface
-# class:
+# and specify the fully qualified class name to the JavaScript interface class:
 #-keepclassmembers class fqcn.of.javascript.interface.for.webview {
 #   public *;
 #}
+
 
 # Uncomment this to preserve the line number information for
 # debugging stack traces.

@@ -480,7 +480,7 @@ export class NotificationManager {
       // Approximate dates for Eid-ul-Fitr
       const eidFitrDates: Record<number, { month: number; day: number }> = {
         2025: { month: 3, day: 30 },
-        2026: { month: 3, day: 20 },
+        2026: { month: 3, day: 21 },
         2027: { month: 3, day: 9 },
         2028: { month: 2, day: 26 },
         2029: { month: 2, day: 15 },

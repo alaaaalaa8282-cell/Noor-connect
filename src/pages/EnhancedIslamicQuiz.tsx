@@ -79,6 +79,7 @@ interface GameState {
 }
 
 export default function EnhancedIslamicQuiz() {
+  const { toast } = useToast();
   const [gameState, setGameState] = useState<GameState>({
     questions: [],
     currentQuestion: 0,
