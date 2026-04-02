@@ -1,11 +1,11 @@
 /**
  * Image Optimization Script
- * Converts images to WebP and creates responsive sizes
+ * Converts images to WebP and creates responsive sizes using Jimp (Pure JS)
  */
 
 import fs from 'fs';
 import path from 'path';
-import { execFileSync } from 'child_process';
+import { Jimp } from 'jimp';
 
 // Image optimization settings
 const OPTIMIZATION_CONFIG = {
@@ -15,15 +15,15 @@ const OPTIMIZATION_CONFIG = {
     formats: ['png'], // Keep PNG for icons
     quality: 90
   },
-  // Content images - convert to WebP
+  // Content images
   content: {
-    formats: ['webp', 'png'], // WebP + PNG fallback
+    formats: ['png'], // Using PNG since Jimp handles it natively without binaries
     quality: 85,
     sizes: [400, 800, 1200] // Responsive sizes
   }
 };
 
-function optimizeImage(inputPath, outputPath, options) {
+async function optimizeImage(inputPath, outputPath, options) {
   try {
     // Create output directory if it doesn't exist
     const outputDir = path.dirname(outputPath);
@@ -31,18 +31,27 @@ function optimizeImage(inputPath, outputPath, options) {
       fs.mkdirSync(outputDir, { recursive: true });
     }
 
-    // Use sharp for image processing (if available) or fallback to imagemin
-    execFileSync('npx', ['sharp', inputPath, '--output', outputPath, '--quality', options.quality], { stdio: 'inherit' });
+    // Using Jimp (Pure JS) instead of Sharp for F-Droid compliance
+    const image = await Jimp.read(inputPath);
     
-    console.log(`✅ Optimized: ${inputPath} -> ${outputPath}`);
+    // Resize if requested in options
+    if (options.resize) {
+      image.resize({ w: options.resize });
+    }
+
+    // Set quality (Jimp supports quality on export)
+    // NOTE: In Jimp v1, quality and writing are handled differently.
+    await image.write(outputPath);
+
+    console.log(`✅ Optimized (Jimp): ${inputPath} -> ${outputPath}`);
   } catch (error) {
-    console.error(`❌ Failed to optimize ${inputPath}:`, error.message);
+    console.error(`❌ Failed to process ${inputPath} with Jimp:`, error.message);
   }
 }
 
-function processImages() {
-  const publicDir = path.join(__dirname, '../public');
-  const outputDir = path.join(__dirname, '../public/optimized');
+async function processImages() {
+  const publicDir = path.join(process.cwd(), 'public');
+  const outputDir = path.join(process.cwd(), 'public/optimized');
 
   // Process icons (keep PNG)
   const iconFiles = [
@@ -63,38 +72,39 @@ function processImages() {
     if (fs.existsSync(inputPath)) {
       // Copy icons as-is (no conversion for compatibility)
       const outputPath = path.join(outputDir, file);
+      if (!fs.existsSync(outputDir)) {
+        fs.mkdirSync(outputDir, { recursive: true });
+      }
       fs.copyFileSync(inputPath, outputPath);
       console.log(`📋 Copied icon: ${file}`);
     }
   });
 
-  // Process content images (convert to WebP)
+  // Process content images
   console.log('🔧 Processing content images...');
   const contentImages = ['qibla.png', 'apple-touch-icon.png'];
   
-  contentImages.forEach(file => {
+  for (const file of contentImages) {
     const inputPath = path.join(publicDir, file);
     if (fs.existsSync(inputPath)) {
-      // Create WebP version
-      const webpPath = path.join(outputDir, file.replace('.png', '.webp'));
-      optimizeImage(inputPath, webpPath, { quality: 85 });
+      const outputPath = path.join(outputDir, file);
+      await optimizeImage(inputPath, outputPath, { quality: 85 });
       
       // Create responsive sizes
-      OPTIMIZATION_CONFIG.content.sizes.forEach(size => {
-        const resizedPath = path.join(outputDir, `${size}-${file.replace('.png', '.webp')}`);
-         try {
-           execFileSync('npx', ['sharp', inputPath, '--resize', size.toString(), '--output', resizedPath, '--quality', '85'], { stdio: 'inherit' });
-           console.log(`📐 Created ${size}px version: ${resizedPath}`);
-         } catch (error) {
-           console.error(`❌ Failed to create ${size}px version:`, error.message);
-         }
-      });
+      for (const size of OPTIMIZATION_CONFIG.content.sizes) {
+        const resizedPath = path.join(outputDir, `${size}-${file}`);
+        await optimizeImage(inputPath, resizedPath, { resize: size, quality: 85 });
+      }
     }
-  });
+  }
 }
 
-if (import.meta.url === `file://${process.argv[1]}`) {
-  processImages();
+// Fixed path for ES modules
+import { fileURLToPath } from 'url';
+const __filename = fileURLToPath(import.meta.url);
+
+if (__filename === process.argv[1]) {
+  processImages().then(() => console.log('🚀 Image optimization complete!'));
 }
 
 export { processImages, OPTIMIZATION_CONFIG };
