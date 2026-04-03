@@ -182,7 +182,6 @@
             <meta-data android:name="android.appwidget.provider"
                        android:resource="@xml/widget_radio_info"/>
         </receiver>
-
     </application>
 
 </manifest>

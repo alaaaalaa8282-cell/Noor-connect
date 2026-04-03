@@ -1,0 +1,37 @@
+---
+Categories:
+  - Religion
+License: MIT
+SourceCode: https://github.com/darkmaster0345/Noor-connect
+IssueTracker: https://github.com/darkmaster0345/Noor-connect/issues
+Repo: https://github.com/darkmaster0345/Noor-connect.git
+RepoType: git
+
+AutoName: Noor Connect
+
+Builds:
+  - versionName: 1.2.0
+    versionCode: 4
+    commit: b6868cfb3ab355175911e948ad3e6fb29ca97e96
+    subdir: android/app
+    sudo:
+      - apt-get update
+      - apt-get install -y npm
+    gradle:
+      - foss
+    prebuild:
+      - cd ..
+      - sed -i '/@capacitor\/background-runner/d' package.json
+      - npm install
+      - npm run build
+      - npx cap sync android
+
+MaintainerNotes: >
+  Uses Capacitor. background-runner is removed to avoid prebuilt .so files.
+  The foss flavor disables play-services dependency.
+  Build requires Node.js 18+ and npm.
+
+AutoUpdateMode: Version
+UpdateCheckMode: Tags
+CurrentVersion: 1.2.0
+CurrentVersionCode: 4

@@ -77,7 +77,6 @@ class QiblaPlugin : Plugin() {
                     res.put("message", "Permission denied")
                     notifyListeners("permissionDenied", res)
                 }
-                }
                 .build()
 
             isListening = true
