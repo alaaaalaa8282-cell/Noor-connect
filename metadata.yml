@@ -7,7 +7,6 @@ Donate: https://github.com/sponsors/darkmaster0345
 Summary: Your Ultimate Islamic Companion
 Description: |-
     Noor Connect is a comprehensive, beautiful, and privacy-focused Islamic application designed to help you stay connected with your faith. Built with modern web technologies and optimized for mobile experiences via Capacitor, it serves as your digital companion for daily spiritual growth.
-    
     Features:
     * Complete Holy Quran with Tafsir Explorer (25+ commentary editions)
     * Accurate prayer times with Adhan notifications
@@ -19,22 +18,23 @@ Description: |-
     * Privacy-first design with 100% local storage
     * Multilingual support (English, Arabic, Urdu, Bengali, Russian, Kurdish)
 
-RepoType: git
-Repo: https://github.com/darkmaster0345/Noor-connect.git
-
 AntiFeatures:
-  - NonFreeNet
-  - Tracking
+  NonFreeNet:
+    en-US: Connects to third-party web services for Islamic content
+      including prayer times (aladhan.com), Quran text (alquran.cloud),
+      audio recitations (quranicaudio.com), radio stations, and live
+      streaming. No tracking or analytics SDKs present.
 
 Categories:
   - Spirituality
   - Religion
 
+RepoType: git
+Repo: https://github.com/darkmaster0345/Noor-connect.git
+
 Name: Noor Connect
 WebSite: https://github.com/darkmaster0345/Noor-connect
 Author: darkmaster0345
-Email: 
-
 AutoName: Noor Connect
 
 Builds:
