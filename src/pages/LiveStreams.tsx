@@ -1,32 +1,54 @@
 import IslamicStreamPlayer from '@/components/IslamicStreamPlayer';
-import { Radio } from 'lucide-react';
+import { Radio, Wifi, Shield } from 'lucide-react';
 
 export default function LiveStreams() {
   return (
-    <div className="container mx-auto px-4 py-6 pb-24 space-y-6 animate-fade-in">
-      <div className="flex items-center gap-3 mb-2">
-        <Radio className="w-8 h-8 text-emerald-600" />
-        <div>
-          <h1 className="text-2xl font-bold bg-gradient-to-r from-emerald-700 to-emerald-500 bg-clip-text text-transparent">
-            Live Transmission
-          </h1>
-          <p className="text-sm text-muted-foreground">
-            Watch live streams from Makkah and Madinah
-          </p>
+    <div className="min-h-screen bg-background">
+      <div className="max-w-2xl mx-auto px-4 py-6 pb-28 space-y-5">
+
+        {/* Page Header */}
+        <div className="space-y-1">
+          <div className="flex items-center gap-3">
+            <div className="w-10 h-10 rounded-2xl bg-gradient-to-br from-emerald-500 to-teal-600 flex items-center justify-center shadow-lg shadow-emerald-500/20">
+              <Radio className="w-5 h-5 text-white" />
+            </div>
+            <div>
+              <h1 className="text-2xl font-black text-foreground tracking-tight">Live Transmission</h1>
+              <p className="text-xs font-bold text-muted-foreground uppercase tracking-widest">Makkah · Madinah</p>
+            </div>
+          </div>
         </div>
-      </div>
 
-      <IslamicStreamPlayer />
+        {/* Player */}
+        <IslamicStreamPlayer />
 
-      <div className="bg-emerald-50 dark:bg-emerald-950/20 border border-emerald-200 dark:border-emerald-800/50 rounded-lg p-4">
-        <h3 className="font-semibold text-emerald-800 dark:text-emerald-200 mb-2">
-          About the Streams
-        </h3>
-        <p className="text-sm text-emerald-700/80 dark:text-emerald-300/70 leading-relaxed">
-          These live streams are sourced from official Saudi Arabian IPTV channels. 
-          The HLS streams use hls.js (MIT License) for playback. Switch between Makkah and Madinah 
-          using the tabs above. If a stream fails to load, click the retry button or try the other location.
+        {/* Info cards */}
+        <div className="grid grid-cols-2 gap-3">
+          <div className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-4 space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-emerald-500/10 flex items-center justify-center">
+              <Wifi className="w-4 h-4 text-emerald-600" />
+            </div>
+            <p className="text-xs font-bold text-foreground">HLS Stream</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              Official Saudi IPTV via iptv-org open playlist. Falls back to Akamai CDN automatically.
+            </p>
+          </div>
+
+          <div className="rounded-2xl border border-border/50 bg-card/60 backdrop-blur-sm p-4 space-y-2">
+            <div className="w-8 h-8 rounded-xl bg-indigo-500/10 flex items-center justify-center">
+              <Shield className="w-4 h-4 text-indigo-600" />
+            </div>
+            <p className="text-xs font-bold text-foreground">Privacy First</p>
+            <p className="text-[11px] text-muted-foreground leading-relaxed">
+              No tracking, no YouTube. Streams play directly via open-source HLS.js (MIT).
+            </p>
+          </div>
+        </div>
+
+        <p className="text-center text-[11px] text-muted-foreground/50 leading-relaxed">
+          If a stream fails, tap Retry. Switch locations using the Makkah / Madinah tabs.
         </p>
+
       </div>
     </div>
   );
