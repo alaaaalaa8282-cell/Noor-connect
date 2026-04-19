@@ -1,4 +1,4 @@
-﻿import { lazy, Suspense, useEffect, useState } from "react";
+import { lazy, Suspense, useEffect, useState } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -17,7 +17,7 @@ const GlobalPrayerAlarm = lazy(() => import("@/components/GlobalPrayerAlarm").th
 const SalamGreeting = lazy(() => import("@/components/SalamGreeting").then(module => ({ default: module.SalamGreeting })));
 const FestivePopup = lazy(() => import("@/components/FestivePopup").then(module => ({ default: module.FestivePopup })));
 const PWAInstallPrompt = lazy(() => import("@/components/PWAInstallPrompt").then(module => ({ default: module.PWAInstallPrompt })));
-const AppUpdatePrompt = lazy(() => import("@/components/AppUpdatePrompt").then(module => ({ default: module.AppUpdatePrompt })));
+
 
 // Global Radio and Quran Players - imported directly (not lazy loaded to avoid double wrapping)
 import { GlobalRadioPlayer } from "@/components/GlobalRadioPlayer";
@@ -241,7 +241,7 @@ const App = () => {
               <SalamGreeting />
               <FestivePopup />
               <PWAInstallPrompt />
-              <AppUpdatePrompt />
+
               <EidChecklistNotification />
               <FitranaCalculatorNotification />
             </Suspense>

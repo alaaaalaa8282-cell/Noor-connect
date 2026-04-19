@@ -32,7 +32,7 @@ import {
   type ChangeType,
   type VersionChangelog,
 } from '@/lib/changelog';
-import { CURRENT_APP_VERSION } from '@/lib/github-update';
+import { CURRENT_APP_VERSION } from '@/lib/constants';
 import { useToast } from '@/hooks/use-toast';
 
 interface ChangelogProps {

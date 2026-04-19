@@ -1,4 +1,11 @@
 /**
+ * App-level constants
+ */
+
+/** Current application version — update this on every release. */
+export const CURRENT_APP_VERSION = '1.2.0';
+
+/**
 * Metal Price Constants and Configuration
 * Fallback prices and conversion ratios for Zakat calculations
 */

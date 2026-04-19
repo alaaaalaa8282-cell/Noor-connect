@@ -28,7 +28,7 @@ import { usePrayerAlarm } from "@/hooks/usePrayerAlarm";
 import PermissionManager from "@/components/PermissionManager";
 import { Changelog } from "@/components/Changelog";
 import { HapticSettings } from "@/components/HapticSettings";
-import { checkForUpdates, getDownloadUrl, formatReleaseNotes, getLastCheckedTimestamp, CURRENT_APP_VERSION, type UpdateCheckResult } from "@/lib/github-update";
+import { CURRENT_APP_VERSION } from "@/lib/constants";
 import { hasUnseenChangelog, markVersionAsSeen } from "@/lib/changelog";
 import { Badge } from "@/components/ui/badge";
 
@@ -81,12 +81,7 @@ const Profile = () => {
   const [requestingPerm, setRequestingPerm] = useState(false);
   const [genderSettings, setGenderSettingsState] = useState(getGenderSettings());
   
-  // Update check state
-  const [isCheckingUpdates, setIsCheckingUpdates] = useState(false);
-  const [updateResult, setUpdateResult] = useState<UpdateCheckResult | null>(null);
-  const [showUpdateDialog, setShowUpdateDialog] = useState(false);
   const [showChangelog, setShowChangelog] = useState(false);
-  const [hasUnreadChangelog, setHasUnreadChangelog] = useState(false);
 
   // Prayer alarm state
   const {
@@ -500,49 +495,6 @@ const Profile = () => {
     toast({ title: `Hijri Date Offset Updated`, description: `Offset Is Now ${sign}${days} Day${Math.abs(days) !== 1 ? 's' : ''}` });
   };
 
-  // Handle check for updates
-  const handleCheckForUpdates = async () => {
-    setIsCheckingUpdates(true);
-    setUpdateResult(null);
-    
-    try {
-      const result = await checkForUpdates();
-      setUpdateResult(result);
-      
-      if (result.hasUpdate) {
-        setShowUpdateDialog(true);
-      } else if (result.error) {
-        toast({ 
-          title: result.isRateLimited ? t('rateLimited') : t('updateCheckFailed'), 
-          description: result.message,
-          variant: result.isRateLimited ? 'default' : 'destructive'
-        });
-      } else {
-        toast({ 
-          title: t('noUpdatesAvailable'), 
-          description: t('noUpdatesMessage').replace('{version}', result.latestVersion) 
-        });
-      }
-    } catch (error) {
-      toast({ 
-        title: t('updateCheckFailed'), 
-        description: 'An unexpected error occurred.',
-        variant: 'destructive' 
-      });
-    } finally {
-      setIsCheckingUpdates(false);
-    }
-  };
-
-  const handleDownloadUpdate = () => {
-    if (updateResult && 'release' in updateResult) {
-      const downloadUrl = getDownloadUrl(updateResult.release);
-      if (downloadUrl) {
-        window.open(downloadUrl, '_blank');
-      }
-    }
-    setShowUpdateDialog(false);
-  };
 
 
   return (
@@ -1223,19 +1175,6 @@ const Profile = () => {
             <div className="flex gap-2">
               <Button
                 variant="outline"
-                size="sm"
-                className="border-emerald-200 text-emerald-700 hover:bg-emerald-50"
-                onClick={handleCheckForUpdates}
-                disabled={isCheckingUpdates}
-              >
-                {isCheckingUpdates ? (
-                  <RefreshCw className="w-4 h-4 animate-spin" />
-                ) : (
-                  <Download className="w-4 h-4" />
-                )}
-              </Button>
-              <Button
-                variant="outline"
                 className="bg-emerald-600 text-white border-emerald-600 hover:bg-emerald-700 hover:border-emerald-700"
                 onClick={() => window.open('https://github.com/darkmaster0345/Noor-connect', '_blank')}
               >
@@ -1246,60 +1185,7 @@ const Profile = () => {
           </div>
         </Card>
 
-        {/* Check for Updates */}
-        <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px]">
-          <div className="p-5">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4">
-                <div className="relative">
-                  <div className="w-12 h-12 rounded-2xl bg-gradient-to-br from-blue-500/10 to-indigo-500/10 flex items-center justify-center border border-blue-500/20">
-                    <RefreshCw className={`w-6 h-6 text-blue-600 transition-transform ${isCheckingUpdates ? 'animate-spin' : 'hover:rotate-180'}`} />
-                  </div>
-                  {updateResult?.hasUpdate && (
-                    <div className="absolute -top-1 -right-1 w-3 h-3 bg-green-500 rounded-full animate-pulse border-2 border-background" />
-                  )}
-                </div>
-                <div className="space-y-1">
-                  <h3 className="font-bold text-sm text-foreground">{t('checkForUpdates')}</h3>
-                  <p className="text-xs text-muted-foreground">
-                    {getLastCheckedTimestamp() 
-                      ? t('lastChecked').replace('{time}', new Date(getLastCheckedTimestamp()!).toLocaleDateString())
-                      : t('version') + ' ' + CURRENT_APP_VERSION}
-                  </p>
-                  {updateResult?.hasUpdate && (
-                    <p className="text-xs font-medium text-green-600 flex items-center gap-1">
-                      <span className="w-1.5 h-1.5 bg-green-500 rounded-full animate-pulse" />
-                      Update available!
-                    </p>
-                  )}
-                </div>
-              </div>
-              <Button
-                variant="ghost"
-                size="sm"
-                onClick={handleCheckForUpdates}
-                disabled={isCheckingUpdates}
-                className="h-10 w-10 rounded-xl hover:bg-blue-500/10 transition-all duration-200 group"
-              >
-                {isCheckingUpdates ? (
-                  <RefreshCw className="w-5 h-5 text-blue-600 animate-spin" />
-                ) : (
-                  <RefreshCw className="w-5 h-5 text-muted-foreground group-hover:text-blue-600 group-hover:rotate-180 transition-all duration-200" />
-                )}
-              </Button>
-            </div>
-            
-            {/* Update Status Indicator */}
-            {updateResult && !updateResult.hasUpdate && !updateResult.error && (
-              <div className="mt-3 pt-3 border-t border-border/40">
-                <div className="flex items-center gap-2 text-xs text-green-600 bg-green-50 dark:bg-green-900/20 px-3 py-2 rounded-lg">
-                  <div className="w-2 h-2 bg-green-500 rounded-full" />
-                  <span className="font-medium">You're using the latest version</span>
-                </div>
-              </div>
-            )}
-          </div>
-        </Card>
+
 
         {/* Changelog Section */}
         <Card className="overflow-hidden border-border/40 shadow-sm rounded-[24px]">
@@ -1339,52 +1225,7 @@ const Profile = () => {
         </div>
       </div>
 
-      {/* Update Dialog */}
-      {showUpdateDialog && updateResult && 'release' in updateResult && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <Card className="max-w-md w-full p-6 space-y-4">
-            <div className="flex items-center gap-3">
-              <div className="w-12 h-12 rounded-full bg-emerald-100 flex items-center justify-center">
-                <RefreshCw className="w-6 h-6 text-emerald-600" />
-              </div>
-              <div>
-                <h3 className="font-bold text-lg">{t('updateAvailable')}</h3>
-                <p className="text-sm text-muted-foreground">
-                  {t('version')} {updateResult.latestVersion}
-                </p>
-              </div>
-            </div>
-            
-            {updateResult.release.body && (
-              <div className="space-y-2">
-                <Label className="text-xs font-bold uppercase text-muted-foreground">
-                  {t('releaseNotes')}
-                </Label>
-                <div className="bg-muted/50 rounded-lg p-3 max-h-40 overflow-y-auto text-sm">
-                  {formatReleaseNotes(updateResult.release.body)}
-                </div>
-              </div>
-            )}
-            
-            <div className="flex gap-3 pt-2">
-              <Button 
-                variant="outline" 
-                className="flex-1"
-                onClick={() => setShowUpdateDialog(false)}
-              >
-                {t('close') || 'Close'}
-              </Button>
-              <Button 
-                className="flex-1 bg-emerald-600 hover:bg-emerald-700"
-                onClick={handleDownloadUpdate}
-              >
-                <Download className="w-4 h-4 me-2" />
-                {t('downloadUpdate')}
-              </Button>
-            </div>
-          </Card>
-        </div>
-      )}
+
 
       {/* Changelog Dialog */}
       {showChangelog && (

@@ -25,7 +25,7 @@ import { useWidgetSync } from "@/hooks/useWidgetSync";
 import { useIslamicCalendar } from "@/hooks/useIslamicCalendar";
 import { getTimeFormat, formatTime } from "@/lib/time-formatter";
 import { useLocationState } from "@/lib/location-state";
-import { checkForUpdates, getDownloadUrl, formatReleaseNotes, getLastCheckedTimestamp, type UpdateCheckResult, CURRENT_APP_VERSION } from "@/lib/github-update";
+import { CURRENT_APP_VERSION } from "@/lib/constants";
 import { AladhanAPI } from "@/lib/aladhan-api";
 import { type PrayerTime } from "@/lib/local-notifications";
 import { useToast } from "@/hooks/use-toast";

@@ -3,7 +3,7 @@
  * Manages app changelog data and tracks which versions have been seen by the user
  */
 
-import { CURRENT_APP_VERSION } from './github-update';
+import { CURRENT_APP_VERSION } from './constants';
 
 export type ChangeType = 'feature' | 'fix' | 'improvement' | 'breaking' | 'security';
 
