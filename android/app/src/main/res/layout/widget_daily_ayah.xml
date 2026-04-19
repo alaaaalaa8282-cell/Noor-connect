@@ -24,12 +24,13 @@
         android:textSize="20sp" />
 
     <!-- Divider -->
-    <View
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:layout_marginBottom="8dp"
         android:alpha="0.3"
-        android:background="@color/m3_secondary_container" />
+        android:background="@color/m3_secondary_container"
+        android:contentDescription="@null" />
 
     <TextView
         android:id="@+id/ayah_translation"

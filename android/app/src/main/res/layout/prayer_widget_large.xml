@@ -57,11 +57,12 @@
     </RelativeLayout>
 
     <!-- Top divider -->
-    <View
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#FFFFFF20"
-        android:layout_marginBottom="6dp" />
+        android:layout_marginBottom="6dp"
+        android:contentDescription="@null" />
 
     <!-- ══════ PRAYER ROW: FAJR ══════ -->
     <RelativeLayout
@@ -104,7 +105,7 @@
 
     </RelativeLayout>
 
-    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFFFFF12" />
+    <ImageView android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFFFFF12" android:contentDescription="@null" />
 
     <!-- ══════ PRAYER ROW: DHUHR ══════ -->
     <RelativeLayout
@@ -147,7 +148,7 @@
 
     </RelativeLayout>
 
-    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFFFFF12" />
+    <ImageView android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFFFFF12" android:contentDescription="@null" />
 
     <!-- ══════ PRAYER ROW: ASR ══════ -->
     <RelativeLayout
@@ -190,7 +191,7 @@
 
     </RelativeLayout>
 
-    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFFFFF12" />
+    <ImageView android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFFFFF12" android:contentDescription="@null" />
 
     <!-- ══════ PRAYER ROW: MAGHRIB ══════ -->
     <RelativeLayout
@@ -233,7 +234,7 @@
 
     </RelativeLayout>
 
-    <View android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFFFFF12" />
+    <ImageView android:layout_width="match_parent" android:layout_height="1dp" android:background="#FFFFFF12" android:contentDescription="@null" />
 
     <!-- ══════ PRAYER ROW: ISHA ══════ -->
     <RelativeLayout
@@ -277,11 +278,12 @@
     </RelativeLayout>
 
     <!-- Bottom divider -->
-    <View
+    <ImageView
         android:layout_width="match_parent"
         android:layout_height="1dp"
         android:background="#FFFFFF20"
-        android:layout_marginTop="6dp" />
+        android:layout_marginTop="6dp"
+        android:contentDescription="@null" />
 
     <!-- ══════ FOOTER: Location + countdown ══════ -->
     <RelativeLayout
