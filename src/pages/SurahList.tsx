@@ -33,10 +33,10 @@ export default function SurahList() {
 
   return (
     <PageTransition>
-      <div className="min-h-screen bg-[#faf8f5] relative overflow-hidden pb-24">
+      <div className="min-h-screen bg-background relative overflow-hidden pb-24">
         {/* Decorative Background Map/Pattern */}
-        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-200/40 via-amber-100/10 to-transparent pointer-events-none" />
-        <div className="absolute top-20 left-0 w-[400px] h-[400px] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-emerald-100/30 via-transparent to-transparent pointer-events-none" />
+        <div className="absolute top-0 right-0 w-[500px] h-[500px] bg-[radial-gradient(ellipse_at_top_right,_var(--tw-gradient-stops))] from-amber-200/30 via-amber-100/10 to-transparent dark:from-amber-600/10 dark:via-amber-500/5 pointer-events-none" />
+        <div className="absolute top-20 left-0 w-[400px] h-[400px] bg-[radial-gradient(ellipse_at_top_left,_var(--tw-gradient-stops))] from-emerald-100/30 via-transparent to-transparent dark:from-emerald-500/10 pointer-events-none" />
 
         <AppBar title={ti18n('quran') || "Quran"} showBack />
 
@@ -97,7 +97,7 @@ export default function SurahList() {
 
           {/* Enhanced Search Bar */}
           <div className="relative max-w-3xl mx-auto -mt-14 sm:-mt-16 z-20 px-2 sm:px-0">
-            <div className="group shadow-2xl shadow-amber-900/5 rounded-2xl bg-white/90 backdrop-blur-xl border border-white p-2 flex items-center focus-within:ring-4 focus-within:ring-amber-500/20 focus-within:bg-white transition-all duration-300">
+            <div className="group shadow-2xl shadow-amber-900/5 dark:shadow-black/30 rounded-2xl bg-card/90 dark:bg-card/80 backdrop-blur-xl border border-border/50 p-2 flex items-center focus-within:ring-4 focus-within:ring-amber-500/20 transition-all duration-300">
               <div className="flex items-center justify-center w-14 shrink-0">
                  <Search className="w-6 h-6 text-amber-600/50 group-focus-within:text-amber-600 transition-colors duration-300" />
               </div>
@@ -105,7 +105,7 @@ export default function SurahList() {
                 placeholder="Search surah by name, number, or meaning..."
                 value={searchQuery}
                 onChange={(e) => setSearchQuery(e.target.value)}
-                className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent text-lg h-14 placeholder:text-muted-foreground/40 font-medium px-0"
+                className="flex-1 border-0 shadow-none focus-visible:ring-0 bg-transparent text-lg h-14 placeholder:text-muted-foreground/50 font-medium px-0"
               />
               {searchQuery && (
                 <button
@@ -134,23 +134,23 @@ export default function SurahList() {
                 onClick={() => handleSurahClick(surah.number)}
                 className="text-left group outline-none"
               >
-                <div className="relative h-full bg-white rounded-3xl p-6 border border-amber-100/30 shadow-sm hover:shadow-xl hover:shadow-amber-900/5 transition-all duration-300 transform group-hover:-translate-y-1.5 overflow-hidden ring-1 ring-slate-100">
+                <div className="relative h-full bg-card rounded-3xl p-6 border border-border/50 shadow-sm hover:shadow-xl hover:shadow-amber-900/5 dark:hover:shadow-black/30 transition-all duration-300 transform group-hover:-translate-y-1.5 overflow-hidden ring-1 ring-border/40">
                   {/* Subtle background flair */}
-                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-50 rounded-full blur-2xl -z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
+                  <div className="absolute -top-10 -right-10 w-32 h-32 bg-amber-50 dark:bg-amber-500/10 rounded-full blur-2xl -z-0 opacity-0 group-hover:opacity-100 transition-opacity duration-500" />
                   
                   <div className="relative z-10">
                     {/* Header Row */}
                     <div className="flex items-start justify-between mb-5">
                       <div className="relative w-12 h-12 flex items-center justify-center">
-                        <div className="absolute inset-0 bg-amber-50 rotate-45 rounded-xl group-hover:rotate-90 group-hover:bg-amber-400 group-hover:shadow-md transition-all duration-700 ease-in-out border border-amber-100" />
+                        <div className="absolute inset-0 bg-amber-50 dark:bg-amber-500/10 rotate-45 rounded-xl group-hover:rotate-90 group-hover:bg-amber-400 group-hover:shadow-md transition-all duration-700 ease-in-out border border-amber-100 dark:border-amber-500/20" />
                         <span className="relative z-10 font-bold text-[17px] text-amber-700 group-hover:text-white transition-colors duration-300">{surah.number}</span>
                       </div>
                       <Badge 
                         variant="secondary"
                         className={`px-3 py-1 rounded-full text-[10px] font-bold uppercase tracking-widest bg-transparent border 
                           ${surah.revelationType === "Meccan" 
-                            ? "border-emerald-200 text-emerald-600 bg-emerald-50/50" 
-                            : "border-blue-200 text-blue-600 bg-blue-50/50"}`}
+                            ? "border-emerald-200 text-emerald-600 bg-emerald-50/50 dark:border-emerald-500/30 dark:bg-emerald-500/10 dark:text-emerald-300" 
+                            : "border-blue-200 text-blue-600 bg-blue-50/50 dark:border-blue-500/30 dark:bg-blue-500/10 dark:text-blue-300"}`}
                       >
                         {surah.revelationType}
                       </Badge>
@@ -158,17 +158,17 @@ export default function SurahList() {
 
                     {/* Name Row */}
                     <div className="space-y-1 mb-5">
-                      <h3 className="font-bold text-xl text-slate-800 group-hover:text-amber-600 transition-colors">
+                      <h3 className="font-bold text-xl text-foreground group-hover:text-amber-600 transition-colors">
                         {surah.englishName}
                       </h3>
-                      <p className="text-sm text-slate-500 font-medium truncate">
+                      <p className="text-sm text-muted-foreground font-medium truncate">
                         {surah.englishNameTranslation}
                       </p>
                     </div>
 
                     {/* Footer Row */}
-                    <div className="flex items-center justify-between pt-4 border-t border-slate-100/80">
-                      <Badge variant="outline" className="bg-slate-50 text-slate-500 border-none px-2.5 py-1 text-[11px] font-bold tracking-wide">
+                    <div className="flex items-center justify-between pt-4 border-t border-border/50">
+                      <Badge variant="outline" className="bg-muted/50 text-muted-foreground border-none px-2.5 py-1 text-[11px] font-bold tracking-wide">
                         {surah.numberOfAyahs} ayahs
                       </Badge>
                       <p className="font-arabic text-[26px] text-amber-600 group-hover:scale-110 transition-transform duration-500 transform origin-right drop-shadow-sm">
@@ -182,13 +182,13 @@ export default function SurahList() {
           </div>
 
           {filteredSurahs.length === 0 && (
-             <div className="text-center py-24 px-6 bg-white/60 backdrop-blur-md rounded-[3rem] border border-white shadow-xl shadow-amber-900/5">
-               <div className="w-24 h-24 mx-auto bg-amber-50 rounded-full flex items-center justify-center mb-6 shadow-inner border border-amber-100">
+             <div className="text-center py-24 px-6 bg-card/70 dark:bg-card/80 backdrop-blur-md rounded-[3rem] border border-border/50 shadow-xl shadow-amber-900/5 dark:shadow-black/30">
+               <div className="w-24 h-24 mx-auto bg-amber-50 dark:bg-amber-500/10 rounded-full flex items-center justify-center mb-6 shadow-inner border border-amber-100 dark:border-amber-500/20">
                  <Search className="w-10 h-10 text-amber-400" />
                </div>
-               <h3 className="text-2xl font-black text-slate-800 mb-2">No surahs found</h3>
-               <p className="text-slate-500 mb-8 font-medium max-w-md mx-auto">
-                 We couldn't find any surahs matching the term &ldquo;<span className="text-slate-800 font-bold">{searchQuery}</span>&rdquo;. Try searching by another name or number.
+               <h3 className="text-2xl font-black text-foreground mb-2">No surahs found</h3>
+               <p className="text-muted-foreground mb-8 font-medium max-w-md mx-auto">
+                 We couldn't find any surahs matching the term &ldquo;<span className="text-foreground font-bold">{searchQuery}</span>&rdquo;. Try searching by another name or number.
                </p>
                <Button
                  onClick={() => setSearchQuery("")}
@@ -203,4 +203,3 @@ export default function SurahList() {
     </PageTransition>
   );
 }
-

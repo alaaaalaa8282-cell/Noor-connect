@@ -7,7 +7,13 @@
 /* Enhanced Premium Design System - Gold & Black Theme */
 
 @layer base {
+  [data-animations="off"] * {
+    transition: none !important;
+    animation: none !important;
+  }
+
   :root {
+
     /* Enhanced Premium Gold & Black Theme */
     --background: 60 4% 95%;
     --foreground: 24 9% 10%;

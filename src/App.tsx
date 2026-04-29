@@ -1,4 +1,4 @@
-import { lazy, Suspense, useEffect, useState } from "react";
+import { useState, useEffect, Suspense, lazy } from "react";
 import { Toaster } from "@/components/ui/toaster";
 import { Toaster as Sonner } from "@/components/ui/sonner";
 import { TooltipProvider } from "@/components/ui/tooltip";
@@ -11,6 +11,17 @@ import { getPerformanceMonitor } from "@/lib/performance-monitor";
 import { islamicEventsService } from "@/lib/islamic-events-service";
 import { LayoutManager } from "@/components/LayoutManager";
 import { SplashScreen } from "@/components/SplashScreen";
+import { SettingsProvider, useSettings } from "@/contexts/SettingsContext";
+import { AnimatePresence, MotionConfig } from "framer-motion";
+import { useTranslation } from "react-i18next";
+import i18n from "@/lib/i18n-new";
+import { LOCATION_STORAGE_KEY } from "@/lib/location-config";
+
+// Global Players
+import { GlobalRadioPlayer } from "@/components/GlobalRadioPlayer";
+import { GlobalQuranPlayer } from "@/components/GlobalQuranPlayer";
+import { EidChecklistNotification } from "@/components/EidChecklistNotification";
+import { FitranaCalculatorNotification } from "@/components/FitranaCalculatorNotification";
 
 // Lazy load critical components
 const GlobalPrayerAlarm = lazy(() => import("@/components/GlobalPrayerAlarm").then(module => ({ default: module.GlobalPrayerAlarm })));
@@ -18,21 +29,7 @@ const SalamGreeting = lazy(() => import("@/components/SalamGreeting").then(modul
 const FestivePopup = lazy(() => import("@/components/FestivePopup").then(module => ({ default: module.FestivePopup })));
 const PWAInstallPrompt = lazy(() => import("@/components/PWAInstallPrompt").then(module => ({ default: module.PWAInstallPrompt })));
 
-
-// Global Radio and Quran Players - imported directly (not lazy loaded to avoid double wrapping)
-import { GlobalRadioPlayer } from "@/components/GlobalRadioPlayer";
-import { GlobalQuranPlayer } from "@/components/GlobalQuranPlayer";
-import { EidChecklistNotification } from "@/components/EidChecklistNotification";
-import { FitranaCalculatorNotification } from "@/components/FitranaCalculatorNotification";
-
-// Set default theme to light if no preference saved
-if (!localStorage.getItem("theme")) {
-  localStorage.setItem("theme", "light");
-} else if (localStorage.getItem("theme") === "dark") {
-  document.documentElement.classList.add("dark");
-}
-
-// Lazy load route components for code splitting - INCLUDING Dashboard for better LCP
+// Lazy load route components
 const Dashboard = lazy(() => import("./pages/Dashboard"));
 const DashboardWidgets = lazy(() => import("./pages/DashboardWidgets"));
 const SurahList = lazy(() => import("./pages/SurahList"));
@@ -69,52 +66,34 @@ const EidChecklist = lazy(() => import("./pages/EidChecklist"));
 const FitranaCalculator = lazy(() => import("./pages/FitranaCalculator"));
 const NotFound = lazy(() => import("./pages/NotFound"));
 
-import { prefetchCriticalChunks } from "@/lib/build-optimization";
-import { AnimatePresence } from "framer-motion";
-import { useTranslation } from "react-i18next";
-import i18n from "@/lib/i18n-new";
-import { LOCATION_STORAGE_KEY } from "@/lib/location-config";
-
-// Prefetch critical route chunks after initial load
-const prefetchRoutes = () => {
-  // Use optimized prefetch strategy
-  prefetchCriticalChunks();
-};
-
-// Start prefetching once the page is loaded
-if (typeof window !== 'undefined') {
-  if (document.readyState === 'complete') {
-    prefetchRoutes();
-  } else {
-    window.addEventListener('load', prefetchRoutes, { once: true });
-  }
-}
+const bootstrapTheme = localStorage.getItem("theme") ?? "light";
+localStorage.setItem("theme", bootstrapTheme);
+document.documentElement.classList.toggle("dark", bootstrapTheme === "dark");
+document.documentElement.dataset.animations =
+  localStorage.getItem("animationEnabled") === "false" ? "off" : "on";
 
 function AppRoutes() {
   const location = useLocation();
   const { t } = useTranslation(undefined, { i18n });
 
+  // Scroll to top on navigation
+  useEffect(() => {
+    const scrollContainer = document.getElementById("main-content");
+    scrollContainer?.scrollTo({ top: 0, left: 0, behavior: "auto" });
+    window.scrollTo({ top: 0, left: 0, behavior: "auto" });
+  }, [location]);
+
   return (
     <Suspense fallback={
       <div className="flex items-center justify-center min-h-screen bg-gradient-to-br from-[#0a1128] via-[#1a237e] to-[#0d1b2a] relative overflow-hidden">
-        {/* Static background orbs optimized for mobile performance */}
         <div className="absolute top-1/4 left-1/4 w-64 h-64 bg-[#e0c097] rounded-full opacity-5 blur-3xl" />
         <div className="absolute bottom-1/4 right-1/4 w-48 h-48 bg-[#4fd1c5] rounded-full opacity-[0.03] blur-3xl" />
-
         <div className="relative z-10 flex flex-col items-center gap-6">
-          {/* Premium Spinner Container */}
           <div className="relative">
-            {/* Outer ring */}
             <div className="absolute inset-0 rounded-full border-2 border-[#e0c097]/20 scale-150" />
-
-            {/* Spinner */}
             <div className="animate-spin rounded-full h-16 w-16 border-[3px] border-[#e0c097]/30 border-t-[#e0c097]" />
-
-            {/* Inner glow */}
             <div className="absolute inset-2 rounded-full bg-[#e0c097] blur-xl opacity-30 animate-pulse" />
           </div>
-
-          {/* Text with glass effect */}
           <div className="glass-card px-6 py-3 rounded-2xl">
             <p className="text-[#e0c097] text-sm font-semibold tracking-widest uppercase">{t('loading')}</p>
           </div>
@@ -122,7 +101,6 @@ function AppRoutes() {
       </div>
     }>
       <Routes location={location}>
-        {/* Home/Dashboard */}
         <Route path="/" element={<Dashboard />} />
         <Route path="/dashboard" element={<Dashboard />} />
         <Route path="/dashboard-widgets" element={<DashboardWidgets />} />
@@ -161,41 +139,62 @@ function AppRoutes() {
         <Route path="/tafsir" element={<Tafsir />} />
         <Route path="/eid-checklist" element={<EidChecklist />} />
         <Route path="/fitrana-calculator" element={<FitranaCalculator />} />
+        <Route path="/settings" element={<Settings />} />
         <Route path="*" element={<NotFound />} />
       </Routes>
     </Suspense>
   );
 }
 
-const App = () => {
-  // Initialize performance monitoring
+function AppContent() {
+  const { animationEnabled, greetingEnabled } = useSettings();
+  
+  return (
+    <MotionConfig reducedMotion={animationEnabled ? "never" : "always"}>
+      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
+        <div className="flex flex-col min-h-screen overflow-hidden">
+          <div className="flex-shrink-0">
+            <Suspense fallback={null}>
+              <GlobalPrayerAlarm />
+              {greetingEnabled && <SalamGreeting />}
+              <FestivePopup />
+              <PWAInstallPrompt />
+              <EidChecklistNotification />
+              <FitranaCalculatorNotification />
+            </Suspense>
+          </div>
+
+          <LayoutManager>
+            <ErrorBoundary>
+              <AppRoutes />
+            </ErrorBoundary>
+          </LayoutManager>
+        </div>
+
+        <BottomNav />
+        <GlobalRadioPlayer />
+        <GlobalQuranPlayer />
+      </BrowserRouter>
+    </MotionConfig>
+  );
+}
+
+function AppShell() {
+  const [showSplash, setShowSplash] = useState(true);
+  const { animationEnabled, splashGreetingEnabled } = useSettings();
+
   useEffect(() => {
     const monitor = getPerformanceMonitor();
-
-    return () => {
-      monitor.destroy();
-    };
-  }, []);
-
-  // Splash Screen State
-  const [showSplash, setShowSplash] = useState(true);
-
-  // Initialize notification system and Service Worker
-  useEffect(() => {
-    // Start the notification manager (only runs once per app load)
     notificationManager.start();
-
-    // Initialize Islamic events service
+    
     islamicEventsService.scheduleUpcomingEvents().catch(error => {
       console.error('Failed to schedule Islamic events:', error);
     });
 
-    // Register Service Worker (only in production and if not already registered)
     if (import.meta.env.PROD && !navigator.serviceWorker.controller) {
       serviceWorkerManager.register();
     }
 
-    // Start widget auto-updates
     const savedLocation = localStorage.getItem(LOCATION_STORAGE_KEY);
     if (savedLocation) {
       try {
@@ -208,62 +207,36 @@ const App = () => {
       }
     }
 
-    // Initialize global radio state
-    const savedRadioState = localStorage.getItem('global-radio-state');
-    if (savedRadioState) {
-      try {
-        JSON.parse(savedRadioState);
-        // If there was a playing station when app closed, the GlobalRadioPlayer will handle auto-showing
-      } catch (error) {
-        console.error('Failed to restore radio state:', error);
-      }
-    }
-
-    // Cleanup on unmount
     return () => {
+      monitor.destroy();
       notificationManager.stop();
     };
-  }, []); // Remove dependencies to prevent re-runs
+  }, []);
 
   return (
     <TooltipProvider>
       <Toaster />
       <Sonner />
       <AnimatePresence>
-        {showSplash && <SplashScreen onComplete={() => setShowSplash(false)} />}
+        {showSplash && (
+          <SplashScreen
+            animationsEnabled={animationEnabled}
+            showGreeting={splashGreetingEnabled}
+            onComplete={() => setShowSplash(false)}
+          />
+        )}
       </AnimatePresence>
-      <BrowserRouter future={{ v7_startTransition: true, v7_relativeSplatPath: true }}>
-        <div className="flex flex-col min-h-screen overflow-hidden">
-          {/* Header/Top Elements */}
-          <div className="flex-shrink-0">
-            <Suspense fallback={null}>
-              <GlobalPrayerAlarm />
-              <SalamGreeting />
-              <FestivePopup />
-              <PWAInstallPrompt />
-
-              <EidChecklistNotification />
-              <FitranaCalculatorNotification />
-            </Suspense>
-          </div>
-
-          {/* Main Content - Takes available space */}
-          <LayoutManager>
-            <ErrorBoundary>
-              <AppRoutes />
-            </ErrorBoundary>
-          </LayoutManager>
-        </div>
-
-        {/* Bottom Navigation */}
-        <BottomNav />
-
-        {/* Global Players - Only render when needed */}
-        <GlobalRadioPlayer />
-        <GlobalQuranPlayer />
-      </BrowserRouter>
+      <AppContent />
     </TooltipProvider>
   );
-};
+}
+
+function App() {
+  return (
+    <SettingsProvider>
+      <AppShell />
+    </SettingsProvider>
+  );
+}
 
 export default App;

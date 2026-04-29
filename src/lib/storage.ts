@@ -58,7 +58,7 @@ export const storage = {
 
 // Theme
 export const getTheme = (): 'dark' | 'light' => {
-  return (localStorage.getItem(STORAGE_KEYS.THEME) as 'dark' | 'light') || 'dark';
+  return (localStorage.getItem(STORAGE_KEYS.THEME) as 'dark' | 'light') || 'light';
 };
 
 export const setTheme = (theme: 'dark' | 'light'): void => {

@@ -103,7 +103,7 @@ As per the `.fdroid.yml` config, run Gradle with the `foss` directive:
 
 ## 📄 License & Open-Source
 
-This project is generously licensed under the [MIT License](LICENSE).
+This project is licensed under the [GNU General Public License v3.0](LICENSE).
 
 <p align="center">
   <i>"Indeed, in the remembrance of Allah do hearts find rest." (Ar-Ra'd 13:28)</i>

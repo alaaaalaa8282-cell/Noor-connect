@@ -16,7 +16,7 @@ const isStandaloneMode = (): boolean => {
 };
 
 // Star component purely for visual flair
-function FloatingStars() {
+function FloatingStars({ enabled }: { enabled: boolean }) {
     const stars = useMemo(() =>
         Array.from({ length: 10 }, (_, i) => ({
             id: i,
@@ -29,7 +29,7 @@ function FloatingStars() {
 
     return (
         <div className="absolute inset-0 overflow-hidden pointer-events-none">
-            {stars.map((star) => (
+            {!enabled ? null : stars.map((star) => (
                 <motion.div
                     key={star.id}
                     initial={{ opacity: 0.2, scale: 0.8 }}
@@ -54,12 +54,12 @@ function FloatingStars() {
 }
 
 // App Icon Component
-function AppIcon() {
+function AppIcon({ animationsEnabled }: { animationsEnabled: boolean }) {
     return (
         <motion.div
-            initial={{ scale: 0.8, opacity: 0, rotate: -180 }}
+            initial={animationsEnabled ? { scale: 0.8, opacity: 0, rotate: -180 } : false}
             animate={{ scale: 1, opacity: 1, rotate: 0 }}
-            transition={{ duration: 1, ease: "easeOut" }}
+            transition={animationsEnabled ? { duration: 1, ease: "easeOut" } : { duration: 0 }}
             className="relative"
         >
             {/* Icon Container with Premium Styling */}
@@ -106,9 +106,9 @@ function AppIcon() {
             {/* Glow Effect */}
             <motion.div
                 className="absolute inset-0 rounded-2xl"
-                initial={{ opacity: 0 }}
-                animate={{ opacity: 0.6 }}
-                transition={{ delay: 0.5, duration: 1 }}
+                initial={animationsEnabled ? { opacity: 0 } : { opacity: 0.35 }}
+                animate={{ opacity: animationsEnabled ? 0.6 : 0.35 }}
+                transition={animationsEnabled ? { delay: 0.5, duration: 1 } : { duration: 0 }}
                 style={{
                     background: "radial-gradient(circle, rgba(212, 175, 55, 0.4) 0%, transparent 70%)",
                     filter: "blur(20px)",
@@ -119,18 +119,23 @@ function AppIcon() {
     );
 }
 
-export function SplashScreen({ onComplete }: { onComplete: () => void }) {
+interface SplashScreenProps {
+    animationsEnabled: boolean;
+    showGreeting: boolean;
+    onComplete: () => void;
+}
+
+export function SplashScreen({ animationsEnabled, showGreeting, onComplete }: SplashScreenProps) {
     const [isVisible, setIsVisible] = useState(true);
 
     useEffect(() => {
-        // Just show splash screen for a short duration then finish
         const timer = setTimeout(() => {
             setIsVisible(false);
-            setTimeout(onComplete, 400); // 400ms for exit animation
-        }, 1500); // reduced splash time
+            setTimeout(onComplete, animationsEnabled ? 400 : 0);
+        }, animationsEnabled ? 1500 : 900);
 
         return () => clearTimeout(timer);
-    }, [onComplete]);
+    }, [animationsEnabled, onComplete]);
 
     return (
         <AnimatePresence>
@@ -138,19 +143,19 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                 <motion.div
                     initial={{ opacity: 1 }}
                     exit={{ opacity: 0 }}
-                    transition={{ duration: 0.4, ease: "easeInOut" }}
+                    transition={animationsEnabled ? { duration: 0.4, ease: "easeInOut" } : { duration: 0.08 }}
                     className="fixed inset-0 z-[100] flex flex-col items-center justify-center bg-[#0a1128] overflow-hidden"
                     style={{
                         background: "linear-gradient(135deg, #0a1128 0%, #1a237e 50%, #0d1b2a 100%)",
                     }}
                 >
                     {/* Stars Background */}
-                    <FloatingStars />
+                    <FloatingStars enabled={animationsEnabled} />
 
                     {/* Main Content */}
                     <div className="relative z-10 flex flex-col items-center justify-center space-y-6 px-4">
                         {/* App Icon */}
-                        <AppIcon />
+                        <AppIcon animationsEnabled={animationsEnabled} />
 
                         {/* App Title with Premium Glass Card */}
                         <div className="glass-card px-8 py-4">
@@ -168,9 +173,11 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                             </h1>
                         </div>
 
-                        <p className="text-sm text-[#D4AF37]/80 uppercase tracking-[0.3em] font-semibold">
-                            Islamic Companion
-                        </p>
+                        {showGreeting && (
+                            <p className="text-sm text-[#D4AF37]/80 uppercase tracking-[0.3em] font-semibold">
+                                Islamic Companion
+                            </p>
+                        )}
 
                         {/* Reserve vertical space to prevent CLS when switching splash content */}
                         <div className="w-full max-w-sm min-h-[50px] flex items-center justify-center mt-8">
@@ -179,13 +186,13 @@ export function SplashScreen({ onComplete }: { onComplete: () => void }) {
                                     <motion.div
                                         key={i}
                                         className="w-2 h-2 rounded-full bg-[#D4AF37]"
-                                        animate={{ y: [0, -6, 0] }}
-                                        transition={{
+                                        animate={animationsEnabled ? { y: [0, -6, 0] } : { y: 0 }}
+                                        transition={animationsEnabled ? {
                                             duration: 0.6,
                                             repeat: Infinity,
                                             delay: i * 0.15,
                                             ease: "easeInOut"
-                                        }}
+                                        } : { duration: 0 }}
                                         style={{
                                             boxShadow: "0 0 8px rgba(212, 175, 55, 0.6)",
                                         }}

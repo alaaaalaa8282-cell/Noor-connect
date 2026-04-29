@@ -1,14 +1,18 @@
 import { useEffect, useRef } from 'react';
 
-const GREETING_ENABLED_KEY = 'salam-greeting-enabled';
+const GREETING_ENABLED_KEY = 'greetingEnabled';
+const LEGACY_GREETING_ENABLED_KEY = 'salam-greeting-enabled';
 const GREETING_PLAYED_KEY = 'salam-greeting-played-session';
 
 export const isSalamGreetingEnabled = (): boolean => {
-  return localStorage.getItem(GREETING_ENABLED_KEY) !== 'false'; // Enabled by default
+  const currentValue = localStorage.getItem(GREETING_ENABLED_KEY);
+  if (currentValue !== null) return currentValue !== 'false';
+  return localStorage.getItem(LEGACY_GREETING_ENABLED_KEY) !== 'false';
 };
 
 export const setSalamGreetingEnabled = (enabled: boolean): void => {
   localStorage.setItem(GREETING_ENABLED_KEY, enabled ? 'true' : 'false');
+  localStorage.removeItem(LEGACY_GREETING_ENABLED_KEY);
 };
 
 export const SalamGreeting = () => {

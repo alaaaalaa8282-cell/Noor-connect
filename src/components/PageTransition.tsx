@@ -1,5 +1,6 @@
 import { motion } from "framer-motion";
 import { ReactNode } from "react";
+import { useSettings } from "@/contexts/SettingsContext";
 
 interface PageTransitionProps {
     children: ReactNode;
@@ -22,6 +23,12 @@ const pageTransition = {
 } as const;
 
 export const PageTransition = ({ children, className = "" }: PageTransitionProps) => {
+    const { animationEnabled } = useSettings();
+
+    if (!animationEnabled) {
+        return <div className={`w-full h-full ${className}`}>{children}</div>;
+    }
+
     return (
         <motion.div
             initial="initial"

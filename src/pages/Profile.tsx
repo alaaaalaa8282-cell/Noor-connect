@@ -2,7 +2,7 @@ import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
 import { useLanguage } from "@/contexts/LanguageContext-new";
 import { useI18n } from "@/hooks/useI18n";
-import { ArrowLeft, Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones, Settings, Clock, Package, Vibrate } from "lucide-react";
+import { Moon, Sun, Download, Upload, Trash2, HardDrive, Calculator, Volume2, Bell, BellOff, Calendar, Heart, BookOpen, Mail, HandHeart, Type, MessageCircle, Globe, User, UserCircle, UserX, ShieldCheck, ShieldOff, Smartphone, AlertTriangle, RefreshCw, Headphones, Settings, Clock, Package, Vibrate } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Label } from "@/components/ui/label";
@@ -10,14 +10,13 @@ import { Switch } from "@/components/ui/switch";
 import { Slider } from "@/components/ui/slider";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { useToast } from "@/hooks/use-toast";
-import { getTheme, setTheme, getMadhab, setMadhab, getTimeFormat, setTimeFormat as saveTimeFormat } from "@/lib/storage";
+import { getMadhab, setMadhab, getTimeFormat, setTimeFormat as saveTimeFormat } from "@/lib/storage";
 import { AdhanSelector } from "@/components/AdhanSelector";
 import { CustomAdhanUpload } from "@/components/CustomAdhanUpload";
-import { getCalculationMethod, setCalculationMethod, CALCULATION_METHOD_LABELS, type CalculationMethodName } from "@/lib/prayer-calculator";
+import { getCalculationMethod, setCalculationMethod, type CalculationMethodName } from "@/lib/prayer-calculator";
 import { AladhanAPI } from "@/lib/aladhan-api";
 import { getStorageStats, clearAllBooks, formatFileSize, downloadBook, isBookDownloaded } from "@/lib/ebooks-storage";
 import { downloadBackup, importBackup, clearCache, getQuranFontSize, setQuranFontSize } from "@/lib/backup";
-import { isSalamGreetingEnabled, setSalamGreetingEnabled } from "@/components/SalamGreeting";
 import { notificationManager, type NotificationPreferences } from "@/lib/notification-manager";
 import { localNotifications } from "@/lib/local-notifications";
 import { PrayerMethodSelector } from "@/components/PrayerMethodSelector";
@@ -29,8 +28,8 @@ import PermissionManager from "@/components/PermissionManager";
 import { Changelog } from "@/components/Changelog";
 import { HapticSettings } from "@/components/HapticSettings";
 import { CURRENT_APP_VERSION } from "@/lib/constants";
-import { hasUnseenChangelog, markVersionAsSeen } from "@/lib/changelog";
-import { Badge } from "@/components/ui/badge";
+import { hasUnseenChangelog } from "@/lib/changelog";
+import { useSettings } from "@/contexts/SettingsContext";
 
 // Changelog badge component
 const ChangelogBadge = () => {
@@ -52,16 +51,24 @@ const Profile = () => {
   const { toast } = useToast();
   const { language, setLanguage, t } = useLanguage();
   const { t: ti18n } = useI18n();
+  const {
+    theme,
+    setTheme,
+    animationEnabled,
+    setAnimationEnabled,
+    greetingEnabled,
+    setGreetingEnabled,
+    splashGreetingEnabled,
+    setSplashGreetingEnabled,
+  } = useSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
 
-  const [isDarkMode, setIsDarkMode] = useState(false);
   const [madhab, setMadhabState] = useState<"shafi" | "hanafi">("shafi");
   const [timeFormat, setTimeFormatState] = useState<"12" | "24">("24");
   const [calculationMethod, setCalculationMethodState] = useState<CalculationMethodName>("MuslimWorldLeague");
   const [quranFontSize, setQuranFontSizeState] = useState(24);
   const [quranFont, setQuranFontState] = useState<QuranFont>("uthmani");
   const [storageStats, setStorageStats] = useState({ totalBooks: 0, totalSize: 0 });
-  const [salamGreetingEnabled, setSalamGreetingEnabledState] = useState(true);
   const [notificationPrefs, setNotificationPrefs] = useState<NotificationPreferences>({
     ramadanCountdowns: true,
     eidGreetings: true,
@@ -110,13 +117,11 @@ const Profile = () => {
   }, []);
 
   useEffect(() => {
-    setIsDarkMode(getTheme() === "dark");
     setMadhabState(getMadhab());
     setTimeFormatState(getTimeFormat());
     setCalculationMethodState(getCalculationMethod());
     setQuranFontSizeState(getQuranFontSize());
     setQuranFontState(quranFontManager.getCurrentFont());
-    setSalamGreetingEnabledState(isSalamGreetingEnabled());
     setGenderSettingsState(getGenderSettings());
 
     // Initialize Quran font manager
@@ -167,9 +172,18 @@ const Profile = () => {
   }, []);
 
   const handleSalamGreetingToggle = (checked: boolean) => {
-    setSalamGreetingEnabledState(checked);
-    setSalamGreetingEnabled(checked);
+    setGreetingEnabled(checked);
     toast({ title: ti18n(checked ? 'salamGreetingEnabled' : 'salamGreetingDisabled') });
+  };
+
+  const handleAnimationToggle = (checked: boolean) => {
+    setAnimationEnabled(checked);
+    toast({ title: checked ? 'Animations enabled' : 'Animations disabled' });
+  };
+
+  const handleSplashGreetingToggle = (checked: boolean) => {
+    setSplashGreetingEnabled(checked);
+    toast({ title: checked ? 'Splash text enabled' : 'Splash text hidden' });
   };
 
   const handleNotificationToggle = async (key: keyof NotificationPreferences, checked: boolean) => {
@@ -302,10 +316,7 @@ const Profile = () => {
     });
   };
 
-  const toggleTheme = (checked: boolean) => {
-    setIsDarkMode(checked);
-    setTheme(checked ? "dark" : "light");
-  };
+  const toggleTheme = (checked: boolean) => setTheme(checked ? "dark" : "light");
 
   const handleMadhabChange = (value: "shafi" | "hanafi") => {
     setMadhabState(value);
@@ -540,15 +551,54 @@ const Profile = () => {
 
                 <div className="flex items-center justify-between py-2">
                   <div className="flex items-center gap-4">
-                    <div className={`p-2.5 rounded-xl ${isDarkMode ? 'bg-indigo-500/10 text-indigo-500' : 'bg-orange-500/10 text-orange-500'}`}>
-                      {isDarkMode ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
+                    <div className={`p-2.5 rounded-xl ${theme === 'dark' ? 'bg-indigo-500/10 text-indigo-500' : 'bg-orange-500/10 text-orange-500'}`}>
+                      {theme === 'dark' ? <Moon className="w-5 h-5" /> : <Sun className="w-5 h-5" />}
                     </div>
                     <div>
                       <Label className="text-sm font-bold">{t('darkMode')}</Label>
-                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">System Theme</p>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">App Theme</p>
                     </div>
                   </div>
-                  <Switch checked={isDarkMode} onCheckedChange={toggleTheme} className="data-[state=checked]:bg-primary" />
+                  <Switch checked={theme === 'dark'} onCheckedChange={toggleTheme} className="data-[state=checked]:bg-primary" />
+                </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2.5 rounded-xl ${animationEnabled ? 'bg-emerald-500/10 text-emerald-600' : 'bg-slate-500/10 text-slate-500'}`}>
+                      <Vibrate className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-bold">Animations</Label>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Turn off motion-heavy effects</p>
+                    </div>
+                  </div>
+                  <Switch checked={animationEnabled} onCheckedChange={handleAnimationToggle} className="data-[state=checked]:bg-primary" />
+                </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2.5 rounded-xl ${greetingEnabled ? 'bg-primary/10 text-primary' : 'bg-muted text-muted-foreground'}`}>
+                      <Volume2 className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-bold">Salam Greeting</Label>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Play once after launch</p>
+                    </div>
+                  </div>
+                  <Switch checked={greetingEnabled} onCheckedChange={handleSalamGreetingToggle} className="data-[state=checked]:bg-primary" />
+                </div>
+
+                <div className="flex items-center justify-between py-2">
+                  <div className="flex items-center gap-4">
+                    <div className={`p-2.5 rounded-xl ${splashGreetingEnabled ? 'bg-amber-500/10 text-amber-600' : 'bg-muted text-muted-foreground'}`}>
+                      <MessageCircle className="w-5 h-5" />
+                    </div>
+                    <div>
+                      <Label className="text-sm font-bold">Splash Text</Label>
+                      <p className="text-[10px] text-muted-foreground font-medium uppercase tracking-tighter">Show the launch subtitle</p>
+                    </div>
+                  </div>
+                  <Switch checked={splashGreetingEnabled} onCheckedChange={handleSplashGreetingToggle} className="data-[state=checked]:bg-primary" />
                 </div>
               </div>
             </Card>
