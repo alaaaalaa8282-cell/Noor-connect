@@ -13,8 +13,14 @@
     <string name="widget_time_remaining_default">calculating…</string>
 
     <!-- Widget descriptions (shown in widget picker) -->
+    <string name="widget_small_desc">Next prayer summary widget</string>
+    <string name="widget_medium_desc">Next prayer with location and prayer status dots</string>
     <string name="widget_large_desc">Full prayer timetable with Hijri date</string>
     <string name="widget_quran_desc">Daily Quranic verse with Arabic text</string>
+    <string name="widget_next_adhan_desc">Countdown to the next prayer</string>
+    <string name="widget_daily_schedule_desc">Daily prayer schedule list</string>
+    <string name="widget_daily_ayah_desc">Daily ayah with translation and reference</string>
+    <string name="widget_radio_desc">Quran radio controls</string>
 
     <!-- Hijri date placeholder -->
     <string name="widget_hijri_default">Rajab 1446</string>
