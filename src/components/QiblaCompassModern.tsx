@@ -18,7 +18,6 @@ import {
   type QiblaResult,
   KAABA_COORDINATES,
 } from '@/lib/qibla';
-import { useI18n } from '@/hooks/useI18n';
 import { cn } from "@/lib/utils";
 import { motion } from "framer-motion";
 
@@ -109,7 +108,7 @@ const IslamicOrnament = () => (
 
 // ─── Component ────────────────────────────────────────────────
 const QiblaCompassModern = () => {
-  const { t: ti18n } = useI18n();
+  
 
   // ── Location State ───────────────────────────────────────────
   const [isLoadingLocation, setIsLoadingLocation] = useState(true);
