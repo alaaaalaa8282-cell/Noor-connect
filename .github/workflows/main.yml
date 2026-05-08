@@ -1,0 +1,62 @@
+name: Build Noor Connect APK
+
+on:
+  push:
+    branches: [ main ]
+  workflow_dispatch:
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    steps:
+      # 1. Checkout الكود
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      # 2. إعداد Node.js
+      - name: Setup Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+          cache: 'npm'
+
+      # 3. تثبيت الحزم
+      - name: Install dependencies
+        run: npm ci
+
+      # 4. بناء الـ Web (Vite)
+      - name: Build web assets
+        run: npm run build
+
+      # 5. إعداد Java 17
+      - name: Setup Java JDK
+        uses: actions/setup-java@v4
+        with:
+          distribution: 'temurin'
+          java-version: '17'
+
+      # 6. تثبيت Capacitor CLI
+      - name: Install Capacitor CLI
+        run: npm install -g @capacitor/cli
+
+      # 7. مزامنة الكود مع Android
+      - name: Sync Capacitor Android
+        run: npx cap sync android
+
+      # 8. إعطاء صلاحية للـ gradlew
+      - name: Make gradlew executable
+        run: chmod +x android/gradlew
+
+      # 9. بناء APK (Debug - بدون توقيع)
+      - name: Build Debug APK
+        working-directory: android
+        run: ./gradlew assembleDebug --no-daemon
+
+      # 10. رفع الـ APK كـ Artifact
+      - name: Upload APK
+        uses: actions/upload-artifact@v4
+        with:
+          name: NoorConnect-debug-apk
+          path: android/app/build/outputs/apk/debug/app-debug.apk
+          retention-days: 30
